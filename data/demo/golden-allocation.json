@@ -1,0 +1,80 @@
+{
+  "description": "Independent two-day meals fixture, not a measured real-world impact claim. Transfers arrive before day-one demand. Lost sales, no backlog or relay.",
+  "category": {
+    "id": "meals",
+    "unit": "meal",
+    "handling_units_per_unit": 1
+  },
+  "horizon_days": 2,
+  "sites": [
+    {
+      "id": "north",
+      "stock": 40,
+      "demand": [
+        50,
+        40
+      ],
+      "min_end_reserve": 0,
+      "max_inbound": 40
+    },
+    {
+      "id": "central",
+      "stock": 200,
+      "demand": [
+        30,
+        30
+      ],
+      "min_end_reserve": 40,
+      "max_inbound": 0
+    },
+    {
+      "id": "south",
+      "stock": 70,
+      "demand": [
+        30,
+        30
+      ],
+      "min_end_reserve": 10,
+      "max_inbound": 0
+    }
+  ],
+  "allowed_routes": [
+    {
+      "from": "central",
+      "to": "north",
+      "cost_per_unit": 1
+    },
+    {
+      "from": "south",
+      "to": "north",
+      "cost_per_unit": 2
+    }
+  ],
+  "max_total_handling_units": 40,
+  "expected": {
+    "solver_status": "OPTIMAL",
+    "transfers": [
+      {
+        "from": "central",
+        "to": "north",
+        "quantity": 40
+      }
+    ],
+    "unmet_before": 50,
+    "unmet_after": 10,
+    "movement_cost": 40,
+    "source_central_end_stock": 100,
+    "source_south_end_stock": 10
+  },
+  "surge": {
+    "site": "north",
+    "multiplier": 1.25,
+    "rounding": "ceil each daily demand for integer solver",
+    "demand": [
+      63,
+      50
+    ],
+    "unmet_before": 73,
+    "unmet_after": 33
+  }
+}

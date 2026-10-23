@@ -1,0 +1,109 @@
+{
+  "enabled": false,
+  "note": "Enable only after scaffold commands work. Disabled is UNVERIFIED. CI invokes gates explicitly regardless of enabled.",
+  "timeoutSeconds": 90,
+  "budgetSeconds": {
+    "quick": 120,
+    "full": 600,
+    "e2e": 300
+  },
+  "gates": {
+    "quick": [
+      {
+        "name": "web typecheck",
+        "cwd": "apps/web",
+        "command": "npm",
+        "args": [
+          "run",
+          "typecheck"
+        ]
+      },
+      {
+        "name": "web lint",
+        "cwd": "apps/web",
+        "command": "npm",
+        "args": [
+          "run",
+          "lint"
+        ]
+      },
+      {
+        "name": "api lint",
+        "cwd": "apps/api",
+        "command": "uv",
+        "args": [
+          "run",
+          "--frozen",
+          "ruff",
+          "check",
+          "."
+        ]
+      },
+      {
+        "name": "api tests",
+        "cwd": "apps/api",
+        "command": "uv",
+        "args": [
+          "run",
+          "--frozen",
+          "pytest",
+          "-q"
+        ]
+      }
+    ],
+    "full": [
+      {
+        "name": "web unit tests",
+        "cwd": "apps/web",
+        "command": "npm",
+        "args": [
+          "run",
+          "test:unit"
+        ]
+      },
+      {
+        "name": "web build",
+        "cwd": "apps/web",
+        "command": "npm",
+        "args": [
+          "run",
+          "build"
+        ],
+        "timeoutSeconds": 180
+      },
+      {
+        "name": "contract drift",
+        "cwd": "apps/web",
+        "command": "npm",
+        "args": [
+          "run",
+          "contracts:check"
+        ]
+      },
+      {
+        "name": "database migrations",
+        "cwd": "apps/api",
+        "command": "uv",
+        "args": [
+          "run",
+          "--frozen",
+          "pytest",
+          "-q",
+          "tests/integration/test_migrations.py"
+        ]
+      }
+    ],
+    "e2e": [
+      {
+        "name": "judge journey",
+        "cwd": "apps/web",
+        "command": "npm",
+        "args": [
+          "run",
+          "test:e2e"
+        ],
+        "timeoutSeconds": 300
+      }
+    ]
+  }
+}

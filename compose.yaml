@@ -1,0 +1,23 @@
+# Local development database only. Mirrors the CI postgres:16 service.
+# Credentials are local test values; never reuse them for preview or demo hosting.
+name: pantrypulse
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: pantrypulse
+      POSTGRES_PASSWORD: local_dev_only
+      POSTGRES_DB: pantrypulse_dev
+    ports:
+      # 5432/5433/15432 are taken by other local Postgres instances on this machine.
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pantrypulse -d pantrypulse_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes:
+  pgdata:
