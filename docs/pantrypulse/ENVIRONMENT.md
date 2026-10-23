@@ -22,6 +22,7 @@ Recorded 2026-10-23 when the Claude Code kit was installed. Update this file whe
 | Agents, skills and rules load in a live session | PENDING | They were installed mid-session. Start a new session in this repo, then confirm the 8 agents and 5 skills appear |
 | PreToolUse hook fires live | PASS | Fired in the installing session and denied a Bash call whose text contained a hard-reset/force pattern. It matches text anywhere in the command, including quoted test strings, so put such strings in a script file |
 | SessionStart hook fires live | PENDING | Confirm in a new session |
+| Stop gate resolves the active worktree | PASS | In a disposable detached worktree at 3f84c9b, path with a space, the main checkout's hook was driven by a synthetic gate: disabled exits 0 with UNVERIFIED, failing exits 2, `stop_hook_active` exits 0, passing exits 0, and evidence is written in the worktree. Worktree removed afterwards |
 | Stop gate | DISABLED (UNVERIFIED) | Enable only after the app's quick-gate commands exist and pass |
 | CI | TEMPLATE ONLY | `.github/workflows/pantrypulse-ci.yml.template` is not active |
 
