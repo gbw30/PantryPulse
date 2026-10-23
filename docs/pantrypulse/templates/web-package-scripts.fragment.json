@@ -1,0 +1,12 @@
+{
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
+    "build": "next build",
+    "dev": "next dev --hostname 127.0.0.1",
+    "start": "next start --hostname 127.0.0.1",
+    "contracts:check": "node ../../scripts/contracts/check.cjs"
+  }
+}

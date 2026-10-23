@@ -1,0 +1,26 @@
+/* Review against ART-DIRECTION.md. Measure contrast on actual rendered combinations. */
+:root {
+  --pp-canvas: #f2f5f4;
+  --pp-surface: #ffffff;
+  --pp-ink: #122a3a;
+  --pp-muted: #4c626d;
+  --pp-line: #ced9dd;
+  --pp-action: #146858;
+  --pp-action-text: #ffffff;
+  --pp-risk: #a52f3a;
+  --pp-risk-bg: #fbe9ec;
+  --pp-warning: #8a5c00;
+  --pp-warning-bg: #fff4d3;
+  --pp-forecast: #315c92;
+  --pp-radius-sm: 6px;
+  --pp-radius-md: 12px;
+  --pp-radius-lg: 18px;
+  --pp-shadow: 0 2px 10px rgb(23 47 42 / 0.05);
+  --pp-font-body: 'IBM Plex Sans', system-ui, sans-serif;
+  --pp-font-display: 'IBM Plex Sans Condensed', 'IBM Plex Sans', sans-serif;
+}
+.pp-number { font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) {
+  .pp-flow-pulse { animation: none; }
+  html { scroll-behavior: auto; }
+}
