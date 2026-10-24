@@ -4,6 +4,13 @@
 
 **Status:** Documentation of accepted design, with unresolved requirements. This is not a complete implementation specification or evidence of working domain functionality. Supplier planning and hosting/model setup remain paused.
 
+**Implementation update (2026-10-24):** The [offline forecasting core](forecasting/IMPLEMENTATION.md)
+now implements experimental internal contracts, revision-aware preparation, baselines,
+evaluation and a pure planning handoff/projection. The inspection paragraph below
+records the earlier checkout. Public contracts, migrations, durable jobs, complete
+scenario persistence, Chronos qualification and solvers remain gated. No OPEN decision
+is resolved by these internal experiment policies.
+
 **Decision record:** [Backend design checkpoint](BACKEND-DESIGN-CHECKPOINT.md), BD-01 through BD-40 and OPEN-01 through OPEN-36. This document explains current requirements; the checkpoint preserves selections, alternatives, progress, and resume instructions.
 
 ## 1. Authority and implementation status

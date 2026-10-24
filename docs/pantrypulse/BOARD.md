@@ -1,6 +1,7 @@
 # PantryPulse delivery board
 
-Update after each integration, not after each agent thought. All initial statuses are TODO; no application has been built by this kit.
+Update after each integration, not after each agent thought. Forecasting core progress
+below is offline evidence only; public API, durable jobs and PostgreSQL gates remain open.
 
 | ID | Outcome | Owner | Depends on | Exit evidence | Status |
 |---|---|---|---|---|---|
@@ -12,9 +13,9 @@ Update after each integration, not after each agent thought. All initial statuse
 | PP-06 | CI and preview skeleton | Lead | PP-02,03 | Reachable web/API/DB | TODO |
 | PP-07 | Sites/inventory/adjustments | Lead/API | PP-03 | Nonnegative/version tests | TODO |
 | PP-08 | CSV demand validation | Forecast | PP-02,03 | Row errors/duplicate/null tests | TODO |
-| PP-09 | Seasonal-naive provider | Forecast | PP-08 | Seven dated points | TODO |
-| PP-10 | Lost-sales inventory projection | Forecast | PP-09 | Golden arithmetic tests | TODO |
-| PP-11 | Chronos adapter and failure fallback | Forecast | PP-09 | Actual provider metadata | TODO |
+| PP-09 | Seasonal-naive provider | Forecast | PP-08 | [Pure core evidence](forecasting/IMPLEMENTATION.md); seven dates, gaps/proxies/revisions, sparse baseline and evaluation | CORE VERIFIED; import/API integration pending |
+| PP-10 | Lost-sales inventory projection | Forecast | PP-09 | Pure lot/expiry/FEFO arithmetic and frozen daily demand tests | PURE CORE VERIFIED; operational snapshot integration pending |
+| PP-11 | Chronos adapter and failure fallback | Forecast | PP-09 | Labeled provider-unavailable boundary and fallback tests | BOUNDARY VERIFIED; actual pinned Chronos UNQUALIFIED/PAUSED |
 | PP-12 | Independent transfer feasibility checker | Solver | PP-02 | Edge fixtures | TODO |
 | PP-13 | OR-Tools allocation | Solver | PP-10,12 | Golden/invariant tests | TODO |
 | PP-14 | Immutable scenario and plan persistence | Solver | PP-13 | Replay and snapshot test | TODO |

@@ -2,7 +2,7 @@
 
 Gator Hack V · October 23–25, 2026. Planned resource-allocation platform comparing classical GP with EGP-PI-inspired optimization.
 
-**Status: development scaffold. Allocation engines, forecasting, domain persistence and the six-beneficiary demo are not implemented.**
+**Status: development scaffold with a tested offline forecasting core. Allocation engines, domain persistence, durable jobs, public forecasting endpoints and the integrated six-beneficiary demo remain unimplemented.**
 
 The [V4 tab](https://docs.google.com/document/d/1WcsV69YCE1mqW2pI7IyEFQBSuwQB_hMhVQKfU20ZFk8/edit?tab=t.951hp1xdarlq) is authoritative. Older three-site contracts are historical where they conflict with V4.
 
@@ -35,10 +35,16 @@ See [Windows development](docs/pantrypulse/WINDOWS-DEVELOPMENT.md), [prioritized
 ## Layout
 
 - apps/web: Next.js, React, TypeScript, Tailwind, shadcn configuration and Playwright scaffold smoke test.
-- apps/api: FastAPI health; uv dependencies for OR-Tools, SQLAlchemy/Alembic/PostgreSQL, pytest, optional Chronos.
+- apps/api: FastAPI health; pure forecasting preparation/baselines/evaluation and lot projection; uv dependencies for OR-Tools, SQLAlchemy/Alembic/PostgreSQL, pytest, optional Chronos.
 - packages/contracts: generated API type boundary after schema validation.
 - data/demo: historical fixture retained; V4 research fixture follows mathematical validation.
 - docs/architecture: decisions and research contract.
 - PantryPulse/: preserved pre-existing untracked nested copy; not part of the canonical workspace.
 
 All planned demonstration data and vulnerability indicators are simulated. P0 will not purchase or dispatch real resources.
+
+The [forecasting core implementation and evidence](docs/pantrypulse/forecasting/IMPLEMENTATION.md)
+includes a deterministic six-beneficiary/one-hub/two-product fixture. Run its offline
+evaluation with `uv run --frozen --directory apps/api python -m scripts.evaluate_forecasting`.
+Actual Chronos inference remains unqualified; the adapter reports unavailability and
+uses a labeled baseline only when fallback is explicitly allowed.
