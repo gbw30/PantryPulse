@@ -2,7 +2,7 @@
 name: forecast-engineer
 description: "Implement demand preparation, seasonal-naive fallback, Chronos-2 adapter, uncertainty and shortage projection with tests."
 model: inherit
-tools: Read, Glob, Grep, Bash, Edit, Write, Skill
+tools: Read, Glob, Grep, Bash, Edit, Write, Skill, LSP, mcp__plugin_context7_context7__*
 maxTurns: 35
 isolation: worktree
 skills:

@@ -1,10 +1,11 @@
 # PantryPulse
 
-V4 authority update (2026-10-23): Start with docs/architecture/0001-v4-research-first.md and docs/pantrypulse/IMPLEMENTATION-PLAN.md. V4 requires six beneficiary institutions plus hub(s), lot-aware FEFO and CLASSICAL_GP versus EGP_PI_INSPIRED with active AP/RP objectives. Older three-site/shortage-first rules below are historical where conflicting. Do not implement complex solver features before the research validation gate.
+V5 authority update (2026-10-24): Start with [docs/pantrypulse/SPEC-V5.md](docs/pantrypulse/SPEC-V5.md). It consolidates V4, accepted BD-01–41, current main and the unmerged forecasting branch, open/paused work and acceptance. Its requirements override conflicting older text below. Preserve six beneficiaries plus hub(s), hard FEFO, both explicit transfer modes with no default, frozen scenarios, durable jobs, the Next.js proxy and the research gate. Branch experiments do not finalize public contracts; hosting/model and supplier planning remain paused.
 
 Build the Gator Hack V 48-hour MVP: three fictional sites, two resource categories, seven-day forecasts, and a 1–3-day simulated allocation window. Preserve the current repository and user changes.
 
 ## Read first
+- docs/pantrypulse/SPEC-V5.md: current project source of truth, code/branch status, accepted decisions, unresolved contracts and acceptance.
 - docs/pantrypulse/PROJECT-CONTRACT.md: scope, units, forecast and solver contracts.
 - docs/pantrypulse/INVARIANTS.md: quantitative truth conditions.
 - docs/pantrypulse/ART-DIRECTION.md: approved visual direction.
@@ -19,7 +20,7 @@ Build the Gator Hack V 48-hour MVP: three fictional sites, two resource categori
 ## Repository map
 The repository root is this folder and the only Git repo. Do not create or run from nested copies; the history of a former nested copy is the `legacy/main` ref.
 - apps/web: Next.js 16 app (src/app, src/lib, tests/e2e, Playwright). It is the only npm workspace; the root package-lock.json owns the lock.
-- apps/api: FastAPI. app/main.py has only GET /api/v1/health. routers/, schemas/, models/, repositories/ and services/{forecasting,inventory,optimization}/ are empty scaffolds that mark ownership boundaries. Also migrations/, tests/ and uv.lock (the Python lock).
+- apps/api: FastAPI with only GET /api/v1/health exposed. Main includes six pure planning/history helpers; domain routers, ORM/repositories/migrations and allocation remain unfinished. The separately reviewed forecasting branch has an offline core; see V5 for its exact unmerged scope. Also tests/ and uv.lock (the Python lock).
 - packages/contracts: shared contract output (README only so far).
 - docs/pantrypulse: product contract, protocol, plans. docs/architecture: ADRs.
 - scripts/quality: gate runner and hook tests. scripts/*-windows.ps1: setup and doctor. data/demo: golden fixtures. .claude: agents, hooks, rules, skills and quality-gate.json.
@@ -38,7 +39,7 @@ The repository root is this folder and the only Git repo. Do not create or run f
 
 ## Superpowers methods
 Superpowers (`superpowers@claude-plugins-official`, reviewed at v7.0.1) supplies engineering methods. The PantryPulse lead stays the orchestrator, and the project agents keep their roles. Precedence, highest first:
-1. The approved PRD (docs/pantrypulse/SOURCE-SPEC.md as resolved by the accepted decisions in PROJECT-CONTRACT.md) and the demo acceptance criteria.
+1. The consolidated project specification docs/pantrypulse/SPEC-V5.md and later explicit user decisions. SOURCE-SPEC.md and PROJECT-CONTRACT.md retain historical material where compatible.
 2. Contracts, invariants and deterministic fixtures.
 3. This file, the rules, the agent definitions and the task packet.
 4. Superpowers skills.
@@ -53,6 +54,12 @@ When a skill conflicts with a project constraint, keep the project rule and use 
 - **`requesting-code-review`:** the reviewer is the project `verifier` agent (or `ux-critic`/`adversarial-reviewer`), given the requirements, diff and tests before any builder rationale. Review depth scales with risk.
 - **`finishing-a-development-branch`:** builders use it only to check readiness, then hand back their commit and evidence. Builders never merge, push, open PRs or discard. The lead integrates; shared-branch merges, discarding work and cleanup of a dirty worktree need the user's approval.
 - **Other skills:** use them when directly relevant. Run `diagnosing-superpowers` only on request, and never file issues without the user's approval.
+
+## Other plugins and domain skills
+- `context7`: look up docs for the versions pinned in package-lock.json and apps/api/uv.lock (Next 16, React 19, Tailwind 4, shadcn 4, OR-Tools 9.15, Chronos 2.3, SQLAlchemy 2). Retrieved docs don't override the repo's locked versions, contracts or tests. Queries go to Upstash, so never include secrets or data.
+- `pyright-lsp`, `typescript-lsp`: diagnostics and navigation. They add to the quick gate; they don't replace it.
+- `frontend-design`: method only. ART-DIRECTION.md and ADR 0002 decide the visual direction and component stack.
+- Project skills: `egp-pi-model` and `cpsat-patterns` for any solver work, `research-claims-check` before any text about the research, and `verify-solver`/`verify-forecast` at gates.
 
 ## Product truth
 - Forecasts are projections. Label simulated/proxy data and actual model/fallback provenance.

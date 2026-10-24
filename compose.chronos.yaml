@@ -1,0 +1,24 @@
+# Standalone model exercise; no API ports, database, or hosted credentials.
+name: pantrypulse-chronos
+services:
+  chronos:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.chronos
+    cpus: 6
+    mem_limit: 8g
+    stdin_open: true
+    tty: true
+    environment:
+      HF_HOME: /cache/huggingface
+      CHRONOS_PIN_FILE: /cache/model-pin.json
+      CHRONOS_OUTPUT_DIR: /output
+      TOKENIZERS_PARALLELISM: "false"
+      OMP_NUM_THREADS: "4"
+      MKL_NUM_THREADS: "4"
+    volumes:
+      - model-cache:/cache
+      - ./artifacts/chronos:/output
+volumes:
+  model-cache:
+    name: pantrypulse-chronos-model-cache

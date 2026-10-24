@@ -1,5 +1,7 @@
 # PantryPulse invariants
 
+> **Current authority:** [Project specification V5](SPEC-V5.md). Compatible invariants remain required. Fixed three-site/six-series examples are historical; V5 defines the expanded scope, both explicit transfer modes and current evidence.
+
 Each invariant needs a meaningful executable assertion. A screenshot of correct-looking numbers is insufficient.
 
 | ID | Invariant | Minimum falsifying case |

@@ -1,4 +1,4 @@
 # Migration boundary
 
-Alembic is installed. No domain schema or revisions have been created. Define the V4 snapshot, lot ledger, policy, beneficiary goal and run metric models after the research contract gate; then initialize Alembic and test upgrade/downgrade against pantrypulse_test. Do not run migrations against other databases.
+Alembic is installed. No domain schema or revisions have been created. Follow [Project specification V5](../../../docs/pantrypulse/SPEC-V5.md), especially OPEN-04–11/19/25/36, before defining domain models and migrations. Test upgrade/downgrade and integrity against an isolated PostgreSQL test database; the research gate separately controls complex solver work. Do not run migrations against unrelated databases.
 

@@ -1,5 +1,7 @@
 # PantryPulse Claude Code engineering handbook
 
+> **Current authority:** [Project specification V5](SPEC-V5.md). Historical handbook and embedded template copies. V5 is authoritative for product scope, later decisions and current code state; copied contracts and examples below do not create competing requirements.
+
 Prepared October 23, 2026 for the proposed 48-hour Gator Hack V MVP.
 
 Use this handbook to configure Claude Code and run a disciplined build of PantryPulse. It combines the PantryPulse v1.0 PRD/technical spec, the completed orchestration research supplied in this chat, and current primary documentation. The accompanying ZIP contains complete configuration files, workflow templates, a preview-first installer and tests. The appendices also embed the contracts and critical configuration, so this Markdown can be fed to Claude on its own.

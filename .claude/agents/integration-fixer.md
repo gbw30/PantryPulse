@@ -2,7 +2,7 @@
 name: integration-fixer
 description: "Apply the smallest fix for a supplied failing cross-layer PantryPulse case during integration or stabilization."
 model: inherit
-tools: Read, Glob, Grep, Bash, Edit, Write, Skill
+tools: Read, Glob, Grep, Bash, Edit, Write, Skill, LSP, mcp__plugin_context7_context7__*
 maxTurns: 25
 isolation: worktree
 skills:

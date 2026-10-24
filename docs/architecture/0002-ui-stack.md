@@ -1,5 +1,7 @@
 # ADR 0002: Frontend UI libraries
 
+> **Current authority:** [Project specification V5](../pantrypulse/SPEC-V5.md). This ADR retains the accepted UI stack. V5 consolidates project status, integration boundaries, UI requirements and unresolved work.
+
 Date: 2026-10-23. Status: accepted for the MVP dependency stack.
 
 ## Decision

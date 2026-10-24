@@ -1,15 +1,9 @@
 {
   "permissions": {
-    "defaultMode": "default",
     "allow": [
       "Read",
       "Glob",
       "Grep"
-    ],
-    "ask": [
-      "Bash(git push *)",
-      "Bash(git merge *)",
-      "Bash(git cherry-pick *)"
     ],
     "deny": [
       "Read(**/.env)",
@@ -17,10 +11,13 @@
       "Read(**/.env.production)",
       "Read(**/*.pem)",
       "Read(**/*.key)"
-    ]
-  },
-  "enabledPlugins": {
-    "superpowers@claude-plugins-official": true
+    ],
+    "ask": [
+      "Bash(git push *)",
+      "Bash(git merge *)",
+      "Bash(git cherry-pick *)"
+    ],
+    "defaultMode": "default"
   },
   "hooks": {
     "SessionStart": [
@@ -68,5 +65,12 @@
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true,
+    "context7@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true
   }
 }

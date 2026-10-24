@@ -1,36 +1,18 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PantryPulse web application
 
-## Getting Started
+The main baseline is a static Next.js development landing page. The dashboard, method comparison, presenter controls, API client and selected same-origin proxy remain to be implemented.
 
-First, run the development server:
+Read [Project specification V5](../../docs/pantrypulse/SPEC-V5.md) for current requirements, main/forecasting-branch status, UI architecture and acceptance. Follow the root [installation guide](../../INSTALLATION.md) for the pinned toolchain.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Run from the repository root:
+
+```powershell
+npm ci
+npm run dev:web
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The web server binds to `http://127.0.0.1:3000`. The root npm workspace and `package-lock.json` own dependency installation; do not create a second lockfile in this directory.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The accepted UI stack is Tailwind, shadcn/Radix, Recharts, Motion and Lucide, with selected Watermelon/Kokonut component sources. Python owns inventory, forecasting, optimization and research metrics. The future thin Next.js proxy forwards authenticated intent to FastAPI.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`npm run check`, `npm run build` and `npm run test:e2e` are available at the repository root. Current browser coverage is a scaffold smoke test, not evidence of the complete judge journey. Never put database or presenter credentials in browser-public configuration.

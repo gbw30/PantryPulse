@@ -17,4 +17,3 @@ class HealthResponse(BaseModel):
 def health() -> HealthResponse:
     """Process liveness only; does not assert database or solver readiness."""
     return HealthResponse(status="ok", scope="process")
-

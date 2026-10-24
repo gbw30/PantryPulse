@@ -1,26 +1,28 @@
 # PantryPulse Backend Specification — Working Draft
 
+> **Current authority:** [Project specification V5](SPEC-V5.md). This checkpoint preserves accepted decision history and pauses. V5 adds BD-41 reconciliation, current code/branch evidence and the consolidated OPEN register; historical resume/status text below does not override it.
+
 **Date:** October 24, 2026 (America/New_York)
 
-**Status:** Design interview in progress. This checkpoint records 30 accepted decisions, two deliberately deferred choices, and a stable 36-item tracker: one resolved product choice and 35 remaining topics. It is not a finalized implementation specification or evidence that the proposed features work.
+**Status:** Design interview in progress. This checkpoint records 40 accepted decisions and the 36-topic tracker. OPEN-01 is resolved; OPEN-02 and OPEN-03 remain explicitly deferred; OPEN-26–28 are paused. OPEN-33–36 have accepted directions and remaining details. It is not a finalized implementation specification or evidence that the proposed features work.
 
-**Planning-session fidelity review:** October 24, 2026. The accepted selections and explicit deferrals were checked against the conversation, including the later supplier-scope correction. This review records no new design choice and does not validate application behavior.
+**Planning-session fidelity review:** October 24, 2026. Reconciled the interview through BD-40, including the supplier-scope correction, the later topology selection, revised observability choice, and supplier-planning pause. This is documentation of selections, not validation of application behavior.
 
 ## Purpose and authority
 
-Preserve the backend and API planning progress so the discussion can continue after a restart without losing selections, reopening settled questions, or mistaking recommendations for accepted defaults. The eventual backend supplement will cover architecture, PostgreSQL data models, service contracts, public APIs, processing rules, operations, and verification.
+Preserve the backend and API planning progress so the discussion can continue after a restart without losing selections, reopening settled questions, or mistaking recommendations for accepted defaults. The companion [backend specification](BACKEND-SPEC.md) explains the covered architecture, logical data model, contracts, processing rules, operations, and verification requirements. This checkpoint retains the decision history, remaining topics, explicit alternatives, and resume instructions (BD-40).
 
 The accepted decisions below record the human user's selections. Earlier assistant recommendations that were not selected do not override them. In particular, scenarios are fully frozen, and draft supplier proposals are included. The temporary selection to omit supplier proposals was explicitly superseded by the user.
 
 V4 remains the source specification, supported by its shared/domain task guides. This checkpoint records the agreed resolutions and additions that must be reconciled into those documents later; it does not silently rewrite the original specification. The user-provided Google Docs URL targets the Completion Log, not the V4 requirements tab.
 
-Decision identifiers `BD-01` through `BD-30` belong to this checkpoint. They are distinct from historical `D01`, `D02`, and other identifiers in PROJECT-CONTRACT.md. Tracker identifiers `OPEN-01` through `OPEN-36` identify remaining topics, not additional accepted decisions.
+Decision identifiers `BD-01` through `BD-40` belong to this checkpoint. They are distinct from historical `D01`, `D02`, and other identifiers in PROJECT-CONTRACT.md. Tracker identifiers `OPEN-01` through `OPEN-36` identify remaining topics, not additional accepted decisions.
 
 ## Design baseline and implementation status
 
 The intended architecture is a modular Python FastAPI backend, PostgreSQL persistence, and a Next.js frontend. Pydantic/OpenAPI defines public API contracts, with generated TypeScript consumed by the frontend. The selected browser access path adds a thin Next.js proxy; domain logic remains in FastAPI.
 
-The existing V4 baseline calls for a simulated humanitarian network with at least six beneficiary institutions plus hub(s), two resource categories, seven-day daily forecasts, a bounded allocation window, lot-aware expiry/FEFO, and a paired `CLASSICAL_GP` versus `EGP_PI_INSPIRED` comparison. These are carried-forward source requirements, not additional choices made in the interview. BD-30 requires both explicit caller-selectable transfer modes; detailed contracts remain open.
+The existing V4 baseline calls for a simulated humanitarian network with at least six beneficiary institutions plus hub(s), two resource categories, seven-day daily forecasts, a bounded allocation window, lot-aware expiry/FEFO, and a paired `CLASSICAL_GP` versus `EGP_PI_INSPIRED` comparison. These are carried-forward source requirements, not additional choices made in the interview. BD-32 resolves transfer topology to hubs and eligible beneficiaries supplying beneficiaries; detailed donor and transport rules remain OPEN-21–22.
 
 The inspected [API entrypoint](../../apps/api/app/main.py) implements `GET /api/v1/health` as process liveness. It does not establish database, forecasting, or solver readiness. This checkpoint does not certify the domain database, job system, allocation engines, or end-to-end demonstration as implemented. Saving this document adds no application functionality.
 
@@ -61,34 +63,45 @@ All rows below are accepted directions. Their exact fields, algorithms, and edge
 | **BD-27** | Missing historical days | A — Preserve gaps | Preserve missing values and flags; do not generate replacement historical observations through backend imputation. Use supported missing-data handling or labeled fallback; report insufficient inputs explicitly. This does not remove the separate opted-in proxy policy. |
 | **BD-28** | Conservative planning | B — Explicit buffer | Where upper quantiles are unavailable, allow an explicit presenter-selected buffer recorded in the scenario. Missing quantiles stay null. Label mixed quantile/buffer inputs per series and never present the buffer as a calibrated probability or fabricated `p90`. |
 | **BD-29** | Forecast reuse | A — Reuse + refresh | Reuse exactly matching immutable forecast results by default, with an explicit presenter-requested forced recomputation option. Cache identity must include relevant inputs/settings. Preserve original generation timestamps and actual model/fallback provenance; reuse is not new inference. |
-
-| **BD-30** | Transfer modes | Both modes, explicit API selection | Require scenario `transfer_mode` with no default: `HUB_ONLY` allows hub-to-beneficiary transfers only, with pantry inventory reducing local need; `HUB_AND_PANTRY` also permits eligible pantry surplus transfers with dated demand/reserve protection and route, capacity, arrival, lot and expiry checks. Incoming stock cannot be forwarded within the same batch. Freeze mode at scenario creation; changing it requires a new scenario. Include mode in scenario/result/comparison/methodology metadata separately from method. Both `CLASSICAL_GP` and `EGP_PI_INSPIRED` support both modes. Paired comparisons share frozen scenario, mode, inputs and operational constraints; only defined method objectives differ. Resolves OPEN-01 product choice; technical contracts and validation remain OPEN-19/21/22/29/34. |
+| **BD-30** | Observability approach | Latest revision — Logs and audit | Use correlated structured JSON logs and durable PostgreSQL audit/job records with lightweight readiness/capability checks. The later logs-and-audit selection supersedes the earlier tracing selection. Distributed tracing is deferred; no OTLP destination, tracing vendor, or additional service was selected. |
+| **BD-31** | Compute unavailable | A — Reject promptly | When API/database access works but compute is unavailable, reject new computation promptly with structured `503`. Preserve saved reads and existing queued work. A healthy busy worker follows the bounded queue policy; stock operations do not depend on forecasting availability. |
+| **BD-32** | Transfer topology | B — Hubs and beneficiaries | Resolve OPEN-01: eligible hubs and beneficiaries may supply other beneficiaries along allowed routes. Protect local beneficiary demand/reserves, enforce compatible eligible lots/ETA/capacity and no self-transfer, and prohibit forwarding incoming stock within the same batch. Both allocation methods use the same network and constraints; detailed rules remain OPEN-21–22. |
+| **BD-33** | Forecast qualification gate | A — Separately qualify | Require the mandatory core workflow to pass with live baseline forecasting, real PostgreSQL/API and both solver integrations, plus tested provider failure/fallback. Separately qualify actual pinned Chronos inference and evaluation. Chronos remains preferred when installation/inference/runtime permit; untested capability is unverified, and the setup pause is not evidence of infeasibility. The research gate remains mandatory. |
+| **BD-34** | Expensive-work concurrency | A — One at a time | Serialize expensive forecasting/allocation operations. Treat a comparison as one top-level operation with its two methods sequential on the same snapshot and equivalent solver settings. Keep HTTP reads/polling outside the compute slot responsive. |
+| **BD-35** | Runtime profile | B — Longer computation | Allow one active operation and at most two waiting; maximum queue wait 15 minutes (900 seconds). Forecast wall limit 300 seconds; native solver search 15 seconds per method; whole method wall limit 25 seconds; whole paired comparison wall limit 60 seconds. Enforce actual termination/containment and truthful outcomes. These are initial ceilings, not measured performance promises. |
+| **BD-36** | Local resource profile | A — Local demo profile | Adopt configurable local compute-worker ceilings of 6 CPU equivalents and 8 GiB RAM. These do not reserve resources, include API/database needs, or prove Chronos fits. Verify effective limits and measure later; no model/hosting setup is resumed. |
+| **BD-37** | Compute availability detection | A — Heartbeat | Persist a compute-supervisor heartbeat in PostgreSQL every 5 seconds; after 15 seconds without an update, treat compute as unavailable for new jobs. The supervisor must report while expensive work runs. A heartbeat is not model qualification, inference, or proof that a future job will succeed. Exact ownership/readiness wire details remain OPEN-30/33. |
+| **BD-38** | Forecast fallback deadline | A — Reserve time | When fallback is allowed, stop the primary attempt by 270 seconds and reserve up to the remaining 30 seconds for stopping that work, baseline fallback, validation, and persistence within the same 300-second operation limit. An early failure may fall back earlier. No extra 300-second allowance or guarantee of fallback success is implied. |
+| **BD-39** | Responsiveness acceptance | A — Disclose misses | Measure the 1-second saved-read and 5-second per-method solve targets on the expanded demo. Missing a responsiveness target alone need not block release if correctness, integrity, hard limits, and failure handling pass. Disclose misses as unmet targets/performance limitations; this does not relax the research gate or establish performance proof. |
+| **BD-40** | Documentation organization | A — Separate spec | Put detailed current requirements in BACKEND-SPEC.md. Keep this checkpoint for decisions, open/deferred/paused topics, source links, and resumption. Cross-link the files and distinguish agreed design from implemented and verified behavior. |
 
 ### Fidelity guardrails
 
 - A choice is accepted because the user selected it, not because the assistant recommended it. The fully frozen scenario choice in BD-09 is an important example: the recommended alternative was not chosen.
 - For BD-22, the latest explicit correction controls. The user said: “lets continue from where we left off but for the supplier replenishment, choose option B.” The preceding internal-only selection is historical, not active.
+- The later logs-and-audit revision in BD-30 supersedes the earlier tracing selection. No tracing destination was selected. BD-35 records option B (longer computation), while BD-36–40 record the later option A selections.
+- Supplier planning is paused; the assistant's recommendation of one offer per need was not selected. Do not infer it as a default.
 - Plan review and donation receipt posting are different operations. BD-01 leaves plan review without stock effects; BD-04 explicitly permits stock changes when posting new receipts.
-- The JSONB choice does not settle the exact snapshot schema. The job choice does not settle every job status, retry endpoint, queue setting, or timeout. An accepted direction is not approval of unspecified implementation details.
+- The JSONB choice does not settle the exact snapshot schema. BD-35–38 now settle the stated runtime/resource/fallback limits; job enums, retry/cancellation contracts, ownership, and other OPEN-30 details remain unresolved. An accepted direction is not approval of unspecified implementation details.
 - The 36 tracker topics are the assistant's planning inventory requested by the user. They are not 36 additional accepted features, parameter defaults, or claims that previously discussed behavior is unimplemented.
-- Any earlier illustrative number or example is not a selected default unless the decision expressly adopts it. The scale of 10,000 was selected in BD-21; supplier coverage days, capacity coefficients, buffer percentages, and runtime limits still require specification.
+- Any earlier illustrative number or example is not a selected default unless the decision expressly adopts it. The scale of 10,000 was selected in BD-21; runtime/resource/heartbeat/fallback limits were subsequently selected in BD-34–38. Supplier coverage days, capacity coefficients, buffer percentages, and other unresolved values still require specification.
 
-## Historical deferral and remaining deferred alternatives
+## Resolved choice: OPEN-01 — Transfer topology
 
-Originally all three choices were deferred. BD-30 supersedes the OPEN-01 deferral and requires both modes. OPEN-02 and OPEN-03 remain deferred; their alternatives imply no selected default, runtime toggle or hidden fallback.
-
-### OPEN-01 — Transfer topology (product choice resolved by BD-30)
-
-**Historical deferral, superseded by BD-30:**  “include both options in the planning and it will be defined in a later version of the spec”.
+**History:** The user initially deferred this topic. That deferral was superseded by: “additionally, for the OPEN-01 transfer topology, we will go with option B: hubs and beneficiaries”. BD-32 records the accepted selection. The alternatives remain below for history; only B is active.
 
 | Alternative | Technical meaning | Simple meaning | Main tradeoff |
 |---|---|---|---|
-| **A. Hubs only** | Candidate transfers originate at hubs and end at beneficiaries. Beneficiary stock still reduces local need. | Hubs supply pantries; pantries do not send supplies to each other. | Smaller feasible network and simpler validation, but fewer redistribution opportunities. |
-| **B. Hubs and beneficiaries** | Eligible beneficiaries may also supply surplus along allowed routes after local-demand/reserve protection. Incoming stock cannot be forwarded within the same batch. | A pantry with enough spare stock can help another pantry. | More flexible sharing, with additional donor-protection, route, and independent-verification cases. |
+| **A. Hubs only — not selected** | Candidate transfers originate at hubs and end at beneficiaries. Beneficiary stock still reduces local need. | Hubs supply pantries; pantries do not send supplies to each other. | Smaller feasible network and simpler validation, but fewer redistribution opportunities. |
+| **B. Hubs and beneficiaries — selected** | Eligible beneficiaries may also supply surplus along allowed routes after local-demand/reserve protection. Incoming stock cannot be forwarded within the same batch. | A pantry with enough spare stock can help another pantry. | More flexible sharing, with additional donor-protection, route, and independent-verification cases. |
 
 Option B is an extension to the published food-bank-to-institution flow inspected during the discussion. It is not established as a published or validated lateral-transfer feature. Both allocation methods must receive the same selected network and constraints.
 
 Illustrative compute discussion: one hub and six beneficiaries have six hub-to-beneficiary connections. Adding all directed beneficiary-to-beneficiary connections gives `6 + 6 * 5 = 36`. This does not imply six times the runtime or memory. Solver difficulty depends on eligible lots, constraints, and competing choices. Extra hardware is not inherently required at the proposed demo size, but performance is unmeasured. Forecasting does not automatically need a larger model merely because transfers have more possible origins.
+
+## Explicitly deferred alternatives
+
+Only OPEN-02 and OPEN-03 remain explicitly deferred. The user requested that both alternatives in each remain documented for a later specification version. No active option is inferred from recommendations. Retaining alternatives does not commit the team to implementing both, a runtime toggle, or a hidden fallback. A dependent implementation needs a later recorded selection.
 
 ### OPEN-02 — Transfer-benefit attribution
 
@@ -114,11 +127,11 @@ These were proposed as transparent procurement heuristics, applied consistently 
 
 ## Remaining-topic tracker
 
-An unchecked item means its full specification is not frozen. It does not mean its accepted direction should be reopened. Some topics need another human choice; others require technical elaboration from existing decisions. There are 36 stable tracker entries: one resolved product choice and 35 remaining topics, including two deferred choices. Route schemas, reserves, snapshot/API contracts and validation remain OPEN-19/21/22/29/34; resolving the choice does not complete implementation.
+An unchecked item means its full specification is not frozen. It does not mean its accepted direction should be reopened. Some topics need another human choice; others require technical elaboration from existing decisions. There are 36 tracked topics, including resolved OPEN-01, explicitly deferred OPEN-02/03, and paused OPEN-26–28, not necessarily 36 further questions. OPEN-33–36 remain unchecked because accepted directions do not settle all their details.
 
-### Resolved product choice and deferred choices
+### Topology and deferred choices
 
-- [x] **OPEN-01 — Transfer topology product choice.** Resolved by BD-30: both explicit API-selectable modes, no default. Only selection is complete; technical contracts/validation remain OPEN-19/21/22/29/34.
+- [x] **OPEN-01 — Transfer topology.** Resolved by BD-32: option B, hubs and eligible beneficiaries. Detailed donor/projection/route constraints remain OPEN-21–22.
 - [ ] **OPEN-02 — Transfer-benefit attribution.** Deferred: preserve aggregate-impact/rationale and marginal-counterfactual alternatives.
 - [ ] **OPEN-03 — Supplier-budget priority.** Deferred: preserve urgency-first and vulnerability-first alternatives.
 
@@ -155,9 +168,9 @@ An unchecked item means its full specification is not frozen. It does not mean i
 
 ### Supplier replenishment
 
-- [ ] **OPEN-26 — Supplier offer selection.** Define valid offers, arrival requirements, minimum/available quantities, expiration assumptions, price validity, and selection/tie-breaking rules.
-- [ ] **OPEN-27 — Coverage and budget parameters.** Choose days-of-cover defaults, horizon limits, partial coverage, currency representation, budget periods, and per-order limits.
-- [ ] **OPEN-28 — Proposal lifecycle and conditional outcomes.** Define draft statuses, regeneration/cancellation, alternatives, explanations, and conditional projections without creating confirmed supply or actual spending.
+- [ ] **OPEN-26 — Supplier offer selection.** PAUSED. Define valid offers, arrival requirements, minimum/available quantities, expiration assumptions, price validity, and selection/tie-breaking rules. The last unanswered question is one offer per beneficiary/product versus combining offers; neither option was selected.
+- [ ] **OPEN-27 — Coverage and budget parameters.** PAUSED. Choose days-of-cover defaults, horizon limits, partial coverage, currency representation, budget periods, and per-order limits. Preserve after-arrival coverage and coordinated budgets (BD-23–24).
+- [ ] **OPEN-28 — Proposal lifecycle and conditional outcomes.** PAUSED. Define draft statuses, regeneration/cancellation, alternatives, explanations, and conditional projections without creating confirmed supply or actual spending.
 
 OPEN-03 remains the separate deferred choice about which needs receive priority within the coordinated basket.
 
@@ -170,10 +183,23 @@ OPEN-03 remains the separate deferred choice about which needs receive priority 
 
 ### Verification, operations, and documentation
 
-- [ ] **OPEN-33 — Observability and readiness.** Define structured logs, correlation IDs, timings, cache/fallback visibility, solver diagnostics, and health-versus-readiness checks.
-- [ ] **OPEN-34 — Acceptance tests and research gate.** Enumerate both-method/both-mode, missing/invalid mode, immutable mode, donor-protection and no-relay tests, DB/API/concurrency tests, independent mathematical oracles, paired-input checks, research ablations, and the demonstration journey.
-- [ ] **OPEN-35 — Runtime and performance limits.** Establish worker settings, resource limits, timeouts, queue bounds, and later measurement criteria without resuming paused setup.
-- [ ] **OPEN-36 — Documentation and integration.** Organize the supplement, migrations, contract generation, setup-guide changes, decision traceability, and treatment of unresolved alternatives.
+- [ ] **OPEN-33 — Observability and readiness.** PARTIALLY DEFINED by BD-30/31/37: JSON logs plus durable audit/job records, tracing deferred, prompt unavailable-compute rejection, and a 5-second heartbeat stale after 15 seconds. Still specify exact log/audit and readiness/capability schemas, ownership/races, sinks/retention, probe bounds, and redaction tests; see the [backend specification](BACKEND-SPEC.md#9-observability-and-readiness).
+- [ ] **OPEN-34 — Acceptance tests and research gate.** PARTIALLY DEFINED by BD-33/39 and the [required evidence matrix](BACKEND-SPEC.md#11-required-acceptance-evidence-and-research-gate): core baseline/fallback workflow, separate Chronos qualification, real DB/API/solver checks, independent mathematical oracles, paired-input/ablations, and demo journey. Finalize dependent fixtures/test contracts and record actual evidence; this save runs no application acceptance tests.
+- [ ] **OPEN-35 — Runtime and performance limits.** PARTIALLY DEFINED by BD-34–39: accepted serialization, longer queue/time limits, configurable 6-CPU/8-GiB worker profile, heartbeat/fallback deadlines, and disclosure of responsiveness misses. Remaining process/thread settings, actual termination/cancellation mechanics, effective limit verification, and measurement protocol depend on OPEN-30 and later authorized setup; see the [runtime specification](BACKEND-SPEC.md#10-runtime-and-performance).
+- [ ] **OPEN-36 — Documentation and integration.** PARTIALLY DEFINED by BD-40: the separate [backend specification](BACKEND-SPEC.md) and this checkpoint now have distinct roles, cross-links, and decision traceability. Migration/contract-generation procedures, setup-guide reconciliation, and integration details remain open.
+
+## Supplier planning pause
+
+The user said: “we will continue with supplier replenishment later. i will provide instructions for this pause after this prompt”. The next instruction authorized saving and publishing the covered requirements, not selecting another supplier option.
+
+Preserve the last unanswered OPEN-26 question for a later user-directed resumption:
+
+| Unselected option | Meaning | Tradeoff |
+|---|---|---|
+| A. One offer per need | Select at most one offer per beneficiary/product in a proposal basket, keeping other offers as alternatives | Simpler but may leave need uncovered even when combined availability could cover it |
+| B. Combine offers | Multiple supplier offers may contribute to the same beneficiary/product need, each subject to its terms and the shared budget | More coverage potential with additional quantity, delivery, minimum-order, and fee interactions |
+
+The assistant recommended A. The user selected neither option. OPEN-26–28 stay paused; OPEN-03's budget-priority alternatives remain separately deferred. Saving this checkpoint does not reopen the interview or resume supplier implementation.
 
 ## Research and proposal clarifications to preserve
 
@@ -193,6 +219,10 @@ The original forecasting proposal correctly separated historical observations, e
 - BD-09 selects fully frozen scenarios, not the earlier recommended reusable-assumptions/per-run-input alternative.
 - BD-22 includes draft supplier proposals. The user's later option B selection supersedes the temporary option A selection to omit them.
 - The images' “approve simulated plan” becomes review-only under BD-01. Their `expected_benefit` field remains unresolved under OPEN-02.
+- BD-32 resolves the earlier topology deferral to hubs and beneficiaries. Do not carry the obsolete three-deferred-choice count into later documents.
+- BD-33 follows V4 §§2.4, 9, 12.3 and 16.6: mandatory baseline/fallback, with preferred Chronos subject to demonstrated feasibility and separate qualification. The setup pause does not establish infeasibility.
+- BD-39 permits disclosed responsiveness-target misses without relaxing correctness, hard limits, or research validation. The original 5-second solver example used three sites; the expanded required demo must be measured honestly.
+- BD-30 supersedes tracing with logs/audit; BD-35 adopts the longer limits; BD-38 reserves fallback time within the same forecast deadline.
 - Forecast donations are uncertain numerical estimates; confirmation status belongs to operational supply records. These must not be conflated in snapshots or projections.
 
 ## Source references and local context
@@ -210,10 +240,11 @@ The Google Docs tabs below were inspected during the planning discussion. These 
 | [04 Inventory and Persistence](https://docs.google.com/document/d/1WcsV69YCE1mqW2pI7IyEFQBSuwQB_hMhVQKfU20ZFk8/edit?tab=t.5jrs75ee9j2m) | Ledger, lots, projection, transactions, and snapshots. |
 | [05 Backend API and Orchestration](https://docs.google.com/document/d/1WcsV69YCE1mqW2pI7IyEFQBSuwQB_hMhVQKfU20ZFk8/edit?tab=t.8bsgg7gkb2fi) | API conventions, jobs, lifecycle, and method comparison. |
 
-For this standalone checkpoint publication, three supporting files are still local-only. They are listed as code paths rather than links and are not included in the checkpoint commit. The accepted decisions and deferred alternatives are recorded in full above, so those local files are not required to recover the interview state.
+Three supporting files below remain local-only. They are listed as code paths rather than links and are not included in this documentation publication. This checkpoint and the backend specification preserve the accepted requirements, unresolved alternatives, and pauses without requiring those files.
 
 | Local document | Use when resuming |
 |---|---|
+| [Backend specification](BACKEND-SPEC.md) | Detailed covered requirements, runtime profile, required evidence, unresolved dependencies, and source references. |
 | [Architecture and research gate](../architecture/0001-v4-research-first.md) | Current local architecture, proposed formulas, constraints, and validation gate. |
 | [V4 text snapshot](SPEC-V4.snapshot.txt) | Source extraction with its recorded tab/revision identity; inherited examples need conflict resolution. |
 | [Project contract](PROJECT-CONTRACT.md) | Prior contracts and historical decisions; reconcile explicit selections in this checkpoint. |
@@ -228,13 +259,13 @@ For this standalone checkpoint publication, three supporting files are still loc
 
 ## Resume instructions
 
-1. Read this checkpoint and the source material relevant to the next topic. Preserve accepted decisions BD-01 through BD-30 unless the user explicitly revises them.
-2. Continue with **OPEN-26: supplier offer selection**. No question is currently awaiting an answer. The latest accepted decision is BD-30, both explicit transfer modes; BD-29 forecast reuse remains accepted.
+1. Read this checkpoint, the [backend specification](BACKEND-SPEC.md), and relevant source material. Preserve accepted decisions BD-01 through BD-40 unless the user explicitly revises them.
+2. **Supplier planning OPEN-26–28 is paused.** Wait for the user's direction before resuming it. When resumed, return to the unanswered OPEN-26 split-sourcing question above; neither option was selected. The last accepted design decision was BD-40, separate specification/checkpoint roles.
 3. Ask one material design question at a time. For every option, provide a technical explanation, a simple-language explanation, and advantages/tradeoffs. Then wait for the user's selection.
-4. Keep OPEN-02 and OPEN-03 deferred. OPEN-01 product choice is resolved by BD-30; technical work remains OPEN-19/21/22/29/34.
-5. Add subsequent accepted decisions after BD-30. Keep decision identifiers stable and mark tracker topics complete only when their full specification is settled, not merely because a direction has been chosen.
+4. OPEN-01 is resolved to option B by BD-32. Keep OPEN-02 and OPEN-03 deferred until a later explicit selection. Preserve the unanswered split-sourcing alternatives separately; recommendations do not select an option.
+5. Add subsequent accepted decisions after BD-40 and update both documents consistently. Keep identifiers stable. OPEN-33–36 remain partially defined; mark topics complete only when their full specification is settled, not merely because a direction has been chosen.
 6. Preserve the distinction between documentation, implementation, and verification. Do not report unimplemented endpoints, schemas, provider integrations, or solver behavior as working features.
 7. Keep hosting/model setup paused. The user previously reported stopping after step 2; identify the relevant guide and verify state before resuming that separate work. Do not start containers, download checkpoints, perform heavy builds, or benchmark inference without a new instruction resuming it. Continuing this design interview does not resume hosting setup.
 8. Preserve unrelated modified/untracked files. No real vendor order, payment, or dispatch is authorized. Future implementation-dependent decisions and the research gate must be resolved before treating this working draft as implementation-ready.
 
-This checkpoint was requested to preserve planning progress and its remaining-topic tracker. It does not create a recurring task, start implementation, or replace the original source documents.
+This documentation checkpoint preserves planning progress and the remaining-topic tracker. Publication of these two documents does not create a recurring task, resume the supplier interview or hosting/model setup, implement application behavior, or replace the original source documents.
