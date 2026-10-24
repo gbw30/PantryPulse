@@ -1,4 +1,5 @@
 import json
+from enum import Enum, StrEnum
 from itertools import product
 
 import pytest
@@ -121,3 +122,30 @@ def test_json_schema_requires_mode_with_exact_enum_and_no_default_or_null():
     assert resolved.get("type") == "string"
     assert None not in resolved["enum"]
     assert "null" not in json.dumps(schema)
+
+
+class _PlainMode(Enum):
+    HUB_ONLY = "HUB_ONLY"
+
+
+class _OtherStrMode(StrEnum):
+    HUB_ONLY = "HUB_ONLY"
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        pytest.param(b"HUB_ONLY", id="bytes"),
+        pytest.param(bytearray(b"HUB_ONLY"), id="bytearray"),
+        pytest.param(_PlainMode.HUB_ONLY, id="non-str-enum-member"),
+    ],
+)
+def test_rejects_non_str_values_matching_a_mode(raw):
+    # Same rule as check_mode_route: a mode is a str or TransferMode, never decoded bytes.
+    with pytest.raises(ValidationError):
+        TransferModeSelection.model_validate({"transfer_mode": raw})
+
+
+def test_str_enum_member_with_exact_value_is_normalized():
+    selection = TransferModeSelection.model_validate({"transfer_mode": _OtherStrMode.HUB_ONLY})
+    assert selection.transfer_mode is TransferMode.HUB_ONLY
