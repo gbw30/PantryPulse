@@ -179,7 +179,10 @@ def test_fallback_shares_the_original_300_second_budget():
     assert late.hard_stop_s == 298
     early = plan_step_window(fallback, elapsed_s=12, budget_s=300, profile=PRODUCTION_PROFILE)
     assert early.hard_stop_s == 298
-    assert plan_step_window(fallback, elapsed_s=297.5, budget_s=300, profile=PRODUCTION_PROFILE) is None
+    assert (
+        plan_step_window(fallback, elapsed_s=297.5, budget_s=300, profile=PRODUCTION_PROFILE)
+        is None
+    )
 
 
 def test_without_fallback_the_primary_may_use_the_whole_budget():
@@ -250,3 +253,22 @@ def test_fallback_runs_only_after_timeout_or_classified_primary_failure():
 )
 def test_stop_reason_decides_the_terminal_state(reason, state):
     assert final_state_for_stop_reason(reason) is state
+
+
+def test_advertisement_round_trip_and_malformed_documents_fail_closed():
+    from app.services.jobs.policies import advertised_capability, supervisor_advertisement
+
+    doc = supervisor_advertisement(
+        PRODUCTION_PROFILE, handler_contracts=["b.v1", "a.v1", "a.v1"], process_containment=True
+    )
+    assert doc["capabilities"] == {
+        "process_containment": True,
+        "handler_contracts": ["a.v1", "b.v1"],
+    }
+    assert advertised_capability(doc, "a.v1") == (True, True)
+    assert advertised_capability(doc, "c.v1") == (True, False)
+    assert advertised_capability({}, "a.v1") == (False, False)
+    assert advertised_capability(None, "a.v1") == (False, False)
+    assert advertised_capability({"version": 2, "capabilities": {}}, "a.v1") == (False, False)
+    off = supervisor_advertisement(PRODUCTION_PROFILE, handler_contracts=[], process_containment=0)
+    assert advertised_capability(off, "a.v1") == (False, False)

@@ -68,8 +68,9 @@ class PublicationIdentity:
 class Handler(Protocol):
     def validate_input(self, payload: Mapping[str, Any]) -> dict[str, Any]: ...
 
-    def steps(self, validated: Mapping[str, Any], profile: RuntimeProfile) -> tuple[StepSpec, ...]:
-        ...
+    def steps(
+        self, validated: Mapping[str, Any], profile: RuntimeProfile
+    ) -> tuple[StepSpec, ...]: ...
 
     def execute_step(
         self,

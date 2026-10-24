@@ -139,7 +139,9 @@ def test_short_profiles_are_explicit_and_valid():
 
 
 def test_canonical_json_is_order_independent_and_compact():
-    assert canonical_json({"b": 1, "a": [1, {"d": 2, "c": "é"}]}) == '{"a":[1,{"c":"é","d":2}],"b":1}'
+    assert (
+        canonical_json({"b": 1, "a": [1, {"d": 2, "c": "é"}]}) == '{"a":[1,{"c":"é","d":2}],"b":1}'
+    )
     assert sha256_hex({"b": 1, "a": 2}) == sha256_hex({"a": 2, "b": 1})
     # Independent value: sha256 of the bytes '{"a":2,"b":1}'.
     assert sha256_hex({"a": 2, "b": 1}) == (

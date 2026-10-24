@@ -171,6 +171,30 @@ def plan_step_window(
     return StepWindow(name=step.name, start_s=elapsed_s, soft_stop_s=soft, hard_stop_s=hard)
 
 
+def supervisor_advertisement(
+    profile: RuntimeProfile, *, handler_contracts: Sequence[str], process_containment: bool
+) -> dict:
+    """Effective limits plus runtime capabilities a supervisor records for admission (A5)."""
+    document = profile.effective_limits()
+    document["capabilities"] = {
+        "process_containment": process_containment is True,
+        "handler_contracts": sorted(set(handler_contracts)),
+    }
+    return document
+
+
+def advertised_capability(document: object, contract: str) -> tuple[bool, bool]:
+    """(capable, contract_advertised) from a stored advertisement; malformed means neither."""
+    if not isinstance(document, dict):
+        return False, False
+    capabilities = document.get("capabilities")
+    if document.get("version") != 1 or not isinstance(capabilities, dict):
+        return False, False
+    contracts = capabilities.get("handler_contracts")
+    advertised = isinstance(contracts, list) and contract in contracts
+    return capabilities.get("process_containment") is True, advertised
+
+
 def remaining_budget_s(*, db_remaining_s: float, monotonic_remaining_s: float) -> float:
     """When database wall time and local monotonic accounting disagree, use the smaller."""
     return max(0.0, min(db_remaining_s, monotonic_remaining_s))
