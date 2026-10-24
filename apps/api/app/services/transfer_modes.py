@@ -33,18 +33,25 @@ class ModeRouteDecision:
     reason: RouteDecisionReason
 
 
+# Allowed origin roles per mode (section 13.2 rows 4-5); a mode without an entry fails closed.
+_ALLOWED_ORIGINS: dict[TransferMode, frozenset[SiteRole]] = {
+    TransferMode.HUB_ONLY: frozenset({SiteRole.HUB}),
+    TransferMode.HUB_AND_PANTRY: frozenset({SiteRole.HUB, SiteRole.BENEFICIARY}),
+}
+
+
 def _as_enum[E: StrEnum](value: object, enum_type: type[E], name: str) -> E:
     if not isinstance(value, str):
         raise TypeError(f"{name} must be a str or {enum_type.__name__}, got {type(value).__name__}")
-    if isinstance(value, enum_type):
-        return value
-    # Exact value match only: no trimming or case folding. Members of another str enum
-    # are compared by their raw string value and rejected unless it is an exact match.
+    # Exact value match only: no trimming or case folding. str.__str__ drops any str subclass,
+    # so members of another str enum are compared by their raw string value.
     raw = str.__str__(value)
-    for member in enum_type:
-        if member.value == raw:
-            return member
-    raise ValueError(f"{name} must be one of {[m.value for m in enum_type]}, got {raw!r}")
+    try:
+        return enum_type(raw)
+    except ValueError:
+        raise ValueError(
+            f"{name} must be one of {[m.value for m in enum_type]}, got {raw!r}"
+        ) from None
 
 
 def _require_uuid(value: object, name: str) -> UUID:
@@ -79,7 +86,6 @@ def check_mode_route(
         return ModeRouteDecision(False, RouteDecisionReason.ROUTE_DISABLED)
     if destination_role_v is not SiteRole.BENEFICIARY:
         return ModeRouteDecision(False, RouteDecisionReason.DESTINATION_NOT_BENEFICIARY)
-    if mode_v is TransferMode.HUB_ONLY and source_role_v is not SiteRole.HUB:
+    if source_role_v not in _ALLOWED_ORIGINS.get(mode_v, frozenset()):
         return ModeRouteDecision(False, RouteDecisionReason.ORIGIN_NOT_ALLOWED_BY_MODE)
-    # HUB_AND_PANTRY: both HUB and BENEFICIARY origins pass the topology check.
     return ModeRouteDecision(True, RouteDecisionReason.MODE_ROUTE_ALLOWED)

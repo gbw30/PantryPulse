@@ -14,4 +14,3 @@ def test_unimplemented_solver_is_not_exposed():
     with TestClient(app) as client:
         response = client.post("/api/v1/scenarios/example/plans", json={})
     assert response.status_code == 404
-

@@ -7,11 +7,16 @@ model owns the method field; its public error envelope is OPEN-29.
 from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic_core import PydanticCustomError
 
 
 class TransferMode(StrEnum):
     HUB_ONLY = "HUB_ONLY"
     HUB_AND_PANTRY = "HUB_AND_PANTRY"
+
+
+# Pydantic's own enum-error wording, so every invalid mode reports one error type.
+_EXPECTED_MODES = " or ".join(repr(m.value) for m in TransferMode)
 
 
 class AllocationMethod(StrEnum):
@@ -33,5 +38,7 @@ class TransferModeSelection(BaseModel):
         # Lax enum validation would decode bytes and accept non-str enums by value;
         # match check_mode_route, which only accepts str or TransferMode values.
         if not isinstance(value, str):
-            raise ValueError("transfer_mode must be a string")
+            raise PydanticCustomError(
+                "enum", "Input should be {expected}", {"expected": _EXPECTED_MODES}
+            )
         return value

@@ -169,7 +169,7 @@ def test_malformed_pairs_raise_type_error(bad_pair):
         align_history(D1, D3, [bad_pair])
 
 
-@pytest.mark.parametrize("bad_obs", [None, "abc", 5, {D1: Decimal("1")}])
+@pytest.mark.parametrize("bad_obs", [None, "", "abc", b"", 5, {D1: Decimal("1")}])
 def test_non_sequence_observations_raise_type_error(bad_obs):
     with pytest.raises(TypeError):
         align_history(D1, D3, bad_obs)

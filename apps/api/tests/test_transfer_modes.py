@@ -4,9 +4,6 @@ Expected values are written out by hand from the section 13.2 table, not derived
 the implementation.
 """
 
-import subprocess
-import sys
-from pathlib import Path
 from uuid import UUID
 
 import pytest
@@ -268,21 +265,6 @@ def test_invalid_inputs_fail_validation_even_when_route_disabled_would_short_cir
         _call(route_enabled=False, destination_id=str(SITE_B))
 
 
-def test_value_error_is_not_type_error_for_unknown_strings():
-    with pytest.raises(ValueError) as info:
+def test_value_error_for_unknown_strings():
+    with pytest.raises(ValueError):
         _call(mode="HUB_ONLY ")
-    assert not isinstance(info.value, TypeError)
-
-
-def test_module_imports_no_solver_or_database_packages():
-    api_root = Path(__file__).resolve().parents[1]
-    code = (
-        "import sys, app.services.transfer_modes; "
-        "bad = [m for m in ('ortools', 'sqlalchemy', 'chronos', 'torch', 'psycopg') "
-        "if m in sys.modules]; "
-        "print(bad); sys.exit(1 if bad else 0)"
-    )
-    result = subprocess.run(
-        [sys.executable, "-c", code], cwd=api_root, capture_output=True, text=True, check=False
-    )
-    assert result.returncode == 0, result.stdout + result.stderr

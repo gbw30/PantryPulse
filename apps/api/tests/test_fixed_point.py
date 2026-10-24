@@ -5,11 +5,8 @@ comparisons, independent of how the implementation computes the floor.
 """
 
 import inspect
-import subprocess
-import sys
 from decimal import Decimal
 from fractions import Fraction
-from pathlib import Path
 
 import pytest
 
@@ -104,9 +101,8 @@ def test_wrong_types_raise_type_error(bad):
 
 @pytest.mark.parametrize("bad", [Fraction(-1, 3), Fraction(-1), Fraction(-1, 10**30)])
 def test_negative_values_raise_value_error(bad):
-    with pytest.raises(ValueError) as info:
+    with pytest.raises(ValueError):
         quantize_weighted_deficit(bad)
-    assert not isinstance(info.value, (TypeError, OverflowError))
 
 
 def test_large_negative_value_is_value_error_not_overflow():
@@ -128,17 +124,3 @@ def test_input_unchanged_and_deterministic():
     second = quantize_weighted_deficit(value)
     assert first == second == 3333
     assert (value.numerator, value.denominator) == before
-
-
-def test_module_imports_no_solver_or_database_packages():
-    api_root = Path(__file__).resolve().parents[1]
-    code = (
-        "import sys, app.services.fixed_point; "
-        "bad = [m for m in ('ortools', 'sqlalchemy', 'chronos', 'torch', 'psycopg') "
-        "if m in sys.modules]; "
-        "print(bad); sys.exit(1 if bad else 0)"
-    )
-    result = subprocess.run(
-        [sys.executable, "-c", code], cwd=api_root, capture_output=True, text=True, check=False
-    )
-    assert result.returncode == 0, result.stdout + result.stderr

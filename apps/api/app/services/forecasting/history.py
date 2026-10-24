@@ -9,14 +9,10 @@ forecast dates and does not decide whether the result is usable by a provider
 (OPEN-13) or bound public import sizes (OPEN-29).
 """
 
-from __future__ import annotations
-
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from decimal import Decimal
-
-__all__ = ["AlignedObservation", "align_history"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,12 +74,10 @@ def align_history(
             raise ValueError(f"duplicate observation day {day.isoformat()}")
         by_day[day] = quantity
 
-    span = (cutoff_date - start_date).days
-    aligned: list[AlignedObservation] = []
-    for offset in range(span + 1):
-        day = start_date + timedelta(days=offset)
-        if day in by_day:
-            aligned.append(AlignedObservation(day=day, quantity=by_day[day], source_present=True))
-        else:
-            aligned.append(AlignedObservation(day=day, quantity=None, source_present=False))
-    return tuple(aligned)
+    calendar = (
+        start_date + timedelta(days=offset) for offset in range((cutoff_date - start_date).days + 1)
+    )
+    return tuple(
+        AlignedObservation(day=day, quantity=by_day.get(day), source_present=day in by_day)
+        for day in calendar
+    )

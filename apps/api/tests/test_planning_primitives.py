@@ -146,6 +146,21 @@ def test_rejects_non_str_values_matching_a_mode(raw):
         TransferModeSelection.model_validate({"transfer_mode": raw})
 
 
+@pytest.mark.parametrize(
+    "raw",
+    [None, True, 1, 1.0, ["HUB_ONLY"], "hub_only", " HUB_ONLY", b"HUB_ONLY", _PlainMode.HUB_ONLY],
+    ids=["null", "bool", "int", "float", "list", "lowercase", "space", "bytes", "plain-enum"],
+)
+def test_invalid_mode_values_share_one_enum_error_shape(raw):
+    # One error type for every bad value, so the OPEN-29 envelope maps a single shape.
+    with pytest.raises(ValidationError) as info:
+        TransferModeSelection.model_validate({"transfer_mode": raw})
+    (error,) = info.value.errors(include_url=False)
+    assert error["type"] == "enum"
+    assert error["loc"] == ("transfer_mode",)
+    assert error["ctx"] == {"expected": "'HUB_ONLY' or 'HUB_AND_PANTRY'"}
+
+
 def test_str_enum_member_with_exact_value_is_normalized():
     selection = TransferModeSelection.model_validate({"transfer_mode": _OtherStrMode.HUB_ONLY})
     assert selection.transfer_mode is TransferMode.HUB_ONLY

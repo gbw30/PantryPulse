@@ -8,14 +8,11 @@ quantile or buffer, subtract inventory or validate storage/solver magnitude limi
 (OPEN-24).
 """
 
-from __future__ import annotations
-
+import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
-
-__all__ = ["RoundedDailyTarget", "RoundedDemandTargets", "round_daily_targets"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,16 +27,8 @@ class RoundedDemandTargets:
     total_target: int
 
 
-def _exact_ceiling(value: Decimal) -> int:
-    """Mathematical ceiling of a finite nonnegative Decimal, independent of the context.
-
-    int(Decimal) truncates toward zero exactly, and Decimal == int comparison is
-    exact, so no operation here is subject to context precision or traps.
-    """
-    truncated = int(value)
-    if value == truncated:
-        return truncated
-    return truncated + 1
+def _is_plain_date(value: object) -> bool:
+    return isinstance(value, date) and not isinstance(value, datetime)
 
 
 def round_daily_targets(
@@ -57,7 +46,7 @@ def round_daily_targets(
         if not isinstance(pair, tuple | list) or len(pair) != 2:
             raise TypeError("each point must be a (date, Decimal) pair")
         day, estimate = pair
-        if isinstance(day, datetime) or not isinstance(day, date):
+        if not _is_plain_date(day):
             raise TypeError("point day must be a datetime.date, not a datetime or other type")
         if not isinstance(estimate, Decimal):
             raise TypeError("point estimate must be a decimal.Decimal")
@@ -78,8 +67,10 @@ def round_daily_targets(
                 raise ValueError("days must be strictly increasing")
         previous = day
 
+    # Decimal.__ceil__ rounds to integral value exactly; it never signals Inexact or Rounded,
+    # so the result is independent of the context precision.
     rounded = tuple(
-        RoundedDailyTarget(day=day, target=_exact_ceiling(estimate)) for day, estimate in points
+        RoundedDailyTarget(day=day, target=math.ceil(estimate)) for day, estimate in points
     )
     return RoundedDemandTargets(
         points=rounded,

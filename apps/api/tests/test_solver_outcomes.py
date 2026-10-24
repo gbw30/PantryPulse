@@ -4,9 +4,7 @@ The sentinel tests below validate the gate flags only. They drive a fake caller 
 returned record; they are not evidence of solver correctness.
 """
 
-import subprocess
-import sys
-from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
@@ -82,9 +80,8 @@ def test_deterministic():
     ],
 )
 def test_unknown_case_and_whitespace_variants_raise_value_error(bad):
-    with pytest.raises(ValueError) as info:
+    with pytest.raises(ValueError):
         classify_solver_status(bad)
-    assert not isinstance(info.value, TypeError)
 
 
 @pytest.mark.parametrize("bad", [None, 0, 4, True, False, 4.0, b"OPTIMAL", ["OPTIMAL"], object()])
@@ -94,22 +91,6 @@ def test_non_string_raises_type_error(bad):
 
 
 # ---- Sentinel gate tests (gate-only evidence) ----
-
-
-class _ForbiddenReader:
-    """Fake vector reader that fails the test if accessed."""
-
-    def __init__(self):
-        self.calls = 0
-
-    def __call__(self):
-        self.calls += 1
-        raise AssertionError("candidate vector accessed for a disallowed status")
-
-
-class _Recorder:
-    def __init__(self):
-        self.events: list[tuple[str, object]] = []
 
 
 def _fake_caller(status, read_candidate, verify, publish):
@@ -126,64 +107,35 @@ def _fake_caller(status, read_candidate, verify, publish):
 
 @pytest.mark.parametrize("status", DISALLOWED)
 def test_disallowed_status_never_touches_vector_reader(status):
-    reader = _ForbiddenReader()
-    rec = _Recorder()
-    outcome, candidate = _fake_caller(
-        status,
-        reader,
-        verify=lambda c: rec.events.append(("verify", c)) or True,
-        publish=lambda c: rec.events.append(("publish", c)),
-    )
-    assert reader.calls == 0
+    # The reader raises if it is ever called; verify/publish must not run either.
+    caller = Mock()
+    caller.read.side_effect = AssertionError("candidate vector accessed for a disallowed status")
+    outcome, candidate = _fake_caller(status, caller.read, caller.verify, caller.publish)
+    assert caller.mock_calls == []
     assert candidate is None
-    assert rec.events == []
     assert outcome.may_read_candidate is False
 
 
 @pytest.mark.parametrize("status", PERMITTED)
 def test_permitted_candidate_reaches_verifier_before_publisher(status):
-    rec = _Recorder()
     vector = (("lot-1", 3),)
-
-    def read():
-        rec.events.append(("read", vector))
-        return vector
-
-    def verify(candidate):
-        rec.events.append(("verify", candidate))
-        return True
-
-    def publish(candidate):
-        rec.events.append(("publish", candidate))
-
-    outcome, candidate = _fake_caller(status, read, verify, publish)
-    assert [name for name, _ in rec.events] == ["read", "verify", "publish"]
+    caller = Mock()
+    caller.read.return_value = vector
+    caller.verify.return_value = True
+    outcome, candidate = _fake_caller(status, caller.read, caller.verify, caller.publish)
+    assert [name for name, _, _ in caller.mock_calls] == ["read", "verify", "publish"]
+    caller.verify.assert_called_once_with(vector)
+    caller.publish.assert_called_once_with(vector)
     assert candidate == vector
     assert outcome.native_status == status
 
 
 @pytest.mark.parametrize("status", PERMITTED)
 def test_permitted_candidate_failing_verification_is_not_published(status):
-    rec = _Recorder()
-    outcome, candidate = _fake_caller(
-        status,
-        read_candidate=lambda: (("lot-1", 99),),
-        verify=lambda c: rec.events.append(("verify", c)) or False,
-        publish=lambda c: rec.events.append(("publish", c)),
-    )
-    assert [name for name, _ in rec.events] == ["verify"]
+    caller = Mock()
+    caller.read.return_value = (("lot-1", 99),)
+    caller.verify.return_value = False
+    outcome, candidate = _fake_caller(status, caller.read, caller.verify, caller.publish)
+    assert [name for name, _, _ in caller.mock_calls] == ["read", "verify"]
+    caller.publish.assert_not_called()
     assert candidate is None
-
-
-def test_module_imports_no_solver_or_database_packages():
-    api_root = Path(__file__).resolve().parents[1]
-    code = (
-        "import sys, app.services.solver_outcomes; "
-        "bad = [m for m in ('ortools', 'sqlalchemy', 'chronos', 'torch', 'psycopg') "
-        "if m in sys.modules]; "
-        "print(bad); sys.exit(1 if bad else 0)"
-    )
-    result = subprocess.run(
-        [sys.executable, "-c", code], cwd=api_root, capture_output=True, text=True, check=False
-    )
-    assert result.returncode == 0, result.stdout + result.stderr

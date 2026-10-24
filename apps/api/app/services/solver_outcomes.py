@@ -34,12 +34,15 @@ def classify_solver_status(status: str) -> SolverStatusGate:
     if not isinstance(status, str):
         raise TypeError(f"status must be a str, got {type(status).__name__}")
     raw = str.__str__(status)
-    for member in NativeSolverStatus:
-        if member.value == raw:
-            readable = member in _READABLE
-            return SolverStatusGate(
-                native_status=member,
-                may_read_candidate=readable,
-                requires_independent_verification=readable,
-            )
-    raise ValueError(f"status must be one of {[m.value for m in NativeSolverStatus]}, got {raw!r}")
+    try:
+        native = NativeSolverStatus(raw)
+    except ValueError:
+        raise ValueError(
+            f"status must be one of {[m.value for m in NativeSolverStatus]}, got {raw!r}"
+        ) from None
+    readable = native in _READABLE
+    return SolverStatusGate(
+        native_status=native,
+        may_read_candidate=readable,
+        requires_independent_verification=readable,
+    )

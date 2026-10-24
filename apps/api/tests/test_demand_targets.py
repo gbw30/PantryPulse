@@ -137,7 +137,7 @@ def test_non_date_days_raise_type_error(bad_day):
         round_daily_targets([(bad_day, Decimal("1"))])
 
 
-@pytest.mark.parametrize("bad_points", [None, "abc", 5, {D1: Decimal("1")}])
+@pytest.mark.parametrize("bad_points", [None, "", "abc", b"", 5, {D1: Decimal("1")}])
 def test_non_sequence_points_raise_type_error(bad_points):
     with pytest.raises(TypeError):
         round_daily_targets(bad_points)
