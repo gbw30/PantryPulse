@@ -1,6 +1,6 @@
 {
-  "enabled": false,
-  "note": "Enable only after scaffold commands work. Disabled is UNVERIFIED. CI invokes gates explicitly regardless of enabled.",
+  "enabled": true,
+  "note": "Enabled 2026-10-24 after the quick gate passed (web typecheck/lint, api lint/tests). Stop enforces quick only; full and e2e commands still lack domain tests. CI invokes gates explicitly regardless of enabled.",
   "timeoutSeconds": 90,
   "budgetSeconds": {
     "quick": 120,

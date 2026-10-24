@@ -10,8 +10,24 @@ Build the Gator Hack V 48-hour MVP: three fictional sites, two resource categori
 - docs/pantrypulse/ART-DIRECTION.md: approved visual direction.
 - docs/pantrypulse/TASK-PROTOCOL.md: ownership, review and integration.
 - docs/pantrypulse/DEMO.md: reset and judge journey.
-- docs/pantrypulse/BOARD.md: delivery board; task packets live in docs/pantrypulse/tasks/PP-NN.md.
+- docs/pantrypulse/BOARD.md: delivery board. Task packets (docs/pantrypulse/tasks/PP-NN.md) do not exist yet; the lead writes one per task, so without a packet, ask for one.
+- docs/pantrypulse/IMPLEMENTATION-PLAN.md and docs/architecture/ (ADR 0001 research gate, ADR 0002 UI stack): current V4 plan and decisions.
+- docs/pantrypulse/ACCEPTANCE-MATRIX.md: required evidence per requirement. docs/pantrypulse/BACKEND-DATA-FLOW.md: how data moves through the API.
+- INSTALLATION.md and docs/pantrypulse/WINDOWS-DEVELOPMENT.md: setup. SCAFFOLD-VERIFICATION.md: what has actually been run and what has not.
 - Reference only, don't preload: docs/pantrypulse/SOURCE-SPEC.md (original PRD), docs/pantrypulse/HANDBOOK.md (orchestration rationale), docs/pantrypulse/templates/ (scaffold fragments for the lead), docs/pantrypulse/ENVIRONMENT.md (toolchain and config verification status).
+
+## Repository map
+The repository root is this folder and the only Git repo. Do not create or run from nested copies; the history of a former nested copy is the `legacy/main` ref.
+- apps/web: Next.js 16 app (src/app, src/lib, tests/e2e, Playwright). It is the only npm workspace; the root package-lock.json owns the lock.
+- apps/api: FastAPI. app/main.py has only GET /api/v1/health. routers/, schemas/, models/, repositories/ and services/{forecasting,inventory,optimization}/ are empty scaffolds that mark ownership boundaries. Also migrations/, tests/ and uv.lock (the Python lock).
+- packages/contracts: shared contract output (README only so far).
+- docs/pantrypulse: product contract, protocol, plans. docs/architecture: ADRs.
+- scripts/quality: gate runner and hook tests. scripts/*-windows.ps1: setup and doctor. data/demo: golden fixtures. .claude: agents, hooks, rules, skills and quality-gate.json.
+
+## Navigating and evidence
+- Find owners by path: each agent file lists its owned paths and .claude/rules/*.md scope by path glob. Open the matching rule before editing under that path.
+- Docs describe the intended contract; code and command output describe current state. Many documented routes, tables and solvers do not exist yet, so grep the code before claiming something is implemented.
+- Cite file:line for every claim, separate code from documentation, and write "not found" or "unverified" instead of guessing. Do not report a file you did not open as read.
 
 ## Delivery
 - Lead owns contracts, migrations, lockfiles, shared configuration, integration, deployment and scope.
@@ -52,6 +68,9 @@ When a skill conflicts with a project constraint, keep the project rule and use 
 - Full: node scripts/quality/run.cjs full
 - E2E: node scripts/quality/run.cjs e2e
 - Config tests: node --test scripts/quality/tests/*.test.cjs
+- App checks: npm run check (types, lint, ruff, API tests), npm run build, npm run test:e2e.
+- Backend runs in Docker on this Windows host because Application Control blocks OR-Tools natively: npm run dev:api:docker, npm run test:api:docker, npm run check:runtime:docker.
+- The Stop gate is enabled and runs the quick gate; it does not run full or e2e.
 Gate commands are declared in .claude/quality-gate.json. Create and validate the application commands before enabling Stop enforcement. Do not install this kit's templates over existing manifests.
 
 ## Operating limits
