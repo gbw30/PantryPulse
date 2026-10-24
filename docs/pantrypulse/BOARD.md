@@ -1,6 +1,6 @@
 # PantryPulse delivery board
 
-Update after each integration. [Project specification V5](SPEC-V5.md) records the current implementation/branch state and acceptance. PP-01–23 retain the historical planning board and require reconciliation; PP-24–29 were merged through PR #7. The offline forecasting core exists on a separate unmerged branch. No completed application is claimed.
+Update after each integration. [Project specification V5](SPEC-V5.md) records the current implementation/branch state and acceptance. PP-01–23 retain the historical planning board and require reconciliation; PP-24–29 were merged through PR #7. PP-30–35 (worker/job queue foundation, [ADR 0004](../architecture/0004-worker-job-queue.md)) are on the unmerged branch be/worker-queue; they use test handlers only. The offline forecasting core exists on a separate unmerged branch. No completed application is claimed.
 
 | ID | Outcome | Owner | Depends on | Exit evidence | Status |
 |---|---|---|---|---|---|
@@ -33,5 +33,11 @@ Update after each integration. [Project specification V5](SPEC-V5.md) records th
 | PP-27 | BE-04 fixed-point floor primitive (#4) | Lead | none | Unit tests + verifier at a3f44c1 | MERGED; independent review pending |
 | PP-28 | BE-05 native solver-status gate (#5) | Lead | none | Unit tests + verifier at a3f44c1 | MERGED; independent review pending |
 | PP-29 | BE-06 history alignment without imputation (#6) | Lead | none | Unit tests + verifier at a3f44c1 | MERGED; independent review pending |
+| PP-30 | WQ-01 internal job contracts and pure policies | Lead | none | Pure tests (WQ-T01–T04) | BRANCH be/worker-queue; verifier pending |
+| PP-31 | WQ-02 jobs-only migration and queue repository | Lead | PP-30 | Isolated PostgreSQL tests (WQ-T05–T10, T19–T21, T27) | BRANCH be/worker-queue; verifier pending |
+| PP-32 | WQ-03 supervisor ownership/heartbeat/recovery | Lead | PP-31 | Supervisor tests with fake boundary (WQ-T08, T11, T13, T22) | BRANCH be/worker-queue; verifier pending |
+| PP-33 | WQ-04 Linux process driver and containment | Lead | PP-30 | Linux real-process tests (WQ-T12, T14, T23) | BRANCH be/worker-queue; verifier pending |
+| PP-34 | WQ-05 fenced publication and commit reconciliation | Lead | PP-31 | PostgreSQL tests (WQ-T18–T20) | BRANCH be/worker-queue; verifier pending |
+| PP-35 | WQ-06 PostgreSQL + supervisor + test-job vertical slice | Lead | PP-31–34 | Linux slice with real supervisor SIGKILL (WQ-T10–T15, T21, T22) | BRANCH be/worker-queue; verifier pending |
 
 P1 reservations/completion are separate tickets only after all P0 rows are accepted. No worker may claim a shared foundational file without a lead assignment.

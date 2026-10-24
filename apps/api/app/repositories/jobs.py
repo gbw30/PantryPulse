@@ -1012,7 +1012,7 @@ class QueueRepository:
                     conn.execute(
                         sa.text(
                             "SELECT a.attempt_id, a.job_id, a.attempt_number, a.state,"
-                            " a.queue_deadline_at, j.organization_id, j.operation_kind,"
+                            " a.enqueued_at, j.organization_id, j.operation_kind,"
                             " j.handler_contract, j.input_schema_version, j.input_package,"
                             " j.input_sha256 FROM compute_attempts a JOIN compute_jobs j"
                             " ON j.job_id = a.job_id AND j.current_attempt_id = a.attempt_id"
@@ -1085,8 +1085,7 @@ class QueueRepository:
                     details={
                         "budget_s": budget,
                         "primary_cutoff_s": min(cutoffs) if cutoffs else None,
-                        "queue_wait_s": _seconds(now - row["queue_deadline_at"])
-                        + self.profile.queue_wait_s,
+                        "queue_wait_s": round(_seconds(now - row["enqueued_at"]), 3),
                     },
                 )
                 return ClaimedAttempt(
@@ -1154,7 +1153,10 @@ class QueueRepository:
                 job_id=claim.job_id,
                 attempt_id=claim.attempt_id,
                 own=own,
-                details={"phase": phase[:64], "boundary": dict(boundary)},
+                details={
+                    "phase": phase[:64],
+                    "boundary": {k: v for k, v in boundary.items() if k != "nonce"},
+                },
             )
         return True
 

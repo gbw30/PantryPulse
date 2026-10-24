@@ -25,6 +25,7 @@ from app.repositories.jobs import (
     ClaimedAttempt,
     CommitUncertain,
     Fenced,
+    JobStateConflict,
     OwnershipLost,
     QueueRepository,
     QueueStorageUnavailable,
@@ -403,7 +404,10 @@ class Supervisor:
             attempt = self.repo.read_attempt(ex.claim.attempt_id)
             if attempt.state is AttemptState.STOPPING:  # cancellation recorded by the API
                 self._begin_stop(ex, now)
-        if not ex.stopping and now >= ex.soft_deadline:
+        # Step windows already stop children by budget - reserve; this backstop must not
+        # pre-empt a step's own cutoff (reserve may equal grace) and discard earlier outcomes.
+        backstop = now >= ex.hard_deadline or (ex.current is None and now >= ex.soft_deadline)
+        if not ex.stopping and backstop:
             self.repo.request_stop(self.own, ex.claim, ReasonCode.EXECUTION_DEADLINE_EXCEEDED)
             self._begin_stop(ex, now)
         if ex.stopping:
@@ -492,15 +496,22 @@ class Supervisor:
         self._finish(ex)
 
     def _finish(self, ex: Execution, *, failure_reason: ReasonCode | None = None, error=None):
-        """Finalize a cleaned-up non-success outcome (state from the recorded stop reason)."""
-        state = self.repo.finalize(
-            self.own,
-            ex.claim,
-            failure_reason=failure_reason,
-            error=error,
-            diagnostics={"steps": [o.summary() for o in ex.outcomes]},
-        )
-        log_event("ATTEMPT_FINALIZED", attempt_id=ex.claim.attempt_id, state=state.value)
+        """Finalize a cleaned-up non-success outcome (state from the recorded stop reason).
+
+        An attempt already finalized elsewhere (operator attestation while local cleanup
+        was pending) is left as recorded; the loop continues.
+        """
+        try:
+            state = self.repo.finalize(
+                self.own,
+                ex.claim,
+                failure_reason=failure_reason,
+                error=error,
+                diagnostics={"steps": [o.summary() for o in ex.outcomes]},
+            )
+            log_event("ATTEMPT_FINALIZED", attempt_id=ex.claim.attempt_id, state=state.value)
+        except JobStateConflict:
+            log_event("ATTEMPT_ALREADY_FINAL", attempt_id=ex.claim.attempt_id)
         self.active = None
         if ex.cleanup_quarantined:
             self._recovery_pass()

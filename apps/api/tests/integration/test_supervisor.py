@@ -470,3 +470,75 @@ def _fixture_payload(q, attempt_id):
             sa.text("SELECT payload FROM wq_fixture_results WHERE attempt_id = :a"),
             {"a": attempt_id},
         )
+
+
+def test_last_method_cap_does_not_discard_a_completed_method(q, org):  # review F6, WQ-T17
+    # Production shape: publication reserve equals stop grace, so the second method's hard
+    # stop coincides with budget - grace. Only that method may time out, not the attempt.
+    equal = dataclasses.replace(
+        PROFILE, stop_grace_s=0.3, publication_reserve_s=0.3, comparison_total_s=2.5
+    )
+    qq = QueueRepository(q.engine, registry=REGISTRY, profile=equal)
+    sup, driver = started(qq, profile=equal)
+    accepted = submit(
+        qq,
+        org,
+        "test.comparison.v1",
+        {
+            "methods": {
+                "CLASSICAL_GP": {"sleep_s": 0.6},
+                "EGP_PI_INSPIRED": {"sleep_s": 30, "ignore_sigterm": True},
+            }
+        },
+    )
+    run_until(sup, settled(qq, org, accepted.job_id))
+    view = qq.get_job(org, accepted.job_id)
+    assert view.state is AttemptState.SUCCEEDED
+    methods = _fixture_payload(qq, view.attempts[0].attempt_id)["methods"]
+    assert [m["step_status"] for m in methods] == ["COMPLETED", "TIMED_OUT"]
+    assert [h.step for h in driver.started] == ["CLASSICAL_GP", "EGP_PI_INSPIRED"]
+    sup.shutdown_drain()
+
+
+def test_attestation_during_local_cleanup_does_not_crash_the_loop(q, org):  # review F7
+    sup, driver = started(q, stop_confirm_timeout_s=0.3)
+    driver.stuck_steps.add("TEST_METHOD")
+    accepted = submit(q, org, payload={"value": 1, "behavior": {"sleep_s": 0.1}})
+    run_until(sup, lambda: q.control().state is SupervisorState.QUARANTINED, timeout=10)
+    attempt_id = q.get_job(org, accepted.job_id).current_attempt_id
+    q.operator_attest_cleanup(attempt_id, "operator-1", "checked")
+    # Local evidence still shows members: the lane stays unavailable meanwhile.
+    for _ in range(20):
+        sup.tick()
+    assert q.control().state is SupervisorState.QUARANTINED
+    driver.stuck_steps.clear()
+    run_until(sup, lambda: q.control().state is SupervisorState.READY, timeout=10)
+    assert sup.active is None and not sup.closed
+    sup.shutdown_drain()
+
+
+def test_logs_and_audit_omit_tokens_and_payloads(q, org, caplog):  # WQ-T26
+    import logging
+
+    caplog.set_level(logging.INFO, logger="pantrypulse.worker")
+    sup, _ = started(q)
+    secret_value = 424242
+    accepted = submit(q, org, payload={"value": secret_value, "behavior": {}})
+    run_until(sup, settled(q, org, accepted.job_id))
+    with q.engine.connect() as conn:
+        token = conn.scalar(
+            sa.text("SELECT execution_token FROM compute_attempts WHERE attempt_id = :a"),
+            {"a": accepted.attempt_id},
+        )
+        audit = conn.execute(sa.text("SELECT details::text FROM compute_audit_events")).scalars()
+        audit_text = " ".join(audit)
+    logs = caplog.text
+    assert logs and "ATTEMPT_PUBLISHED" in logs
+    for text in (logs, audit_text):
+        assert str(token) not in text
+        assert str(secret_value) not in text
+        assert "nonce" not in text
+        assert "postgresql" not in text.lower()
+    view = q.get_job(org, accepted.job_id)
+    assert not hasattr(view.attempts[0], "execution_token")
+    sup.shutdown_drain()
