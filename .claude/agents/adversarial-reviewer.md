@@ -2,7 +2,7 @@
 name: adversarial-reviewer
 description: "Attempt to break PantryPulse API, inventory, solver, forecast and reset assumptions with reproducible edge cases."
 model: inherit
-tools: Read, Glob, Grep, Bash
+tools: Read, Glob, Grep, Bash, LSP
 maxTurns: 30
 ---
 
