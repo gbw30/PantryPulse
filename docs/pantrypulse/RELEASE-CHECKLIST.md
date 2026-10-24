@@ -1,5 +1,7 @@
 # PantryPulse release checklist
 
+> **Current authority:** [Project specification V5](SPEC-V5.md). Use V5 for current scope, qualification and release acceptance. Unchecked historical steps below are not evidence of completion.
+
 Unchecked boxes remain work, not implied success.
 
 ## Before parallel work

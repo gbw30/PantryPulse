@@ -1,5 +1,7 @@
 # Environment record
 
+> **Current authority:** [Project specification V5](SPEC-V5.md). Dated environment/configuration history. Use V5 for current project contracts and evidence; machine/plugin details below are not product prerequisites or live-state guarantees.
+
 Recorded 2026-10-23 when the Claude Code kit was installed. Update this file when a toolchain version changes.
 
 | Tool | Version | Note |

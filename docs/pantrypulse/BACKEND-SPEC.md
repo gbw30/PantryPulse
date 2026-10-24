@@ -1,10 +1,12 @@
 # PantryPulse Backend Specification and Build Readiness
 
+> **Current authority:** [Project specification V5](SPEC-V5.md) consolidates these requirements, later accepted decisions, main/forecasting-branch implementation status and acceptance. This document retains detailed internal helper contracts and planning history; conflicting historical status/proposals below yield to V5.
+
 **Date:** October 24, 2026 (America/New_York)
 
-**Status:** Implementable contracts for the bounded components marked READY below, plus the accepted requirements and explicit blockers for the remaining backend. The complete backend is not yet fully specified. READY means its stated implementation boundary is fully defined; it does not mean implemented, tested, or ready for release. Supplier planning and hosting/model setup remain paused.
+**Status:** The six bounded components below are implemented on main through PR #7. Their internal contracts remain useful; the complete backend is not fully specified or implemented. V5 records 437 passing main API tests and the separately verified, unmerged forecasting core. Supplier planning and hosting/model setup remain paused.
 
-**Decision record:** Published [main checkpoint at a0ad11f](https://github.com/gbw30/PantryPulse/blob/a0ad11f45bb15a3c3158ed6678f9522652d2a723/docs/pantrypulse/BACKEND-DESIGN-CHECKPOINT.md), BD-01 through BD-40 and OPEN-01 through OPEN-36, plus the reconciliation below. The [local checkpoint](BACKEND-DESIGN-CHECKPOINT.md) currently retains an earlier BD-01–29 record; its missing later entries do not rescind main's decisions. This specification is the actionable contract for the work defined here. Remaining branch reconciliation is unfinished.
+**Decision record:** Published [main checkpoint at a0ad11f](https://github.com/gbw30/PantryPulse/blob/a0ad11f45bb15a3c3158ed6678f9522652d2a723/docs/pantrypulse/BACKEND-DESIGN-CHECKPOINT.md), BD-01 through BD-40 and OPEN-01 through OPEN-36, plus BD-41 below. The [checkpoint](BACKEND-DESIGN-CHECKPOINT.md) retains the decision history. V5 reconciles these records and branch experiments without closing unresolved domain contracts.
 
 ## 0. Start here: what can be built now
 
@@ -14,22 +16,22 @@ This revision restores main's published specification into the older local check
 
 | Work item | Readiness | Exact implementation boundary | Definition of done |
 |---|---|---|---|
-| BE-01 | **READY — start now** | Transfer-mode/method types and required mode fragment; §13.1 | Strict schema cases and JSON Schema checks pass |
-| BE-02 | **READY — start now** | Pure transfer-mode route filter; §13.2 | Complete role/mode truth table and rejection precedence pass |
-| BE-03 | **READY — start now** | Per-day target rounding; §13.3 | Exact decimal examples, invalid inputs, and nonmutation pass |
-| BE-04 | **READY — start now** | Fixed-point numerical primitive only; §13.4 | Independent rational equality/boundary checks pass |
-| BE-05 | **READY — start now** | Native solver-status result gate only; §13.5 | Status table and vector-access sentinel tests pass |
-| BE-06 | **READY — start now** | Single-target history alignment preserving missingness; §13.6 | Gaps, zero, duplicates, cutoff, and nonmutation tests pass |
+| BE-01 | **IMPLEMENTED — MAIN** | Transfer-mode/method types and required mode fragment; §13.1 | Strict schema cases and JSON Schema checks pass |
+| BE-02 | **IMPLEMENTED — MAIN** | Pure transfer-mode route filter; §13.2 | Complete role/mode truth table and rejection precedence pass |
+| BE-03 | **IMPLEMENTED — MAIN** | Per-day target rounding; §13.3 | Exact decimal examples, invalid inputs, and nonmutation pass |
+| BE-04 | **IMPLEMENTED — MAIN** | Fixed-point numerical primitive only; §13.4 | Independent rational equality/boundary checks pass |
+| BE-05 | **IMPLEMENTED — MAIN** | Native solver-status result gate only; §13.5 | Status table and vector-access sentinel tests pass |
+| BE-06 | **IMPLEMENTED — MAIN** | Single-target history alignment preserving missingness; §13.6 | Gaps, zero, duplicates, cutoff, and nonmutation tests pass |
 | Process liveness | Existing implementation; verification not rerun here | `GET /api/v1/health`; §13.7 | Existing health contract regression passes |
 | Domain persistence, inventory, forecasting, scenarios, jobs, allocation, auth, suppliers | **PARTIAL / BLOCKED** | Requirements in §§3–12; missing contracts in §14 | Close the named blockers before implementing the affected integrated feature |
 
-BE identifiers are spec-local work items, not replacements for the delivery board's PP identifiers. All six implementation tasks remain **NOT STARTED** in this revision. They need no new service, model download, running database, solver invocation, or hosting setup. They may be implemented sequentially while design continues. Starting any task does not authorize restarting paused setup or supplier planning.
+BE identifiers are spec-local work items, not replacements for the delivery board's PP identifiers. All six are now **IMPLEMENTED — MAIN**, with evidence in PP-24–29 and V5. Their pure tests need no new service, model download, running database, solver invocation or hosting setup. Their completion does not close the surrounding OPEN topics or authorize restarting paused work.
 
 Each READY component is an internal Python contract. It must be pure, deterministic, and free of database/network/filesystem side effects and model/solver imports. Write meaningful failing unit tests first, implement the component, then run only its targeted checks. A component cannot silently widen its scope into the blocked domain around it. Generate public TypeScript only after the enclosing public contracts are finalized.
 
 ## 1. Authority and implementation status
 
-[V4](https://docs.google.com/document/d/1WcsV69YCE1mqW2pI7IyEFQBSuwQB_hMhVQKfU20ZFk8/edit?tab=t.951hp1xdarlq) remains the source specification. Its authoritative extensions supersede conflicting inherited examples. Explicit interview selections resolve the differences recorded here and in the checkpoint; they do not silently edit the Google Doc.
+[V5](SPEC-V5.md) is the consolidated source specification. It preserves [V4](https://docs.google.com/document/d/1WcsV69YCE1mqW2pI7IyEFQBSuwQB_hMhVQKfU20ZFk8/edit?tab=t.951hp1xdarlq) extensions and later explicit interview selections, resolving conflicts without silently changing the Google Doc.
 
 Accepted decisions are binding design directions. Carried-forward V4 requirements remain required unless explicitly revised. Logical data descriptions and candidate routes below do not freeze unfinished SQL, Pydantic, JSONB, or wire schemas. An OPEN reference identifies work still required; recommendations in older documents are not selected defaults.
 

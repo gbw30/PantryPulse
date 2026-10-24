@@ -1,5 +1,7 @@
 # PantryPulse Backend Specification — Working Draft
 
+> **Current authority:** [Project specification V5](SPEC-V5.md). This checkpoint preserves accepted decision history and pauses. V5 adds BD-41 reconciliation, current code/branch evidence and the consolidated OPEN register; historical resume/status text below does not override it.
+
 **Date:** October 24, 2026 (America/New_York)
 
 **Status:** Design interview in progress. This checkpoint records 40 accepted decisions and the 36-topic tracker. OPEN-01 is resolved; OPEN-02 and OPEN-03 remain explicitly deferred; OPEN-26–28 are paused. OPEN-33–36 have accepted directions and remaining details. It is not a finalized implementation specification or evidence that the proposed features work.

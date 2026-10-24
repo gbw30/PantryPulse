@@ -1,5 +1,7 @@
 # V4 prioritized implementation plan
 
+> **Current authority:** [Project specification V5](SPEC-V5.md). Historical V4 roadmap. Use V5 for the current dependency sequence, implemented main/branch work, explicit transfer modes and acceptance.
+
 See [architecture/research gate](../architecture/0001-v4-research-first.md). This scaffold is not a working allocation platform.
 
 | Priority / target | Deliverable | Exit evidence |

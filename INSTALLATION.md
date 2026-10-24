@@ -2,7 +2,7 @@
 
 For a shorter walkthrough with separate host and teammate instructions, follow the [Windows installation and Cloudflare connection quickstart](docs/setup/WINDOWS-QUICKSTART.md).
 
-This guide targets Windows x64 with PowerShell 5.1 or 7. The [V4 tab](https://docs.google.com/document/d/1WcsV69YCE1mqW2pI7IyEFQBSuwQB_hMhVQKfU20ZFk8/edit?tab=t.951hp1xdarlq) is authoritative; V1–V3 are historical. V4 was rechecked on October 23, 2026 and matches the saved snapshot.
+This guide targets Windows x64 with PowerShell 5.1 or 7. [Project specification V5](docs/pantrypulse/SPEC-V5.md) is authoritative for accepted requirements, current main/forecasting-branch status and unresolved work. The [V4 tab](https://docs.google.com/document/d/1WcsV69YCE1mqW2pI7IyEFQBSuwQB_hMhVQKfU20ZFk8/edit?tab=t.951hp1xdarlq) and saved snapshot are historical sources. Setup commands do not override V5's proxy/job architecture or resume paused model/hosting work.
 
 **Current state:** frontend/API scaffold plus backend primitives for transfer modes, route eligibility, demand rounding, fixed-point arithmetic, solver outcomes and forecast-history alignment. The complete EGP-PI-inspired and classical allocation engines, forecasting adapters, domain migrations and complete demo are pending. Installed libraries do not imply those features work.
 

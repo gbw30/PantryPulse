@@ -1,5 +1,7 @@
 # PantryPulse acceptance matrix
 
+> **Current authority:** [Project specification V5](SPEC-V5.md). Historical planning matrix. V5 section 16 is the consolidated acceptance matrix and distinguishes main helpers, unmerged experiments and unimplemented live workflows.
+
 Initial status for every row: NOT RUN. Suggested test names are implementation targets; the kit does not claim those app tests already exist. Keep the final matrix in Git with evidence links/commit IDs.
 
 | Requirement | Required evidence | Suggested owner |

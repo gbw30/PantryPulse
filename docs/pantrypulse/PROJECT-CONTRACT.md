@@ -1,6 +1,6 @@
 # PantryPulse project contract
 
-> Superseded where conflicting with the authoritative V4 tab. Start with [ADR 0001](../architecture/0001-v4-research-first.md) and the [V4 implementation plan](IMPLEMENTATION-PLAN.md). In particular, use six beneficiaries plus hub(s), hard lot/FEFO constraints, and paired CLASSICAL_GP/EGP_PI_INSPIRED with active AP/RP objectives. The three-site and shortage-first rules below are historical.
+> Historical contract. [Project specification V5](SPEC-V5.md) is the current source of truth and supersedes conflicting scope, proxy/job/scenario/provider policies and implementation-status statements below. Retain compatible invariants and historical rationale; do not adopt old numerical examples as new defaults.
 
 Status: proposed implementation contract derived from source spec v1.0 and the supplied orchestration research. Product requirements below come from the spec; details labeled decision resolve gaps for the 48-hour build. Record accepted changes in an ADR before changing shared schemas. D08–D09 and the status-code, shortage-response, schema-column and observability sections were added on 2026-10-23 after a source-spec audit. The HANDBOOK.md appendix copy predates them, so this file is authoritative.
 

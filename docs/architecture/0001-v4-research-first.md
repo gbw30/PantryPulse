@@ -1,5 +1,7 @@
 # ADR 0001: V4 research-first architecture
 
+> **Current authority:** [Project specification V5](../pantrypulse/SPEC-V5.md). Retain the research gate and compatible architecture. V5 incorporates later accepted proxy/job/scenario/mode/runtime decisions and current implementation evidence; illustrative mathematical values below remain gated.
+
 Date: 2026-10-23. Accepted for scaffold; mathematical implementation remains gated.
 
 ## Authority and findings

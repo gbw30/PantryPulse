@@ -1,5 +1,7 @@
 # Scaffold verification — 2026-10-23
 
+> **Current authority:** [Project specification V5](SPEC-V5.md). Historical evidence for its recorded date/tree only. V5 records current bounded test counts and capabilities; stale running-service, hook and uncommitted-file statements below are not current state.
+
 ## Finalized UI dependency stack
 
 Installed and locked motion 14.6.0, tw-animate-css 1.4.0 and the local shadcn CLI 4.22.1 in apps/web/package.json and root package-lock.json. Recharts 3.10.1, Lucide, Tailwind and existing Radix/helper dependencies remain. Configured Watermelon and Kokonut namespaces; their individual source components are added on demand, and none were copied in this task. Added ui:add/ui:info npm commands, animation stylesheet imports and semantic theme tokens. Documented the final stack in INSTALLATION.md and ADR 0002; removed Motion/shadcn from the guide's uninstalled-optional list.

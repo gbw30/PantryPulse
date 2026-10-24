@@ -1,6 +1,6 @@
 # PantryPulse delivery board
 
-Update after each integration, not after each agent thought. All initial statuses are TODO; no application has been built by this kit.
+Update after each integration. [Project specification V5](SPEC-V5.md) records the current implementation/branch state and acceptance. PP-01–23 retain the historical planning board and require reconciliation; PP-24–29 were merged through PR #7. The offline forecasting core exists on a separate unmerged branch. No completed application is claimed.
 
 | ID | Outcome | Owner | Depends on | Exit evidence | Status |
 |---|---|---|---|---|---|
@@ -27,11 +27,11 @@ Update after each integration, not after each agent thought. All initial statuse
 | PP-21 | Adversarial audit and fixes | Reviewer/lead | PP-19 | P0 coverage matrix | TODO |
 | PP-22 | Release/rollback and five rehearsals | Lead/human | PP-20,21 | Release evidence + backup | TODO |
 | PP-23 | Submission assets | Lead/human | PP-22 | Rules-specific checklist | TODO |
-| PP-24 | BE-01 transfer mode and method types (#1) | Lead | none | Unit tests + verifier at a3f44c1 | IN REVIEW |
-| PP-25 | BE-02 mode-dependent route predicate (#2) | Lead | PP-24 | Unit tests + verifier at a3f44c1 | IN REVIEW |
-| PP-26 | BE-03 daily demand rounding (#3) | Lead | none | Unit tests + verifier at a3f44c1 | IN REVIEW |
-| PP-27 | BE-04 fixed-point floor primitive (#4) | Lead | none | Unit tests + verifier at a3f44c1 | IN REVIEW |
-| PP-28 | BE-05 native solver-status gate (#5) | Lead | none | Unit tests + verifier at a3f44c1 | IN REVIEW |
-| PP-29 | BE-06 history alignment without imputation (#6) | Lead | none | Unit tests + verifier at a3f44c1 | IN REVIEW |
+| PP-24 | BE-01 transfer mode and method types (#1) | Lead | none | Unit tests + verifier at a3f44c1 | MERGED; independent review pending |
+| PP-25 | BE-02 mode-dependent route predicate (#2) | Lead | PP-24 | Unit tests + verifier at a3f44c1 | MERGED; independent review pending |
+| PP-26 | BE-03 daily demand rounding (#3) | Lead | none | Unit tests + verifier at a3f44c1 | MERGED; independent review pending |
+| PP-27 | BE-04 fixed-point floor primitive (#4) | Lead | none | Unit tests + verifier at a3f44c1 | MERGED; independent review pending |
+| PP-28 | BE-05 native solver-status gate (#5) | Lead | none | Unit tests + verifier at a3f44c1 | MERGED; independent review pending |
+| PP-29 | BE-06 history alignment without imputation (#6) | Lead | none | Unit tests + verifier at a3f44c1 | MERGED; independent review pending |
 
 P1 reservations/completion are separate tickets only after all P0 rows are accepted. No worker may claim a shared foundational file without a lead assignment.

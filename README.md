@@ -2,6 +2,8 @@
 
 PantryPulse is a project for Gator Hack V, October 23–25, 2026, exploring how food banks and community organizations can share limited supplies more fairly.
 
+Start with the [consolidated project specification V5](docs/pantrypulse/SPEC-V5.md) for accepted requirements, the current main and forecasting-branch state, unresolved decisions and release acceptance.
+
 When several organizations need food at the same time, there may not be enough to meet every request. Sending the same amount to everyone can overlook differences in need. Sending supplies wherever delivery is easiest can leave vulnerable communities with larger shortages. Meanwhile, food can expire, storage space is limited, and organizations donating supplies still need enough for the people they already serve.
 
 PantryPulse aims to help a coordinator understand these trade-offs and compare possible allocation plans before making a decision.
@@ -29,6 +31,8 @@ The goal of the reproducible demonstration is to show when these research-derive
 
 **PantryPulse is in early development.** The repository contains the frontend foundation, a backend process-health endpoint, locked dependencies, and a Linux container environment for the optimization libraries. Backend primitives cover transfer modes, route eligibility, demand rounding, fixed-point arithmetic, solver outcomes and forecast-history alignment. The complete allocation engines, forecasting adapters, application database schema and interactive comparison workflow are not yet implemented. Equation-level research validation remains a prerequisite for complex solver work.
 
+The separate `forecasting` branch contains an offline preparation/baseline/evaluation core and pure projection, verified with 44 branch tests and a simulated 26-series evaluation. It is not merged into this main baseline. Its Chronos adapter remains unavailable pending actual model qualification; database, durable jobs and browser integration remain unfinished. V5 records the exact reviewed commits and experimental-policy boundaries.
+
 The demo is planned around simulated data and institution-level indicators. It will not purchase supplies or dispatch real deliveries.
 
 ## Project foundation
@@ -39,7 +43,8 @@ For the presentation, the website and Python API can run on the presenter's comp
 
 ## Further reading
 
-- [Authoritative V4 specification](https://docs.google.com/document/d/1WcsV69YCE1mqW2pI7IyEFQBSuwQB_hMhVQKfU20ZFk8/edit?tab=t.951hp1xdarlq)
+- [Project specification V5 — current source of truth](docs/pantrypulse/SPEC-V5.md)
+- [Original V4 source document](https://docs.google.com/document/d/1WcsV69YCE1mqW2pI7IyEFQBSuwQB_hMhVQKfU20ZFk8/edit?tab=t.951hp1xdarlq)
 - [Local development installation guide](INSTALLATION.md)
 - [External services installation guide](EXTERNAL-SERVICES.md)
 - [Personal-computer demo setup](docs/setup/LOCAL-DEMO.md)
@@ -47,4 +52,4 @@ For the presentation, the website and Python API can run on the presenter's comp
 - [Prioritized implementation plan](docs/pantrypulse/IMPLEMENTATION-PLAN.md)
 - [Architecture and research validation](docs/architecture/0001-v4-research-first.md)
 
-V4 is the project's authoritative specification. Earlier versions are historical references.
+V5 consolidates V4, later accepted decisions and actual implementation evidence. Older documents remain historical or detailed references where compatible.

@@ -1,5 +1,7 @@
 # Proposed Backend Behavior in Simple Terms
 
+> **Current authority:** [Project specification V5](SPEC-V5.md). Plain-language historical explanation. V5 governs accepted behavior, review-only plans, explicit transfer modes and the actual main/forecasting-branch state.
+
 PantryPulse is meant to help someone running a food-distribution network answer three questions:
 
 1. **What supplies do we have?**

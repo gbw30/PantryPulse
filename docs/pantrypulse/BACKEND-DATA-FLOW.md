@@ -1,5 +1,7 @@
 # Proposed Backend Data Flow and API Behavior
 
+> **Current authority:** [Project specification V5](SPEC-V5.md). Explanatory reference. V5 supersedes conflicting target, transfer-mode, proxy/job, scenario and supplier policies and distinguishes implemented from planned behavior.
+
 The backend is proposed to take **records of stock, past demand, donations, and operating rules**, turn them into **estimates of future shortages**, and then calculate **feasible recommendations for moving resources between locations**.
 
 There are three distinct kinds of output:

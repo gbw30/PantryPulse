@@ -1,5 +1,7 @@
 # Run Chronos-2 on your Windows laptop
 
+> **Current authority:** [Project specification V5](docs/pantrypulse/SPEC-V5.md). Standalone model-exercise guide, not an integrated forecast service. V5 records its unverified execution status, distinct scope and setup pause; reading this guide does not resume heavy model work.
+
 A step-by-step guide for PantryPulse · Updated October 24, 2026
 
 **What you will get:** real Chronos-2 forecasts running on your CPU, a reusable model download, an interactive session that keeps the model loaded, and saved forecasts/timing records.

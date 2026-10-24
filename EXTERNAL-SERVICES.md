@@ -1,5 +1,7 @@
 # PantryPulse external services and laptop demo setup
 
+> **Current authority:** [Project specification V5](docs/pantrypulse/SPEC-V5.md). Setup procedure reference. V5 governs current requirements and status, including the selected same-origin Next.js proxy. Direct API/tunnel examples establish reachability only; model/hosting setup remains paused.
+
 Updated October 24, 2026. **The backend runs on your laptop in Docker; Neon provides the hosted PostgreSQL database. Fly.io is not required.** This guide is the primary setup path for the demo and presentation. Local tool installation remains in [INSTALLATION.md](INSTALLATION.md).
 
 ## 1. What is already done, and what is missing

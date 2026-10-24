@@ -1,5 +1,7 @@
 # PantryPulse art direction
 
+> **Current authority:** [Project specification V5](SPEC-V5.md). Retain compatible design guidance. V5 governs six-beneficiary scope, real result/method states, accepted libraries and the distinction between proposed style and verified UI.
+
 Direction: **calm community operations desk**. The interface feels like a carefully typeset logistics ledger with a living resource network. It helps a coordinator see risk, an action and its consequence. This is a proposed default for human approval, not an inferred existing brand.
 
 ## Composition and identity
