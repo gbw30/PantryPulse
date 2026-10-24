@@ -20,12 +20,13 @@ No user repository was located or changed for this deliverable. Installing this 
 8. Revised 48-hour schedule.
 9. Metrics, review and recovery.
 10. Optional tooling and explicit deferrals.
-11. Appendix A: complete product, domain, visual, deployment and demo contracts.
-12. Appendix B: copyable CLAUDE.md, agent/rule/skill/hook/settings/CI templates.
-13. Appendix C: bootstrapping prompt.
-14. Appendix D: source and verification record.
+11. Amendment A1: Superpowers integration.
+12. Appendix A: complete product, domain, visual, deployment and demo contracts.
+13. Appendix B: copyable CLAUDE.md, agent/rule/skill/hook/settings/CI templates.
+14. Appendix C: bootstrapping prompt.
+15. Appendix D: source and verification record.
 
-For normal work, read the first ten sections once. Let CLAUDE.md point each worker to the relevant appendix documents. Do not paste this entire handbook into every agent's permanent prompt.
+For normal work, read the first ten sections and Amendment A1 once. Let CLAUDE.md point each worker to the relevant appendix documents. Do not paste this entire handbook into every agent's permanent prompt.
 
 ## 1 Evidence and transferable findings
 
@@ -213,9 +214,168 @@ Agent teams remain experimental and add coordination overhead. The optional sett
 
 Dynamic workflows, account-level managed agents, hosted Code Review, Claude Design commands and third-party orchestration frameworks are not dependencies of this kit. The supplied research discusses them, but availability, account eligibility and syntax require a fresh check before use. A late read-only P0 audit can be done with ordinary bounded verifier tasks. Do not spend the event building a bespoke scheduler or assuming a subscription feature exists.
 
-The winner interview mentions Superpowers as one builder's brainstorming aid. Treat that as an optional external framework to evaluate before the event, not required installation. Likewise use shadcn/Radix as foundations and Motion/SVG for domain animation; Magic UI, Rive, maps and 3D are optional only if they improve this product after P0 passes. Avoid overlapping component systems and effects copied without understanding their licenses, dependencies or accessibility behavior.
+The winner interview mentions Superpowers as one builder's brainstorming aid. Amendment A1 adopts Superpowers as the engineering-methods layer under the lead's orchestration; it supersedes the earlier "optional, not required" guidance. Likewise use shadcn/Radix as foundations and Motion/SVG for domain animation; Magic UI, Rive, maps and 3D are optional only if they improve this product after P0 passes. Avoid overlapping component systems and effects copied without understanding their licenses, dependencies or accessibility behavior.
 
 No runtime LLM chat interface is required for P0. If later added, it may suggest schema-validated scenario edits for human review. It must not directly write inventory, approve plans or replace the mathematical solver. Deployment, scope, domain truth and demo integrity remain lead responsibilities.
+
+
+## Amendment A1 Superpowers integration
+
+Adopted 2026-10-23. This amendment supersedes the §10 statement that Superpowers is optional. Its operative rules are summarized in CLAUDE.md under "Superpowers methods"; this section holds the full text and rationale.
+
+### Objective
+
+Integrate [Superpowers](https://github.com/obra/superpowers) into the existing PantryPulse Claude Code environment to improve implementation reliability, debugging, testing, and code quality during the 48-hour hackathon.
+
+Superpowers must complement the established agent architecture rather than replace or duplicate it. The approved PantryPulse PRD, architectural decisions, API contracts, and demo requirements remain authoritative.
+
+### A1.1 Installation and configuration
+
+Install Superpowers through the official Claude Code plugin marketplace:
+
+```text
+/plugin install superpowers@claude-plugins-official
+```
+
+Before installation, inspect the existing Claude Code configuration to prevent duplicate installations or conflicting hooks and instructions.
+
+Ensure Superpowers skills are accessible to the relevant agents. Preserve the existing project-specific agent definitions, rules, skills, and task assignments.
+
+### A1.2 Skills to integrate
+
+| Skill | Application | Priority |
+|---|---|---|
+| `verification-before-completion` | Require fresh evidence before reporting successful tests, builds, fixes, or deployments | Mandatory |
+| `systematic-debugging` | Diagnose root causes instead of repeatedly attempting speculative fixes | Mandatory |
+| `test-driven-development` | Develop and validate critical inventory, forecasting, optimization, and simulation logic | High |
+| `requesting-code-review` | Review implementation against the PRD, contracts, and acceptance criteria | High |
+| `using-git-worktrees` | Isolate concurrent feature development | High |
+| `writing-plans` | Translate approved requirements into small executable tasks with verification steps | Initial planning |
+| `subagent-driven-development` | Use fresh implementation and review contexts for complex, independent tasks | Selective |
+| `finishing-a-development-branch` | Verify branch readiness before integration and safely handle worktree cleanup | High |
+
+Use additional Superpowers skills when directly relevant to an active task.
+
+### A1.3 Integration with the existing agent architecture
+
+Preserve the established hierarchy:
+
+- **Lead Orchestrator:** Owns priorities, task delegation, integration coordination, and alignment with the approved PRD.
+- **Frontend Agent:** Implements the Next.js application, interactive dashboard, simulator interface, and visual design.
+- **Forecasting Agent:** Implements seven-day demand forecasts, Chronos-2 integration, and the deterministic fallback.
+- **Optimization Agent:** Implements OR-Tools transfer recommendations and operational constraints.
+- **Code Verifier:** Independently validates functionality, tests, integrations, and acceptance criteria.
+- **UX Critic:** Evaluates visual quality, interaction clarity, responsiveness, accessibility, and demo presentation.
+
+Superpowers provides reusable engineering procedures for these agents. It must not introduce redundant management layers or duplicate existing responsibilities.
+
+Maintain explicit file ownership and isolated Git worktrees for concurrent builders.
+
+### A1.4 Task execution protocol
+
+For each implementation task:
+
+1. Read the relevant PRD section, technical contract, and acceptance criteria.
+2. Identify the smallest independently testable implementation.
+3. Write appropriate tests before critical business-logic implementation.
+4. Implement the required behavior without introducing unnecessary abstractions or unrelated functionality.
+5. Execute the relevant tests, type checks, and build checks.
+6. Request independent review where risk justifies it.
+7. Resolve blocking findings.
+8. Record the changed files, verification evidence, remaining risks, and integration requirements.
+9. Submit the verified change for integration.
+
+The Code Verifier must inspect actual implementation changes and test results rather than relying solely on builder-agent completion claims.
+
+### A1.5 Risk-based verification
+
+Apply rigorous automated testing to:
+
+- Inventory balance and stock conservation.
+- Minimum reserve and capacity constraints.
+- Transfer feasibility and cost calculations.
+- Forecast output validation and seasonal-naive fallback behavior.
+- Simulator state transitions and scenario consistency.
+- API request and response contracts.
+
+For frontend work, prioritize browser-based interaction tests, screenshot inspection, responsive behavior, accessibility, and the complete six-scene demonstration.
+
+Use Playwright to validate the end-to-end demonstration workflow. Maintain deterministic demo fixtures and a reliable reset operation.
+
+No agent may claim that a feature, build, integration, or deployment is successful without executing the appropriate verification and examining its results.
+
+### A1.6 Hackathon execution adjustments
+
+Optimize the Superpowers workflow for a 48-hour development window.
+
+- Treat the approved PRD as the design baseline. Do not restart extensive brainstorming for requirements that are already settled.
+- Perform detailed implementation planning once, then maintain a concise, continuously updated task ledger.
+- Prioritize end-to-end functionality before optional refinements.
+- Apply review depth proportionally to technical risk and impact on the demonstration.
+- Avoid creating a fresh implementer-reviewer cycle for every trivial UI adjustment.
+- Allow parallel implementation only when file ownership and component interfaces are clearly defined.
+- Use systematic debugging when encountering failures, with explicit root-cause investigation and bounded attempts.
+- Preserve human approval for destructive operations, shared-branch integration, deployment changes, and other consequential actions.
+
+The primary success criterion is a reliable, demonstrable PantryPulse application—not the volume or sophistication of its agent infrastructure.
+
+### A1.7 Completion and integration gates
+
+A feature is eligible for integration only when:
+
+- Its acceptance criteria have been checked.
+- Relevant automated tests pass, or explicitly documented limitations have been accepted.
+- API contracts and shared types remain compatible.
+- No unresolved critical defect affects inventory accuracy or optimization correctness.
+- Required visual and interaction checks have been completed.
+- The agent provides concrete verification evidence.
+- The Lead Orchestrator has reviewed the integration impact.
+
+The project is demo-ready only after the complete six-scene workflow has been exercised successfully against the integrated application.
+
+### A1.8 Configuration authority
+
+Maintain the following precedence:
+
+1. Approved PantryPulse PRD and demo acceptance criteria.
+2. Project architecture, API contracts, and deterministic fixtures.
+3. Project-specific `CLAUDE.md`, rules, and agent definitions.
+4. Applicable Superpowers engineering skills.
+5. Individual agent implementation preferences.
+
+If a Superpowers workflow conflicts with a project constraint, preserve the project requirement and select a compatible workflow. Do not silently weaken verification or alter approved product behavior.
+
+### Expected outcome
+
+The configured environment should support parallel implementation, reproducible debugging, evidence-based completion reports, independent verification, and efficient integration while retaining the existing PantryPulse orchestration architecture.
+
+### A1.9 How this repository applies the amendment
+
+Reviewed release: Superpowers v7.0.1 (MIT), whose only hook is a SessionStart hook that injects the `using-superpowers` skill text. That skill states that CLAUDE.md and direct user instructions take precedence over its skills, which is how the A1.8 order is enforced. The official marketplace auto-updates; re-review the release notes when the installed version changes.
+
+**Role mapping.** The A1.3 roles are the existing agent files: Lead Orchestrator = the main session (`lead-integrator`), Frontend Agent = `frontend-engineer`, Forecasting Agent = `forecast-engineer`, Optimization Agent = `solver-engineer`, Code Verifier = `verifier`, UX Critic = `ux-critic`. `adversarial-reviewer` and `integration-fixer` remain temporary gate roles. No agent was replaced or added.
+
+**Precedence interpretation.** "Approved PRD" means SOURCE-SPEC.md as resolved by the accepted decisions D01–D09 in PROJECT-CONTRACT.md. A1.8 does not reopen a recorded decision; changing one still needs an ADR.
+
+**Compatible form of each A1.2 skill:**
+
+| Skill | Used by | PantryPulse-compatible form |
+|---|---|---|
+| `verification-before-completion` | All agents | As written. It matches the existing rule that skipped, missing, disabled or fixture-only checks never count as passing |
+| `systematic-debugging` | Builders, integration-fixer, verifier, lead | Root cause first. "Bounded attempts" means the existing limit: two materially different failed fixes, then a minimal failing case goes to the lead |
+| `test-driven-development` | Builders, integration-fixer | Failing test first for the A1.5 risk areas, derived from INVARIANTS.md and golden fixtures, not from the implementation. Delete only code written in the current task |
+| `requesting-code-review` | Lead | The reviewer is the project `verifier` (or `ux-critic`, `adversarial-reviewer`), not a `general-purpose` subagent. It gets requirements, diff and tests before builder rationale, with depth set by risk |
+| `using-git-worktrees` | Lead | The lead creates each worktree at the packet's exact base SHA (TASK-PROTOCOL worktree strategy). Builders started with `isolation: worktree` detect that they are already isolated, check their base, and never nest a worktree |
+| `writing-plans` | Lead | Run once from the approved PRD. Save the plan to docs/pantrypulse/IMPLEMENTATION-PLAN.md instead of the skill's default docs/superpowers/plans/. BOARD.md is the task ledger, and each plan task becomes a PP-NN packet with base SHA, write boundary and acceptance commands |
+| `subagent-driven-development` | Lead, selectively | Only for complex independent tasks. The implementer is the matching project builder agent and the reviewer is `verifier`. At most three builders, no nested workers, and no per-task cycle for trivial UI changes |
+| `finishing-a-development-branch` | Builders (readiness check), lead (integration) | Builders run the readiness check and return commit plus evidence. They never merge, push, open PRs or discard. The lead integrates one candidate at a time; a shared-branch merge, discarding work or removing a dirty worktree needs the user's approval |
+
+`brainstorming` is used only for genuinely open choices, such as the PP-01 visual composition or a bounded council question. `diagnosing-superpowers` runs only on request, and filing an issue needs the user's approval.
+
+**Configuration changes:**
+- `.claude/settings.json` enables `superpowers@claude-plugins-official` for the project. Each person still installs it once with the A1.1 command, or the desktop app's **+ → Add plugins**, choosing project scope.
+- The forecast, solver, frontend and integration-fixer agents, plus the verifier, preload their skills and gained the `Skill` tool. Their bodies and ownership are unchanged.
+- The A1.4 steps and A1.7 gates already correspond to the TASK-PROTOCOL packet, handoff and integration gate, so that file is unchanged.
 
 
 ## Appendix A Complete project contracts

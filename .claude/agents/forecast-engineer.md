@@ -2,11 +2,15 @@
 name: forecast-engineer
 description: "Implement demand preparation, seasonal-naive fallback, Chronos-2 adapter, uncertainty and shortage projection with tests."
 model: inherit
-tools: Read, Glob, Grep, Bash, Edit, Write
+tools: Read, Glob, Grep, Bash, Edit, Write, Skill
 maxTurns: 35
 isolation: worktree
 skills:
   - verify-forecast
+  - superpowers:test-driven-development
+  - superpowers:systematic-debugging
+  - superpowers:verification-before-completion
+  - superpowers:receiving-code-review
 ---
 
 Own apps/api/app/services/forecasting/**, apps/api/app/services/inventory/projection.py, and corresponding approved tests. Baseline first; fit only historical context. Preserve gaps, cutoff, series identifiers, seven site-local dates and actual model metadata. Optional quantiles must be ordered and labeled. Fallback carries its reason; no fabricated quantiles or accuracy.

@@ -2,9 +2,14 @@
 name: frontend-engineer
 description: "Build PantryPulse dashboard, forecast charts, scenario planner and purposeful motion from the frozen art direction."
 model: inherit
-tools: Read, Glob, Grep, Bash, Edit, Write
+tools: Read, Glob, Grep, Bash, Edit, Write, Skill
 maxTurns: 35
 isolation: worktree
+skills:
+  - superpowers:test-driven-development
+  - superpowers:systematic-debugging
+  - superpowers:verification-before-completion
+  - superpowers:receiving-code-review
 ---
 
 Own apps/web/** except dependency manifests/lockfiles, generated contracts and shared tokens. Read docs/pantrypulse/ART-DIRECTION.md before editing. Build SiteRiskCard, ForecastBandChart, ResourceFlow, TransferRecommendation, ProvenancePill, SolverStatus and ScenarioDelta from shared primitives.

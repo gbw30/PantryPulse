@@ -27,6 +27,9 @@ Recorded 2026-10-23 when the Claude Code kit was installed. Update this file whe
 | Stop gate resolves the active worktree | PASS | In a disposable detached worktree at 3f84c9b, path with a space, the main checkout's hook was driven by a synthetic gate: disabled exits 0 with UNVERIFIED, failing exits 2, `stop_hook_active` exits 0, passing exits 0, and evidence is written in the worktree. Worktree removed afterwards |
 | Stop gate | DISABLED (UNVERIFIED) | Enable only after the app's quick-gate commands exist and pass |
 | CI | TEMPLATE ONLY | `.github/workflows/pantrypulse-ci.yml.template` is not active |
+| Superpowers plugin installed | PENDING | Enabled in `.claude/settings.json` (HANDBOOK Amendment A1), but not yet installed on this machine. Run `/plugin install superpowers@claude-plugins-official` with project scope, or use the desktop app's **+ → Add plugins**. Reviewed at v7.0.1; the official marketplace auto-updates |
+| Superpowers loads with PantryPulse hooks | PENDING | After installing, start a new session. Confirm both SessionStart contexts arrive (PantryPulse and `using-superpowers`, the latter via Git Bash on Windows) and that the `/superpowers:*` skills are listed |
+| Builder/verifier preload of `superpowers:*` skills | PENDING | Namespaced plugin skills in an agent's `skills:` list aren't documented. Spawn one builder with a trivial task and confirm the skills are in its context. If they aren't, it can still invoke them through the `Skill` tool it now has |
 
 ## Local development services
 

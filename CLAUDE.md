@@ -20,6 +20,24 @@ Build the Gator Hack V 48-hour MVP: three fictional sites, two resource categori
 - Never count a skipped, missing, disabled, timed-out, or fixture-only check as application validation.
 - Run focused tests before handoff; run full gates on the merged candidate. Report exact commit, commands, results and unresolved limitations.
 
+## Superpowers methods
+Superpowers (`superpowers@claude-plugins-official`, reviewed at v7.0.1) supplies engineering methods. The PantryPulse lead stays the orchestrator, and the project agents keep their roles. Precedence, highest first:
+1. The approved PRD (docs/pantrypulse/SOURCE-SPEC.md as resolved by the accepted decisions in PROJECT-CONTRACT.md) and the demo acceptance criteria.
+2. Contracts, invariants and deterministic fixtures.
+3. This file, the rules, the agent definitions and the task packet.
+4. Superpowers skills.
+
+When a skill conflicts with a project constraint, keep the project rule and use the compatible form below. Never weaken verification or approved product behavior. Full rationale: HANDBOOK.md, Amendment A1.
+- **Every lane:** `verification-before-completion` (mandatory: run the commands and read their output before any pass/fixed/deployed claim), `systematic-debugging` (mandatory: root cause before fixing; the two-failed-fix limit below still applies), `test-driven-development` (failing test first for inventory, forecasting, optimization, simulation and API logic; delete only code you wrote in this task) and `receiving-code-review`.
+- **Lead only:**
+  - `writing-plans`: run once, from the approved PRD. Save the plan to docs/pantrypulse/IMPLEMENTATION-PLAN.md, track tasks on BOARD.md, and turn each task into a PP-NN packet.
+  - `brainstorming`: only for decisions that are genuinely open. Don't redo settled requirements.
+  - `subagent-driven-development`: selective, for complex independent tasks only. Dispatch the project builder agent for that domain with a packet, never `general-purpose`. At most three builders, no nested workers, and no per-task review cycle for trivial UI changes.
+- **`using-git-worktrees`:** the lead creates worktrees at the packet's exact base SHA. Builders started with `isolation: worktree` are already isolated: they check their base and never create a nested worktree.
+- **`requesting-code-review`:** the reviewer is the project `verifier` agent (or `ux-critic`/`adversarial-reviewer`), given the requirements, diff and tests before any builder rationale. Review depth scales with risk.
+- **`finishing-a-development-branch`:** builders use it only to check readiness, then hand back their commit and evidence. Builders never merge, push, open PRs or discard. The lead integrates; shared-branch merges, discarding work and cleanup of a dirty worktree need the user's approval.
+- **Other skills:** use them when directly relevant. Run `diagnosing-superpowers` only on request, and never file issues without the user's approval.
+
 ## Product truth
 - Forecasts are projections. Label simulated/proxy data and actual model/fallback provenance.
 - Preserve null/missing demand; never silently turn it into zero. No future leakage.

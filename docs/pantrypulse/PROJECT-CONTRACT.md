@@ -2,7 +2,7 @@
 
 > Superseded where conflicting with the authoritative V4 tab. Start with [ADR 0001](../architecture/0001-v4-research-first.md) and the [V4 implementation plan](IMPLEMENTATION-PLAN.md). In particular, use six beneficiaries plus hub(s), hard lot/FEFO constraints, and paired CLASSICAL_GP/EGP_PI_INSPIRED with active AP/RP objectives. The three-site and shortage-first rules below are historical.
 
-Status: proposed implementation contract derived from source spec v1.0 and the supplied orchestration research. Product requirements below come from the spec; details labeled decision resolve gaps for the 48-hour build. Record accepted changes in an ADR before changing shared schemas.
+Status: proposed implementation contract derived from source spec v1.0 and the supplied orchestration research. Product requirements below come from the spec; details labeled decision resolve gaps for the 48-hour build. Record accepted changes in an ADR before changing shared schemas. D08–D09 and the status-code, shortage-response, schema-column and observability sections were added on 2026-10-23 after a source-spec audit. The HANDBOOK.md appendix copy predates them, so this file is authoritative.
 
 ## Scope and product behavior
 
@@ -45,15 +45,15 @@ Use UUID primary IDs. Golden unit-test fixtures may use readable aliases; seed g
 | Entity | Required fields and constraints |
 |---|---|
 | Organization | id, name, is_demo, created_at; exactly one network for MVP |
-| Site | id, organization_id, name, timezone, priority_weight > 0, optional nonnegative receiving limit |
-| Resource category | id, name, unit; optional integer handling coefficient for aggregate capacity |
+| Site | id, organization_id, name, timezone, priority_weight > 0, optional nonnegative receiving limit, latitude/longitude nullable (unused in P0; maps deferred), active boolean (inactive sites do not participate in projection or planning) |
+| Resource category | id, name, unit, active boolean; optional integer handling coefficient for aggregate capacity |
 | Inventory lot | id, site_id, category_id, quantity_on_hand >= 0 integer, expires_on nullable, received_at, data_source |
 | Demand observation | unique site/category/date; requested nullable, fulfilled >= 0, unmet nullable; if all supplied requested = fulfilled + unmet; source_type |
 | Scheduled supply | site/category/date/quantity/status; confirmed contributes by default, expected only in an explicit scenario |
-| Forecast run | id, provider/requested provider/actual model/checkpoint revision, cutoff, generated_at, horizon, status, fallback flag/reason, dataset version and provenance |
+| Forecast run | id, organization_id, provider/requested provider/actual model/checkpoint revision, cutoff, generated_at, horizon, status, fallback flag/reason, data_source_label (observed/proxy/simulated), dataset version and provenance, evaluation_json nullable, error_message nullable, selection_reason nullable (D09) |
 | Forecast point | unique run/site/category/date, p50 finite >= 0, p10/p90 nullable, interval_method; quantiles ordered where present |
-| Scenario | id, forecast_run_id, name, validated overrides, created_at; no mutation of history or baseline run |
-| Allocation plan | id, scenario_id, inventory_version, solver_status, plan_status, snapshot hash, unmet by category, cost, assumptions, solver parameters, generated_at |
+| Scenario | id, organization_id, forecast_run_id, name, validated overrides, created_at; no mutation of history or baseline run |
+| Allocation plan | id, scenario_id, inventory_version, solver_status, plan_status, snapshot hash, unmet_before and unmet_after by category, movement_cost, objective_value nullable (null unless the solver returned a proven or incumbent value), baseline comparison (D08), assumptions, solver parameters, generated_at |
 | Plan transfer | plan/from/to/category/quantity > 0/planned date/estimated cost/status; from != to |
 | Inventory movement | site/category/optional lot, signed quantity, reason, transfer id, timestamp, idempotency key |
 | Reservation P1 | transfer/lot/quantity/status; available excludes active reservations exactly once |
@@ -71,6 +71,8 @@ Decision D02: seasonal naive requires a valid observation on the previous matchi
 Chronos runs behind a lazy adapter with a measured time/memory budget. Provider import/download/load/predict failures invoke the permitted baseline fallback. A timeout must terminate or contain the work; abandoning a request while inference continues indefinitely is not a bounded implementation. Prefer precomputed, fingerprinted model results for the prepared demo and baseline live replanning if hardware is limited. A cached forecast identifies the actual provider and its timestamp; never relabel a baseline as Chronos.
 
 Model integration tests establish shape, dates, leakage boundaries and failure handling. Accuracy requires a separate chronological holdout, identical evaluation windows and MAE/WAPE/bias compared to the baseline. WAPE is sum absolute errors / sum observed demand; a zero denominator returns unavailable with a reason, not infinity or a fabricated zero. Quantile coverage is evaluated only on held-out observations. Keep raw model quantiles distinct from calibrated intervals and policy buffers.
+
+Decision D09 implements the source spec's model-selection rule (§9.7): if Chronos does not outperform the baseline on the selected data, report that result and use the more suitable model. When an evaluation exists for the current dataset version, compare Chronos and seasonal naive on identical chronological holdout windows. The primary metric is WAPE per category, or MAE where WAPE is unavailable. If Chronos is not better on that metric, the default planning provider becomes the baseline, and the UI and run metadata state why in selection_reason. Without an evaluation, use the requested provider labeled "accuracy not evaluated", and claim no superiority either way. Selection never changes an existing run. It applies to new runs and is recorded with the evaluation version that drove it. Running the evaluation is FR-18 (P1); this rule applies whenever an evaluation exists.
 
 ## Projection and inventory accounting
 
@@ -107,9 +109,31 @@ After solve, independently check the transfer vector and recompute daily before/
 
 Replay stores immutable dataset/forecast/scenario/supply/inventory snapshots, eligible-lot policy, versions, routes, unit scales, priorities, model/solver versions, seed, worker count, limits, arrival assumptions and input hash. Tie solutions can differ; assert feasibility and objective equivalence, unless deterministic tie-breaking was actually implemented. A single-thread seed improves repeatability without promising identical output across versions.
 
+Decision D08 implements the source spec's baseline comparison (§11.6, demo Scene 6). Every plan result includes four allocation policies, computed on the identical snapshot, donor budgets, routes, receiving and handling capacities, horizon and rounding rule:
+
+- **No redistribution:** zero transfers.
+- **Equal share:** per category, split the total donor budget equally among receivers with projected unmet demand in the window. Integer remainders go to receivers in ascending stable site ID order. Each receiver is filled from donors in ascending route cost, then ascending donor ID. Every allocation is truncated to its unmet demand, its receiving capacity and the remaining handling budget.
+- **Greedy:** repeatedly pick the receiver/category with the largest remaining priority-weighted unmet demand. Ties go to ascending category ID, then site ID. Send it the largest feasible quantity from the cheapest donor with remaining budget, then repeat until no feasible move reduces unmet demand.
+- **Optimized:** the CP-SAT plan above.
+
+Heuristics truncate instead of violating a hard constraint. For each policy, report unmet units by category, weighted unmet, transfer count, movement cost, and constraint violations counted by the independent checker (expected zero; any nonzero count is a defect). Store the comparison with the plan, so replay reproduces it. The UI presents it as a simulated comparison on the same inputs, not as a measured real-world improvement.
+
 ## API contract
 
 All application routes use /api/v1 and JSON except multipart CSV upload. Errors use `{ "error": { "code": "...", "message": "...", "details": {} }, "request_id": "..." }`. Every mutation has a request ID. Approval/completion additionally require an idempotency key. Translate framework validation errors into the same envelope.
+
+Status codes follow source spec §8.1, each with the error envelope where it is an error:
+
+| Code | Use |
+|---|---|
+| 200 / 201 / 202 | Read or action / resource created / forecast job accepted |
+| 400 | Malformed request: unparseable JSON, a bad multipart body, or a CSV with missing or unexpected headers |
+| 401 / 403 | Authentication required, if enabled / action not permitted, including a demo reset without presenter authorization or against a non-demo organization |
+| 404 | Unknown site, category, run, scenario, plan or transfer ID |
+| 409 | Stale inventory version or conflicting approval |
+| 422 | Schema or business-rule validation failed |
+| 500 | Unexpected error; envelope only, with no stack trace or internals |
+| 503 | Requested forecast provider unavailable and fallback not permitted or not usable; existing data stays readable |
 
 | Method and route | Required behavior |
 |---|---|
@@ -122,11 +146,11 @@ All application routes use /api/v1 and JSON except multipart CSV upload. Errors 
 | POST /forecast-runs | organization/horizon/model/allow_fallback; 202 queued or 201 already completed; UI reads returned status |
 | GET /forecast-runs/{id} | Actual provider/status/error/fallback/evaluation metadata |
 | GET /forecast-runs/{id}/points | Dated points, quantile method and per-series availability |
-| GET /shortages | forecast/scenario/planning mode/snapshot; first deficit, quantity and horizon/category assumptions |
+| GET /shortages | Query: forecast_run_id, optional scenario_id, planning_mode (central/conservative). Per site/category: first projected deficit date, deficit quantity with unit, current eligible inventory, expected inbound supply with the statuses included, forecast run and method, planning mode, risk classification label, and horizon/category assumptions. Deterministic against the selected snapshot |
 | POST /scenarios | name/forecast_run_id/validated overrides; baseline unchanged; 201 |
 | GET /scenarios/{id} | Immutable overrides, linked plans |
 | POST /scenarios/{id}/plans | planning_days/priority policy/handling budget/solver time limit; persisted result with native status and validated vector; 201 |
-| GET /plans/{id} | Snapshot/version/status/assumptions/transfers/before-after metrics |
+| GET /plans/{id} | Snapshot/version/status/assumptions/transfers/before-after metrics/D08 baseline comparison |
 | POST /demo/reset | Dedicated demo organization only, presenter authorization and rate limiting, reset audit; returns dataset version |
 | POST /plans/{id}/approve P1 | Expected inventory version, idempotency key, atomic reservation, 409 conflict |
 | POST /transfers/{id}/complete P1 | Idempotent, transactional paired movement and reservation release |
@@ -142,6 +166,17 @@ CSV headers are site_id,category_id,demand_date,requested_units,fulfilled_units,
 Overview answers which site is at risk, when and what action can help. Show category filter, visible scenario identity, inventory/demand/unmet metrics by category, seven-day timeline, site statuses and main plan CTA. Site detail has stock, history, forecast, balance, incoming/outgoing and relevant transfers. Explorer shows quantiles, cutoff, method and central/conservative controls. Planner shows origin/destination/category/quantity, constraints, before/after horizon and solver status. Scenario editor shows draft versus applied assumptions and a deliberate Recalculate action.
 
 Every async action has idle/loading/success/empty/error states. Add stale plan after changed inventory or assumptions; degraded forecast state; insufficient data; FEASIBLE without optimal proof; INFEASIBLE and UNKNOWN. Keep last successful data visible with its timestamp while a new run executes. Use request sequence IDs or abort logic so a slow old response cannot replace a newer scenario. Never animate mock numbers as if they came from a solve.
+
+## Observability and audit
+
+Implements source spec §6.2 (request logging, audit logging), §13.3 and §13.5. The API emits structured JSON logs. Every entry carries request_id, and where applicable:
+
+- forecast run ID, requested and actual provider, fallback reason, duration, and model error type/message;
+- optimization (plan) ID, native solver status, solver duration and time limit;
+- inventory version conflicts (409), with the expected and actual version;
+- demo reset events.
+
+Inventory movements, P0 review events, P1 approvals and completions, and demo resets are also persisted as audit records with timestamp and request ID. Logs never contain secrets, connection strings, presenter tokens, raw CSV contents or personal information. Log identifiers and counts, not full operational payloads.
 
 ## Performance and trust targets
 
