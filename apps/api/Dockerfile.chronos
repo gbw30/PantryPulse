@@ -1,0 +1,12 @@
+# Optional standalone model runner. Does not change the API's default image.
+FROM ghcr.io/astral-sh/uv:0.11.15 AS uv
+FROM python:3.12.13-slim
+COPY --from=uv /uv /uvx /bin/
+WORKDIR /app
+ENV UV_LINK_MODE=copy PYTHONUNBUFFERED=1 PATH="/app/.venv/bin:$PATH"
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --extra forecast --no-dev
+COPY scripts/chronos_local.py ./scripts/chronos_local.py
+# Direct Python avoids a later uv run dropping the optional forecast extra.
+ENTRYPOINT ["python", "scripts/chronos_local.py"]
+CMD ["session"]

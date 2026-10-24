@@ -1,44 +1,50 @@
 # PantryPulse
 
-Gator Hack V · October 23–25, 2026. Planned resource-allocation platform comparing classical GP with EGP-PI-inspired optimization.
+PantryPulse is a project for Gator Hack V, October 23–25, 2026, exploring how food banks and community organizations can share limited supplies more fairly.
 
-**Status: development scaffold. Allocation engines, forecasting, domain persistence and the six-beneficiary demo are not implemented.**
+When several organizations need food at the same time, there may not be enough to meet every request. Sending the same amount to everyone can overlook differences in need. Sending supplies wherever delivery is easiest can leave vulnerable communities with larger shortages. Meanwhile, food can expire, storage space is limited, and organizations donating supplies still need enough for the people they already serve.
 
-The [V4 tab](https://docs.google.com/document/d/1WcsV69YCE1mqW2pI7IyEFQBSuwQB_hMhVQKfU20ZFk8/edit?tab=t.951hp1xdarlq) is authoritative. Older three-site contracts are historical where they conflict with V4.
+PantryPulse aims to help a coordinator understand these trade-offs and compare possible allocation plans before making a decision.
 
-Research: Rampazo et al., *An extended goal programming framework incorporating poverty measures: application to food bank logistics*, [DOI 10.1111/itor.70252](https://doi.org/10.1111/itor.70252), first published online **September 11, 2026**. The intended adaptation uses absolute/relative deprivation goals, institution vulnerability attributes and a weighted/Chebyshev objective. Fixed simulated proxy weights and a limited horizon do not reproduce the complete research formulation or establish real-world equity gains.
+## How it is intended to work
 
-## Development
+The demonstration will use simulated inventory, requests and institution-level vulnerability indicators for six beneficiary organizations and one or two distribution hubs. It will:
 
-New developers: start with [INSTALLATION.md](INSTALLATION.md) for manual prerequisites, pinned versions, automated setup, and optional dependencies.
+1. Estimate upcoming demand, with a simple seasonal forecast available when the more advanced forecasting model is unavailable.
+2. Calculate two allocation plans from exactly the same supplies, requests and operating limits.
+3. Show who receives supplies, which needs remain unmet, and how the plans differ in their treatment of shortages and vulnerability.
+4. Let the coordinator explore a changed scenario and see how the recommendations respond.
 
-Finalized UI stack: Tailwind CSS, shadcn/ui with Radix, Recharts, Motion and Lucide; selected Watermelon/Kokonut components through configured registries. See [ADR 0002](docs/architecture/0002-ui-stack.md). The pinned component CLI is available through `npm run ui:info` and `npm run ui:add -- button`.
+Both plans must respect the same practical rules: supplies cannot be created or counted twice, organizations cannot receive more than they can handle, donors must retain protected supplies, and eligible food that expires sooner must be used first.
 
-Prerequisites: Node 24.16.0, npm 11.13.0, uv 0.11.15; Docker Desktop for PostgreSQL. Use the outer repository root.
+## What makes the comparison different
 
-```powershell
-.\scripts\setup-windows.ps1
-npm run check
-npm run build
-# Recommended API runtime on this Windows host:
-npm run dev:api:docker
-# Web terminal:
-npm run dev:web
-```
+The first method, **classical goal programming**, balances a set of allocation goals. The second, **EGP-PI-inspired allocation**, is intended to make vulnerability and deprivation central to that balance. Deprivation means both how far an organization falls short of its needs and how its shortage compares with those of its peers.
 
-Web: http://127.0.0.1:3000 · API process health: http://127.0.0.1:8000/api/v1/health.
+The research basis is Rampazo et al., *An extended goal programming framework incorporating poverty measures: application to food bank logistics*, first published online September 11, 2026 ([research paper](https://doi.org/10.1111/itor.70252)). PantryPulse proposes a bounded adaptation using simulated vulnerability indicators. It does not claim to reproduce the complete published formulation.
 
-Windows Application Control blocked a native pandas DLL required by OR-Tools. The Docker API profile provides the backend development runtime without changing that policy. Native `npm run dev:api` remains available for compatible hosts; its current health endpoint does not import OR-Tools.
+The goal of the reproducible demonstration is to show when these research-derived priorities change actual allocation decisions, and to make the resulting trade-offs visible. A different recommendation is evidence of different priorities; it does not by itself establish better real-world outcomes.
 
-See [Windows development](docs/pantrypulse/WINDOWS-DEVELOPMENT.md), [prioritized implementation plan](docs/pantrypulse/IMPLEMENTATION-PLAN.md), [architecture and research gate](docs/architecture/0001-v4-research-first.md), and [verification record](docs/pantrypulse/SCAFFOLD-VERIFICATION.md).
+## Current state
 
-## Layout
+**PantryPulse is in early development.** The repository contains the frontend foundation, a backend process-health endpoint, locked dependencies, and a Linux container environment for the optimization libraries. Backend primitives cover transfer modes, route eligibility, demand rounding, fixed-point arithmetic, solver outcomes and forecast-history alignment. The complete allocation engines, forecasting adapters, application database schema and interactive comparison workflow are not yet implemented. Equation-level research validation remains a prerequisite for complex solver work.
 
-- apps/web: Next.js, React, TypeScript, Tailwind, shadcn configuration and Playwright scaffold smoke test.
-- apps/api: FastAPI health; uv dependencies for OR-Tools, SQLAlchemy/Alembic/PostgreSQL, pytest, optional Chronos.
-- packages/contracts: generated API type boundary after schema validation.
-- data/demo: historical fixture retained; V4 research fixture follows mathematical validation.
-- docs/architecture: decisions and research contract.
-- PantryPulse/: preserved pre-existing untracked nested copy; not part of the canonical workspace.
+The demo is planned around simulated data and institution-level indicators. It will not purchase supplies or dispatch real deliveries.
 
-All planned demonstration data and vulnerability indicators are simulated. P0 will not purchase or dispatch real resources.
+## Project foundation
+
+The planned system uses a Next.js/React interface, a Python/FastAPI backend, OR-Tools for allocation calculations, and PostgreSQL for shared data. Charts will explain the results, while brief animations and clear loading states will help users follow calculations in progress. Chronos-2 is the preferred optional forecasting model, with a seasonal-naive fallback.
+
+For the presentation, the website and Python API can run on the presenter's computer, with Neon holding the demo database. A completely local database is also available for an offline setup. Vercel with a temporary tunnel supports access from other devices; Fly.io remains an optional hosted backend alternative. GitHub holds the source code.
+
+## Further reading
+
+- [Authoritative V4 specification](https://docs.google.com/document/d/1WcsV69YCE1mqW2pI7IyEFQBSuwQB_hMhVQKfU20ZFk8/edit?tab=t.951hp1xdarlq)
+- [Local development installation guide](INSTALLATION.md)
+- [External services installation guide](EXTERNAL-SERVICES.md)
+- [Personal-computer demo setup](docs/setup/LOCAL-DEMO.md)
+- [Run Chronos locally](CHRONOS-LOCAL.md)
+- [Prioritized implementation plan](docs/pantrypulse/IMPLEMENTATION-PLAN.md)
+- [Architecture and research validation](docs/architecture/0001-v4-research-first.md)
+
+V4 is the project's authoritative specification. Earlier versions are historical references.

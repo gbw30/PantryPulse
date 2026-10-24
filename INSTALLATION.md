@@ -1,8 +1,10 @@
 # PantryPulse developer installation
 
+For a shorter walkthrough with separate host and teammate instructions, follow the [Windows installation and Cloudflare connection quickstart](docs/setup/WINDOWS-QUICKSTART.md).
+
 This guide targets Windows x64 with PowerShell 5.1 or 7. The [V4 tab](https://docs.google.com/document/d/1WcsV69YCE1mqW2pI7IyEFQBSuwQB_hMhVQKfU20ZFk8/edit?tab=t.951hp1xdarlq) is authoritative; V1–V3 are historical. V4 was rechecked on October 23, 2026 and matches the saved snapshot.
 
-**Current state:** environment and application scaffold only. The EGP-PI-inspired and classical allocation engines, forecasts, domain migrations and complete demo are pending. Installed libraries do not imply those features work.
+**Current state:** frontend/API scaffold plus backend primitives for transfer modes, route eligibility, demand rounding, fixed-point arithmetic, solver outcomes and forecast-history alignment. The complete EGP-PI-inspired and classical allocation engines, forecasting adapters, domain migrations and complete demo are pending. Installed libraries do not imply those features work.
 
 ## 1. Install these prerequisites manually
 
@@ -42,7 +44,11 @@ For a WSL-based Docker installation, an administrator may need `wsl --install` o
 
 **Do not separately install Python, pip packages, PostgreSQL, OR-Tools, Java, CUDA, Rust or Visual Studio Build Tools for the standard setup.** uv downloads Python 3.12.13, Python dependencies use prebuilt wheels, and Docker provides PostgreSQL 16. A GPU is unnecessary for the core CP-SAT environment. Hardware-specific Chronos setup is optional and separate.
 
-No Neon, Vercel, Railway, Gemini or other API account/key is needed for local setup.
+No Neon, Vercel, Fly.io, Gemini or other API account/key is needed for local setup.
+
+For the presentation, use the separate [external services and laptop demo guide](EXTERNAL-SERVICES.md): your laptop runs the backend, and Neon hosts the database. Vercel plus a tunnel is optional for access from other devices; Fly.io is not required. [Hugging Face / Chronos-2](docs/setup/HUGGING-FACE.md) remains optional. The guide identifies application integration still to be implemented.
+
+For the optional model itself, follow [CHRONOS-LOCAL.md](CHRONOS-LOCAL.md). It provides a separate Linux image, a persistent checkpoint cache, real synthetic-data inference commands, performance checks and shutdown steps; it does not implement the application's forecasting API.
 
 ## 2. Open the correct checkout
 
@@ -218,7 +224,7 @@ The following are omitted from the canonical environment on purpose. Some are na
 | mapie / scikit-learn | Calibrated intervals and classical model tooling | Requires held-out evaluation and a defined calibration method |
 | google-genai | Gemini natural-language scenario input/explanations | Optional; no authority to alter inventory or approve actions |
 | vitest / @testing-library/react | Frontend unit/component tests | pytest and Playwright cover the current scaffold; add when components justify them |
-| Vercel/Railway/Neon CLI tools | Hosted deployment | Local environment needs no cloud CLI or account |
+| Fly/Vercel/Neon CLI tools | Hosted deployment | Local environment needs no cloud CLI or account; the separate Fly deployment guide requires flyctl |
 
 Only the forecast extra is currently declared as an optional install group and resolved in uv.lock. A lock entry is not an installation. Other candidates must be explicitly added and locked if adopted. Pandas and NumPy are already installed through OR-Tools and are not omitted dependencies.
 

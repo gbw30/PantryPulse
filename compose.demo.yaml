@@ -1,0 +1,20 @@
+# Presentation backend on this computer, using a dedicated Neon demo database.
+# Separate from compose.yaml: no local PostgreSQL service or volume changes.
+name: pantrypulse-demo
+services:
+  api:
+    build:
+      context: ./apps/api
+    env_file:
+      - ./apps/api/.env.demo
+    environment:
+      # Proposed application settings; not access controls in the current scaffold.
+      APP_ENV: demo
+      DEMO_MODE: "true"
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "uv", "run", "--frozen", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
