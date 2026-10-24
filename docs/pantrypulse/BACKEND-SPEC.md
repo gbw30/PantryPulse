@@ -486,12 +486,12 @@ Recommended order: BE-01, BE-02, BE-03, BE-06, BE-04, BE-05. BE-02 depends only 
 
 For each task, record the exact write boundary above, input/spec version, targeted command, actual result, and remaining integration dependencies in a PP task packet before delegation under [TASK-PROTOCOL.md](TASK-PROTOCOL.md). Use the existing environment; if unavailable, record NOT RUN rather than install/download as an implicit setup resumption. Unit tests verify the primitive and its adversarial boundaries. Full integration/research evidence remains separate.
 
-- [ ] BE-01 strict types and schema fragment implemented and verified.
-- [ ] BE-02 mode/role truth table and precedence implemented and verified.
-- [ ] BE-03 exact per-day demand rounding implemented and verified.
-- [ ] BE-04 floor/overflow numerical primitive implemented and verified.
-- [ ] BE-05 native status gate implemented and verified.
-- [ ] BE-06 gap-preserving history alignment implemented and verified.
+- [x] BE-01 strict types and schema fragment implemented and verified at a3f44c1 (evidence: tasks/PP-24.md).
+- [x] BE-02 mode/role truth table and precedence implemented and verified at a3f44c1 (evidence: tasks/PP-25.md).
+- [x] BE-03 exact per-day demand rounding implemented and verified at a3f44c1 (evidence: tasks/PP-26.md).
+- [x] BE-04 floor/overflow numerical primitive implemented and verified at a3f44c1 (evidence: tasks/PP-27.md).
+- [x] BE-05 native status gate implemented and verified at a3f44c1 (evidence: tasks/PP-28.md).
+- [x] BE-06 gap-preserving history alignment implemented and verified at a3f44c1 (evidence: tasks/PP-29.md).
 
 No checkbox is completed by publishing this specification. Add actual evidence when the implementation lands; tests for a helper do not close its surrounding OPEN topic.
 
