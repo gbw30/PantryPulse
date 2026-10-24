@@ -54,6 +54,12 @@ When a skill conflicts with a project constraint, keep the project rule and use 
 - **`finishing-a-development-branch`:** builders use it only to check readiness, then hand back their commit and evidence. Builders never merge, push, open PRs or discard. The lead integrates; shared-branch merges, discarding work and cleanup of a dirty worktree need the user's approval.
 - **Other skills:** use them when directly relevant. Run `diagnosing-superpowers` only on request, and never file issues without the user's approval.
 
+## Other plugins and domain skills
+- `context7`: look up docs for the versions pinned in package-lock.json and apps/api/uv.lock (Next 16, React 19, Tailwind 4, shadcn 4, OR-Tools 9.15, Chronos 2.3, SQLAlchemy 2). Retrieved docs don't override the repo's locked versions, contracts or tests. Queries go to Upstash, so never include secrets or data.
+- `pyright-lsp`, `typescript-lsp`: diagnostics and navigation. They add to the quick gate; they don't replace it.
+- `frontend-design`: method only. ART-DIRECTION.md and ADR 0002 decide the visual direction and component stack.
+- Project skills: `egp-pi-model` and `cpsat-patterns` for any solver work, `research-claims-check` before any text about the research, and `verify-solver`/`verify-forecast` at gates.
+
 ## Product truth
 - Forecasts are projections. Label simulated/proxy data and actual model/fallback provenance.
 - Preserve null/missing demand; never silently turn it into zero. No future leakage.
