@@ -181,3 +181,12 @@ def test_pure_job_modules_import_no_database_solver_or_model_packages(module):
         [sys.executable, "-c", code], cwd=API_ROOT, capture_output=True, text=True, check=False
     )
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_a_profile_may_be_shorter_but_never_longer_than_the_ceiling():
+    shorter = dataclasses.replace(PRODUCTION_PROFILE, queue_wait_s=60)
+    assert shorter.within(PRODUCTION_PROFILE)
+    longer = dataclasses.replace(PRODUCTION_PROFILE, comparison_total_s=61)
+    assert not longer.within(PRODUCTION_PROFILE)
+    more_waiters = dataclasses.replace(PRODUCTION_PROFILE, max_queued=3)
+    assert not more_waiters.within(PRODUCTION_PROFILE)

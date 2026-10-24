@@ -249,6 +249,7 @@ def test_fallback_runs_only_after_timeout_or_classified_primary_failure():
         (ReasonCode.WORKER_LOST, S.INTERRUPTED),
         (ReasonCode.SHUTDOWN_IMMEDIATE, S.INTERRUPTED),
         (ReasonCode.OUTPUT_TOO_LARGE, S.FAILED),
+        (ReasonCode.CLEANUP_UNCONFIRMED, S.FAILED),
     ],
 )
 def test_stop_reason_decides_the_terminal_state(reason, state):

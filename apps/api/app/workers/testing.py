@@ -237,10 +237,12 @@ class FixturePublisher:
                     entry["reason"] = o.error_code
                 methods.append(entry)
             if not completed:
-                raise PublicationRejected(
-                    "HANDLER_FAILED",
-                    timed_out=all(o.status is StepStatus.TIMED_OUT for o in outcomes),
+                # A method stopped by its cap, then a method skipped for want of parent budget,
+                # is an operation timeout rather than a handler failure.
+                timed_out = any(o.status is StepStatus.TIMED_OUT for o in outcomes) and all(
+                    o.status in (StepStatus.TIMED_OUT, StepStatus.NOT_RUN) for o in outcomes
                 )
+                raise PublicationRejected("HANDLER_FAILED", timed_out=timed_out)
             return {"kind": "comparison", "methods": methods, "publish_fail": False}
         if not completed:
             last = outcomes[-1] if outcomes else None

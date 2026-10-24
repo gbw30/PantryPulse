@@ -107,6 +107,8 @@ class ReasonCode(StrEnum):
     PUBLICATION_COMMIT_LOST = "PUBLICATION_COMMIT_LOST"
     PARENT_BUDGET_EXHAUSTED = "PARENT_BUDGET_EXHAUSTED"
     STEP_DEADLINE_EXCEEDED = "STEP_DEADLINE_EXCEEDED"
+    CLEANUP_UNCONFIRMED = "CLEANUP_UNCONFIRMED"
+    PUBLICATION_STORAGE_FAILED = "PUBLICATION_STORAGE_FAILED"
 
 
 def _positive_finite(name: str, value: Any) -> None:
@@ -158,6 +160,10 @@ class RuntimeProfile:
             raise ValueError("publication reserve must fit inside every operation budget")
         if self.stop_grace_s >= min(self.method_wall_s, self.forecast_primary_cutoff_s):
             raise ValueError("stop grace must fit inside the step it stops")
+
+    def within(self, ceiling: "RuntimeProfile") -> bool:
+        """True when no time/resource limit exceeds ``ceiling`` (shorter is allowed)."""
+        return all(getattr(self, f.name) <= getattr(ceiling, f.name) for f in fields(self))
 
     def effective_limits(self) -> dict[str, Any]:
         return {
