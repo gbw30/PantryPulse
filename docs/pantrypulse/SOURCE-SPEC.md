@@ -1,5 +1,7 @@
 # PantryPulse source spec extraction
 
+> Historical V1 extraction. The authoritative V4 text is [SPEC-V4.snapshot.txt](SPEC-V4.snapshot.txt); follow [ADR 0001](../architecture/0001-v4-research-first.md) for conflict resolution.
+
 Recovered from the attached Hackathon spec document.docx. Paragraph text is retained; source tables are linearized and formatting is not reproduced. Source version 1.0, dated October 23, 2026.
 
 V1

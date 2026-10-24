@@ -21,3 +21,5 @@ playwright-report/
 test-results/
 *.pem
 *.key
+*.tsbuildinfo
+**/next-env.d.ts

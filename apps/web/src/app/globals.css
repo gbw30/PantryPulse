@@ -1,0 +1,82 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+:root {
+  color-scheme: light;
+  --background: #f4f7f7;
+  --foreground: #162c3c;
+  --card: #ffffff;
+  --card-foreground: #162c3c;
+  --popover: #ffffff;
+  --popover-foreground: #162c3c;
+  --primary: #146858;
+  --primary-foreground: #ffffff;
+  --secondary: #e7efed;
+  --secondary-foreground: #162c3c;
+  --muted: #e7efed;
+  --muted-foreground: #4c626d;
+  --accent: #e7efed;
+  --accent-foreground: #162c3c;
+  --destructive: #a52f3a;
+  --destructive-foreground: #ffffff;
+  --border: #ced9dd;
+  --input: #ced9dd;
+  --ring: #146858;
+  --radius: 0.75rem;
+  --chart-1: #146858;
+  --chart-2: #315c92;
+  --chart-3: #8a5c00;
+  --chart-4: #a52f3a;
+  --chart-5: #4c626d;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #162c3c;
+  --sidebar-primary: #146858;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e7efed;
+  --sidebar-accent-foreground: #162c3c;
+  --sidebar-border: #ced9dd;
+  --sidebar-ring: #146858;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+body { background: var(--background); color: var(--foreground); font-family: Arial, Helvetica, sans-serif; }
+

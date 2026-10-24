@@ -1,0 +1,32 @@
+{
+  "name": "pantrypulse",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=24.16.0 <25",
+    "npm": ">=11.13.0 <12"
+  },
+  "packageManager": "npm@11.13.0",
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "ui:add": "npm run ui:add --workspace @pantrypulse/web --",
+    "ui:info": "npm run ui:info --workspace @pantrypulse/web",
+    "setup:windows": "powershell -NoProfile -File scripts/setup-windows.ps1",
+    "doctor:windows": "powershell -NoProfile -File scripts/doctor-windows.ps1",
+    "test:config": "node --test scripts/quality/tests/*.test.cjs",
+    "test:e2e:install": "npm run test:e2e:install --workspace @pantrypulse/web",
+    "dev:web": "npm run dev --workspace @pantrypulse/web",
+    "dev:api": "uv run --frozen --directory apps/api uvicorn app.main:app --reload --host 127.0.0.1 --port 8000",
+    "build": "npm run build --workspace @pantrypulse/web",
+    "lint": "npm run lint --workspace @pantrypulse/web",
+    "typecheck": "npm run typecheck --workspace @pantrypulse/web",
+    "test:api": "uv run --frozen --directory apps/api pytest",
+    "test:e2e": "npm run test:e2e --workspace @pantrypulse/web",
+    "check": "npm run typecheck && npm run lint && uv run --frozen --directory apps/api ruff check . && npm run test:api",
+    "dev:api:docker": "docker compose --profile api up -d --build --wait api",
+    "test:api:docker": "docker compose exec -T api uv run --frozen pytest",
+    "check:runtime:docker": "docker compose exec -T api uv run --frozen python scripts/check_runtime.py --database"
+  }
+}

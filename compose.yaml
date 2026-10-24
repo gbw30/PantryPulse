@@ -19,5 +19,23 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+  api:
+    profiles: ["api"]
+    build:
+      context: ./apps/api
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      APP_ENV: development
+      DEMO_MODE: "true"
+      DATABASE_URL: postgresql+psycopg://pantrypulse:local_dev_only@postgres:5432/pantrypulse_dev
+    healthcheck:
+      test: ["CMD", "uv", "run", "--frozen", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 volumes:
   pgdata:

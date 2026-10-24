@@ -1,5 +1,7 @@
 # PantryPulse
 
+V4 authority update (2026-10-23): Start with docs/architecture/0001-v4-research-first.md and docs/pantrypulse/IMPLEMENTATION-PLAN.md. V4 requires six beneficiary institutions plus hub(s), lot-aware FEFO and CLASSICAL_GP versus EGP_PI_INSPIRED with active AP/RP objectives. Older three-site/shortage-first rules below are historical where conflicting. Do not implement complex solver features before the research validation gate.
+
 Build the Gator Hack V 48-hour MVP: three fictional sites, two resource categories, seven-day forecasts, and a 1–3-day simulated allocation window. Preserve the current repository and user changes.
 
 ## Read first
