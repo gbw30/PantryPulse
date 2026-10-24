@@ -6,7 +6,7 @@ model owns the method field; its public error envelope is OPEN-29.
 
 from enum import StrEnum
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 class TransferMode(StrEnum):
@@ -26,3 +26,12 @@ class TransferModeSelection(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     transfer_mode: TransferMode
+
+    @field_validator("transfer_mode", mode="before")
+    @classmethod
+    def _reject_non_str(cls, value: object) -> object:
+        # Lax enum validation would decode bytes and accept non-str enums by value;
+        # match check_mode_route, which only accepts str or TransferMode values.
+        if not isinstance(value, str):
+            raise ValueError("transfer_mode must be a string")
+        return value
