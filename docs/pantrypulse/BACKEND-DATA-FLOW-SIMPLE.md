@@ -1,5 +1,25 @@
 # Proposed Backend Behavior in Simple Terms
 
+## Accepted backend design update: BD-30
+
+The [backend checkpoint](BACKEND-DESIGN-CHECKPOINT.md) records accepted design, not implemented or verified domain behavior. Scenario creation requires explicit `transfer_mode`, without a default:
+
+| Transfer mode | Eligible recommendations |
+|---|---|
+| `HUB_ONLY` | Hub-to-beneficiary transfers only. Pantry inventory reduces local need; no pantry-to-pantry transfers. |
+| `HUB_AND_PANTRY` | Hub transfers plus eligible pantry surplus transfers. Protect sending pantry demand and applicable reserves through dated projections; enforce route eligibility, capacity, arrival timing, lot eligibility and expiry. Incoming stock cannot be forwarded within the same allocation batch. |
+
+Freeze mode and all inputs at scenario creation in a validated, versioned, content-hashed JSONB package with provenance/source references. Changing mode or inputs requires a new scenario. Include `transfer_mode` in scenario, result, comparison and methodology metadata separately from allocation `method`. Both `CLASSICAL_GP` and `EGP_PI_INSPIRED` support both modes. Paired comparison uses the same frozen scenario, mode, inputs and operational constraints; only defined method objectives differ.
+
+The two main computation workflows are:
+
+1. Demand forecasting uses historical daily pantry/product demand to predict the next seven days. Historical observations, current inventory and saved forecast results remain separate database concepts. Forecast demand represents predicted need, never net shortage; do not subtract inventory from stored forecasts. Retain already specified baseline guidance; unresolved minimum-history/fallback details remain OPEN-13.
+2. Allocation and comparison use a selected saved forecast, eligible current stock, qualifying confirmed arrivals and frozen assumptions. Dated projection derives shortages and eligible surplus while respecting demand timing, expiry, capacity and donor protection. Pantry surplus is not simply stock minus aggregate demand.
+
+Forecasting, allocation and paired comparison are background jobs: submission returns `202 Accepted` and a job reference; separate reads expose persisted status and committed results. Two workflows do not mean exactly two HTTP endpoints. Keep inventory, scenario, job, result and comparison operations. Exact wire contracts/job states remain OPEN-29/30.
+
+OPEN-01 product choice is resolved. Snapshot schema, reserve/event rules, routes/capacity, API details and independent validation remain OPEN-19/21/22/29/34. OPEN-02 benefit attribution and OPEN-03 supplier-budget priority remain deferred. Plan review records actor, plan/version and time without reserving, dispatching or changing stock. Forecast donations create neither physical inventory nor confirmed supply. Draft supplier proposals remain included and conditional, outside the confirmed-resource primary comparison. The main demo still requires at least six beneficiaries plus hub(s); smaller examples do not change this. Research adaptation limits and independent validation remain required. Hosting/model setup stays paused.
+
 PantryPulse is meant to help someone running a food-distribution network answer three questions:
 
 1. **What supplies do we have?**
@@ -201,7 +221,7 @@ After a plan is produced, another calculation checks that it obeys the rules and
 
 **7. The output is a recommendation with an explanation.**
 
-Using the document’s example:
+Using the `HUB_AND_PANTRY` example (this transfer is prohibited in `HUB_ONLY`):
 
 | | Pantry A | Pantry B |
 |---|---:|---:|
@@ -246,12 +266,12 @@ The **API** is the set of requests the website can send to the backend.
 | View forecasts | Return daily predictions |
 | Create a scenario | Validate and save the assumptions |
 | Check shortages | Return projected deficits |
-| Compare allocation methods | Return both plans and their differences |
+| Start allocation or compare methods | Return `202 Accepted` and a job reference; separate reads expose persisted status and committed plans/differences |
 | Open a plan | Return its recommendations and explanations |
 
 A `GET` request generally retrieves information. A `POST` request submits an action or creates something.
 
-Forecasting may take time, so the backend first returns a job ID. The website checks that ID until results are ready. Opening the dashboard retrieves saved information without starting another forecast.
+Forecasting, allocation and comparison may take time, so submission returns `202 Accepted` and a job reference. The website checks that ID until results are ready. Opening the dashboard retrieves saved information without starting another forecast.
 
 The document also names response codes:
 

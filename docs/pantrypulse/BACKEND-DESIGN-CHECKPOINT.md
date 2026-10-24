@@ -2,7 +2,7 @@
 
 **Date:** October 24, 2026 (America/New_York)
 
-**Status:** Design interview in progress. This checkpoint records 29 accepted decisions, three deliberately deferred choices, and a 36-item remaining-topic tracker. It is not a finalized implementation specification or evidence that the proposed features work.
+**Status:** Design interview in progress. This checkpoint records 30 accepted decisions, two deliberately deferred choices, and a stable 36-item tracker: one resolved product choice and 35 remaining topics. It is not a finalized implementation specification or evidence that the proposed features work.
 
 **Planning-session fidelity review:** October 24, 2026. The accepted selections and explicit deferrals were checked against the conversation, including the later supplier-scope correction. This review records no new design choice and does not validate application behavior.
 
@@ -14,13 +14,13 @@ The accepted decisions below record the human user's selections. Earlier assista
 
 V4 remains the source specification, supported by its shared/domain task guides. This checkpoint records the agreed resolutions and additions that must be reconciled into those documents later; it does not silently rewrite the original specification. The user-provided Google Docs URL targets the Completion Log, not the V4 requirements tab.
 
-Decision identifiers `BD-01` through `BD-29` belong to this checkpoint. They are distinct from historical `D01`, `D02`, and other identifiers in PROJECT-CONTRACT.md. Tracker identifiers `OPEN-01` through `OPEN-36` identify remaining topics, not additional accepted decisions.
+Decision identifiers `BD-01` through `BD-30` belong to this checkpoint. They are distinct from historical `D01`, `D02`, and other identifiers in PROJECT-CONTRACT.md. Tracker identifiers `OPEN-01` through `OPEN-36` identify remaining topics, not additional accepted decisions.
 
 ## Design baseline and implementation status
 
 The intended architecture is a modular Python FastAPI backend, PostgreSQL persistence, and a Next.js frontend. Pydantic/OpenAPI defines public API contracts, with generated TypeScript consumed by the frontend. The selected browser access path adds a thin Next.js proxy; domain logic remains in FastAPI.
 
-The existing V4 baseline calls for a simulated humanitarian network with at least six beneficiary institutions plus hub(s), two resource categories, seven-day daily forecasts, a bounded allocation window, lot-aware expiry/FEFO, and a paired `CLASSICAL_GP` versus `EGP_PI_INSPIRED` comparison. These are carried-forward source requirements, not additional choices made in the interview. Transfer topology remains deliberately deferred below.
+The existing V4 baseline calls for a simulated humanitarian network with at least six beneficiary institutions plus hub(s), two resource categories, seven-day daily forecasts, a bounded allocation window, lot-aware expiry/FEFO, and a paired `CLASSICAL_GP` versus `EGP_PI_INSPIRED` comparison. These are carried-forward source requirements, not additional choices made in the interview. BD-30 requires both explicit caller-selectable transfer modes; detailed contracts remain open.
 
 The inspected [API entrypoint](../../apps/api/app/main.py) implements `GET /api/v1/health` as process liveness. It does not establish database, forecasting, or solver readiness. This checkpoint does not certify the domain database, job system, allocation engines, or end-to-end demonstration as implemented. Saving this document adds no application functionality.
 
@@ -62,6 +62,8 @@ All rows below are accepted directions. Their exact fields, algorithms, and edge
 | **BD-28** | Conservative planning | B — Explicit buffer | Where upper quantiles are unavailable, allow an explicit presenter-selected buffer recorded in the scenario. Missing quantiles stay null. Label mixed quantile/buffer inputs per series and never present the buffer as a calibrated probability or fabricated `p90`. |
 | **BD-29** | Forecast reuse | A — Reuse + refresh | Reuse exactly matching immutable forecast results by default, with an explicit presenter-requested forced recomputation option. Cache identity must include relevant inputs/settings. Preserve original generation timestamps and actual model/fallback provenance; reuse is not new inference. |
 
+| **BD-30** | Transfer modes | Both modes, explicit API selection | Require scenario `transfer_mode` with no default: `HUB_ONLY` allows hub-to-beneficiary transfers only, with pantry inventory reducing local need; `HUB_AND_PANTRY` also permits eligible pantry surplus transfers with dated demand/reserve protection and route, capacity, arrival, lot and expiry checks. Incoming stock cannot be forwarded within the same batch. Freeze mode at scenario creation; changing it requires a new scenario. Include mode in scenario/result/comparison/methodology metadata separately from method. Both `CLASSICAL_GP` and `EGP_PI_INSPIRED` support both modes. Paired comparisons share frozen scenario, mode, inputs and operational constraints; only defined method objectives differ. Resolves OPEN-01 product choice; technical contracts and validation remain OPEN-19/21/22/29/34. |
+
 ### Fidelity guardrails
 
 - A choice is accepted because the user selected it, not because the assistant recommended it. The fully frozen scenario choice in BD-09 is an important example: the recommended alternative was not chosen.
@@ -71,13 +73,13 @@ All rows below are accepted directions. Their exact fields, algorithms, and edge
 - The 36 tracker topics are the assistant's planning inventory requested by the user. They are not 36 additional accepted features, parameter defaults, or claims that previously discussed behavior is unimplemented.
 - Any earlier illustrative number or example is not a selected default unless the decision expressly adopts it. The scale of 10,000 was selected in BD-21; supplier coverage days, capacity coefficients, buffer percentages, and runtime limits still require specification.
 
-## Explicitly deferred alternatives
+## Historical deferral and remaining deferred alternatives
 
-The user requested that both alternatives in each topic remain documented for a later specification version. No active option is inferred from earlier recommendations. Retaining alternatives does not commit the team to implementing both, a runtime toggle, or a hidden fallback. A dependent implementation needs a later recorded selection.
+Originally all three choices were deferred. BD-30 supersedes the OPEN-01 deferral and requires both modes. OPEN-02 and OPEN-03 remain deferred; their alternatives imply no selected default, runtime toggle or hidden fallback.
 
-### OPEN-01 — Transfer topology
+### OPEN-01 — Transfer topology (product choice resolved by BD-30)
 
-**User's deferral:** “include both options in the planning and it will be defined in a later version of the spec”.
+**Historical deferral, superseded by BD-30:**  “include both options in the planning and it will be defined in a later version of the spec”.
 
 | Alternative | Technical meaning | Simple meaning | Main tradeoff |
 |---|---|---|---|
@@ -112,11 +114,11 @@ These were proposed as transparent procurement heuristics, applied consistently 
 
 ## Remaining-topic tracker
 
-An unchecked item means its full specification is not frozen. It does not mean its accepted direction should be reopened. Some topics need another human choice; others require technical elaboration from existing decisions. There are 36 topics, including the three deliberately deferred choices, not necessarily 36 further questions.
+An unchecked item means its full specification is not frozen. It does not mean its accepted direction should be reopened. Some topics need another human choice; others require technical elaboration from existing decisions. There are 36 stable tracker entries: one resolved product choice and 35 remaining topics, including two deferred choices. Route schemas, reserves, snapshot/API contracts and validation remain OPEN-19/21/22/29/34; resolving the choice does not complete implementation.
 
-### Deferred choices
+### Resolved product choice and deferred choices
 
-- [ ] **OPEN-01 — Transfer topology.** Deferred: preserve hub-only and hub-plus-beneficiary alternatives without selecting a default.
+- [x] **OPEN-01 — Transfer topology product choice.** Resolved by BD-30: both explicit API-selectable modes, no default. Only selection is complete; technical contracts/validation remain OPEN-19/21/22/29/34.
 - [ ] **OPEN-02 — Transfer-benefit attribution.** Deferred: preserve aggregate-impact/rationale and marginal-counterfactual alternatives.
 - [ ] **OPEN-03 — Supplier-budget priority.** Deferred: preserve urgency-first and vulnerability-first alternatives.
 
@@ -143,10 +145,10 @@ An unchecked item means its full specification is not frozen. It does not mean i
 
 ### Scenarios, projections, and optimization
 
-- [ ] **OPEN-19 — Snapshot construction.** Define the full JSONB schema, immutable source references, canonical serialization, hashing, schema versioning, and explicit partial-scope representation.
+- [ ] **OPEN-19 — Snapshot construction.** Define the full JSONB schema including required frozen `transfer_mode`, immutable source references, canonical serialization, hashing, schema versioning, and explicit partial-scope representation.
 - [ ] **OPEN-20 — Staleness and historical replay.** Specify invalidating changes, replacement scenarios, archived-result visibility, and historical reruns versus current recommendations.
 - [ ] **OPEN-21 — Dated stock projection and donor protection.** Finalize event ordering, daily consumption/lost-demand calculations, reserves, hard FEFO enforcement, and exclusion reasons.
-- [ ] **OPEN-22 — Transport and capacity definitions.** Specify allowed routes, ETA assumptions, capacity units, product handling coefficients, receiving limits, and modeled costs.
+- [ ] **OPEN-22 — Transport and capacity definitions.** Specify mode-dependent allowed routes, ETA assumptions, capacity units, product handling coefficients, receiving limits, and modeled costs.
 - [ ] **OPEN-23 — Complete objective policy.** Freeze classical/research formulas, coefficients, AP/RP excess aggregation, cost/waste normalization, defaults, and permitted parameter ranges.
 - [ ] **OPEN-24 — Numerical and boundary behavior.** Finalize fixed-point encoding, overflow limits, strict comparisons, zero-demand cases, invalid groups, and independent verification.
 - [ ] **OPEN-25 — Policy and attribute management.** Define immutable versions, editing/creation permissions, validation, methodology output, and how changes create new frozen scenarios.
@@ -161,7 +163,7 @@ OPEN-03 remains the separate deferred choice about which needs receive priority 
 
 ### API, execution, and access
 
-- [ ] **OPEN-29 — Endpoint and wire-contract catalog.** Finalize routes, request/response fields, filtering, pagination, validation, errors, HTTP statuses, and generated TypeScript contracts.
+- [ ] **OPEN-29 — Endpoint and wire-contract catalog.** Finalize routes, required scenario `transfer_mode` validation and result/methodology metadata, request/response fields, filtering, pagination, validation, errors, HTTP statuses, and generated TypeScript contracts.
 - [ ] **OPEN-30 — Job orchestration.** Define states, worker ownership, queue limits, cancellation, actual computation timeouts, manual retries, publication, and independent comparison-method failures.
 - [ ] **OPEN-31 — Presenter authentication and proxy security.** Specify sessions, login/logout, expiry, credential forwarding, backend verification, CSRF protection, and request limits.
 - [ ] **OPEN-32 — Demo isolation and retention.** Define reset boundaries, audit preservation, snapshot/job retention, cache cleanup, and historical-result access.
@@ -169,7 +171,7 @@ OPEN-03 remains the separate deferred choice about which needs receive priority 
 ### Verification, operations, and documentation
 
 - [ ] **OPEN-33 — Observability and readiness.** Define structured logs, correlation IDs, timings, cache/fallback visibility, solver diagnostics, and health-versus-readiness checks.
-- [ ] **OPEN-34 — Acceptance tests and research gate.** Enumerate DB/API/concurrency tests, independent mathematical oracles, paired-input checks, research ablations, and the demonstration journey.
+- [ ] **OPEN-34 — Acceptance tests and research gate.** Enumerate both-method/both-mode, missing/invalid mode, immutable mode, donor-protection and no-relay tests, DB/API/concurrency tests, independent mathematical oracles, paired-input checks, research ablations, and the demonstration journey.
 - [ ] **OPEN-35 — Runtime and performance limits.** Establish worker settings, resource limits, timeouts, queue bounds, and later measurement criteria without resuming paused setup.
 - [ ] **OPEN-36 — Documentation and integration.** Organize the supplement, migrations, contract generation, setup-guide changes, decision traceability, and treatment of unresolved alternatives.
 
@@ -218,19 +220,19 @@ For this standalone checkpoint publication, three supporting files are still loc
 | [Implementation plan](IMPLEMENTATION-PLAN.md) | Research-first priorities and the distinction between scaffold and completed platform. |
 | [Invariants](INVARIANTS.md) | Conservation, timing, provenance, version, and accounting checks. |
 | Forecasting proposal evaluation — `FORECASTING-PROPOSAL-EVALUATION.md` | Local-only supporting file: earlier correct/reject/improve analysis that motivated the design discussion. |
-| [Detailed backend explanation](BACKEND-DATA-FLOW.md) | Earlier explanatory document; not updated by this checkpoint save. |
-| [Simple backend explanation](BACKEND-DATA-FLOW-SIMPLE.md) | Plain-language companion; not updated by this checkpoint save. |
+| [Detailed backend explanation](BACKEND-DATA-FLOW.md) | Explanatory document reconciled with BD-30. |
+| [Simple backend explanation](BACKEND-DATA-FLOW-SIMPLE.md) | Plain-language companion reconciled with BD-30. |
 | [Generated-contract boundary](../../packages/contracts/README.md) | Pydantic/OpenAPI authority and generated TypeScript expectations. |
 | Local compute evaluation — `LOCAL-COMPUTE-EVALUATION.md` | Local-only supporting file: proposed resource/caching strategy and measurement limits; not performance proof. |
 | Hosting/model setup pause — `../setup/SETUP-PROGRESS.md` | Local-only supporting file: user's pause on hosting/model preparation; the pause is also preserved in the resume instructions below. |
 
 ## Resume instructions
 
-1. Read this checkpoint and the source material relevant to the next topic. Preserve accepted decisions BD-01 through BD-29 unless the user explicitly revises them.
-2. Continue with **OPEN-26: supplier offer selection**. No question is currently awaiting an answer. The last accepted decision was BD-29, exact-match forecast reuse with a forced-refresh option.
+1. Read this checkpoint and the source material relevant to the next topic. Preserve accepted decisions BD-01 through BD-30 unless the user explicitly revises them.
+2. Continue with **OPEN-26: supplier offer selection**. No question is currently awaiting an answer. The latest accepted decision is BD-30, both explicit transfer modes; BD-29 forecast reuse remains accepted.
 3. Ask one material design question at a time. For every option, provide a technical explanation, a simple-language explanation, and advantages/tradeoffs. Then wait for the user's selection.
-4. Keep OPEN-01, OPEN-02, and OPEN-03 deferred until the user or a later approved spec version selects an alternative. Do not treat an earlier recommendation as the choice.
-5. Add subsequent accepted decisions after BD-29. Keep decision identifiers stable and mark tracker topics complete only when their full specification is settled, not merely because a direction has been chosen.
+4. Keep OPEN-02 and OPEN-03 deferred. OPEN-01 product choice is resolved by BD-30; technical work remains OPEN-19/21/22/29/34.
+5. Add subsequent accepted decisions after BD-30. Keep decision identifiers stable and mark tracker topics complete only when their full specification is settled, not merely because a direction has been chosen.
 6. Preserve the distinction between documentation, implementation, and verification. Do not report unimplemented endpoints, schemas, provider integrations, or solver behavior as working features.
 7. Keep hosting/model setup paused. The user previously reported stopping after step 2; identify the relevant guide and verify state before resuming that separate work. Do not start containers, download checkpoints, perform heavy builds, or benchmark inference without a new instruction resuming it. Continuing this design interview does not resume hosting setup.
 8. Preserve unrelated modified/untracked files. No real vendor order, payment, or dispatch is authorized. Future implementation-dependent decisions and the research gate must be resolved before treating this working draft as implementation-ready.
