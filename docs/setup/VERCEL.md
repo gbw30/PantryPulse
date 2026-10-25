@@ -3,6 +3,17 @@
 > **Frontend prototype preview (October 24, 2026):** The user resumed Vercel setup only for the simulated `/design-lab` preview. The preview branch redirects `/` to `/design-lab` and does not contact the API, require Neon, or need a tunnel or `NEXT_PUBLIC_API_BASE_URL`. Configure the Vercel project with `apps/web` as root, access to source files outside that root, Node 24.x, and the root lockfile install below. Verify the live URL and its preview access policy before sharing. V5's same-origin Next.js proxy is still required for any later connected frontend; the direct browser-to-API instructions further down this guide are historical and must not be used to claim completed integration. Backend/model hosting remains paused.
 Purpose: optionally host the PantryPulse frontend for access from other devices. The backend runs on the laptop through an HTTPS tunnel as described in [EXTERNAL-SERVICES.md](../../EXTERNAL-SERVICES.md). Complete [GitHub](GITHUB.md), [Neon](NEON.md) and [local demo setup](LOCAL-DEMO.md) first. A presentation entirely in the laptop's browser does not require Vercel; [Fly.io](FLY.md) is only a hosted backend alternative.
 
+## Connected prototype project
+
+The `gbw30s-projects` Hobby team now has a Git-connected project named `pantrypulse-prototype-preview`, linked to `gbw30/PantryPulse`. Its root directory is `apps/web`; source outside that directory is enabled for the root npm workspace lockfile. Node 24.x, the locked install command below and `npm run build` are configured. There are no API, database, model or presenter secrets in this preview.
+
+Only `codex/vercel-prototype-preview` should build automatically. The project's ignored-build command is:
+
+```sh
+if [ "$VERCEL_GIT_COMMIT_REF" = "codex/vercel-prototype-preview" ]; then exit 1; else exit 0; fi
+```
+
+A Vercel API deployment can explicitly use the nonproduction `staging` target if Git does not trigger a preview. The first deployment from this branch built successfully and the live page was checked at 1440×900 and 390×844: `/` leads to `/design-lab`, simulated/illustrative labels remain visible, location selection and 3D→2D work, and the browser reported no page errors or horizontal overflow. The exact deployment URL and commit are reported at handoff; future updates must be checked against their own deployment URL. The connected project has no deployment protection enabled, so the preview is publicly accessible to anyone with its URL. Keep all content synthetic.
 ## Manual account and import
 
 1. Sign in at https://vercel.com, select the intended account/team, and review the plan and usage limits.
