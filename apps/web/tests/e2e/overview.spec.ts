@@ -94,6 +94,12 @@ async function expectScrollCueWhenOverflowing(inspector: Locator) {
   if (overflows) await expect(inspector.getByText("More below")).toBeVisible();
 }
 
+// The atlas first asks the presenter API (PP-51); without a backend it falls back to the fixture.
+// In dev the first request also compiles the API proxy route, so the first snapshot may take longer.
+async function waitForSnapshot(page: Page) {
+  await expect(page.locator("[data-marker-role]")).toHaveCount(7, { timeout: 15_000 });
+}
+
 // Opens the atlas at one viewport with reduced motion; returns the page errors seen so far.
 async function openAtlas(page: Page, width: number, height: number) {
   const pageErrors: string[] = [];
@@ -102,7 +108,9 @@ async function openAtlas(page: Page, width: number, height: number) {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/overview");
   await expect(page.getByRole("heading", { level: 1, name: "Network Atlas" })).toBeVisible();
-  await expect(page.locator("[data-marker-role]")).toHaveCount(7);
+  // The atlas first asks the presenter API (PP-51); without a backend it falls back to the fixture.
+  // In dev the first request also compiles the API proxy route, so allow the initial snapshot longer.
+  await expect(page.locator("[data-marker-role]")).toHaveCount(7, { timeout: 15_000 });
   return pageErrors;
 }
 
@@ -368,7 +376,7 @@ for (const key of ["toString", "__proto__", "constructor", "hasOwnProperty"]) {
     page.on("pageerror", (error) => pageErrors.push(error.message));
     await page.goto(`/overview?state=${key}`);
     await expect(page.getByRole("heading", { level: 1, name: "Network Atlas" })).toBeVisible();
-    await expect(page.locator("[data-marker-role]")).toHaveCount(7);
+    await waitForSnapshot(page);
     await expect(page.getByRole("note")).toHaveCount(0);
     expect(pageErrors).toEqual([]);
   });
@@ -378,6 +386,7 @@ test("water product and hub views at 1440x900", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/overview");
+  await waitForSnapshot(page);
   await chooseProduct(page, /Bottled water/);
   const pine = marker(page, "Pine Ridge Pantry");
   await expect(pine).toHaveAccessibleName(/Not evaluated, insufficient data/);
@@ -412,6 +421,7 @@ test("next deficits follow the selected local day (Wed, Oct 28)", async ({ page 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/overview");
+  await waitForSnapshot(page);
   await page.getByRole("combobox", { name: "Local day" }).click();
   await page.getByRole("option", { name: "Wed, Oct 28" }).click();
   await expect(page.getByRole("combobox", { name: "Local day" })).toHaveText(/Wed, Oct 28/);
@@ -454,6 +464,7 @@ test("next deficits follow the selected local day (Wed, Oct 28)", async ({ page 
 test("site search filters the list and selects a match", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/overview");
+  await waitForSnapshot(page);
   const search = page.getByRole("searchbox", { name: "Search sites or products" });
   await expect(search).toHaveAttribute("placeholder", "Search sites or products…");
   await search.fill("oak");
@@ -469,6 +480,7 @@ test("product search offers a product and switches units", async ({ page }, test
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/overview");
+  await waitForSnapshot(page);
   const search = page.getByRole("searchbox", { name: "Search sites or products" });
   const product = page.getByRole("combobox", { name: "Product" });
   await expect(product).toHaveText(/Shelf-stable meals \(meals\)/);

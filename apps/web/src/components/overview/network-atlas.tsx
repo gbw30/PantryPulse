@@ -15,9 +15,12 @@ import { SchematicMapRenderer, type MapMarker } from "./schematic-map";
 import { SiteInspector } from "./site-inspector";
 import { SiteList } from "./site-list";
 import { StatusGlyph } from "./status-glyph";
-import { overviewSourceFor, STATIC_FIXTURE_LABEL } from "./static-fixture";
+import { LIVE_LABEL } from "./live-source";
+import { ProvenancePill } from "./provenance-pill";
+import { overviewSourceFor } from "./sources";
+import { STATIC_FIXTURE_LABEL } from "./static-fixture";
 import { formatDay, formatRange, formatUnits, markerAccessibleName, nextDeficitFrom, nextDeficitLine, roleLabel, STATUS_LABEL, statusDetail, statusFor, statusLine } from "./status";
-import type { BeneficiaryStatus, MarkerStatus, OverviewSnapshot } from "./types";
+import type { BeneficiaryStatus, LiveNotice, MarkerStatus, OverviewSnapshot } from "./types";
 
 type LoadState = { status: "loading" } | { status: "ready"; snapshot: OverviewSnapshot } | { status: "error"; message: string };
 
@@ -34,6 +37,42 @@ function useMediaQuery(query: string, serverValue: boolean) {
 }
 
 const DOI_URL = "https://doi.org/10.1111/itor.70252";
+
+/** An API instant shown in the network's local time zone, e.g. "Nov 2, 9:30 AM EST". */
+function formatInstant(iso: string | null | undefined, timeZone: string) {
+  if (!iso) return "unknown time";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  const options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" };
+  try {
+    return date.toLocaleString("en-US", { ...options, timeZone });
+  } catch {
+    return date.toLocaleString("en-US", { ...options, timeZone: "UTC" });
+  }
+}
+
+const NOTICE_LINK = "font-medium text-foreground underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+/** Why live statuses are absent although presenter data loaded; always with a path to fix it. */
+function LiveNoticeBanner({ notice, timeZone }: { notice: LiveNotice; timeZone: string }) {
+  return (
+    <div data-live-notice className="flex items-start gap-2 rounded-lg border border-pp-warning bg-card px-3 py-2 text-sm text-foreground">
+      <StatusGlyph status="not_evaluated" className="mt-0.5" />
+      {notice.kind === "not_ready" && (
+        <span><strong className="font-semibold">No planning-ready forecast yet.</strong> Inventory is live; statuses are Not evaluated.{" "}
+          <Link className={NOTICE_LINK} href="/optimization">Run a forecast in the optimization workspace</Link></span>
+      )}
+      {notice.kind === "stale" && (
+        <span><strong className="font-semibold">Stale: {notice.code}.</strong> The latest forecast (recorded {formatInstant(notice.recordedAt, timeZone)}) no longer matches the network; statuses are Not evaluated and inventory is live.{" "}
+          <Link className={NOTICE_LINK} href="/optimization">Run a new forecast in the optimization workspace</Link></span>
+      )}
+      {notice.kind === "demand_unavailable" && (
+        <span><strong className="font-semibold">{notice.code}:</strong> {notice.message} Statuses are Not evaluated; inventory is live.{" "}
+          <Link className={NOTICE_LINK} href="/optimization">Run a new forecast in the optimization workspace</Link></span>
+      )}
+    </div>
+  );
+}
 
 /** Tracks whether a scroll container has content below its visible area (drives the "More below" cue). */
 function useOverflowBelow(element: HTMLElement | null, contentKey: string) {
@@ -53,10 +92,14 @@ function useOverflowBelow(element: HTMLElement | null, contentKey: string) {
   return below;
 }
 
+// Zero-height sticky anchor with an absolutely positioned overlay: showing or hiding the cue never
+// changes the scroll height, so content cannot jump (e.g. under a pointer) when it toggles at the bottom.
 function ScrollCue({ className }: { className?: string }) {
   return (
-    <div aria-hidden="true" className={`pointer-events-none sticky z-20 flex h-10 items-end justify-center bg-linear-to-t from-card via-card/90 to-transparent pb-1 ${className ?? ""}`}>
-      <span className="rounded-full border border-border bg-card px-2 py-0.5 text-[11px] text-foreground">More below</span>
+    <div aria-hidden="true" className={`pointer-events-none sticky -bottom-4 z-20 h-0 ${className ?? ""}`}>
+      <div className="absolute inset-x-0 bottom-0 flex h-10 items-end justify-center bg-linear-to-t from-card via-card/90 to-transparent pb-1">
+        <span className="rounded-full border border-border bg-card px-2 py-0.5 text-[11px] text-foreground">More below</span>
+      </div>
     </div>
   );
 }
@@ -87,7 +130,12 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
   useEffect(() => {
     const controller = new AbortController();
     source.load(controller.signal).then(
-      (snapshot) => { if (!controller.signal.aborted) setLoad({ status: "ready", snapshot }); },
+      (snapshot) => {
+        if (controller.signal.aborted) return;
+        setLoad({ status: "ready", snapshot });
+        // Live and fixture snapshots can have different horizons; keep the selected day in range.
+        setDayIndex((current) => Math.min(current, Math.max(0, snapshot.dates.length - 1)));
+      },
       (error: unknown) => {
         if (controller.signal.aborted) return;
         setLoad({ status: "error", message: error instanceof Error ? error.message : "The snapshot could not be loaded." });
@@ -126,7 +174,17 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
   const inspectorWidth = isWide ? 340 : 300;
   const reserveRight = isDesktop ? inspectorWidth + 32 : 0;
   const dayLabel = snapshot ? formatDay(snapshot.dates[dayIndex]) : null;
-  const horizonLabel = snapshot ? `Next 7 days · ${formatRange(snapshot.dates)}` : undefined;
+  const horizonLabel = snapshot ? (snapshot.dates.length > 1 ? `Next ${snapshot.dates.length} days · ${formatRange(snapshot.dates)}` : `Inventory · ${formatRange(snapshot.dates)}`) : undefined;
+  const live = snapshot?.source.kind === "live" ? snapshot.source : null;
+  const fallback = snapshot?.fallback ?? null;
+  const selectedProvider = selected?.projection?.kind === "projected" ? selected.projection.provider : undefined;
+  const provenance = live
+    ? {
+        label: LIVE_LABEL,
+        detail: `${selectedProvider ? `Provider ${selectedProvider} · ` : ""}observed ${formatInstant(live.observedAt, snapshot?.timezone ?? "UTC")}`,
+        chartNote: `Live projection${selectedProvider ? ` (${selectedProvider})` : ""}`,
+      }
+    : { label: "Static fixture · simulated", chartNote: "Static fixture outlook" };
 
   // Return focus to the control that opened the selection. If it was remounted (e.g. while other
   // routes compile in development), fall back to the site's marker found by its stable id.
@@ -146,8 +204,9 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
     afterPopoverClose.current = "invoker";
     setSelectedId(siteId);
     setPopoverOpen(true);
-    // Narrow layouts: the map can sit partly below the fold; bring all of it (and so the popover) into view.
-    if (!isDesktop) document.querySelector("[data-atlas-map]")?.scrollIntoView({ block: "nearest" });
+    // The map can sit partly below the fold (notices above it, short viewports); bring all of it, and so the
+    // docked card, into view. A no-op when it is already visible.
+    document.querySelector("[data-atlas-map]")?.scrollIntoView({ block: "nearest" });
   }
 
   function clearSelection() {
@@ -225,6 +284,7 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
       projection={selected.projection}
       dates={snapshot.dates}
       dayIndex={dayIndex}
+      provenance={provenance}
       renderTitle={(title) =>
         isDesktop ? (
           <h2 ref={inspectorHeadingRef} tabIndex={-1} className="text-lg font-semibold tracking-tight outline-none focus-visible:ring-2 focus-visible:ring-ring">{title}</h2>
@@ -250,13 +310,26 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
           },
         }}
       >
-        <div className="flex flex-1 flex-col gap-6 px-4 py-4 md:px-6 md:py-5 lg:min-h-[calc(100svh-3.5rem)]">
+        <div className="flex flex-1 flex-col gap-4 px-4 py-4 md:px-6 md:py-5 lg:min-h-[calc(100svh-3.5rem)] lg:gap-6">
           <header data-atlas-header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="min-w-0">
               <p className="font-condensed text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Network intelligence</p>
               <h1 className="text-[26px] leading-tight font-semibold tracking-tight md:text-[28px]">Network Atlas</h1>
               <p className="text-sm text-muted-foreground">Where each site runs short, by product and local day, across the simulated network.</p>
-              {horizonLabel && <p className="mt-1 text-xs text-foreground md:hidden">{horizonLabel}</p>}
+              {snapshot && (
+                // Says which source is showing; on narrow layouts it shares the line with the horizon.
+                <p data-overview-source={snapshot.source.kind} className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-foreground">
+                  {horizonLabel && <span className="md:hidden">{horizonLabel} ·</span>}
+                  {live ? (
+                    <>
+                      <ProvenancePill>{LIVE_LABEL}</ProvenancePill>
+                      <span className="text-muted-foreground">Presenter data, observed {formatInstant(live.observedAt, snapshot.timezone)}</span>
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">Static fixture</span>
+                  )}
+                </p>
+              )}
             </div>
             <div className="grid gap-2 sm:flex sm:items-end">
               <div className="grid gap-1">
@@ -289,6 +362,19 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
               Design-state preview: <strong>{preview}</strong>. Open /overview without <code>?state=</code> for the static fixture.
             </p>
           )}
+          {fallback?.kind === "visitor" && (
+            <div data-live-notice className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground">
+              <span><strong className="font-semibold">Sign in for live data.</strong> You are viewing the static design fixture.{" "}
+                <Link className={NOTICE_LINK} href="/optimization">Sign in through the optimization workspace</Link></span>
+            </div>
+          )}
+          {fallback?.kind === "unavailable" && (
+            <div role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-pp-danger bg-card px-3 py-1 text-xs leading-tight text-foreground">
+              <span className="min-w-0 flex-1"><strong className="font-semibold">Live data unavailable</strong> ({fallback.code}). Showing the static design fixture.</span>
+              <Button variant="outline" size="sm" onClick={retry}>Retry</Button>
+            </div>
+          )}
+          {live?.notice && <LiveNoticeBanner notice={live.notice} timeZone={snapshot?.timezone ?? "UTC"} />}
           {load.status === "error" && (
             <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-pp-danger bg-card px-3 py-2 text-sm text-foreground">
               <StatusGlyph status="shortfall" />
@@ -396,7 +482,12 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
                     <div className="grid gap-1.5 border-t border-border pt-4">
                       <h3 className="text-xs font-medium text-muted-foreground">Next deficits from {dayLabel}, earliest first</h3>
                       {deficits.length === 0 ? (
-                        <p>No projected deficits from {dayLabel} through {formatDay(snapshot.dates[snapshot.dates.length - 1])}.</p>
+                        // Not evaluated is never reported as "no deficit".
+                        <p>
+                          {counts.not_evaluated === beneficiaryCount
+                            ? "No statuses to list: every pantry is Not evaluated."
+                            : `No projected deficits from ${dayLabel} through ${formatDay(snapshot.dates[snapshot.dates.length - 1])}${counts.not_evaluated > 0 ? " among evaluated pantries" : ""}.`}
+                        </p>
                       ) : (
                         <ul aria-label="Projected deficits" className="grid gap-1.5">
                           {deficits.map(({ row, next }, index) => (
@@ -434,7 +525,7 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
                     </dl>
                   </div>
                 )}
-                {inspectorBelow && <ScrollCue className="-bottom-4 -mx-4 -mb-4 mt-2" />}
+                {inspectorBelow && <ScrollCue className="-mx-4" />}
               </aside>
             )}
           </section>
@@ -453,19 +544,34 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
               >
                 <SheetDescription className="sr-only">Stock, first deficit and outlook for the selected site.</SheetDescription>
                 {inspectorBody}
-                {sheetBelow && <ScrollCue className="-bottom-4 -mx-4 -mt-4" />}
+                {sheetBelow && <ScrollCue className="-mx-4 -mt-4" />}
               </SheetContent>
             </Sheet>
           )}
 
           <footer className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <span className="font-medium text-foreground">{snapshot?.provenance.label ?? STATIC_FIXTURE_LABEL}</span>
-            {snapshot && <span>Fixture {snapshot.provenance.fixtureId}; sites and products from {snapshot.provenance.sourceDataset}</span>}
+            {snapshot && live && (
+              <>
+                <span>Observed {formatInstant(live.observedAt, snapshot.timezone)}</span>
+                {live.forecastRunId && <span>Forecast run {live.forecastRunId.slice(0, 8)}, recorded {formatInstant(live.forecastRecordedAt, snapshot.timezone)}</span>}
+                {live.providers.length > 0 && <span>Provider: {live.providers.join(", ")}</span>}
+              </>
+            )}
+            {snapshot && !live && <span>Fixture {snapshot.provenance.fixtureId}; sites and products from {snapshot.provenance.sourceDataset}</span>}
             {snapshot && <span>Local dates {formatRange(snapshot.dates)} ({snapshot.timezone})</span>}
+            {live && live.warnings.length > 0 && (
+              <div className="basis-full">
+                <span className="font-medium text-foreground">API warnings</span>
+                <ul className="mt-0.5 list-disc pl-4">
+                  {live.warnings.map((warning) => <li key={warning}>{warning}</li>)}
+                </ul>
+              </div>
+            )}
             <span>
               Method comparisons on frozen simulated scenarios run in the{" "}
               <Link className="text-foreground underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-ring" href="/optimization">optimization workspace</Link>;
-              this map shows a static fixture, not a saved plan. Method: EGP-PI-inspired allocation, after{" "}
+              this map shows {live ? "live presenter data (demand and physical eligible stock only)" : "a static fixture"}, not a saved plan. Method: EGP-PI-inspired allocation, after{" "}
               <a className="text-foreground underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-ring" href={DOI_URL}>Rampazo et al., published Sep 11, 2026</a>.
             </span>
           </footer>

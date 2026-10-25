@@ -9,9 +9,10 @@ import type { Site } from "./types";
  * site falls back to its default position: hubs at the centre, beneficiaries evenly on a ring in
  * fixture order (starting top-left, clockwise). Sites are never dropped and no geography is inferred.
  *
- * Example: { siteId: "riverbend", x: 0.5, y: 0.12 }
+ * Entries match a site by id first, then by exact site name.
+ * Example: { siteId: "riverbend", x: 0.5, y: 0.12 } or { siteName: "Riverbend Pantry", x: 0.5, y: 0.12 }
  */
-export type AtlasLayoutEntry = { siteId: string; x: number; y: number };
+export type AtlasLayoutEntry = { siteId?: string; siteName?: string; x: number; y: number };
 
 export const ATLAS_LAYOUT: readonly AtlasLayoutEntry[] = [];
 
@@ -47,12 +48,15 @@ export function defaultPositions(sites: readonly Site[]): Map<string, ResolvedPo
 
 export function resolveAtlasLayout(sites: readonly Site[], entries: readonly AtlasLayoutEntry[] = ATLAS_LAYOUT): Map<string, ResolvedPosition> {
   const positions = defaultPositions(sites);
-  const known = new Set(sites.map((site) => site.id));
+  const byId = new Map(sites.map((site) => [site.id, site]));
+  const byName = new Map(sites.map((site) => [site.name, site]));
   const seen = new Set<string>();
   for (const entry of entries) {
-    if (!entry || !known.has(entry.siteId) || seen.has(entry.siteId)) continue;
-    seen.add(entry.siteId);
-    if (isUnit(entry.x) && isUnit(entry.y)) positions.set(entry.siteId, { x: entry.x, y: entry.y, source: "configured" });
+    if (!entry) continue;
+    const site = (entry.siteId !== undefined ? byId.get(entry.siteId) : undefined) ?? (entry.siteName !== undefined ? byName.get(entry.siteName) : undefined);
+    if (!site || seen.has(site.id)) continue;
+    seen.add(site.id);
+    if (isUnit(entry.x) && isUnit(entry.y)) positions.set(site.id, { x: entry.x, y: entry.y, source: "configured" });
   }
   return positions;
 }
