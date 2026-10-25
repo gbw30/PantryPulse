@@ -27,10 +27,10 @@ from app.services.optimization.canonical import operational_hash  # noqa: E402
 from scripts.load_forecast_demo import seed_history  # noqa: E402
 
 
-def seed_demo(conn):
+def seed_demo(conn, spec_path=None):
     now = conn.scalar(sa.text("SELECT clock_timestamp()"))
     today = now.astimezone(ZoneInfo("America/New_York")).date()
-    demo = seed_history(conn, first_planning_date=today)
+    demo = seed_history(conn, first_planning_date=today, spec_path=spec_path)
     org, source = UUID(demo["organization_id"]), UUID(demo["request"]["source_id"])
     with Session(bind=conn, join_transaction_mode="create_savepoint") as session:
         sites = list(
@@ -185,6 +185,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--schema", required=True)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument(
+        "--spec",
+        type=Path,
+        default=None,
+        help="Fixture spec (default: data/demo/forecasting-v1.json; see forecasting-v1-extended.json)",
+    )
     args = parser.parse_args()
     if not re.fullmatch(r"ppor_demo_[a-z0-9_]{1,40}", args.schema):
         parser.error("Use a NEW dedicated ppor_demo_* schema")
@@ -204,7 +210,7 @@ def main():
             config.attributes.update(connection=conn, schema=args.schema)
             command.upgrade(config, "head")
             conn.execute(sa.text(f'SET LOCAL search_path TO "{args.schema}"'))
-            result = seed_demo(conn)
+            result = seed_demo(conn, spec_path=args.spec)
             args.output.write_text(json.dumps(result, indent=2), encoding="utf-8")
         print(f"Created isolated simulated demo in {args.schema}")
     finally:
