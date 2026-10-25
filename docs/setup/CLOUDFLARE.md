@@ -1,6 +1,6 @@
 # Cloudflare temporary tunnel for the laptop API
 
-Use this for direct API reachability checks from another computer, or for a future integrated Vercel frontend after the V5 same-origin proxy and authorization are implemented. The current [simulated Vercel preview](VERCEL.md) does not need a tunnel. The tunnel publishes the API, not the frontend or PostgreSQL.
+Use this for API reachability checks or a separately authorized connected frontend using main's implemented same-origin proxy and presenter controls. The current [simulated Vercel preview](VERCEL.md) does not need a tunnel. The tunnel publishes the API, not the frontend or PostgreSQL.
 
 ## Install on the host's Windows computer
 
@@ -23,7 +23,6 @@ Open a new PowerShell terminal, then run `cloudflared --version`. If PATH has no
 From the repository root, follow [the laptop demo setup](LOCAL-DEMO.md) to prepare the private Neon connection, then:
 
 ```powershell
-docker compose -f compose.demo.yaml up -d --build --wait api
 Invoke-RestMethod 'http://127.0.0.1:8000/api/v1/health'
 ```
 
@@ -47,9 +46,9 @@ The local and public responses should match. Verify both on the current host. Th
 
 ## Connect teammates or a future integrated Vercel frontend
 
-Give teammates the public API base address ending in `/api/v1` for direct health/docs checks. They do not need the Neon password for those checks. Do not set `NEXT_PUBLIC_API_BASE_URL` on the current Vercel preview. A future connected frontend needs the selected thin same-origin Next.js proxy with a server-side API origin, plus FastAPI authorization and a reviewed API/database mapping.
+For the connected frontend, configure server-only `PANTRYPULSE_API_ORIGIN` to the actual HTTPS tunnel, matching `PP_TRUSTED_PROXY_TOKEN` in both servers, backend allowed origins and secure cookies. The proxy/auth code exists on main; validate it against the actual ingress Host/protocol. Teammates need frontend/presenter access, not Neon credentials. Do not set `NEXT_PUBLIC_API_BASE_URL` on the old static preview.
 
-Frontend integration is not implemented yet. A public health response does not establish browser integration. Use only the synthetic demo environment and verify presenter controls before exposing mutation/reset routes.
+Main's `/optimization` integration is implemented, but a public health response still does not qualify a particular browser/proxy/database/worker deployment. Use only the synthetic demo environment and verify presenter controls before exposing mutation/reset routes.
 
 ## Stop, restart and troubleshoot
 

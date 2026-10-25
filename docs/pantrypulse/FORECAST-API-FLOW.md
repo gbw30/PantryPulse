@@ -1,9 +1,9 @@
 # Forecast API: implemented flow and verification (PP-45 / #29)
 
-This is the bounded baseline implementation on VP, based on V5 §§4–7/12–13 and
+This is the bounded baseline implementation merged through PR #75, based on V5 §§4–7/12–13 and
 the accepted operational contract. It supersedes older **implementation-status**
 statements saying health is the only route. It does not close all V5 acceptance,
-qualify Chronos, implement CSV import, merge or_pipeline, or complete #67/#68.
+qualify Chronos or implement CSV import. Subsequent PR #76 connected the OR scenarios/comparison workflow; see [current status](CURRENT-STATUS.md) and [connected integration](../optimization/CONNECTED-INTEGRATION.md).
 Historical Google Docs are references; this is not a claim that every tab was
 freshly fetched. User authorization: build the forecasting API end to end and
 document/check the flow; GitHub #29 now includes VaishnaviPhadtare.
@@ -111,8 +111,7 @@ fails 503. Inventory changes are absent from forecast identity.
 `read_committed_forecast` is the internal planning read adapter: require committed
 job/attempt success and planning readiness, revalidate frozen input/output, return
 original precision. Existing `freeze_handoff` applies the scenario's chosen estimate
-and ceilings each day once. Binding this adapter to or_pipeline still needs its
-cross-branch convergence; this change does not claim an integrated allocation API.
+and ceilings each day once. The connected OR forecast adapter now consumes this committed output for frozen scenarios and durable comparisons; the original baseline evidence below retains its earlier scope.
 
 ## HTTP surface and access
 
@@ -138,7 +137,7 @@ The Next route allowlists these paths, checks same origin on mutations, forwards
 only presenter/CSRF cookies and command headers, adds its server-only proxy secret,
 and preserves backend cookies/status/Location/request ID. No browser secret uses
 `NEXT_PUBLIC_`. Authentication follows the OR branch's provisional cookie/config
-conventions; merging its migrations still requires #67 reconciliation.
+conventions; PR #76 subsequently integrated planning migrations and the comparison contract.
 The proxy compares Origin with the request Host and protocol, preserving the
 browser authority despite NextRequest's loopback normalization. It ignores
 client-supplied X-Forwarded-Host; deployment ingress must preserve external Host

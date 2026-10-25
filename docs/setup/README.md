@@ -1,6 +1,6 @@
 # External service documentation
 
-> **Current authority:** [Project specification V5](../pantrypulse/SPEC-V5.md). Use these guides for scoped procedures. V5 controls product contracts and current branch status. Backend/model hosting remains paused; the user authorized only the frontend-only Vercel prototype preview. The selected future browser integration is a thin same-origin Next.js proxy.
+> **Current authority:** [Project specification V5](../pantrypulse/SPEC-V5.md). Use these guides for scoped procedures. V5 controls product contracts and current branch status. On October 25, 2026, the user resumed local backend/Chronos setup and preparation of Fly compute configuration while preserving running tasks; see [local compute setup](LOCAL-COMPUTE.md). Paid resources/public deployment and full product release qualification remain separate gates. Main includes the baseline forecast API/presenter controls and a thin same-origin Next.js proxy; configure and qualify them on the actual deployment target.
 
 Start with the [Windows installation and remote connection quickstart](WINDOWS-QUICKSTART.md) for dependency installation, hosting the local API and connecting through Cloudflare from another computer.
 
@@ -11,6 +11,7 @@ Use the separate [external services installation guide](../../EXTERNAL-SERVICES.
 Supplementary references:
 
 - [Personal-computer demo](LOCAL-DEMO.md)
+- [Bounded local backend and compute setup](LOCAL-COMPUTE.md)
 - [Cloudflare tunnel installation and operation](CLOUDFLARE.md)
 - [Step-by-step local Chronos model guide](../../CHRONOS-LOCAL.md)
 - [GitHub](GITHUB.md)

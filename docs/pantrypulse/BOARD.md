@@ -2,7 +2,7 @@
 
 # PantryPulse delivery board
 
-Update after each integration. [Project specification V5](SPEC-V5.md) records the current implementation/branch state and acceptance. PP-01–23 retain the historical planning board and require reconciliation; PP-24–29 were merged through PR #7. PR #51 integrated the offline forecasting core and design lab; live domain API/database acceptance remains open. PP-31–36 (worker/job queue foundation, [ADR 0005](../architecture/0005-worker-job-queue.md)) are delivered by PR #52; they use test handlers only. No completed application is claimed.
+Current source includes the baseline API/presenter flow (PR #75), connected OR comparisons/UI and executable Linux/browser CI (PR #76), plus the bounded compute setup reviewed in PR #77. See [CURRENT-STATUS.md](CURRENT-STATUS.md), [SPEC-V5](SPEC-V5.md) and [PR #77 review](PR-77-REVIEW.md). The planning/task rows below retain their recorded historical status and do not override subsequent integrated evidence.
 
 | ID | Outcome | Owner | Depends on | Exit evidence | Status |
 |---|---|---|---|---|---|
@@ -47,6 +47,8 @@ P1 reservations/completion are separate tickets only after all P0 rows are accep
 
 Review-fix integration: PR #51 integrated the PR #49 baseline core and PR #50 design lab with V5 corrections. See tasks/PP-30-pr-review-fixes.md for the bounded task and verification evidence.
 
-## Current integration task
+## Current integration tasks
 
 [PP-46](tasks/PP-46.md) implements the approved connected simulated OR flow. Measured evidence and outstanding gates are tracked in [FINALIZATION](../optimization/FINALIZATION.md); historical TODO rows do not override this bounded scope.
+
+PR #77 reconciles local/Fly compute configuration and current documentation, with a 725-second local stop grace and preserved existing runtimes. Fly account/platform/deployment qualification remains separate.

@@ -40,7 +40,7 @@ No commit or push is performed by this guide.
 
 ## Checks and deployment connections
 
-The existing .github/workflows/pantrypulse-ci.yml.template is a template, not an active workflow. Renaming it is not sufficient: it references older Node/lockfile paths and future domain tests. Adapt it to the current root npm workspace, chosen Python environment and implemented checks before enabling it.
+Active `.github/workflows/pantrypulse-ci.yml` runs on PRs and main pushes. It verifies Linux/PostgreSQL backend tests, rejects skipped evidence, checks web types/lint/unit/contracts/build and runs the connected browser journey. The `.template` file is historical. Inspect the actual check results for the exact PR/merge commit; an ignored Vercel build is not application validation.
 
 Current local commands:
 
@@ -51,7 +51,7 @@ npm run test:config
 npm run test:e2e
 ```
 
-Configure branch protections/required checks when the checks are active. Hosting integrations may deploy automatically on pushes to their configured branches; verify that branch/environment mapping before connecting them.
+Choose branch protections/required checks against the active workflow and inspect actual run outcomes. Hosting integrations may deploy automatically on pushes to their configured branches; verify that branch/environment mapping before connecting them.
 
 ## Completion checklist
 

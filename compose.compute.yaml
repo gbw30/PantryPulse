@@ -1,0 +1,77 @@
+# Opt-in overlay: docker compose -f compose.yaml -f compose.compute.yaml ...
+# The API/database retain their existing project, ports and data volume.
+# Never run a standalone model command alongside an active domain job.
+services:
+  postgres:
+    cpus: 1
+    mem_limit: 1g
+    memswap_limit: 1g
+    restart: unless-stopped
+  api:
+    image: pantrypulse-compute:local
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.compute
+    env_file:
+      - path: ./apps/api/.env.compute
+        required: false
+    cpus: 1
+    mem_limit: 1g
+    memswap_limit: 1g
+    restart: unless-stopped
+    command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')"]
+  worker:
+    profiles: ["compute"]
+    image: pantrypulse-compute:local
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.compute
+    init: true
+    cpus: 6
+    mem_limit: 8g
+    memswap_limit: 8g
+    pids_limit: 256
+    restart: unless-stopped
+    stop_signal: SIGTERM
+    stop_grace_period: 725s
+    env_file:
+      - path: ./apps/api/.env.compute
+        required: false
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://pantrypulse:local_dev_only@postgres:5432/pantrypulse_dev
+      HF_HOME: /cache/huggingface
+      CHRONOS_PIN_FILE: /cache/model-pin.json
+      CHRONOS_OUTPUT_DIR: /cache/outputs
+    volumes:
+      - model-cache:/cache
+    command: ["python", "-m", "app.workers.supervisor", "--registry", "production"]
+  chronos:
+    profiles: ["model-tools"]
+    image: pantrypulse-compute:local
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.compute
+    init: true
+    stdin_open: true
+    tty: true
+    cpus: 6
+    mem_limit: 8g
+    memswap_limit: 8g
+    pids_limit: 256
+    environment:
+      HF_HOME: /cache/huggingface
+      CHRONOS_PIN_FILE: /cache/model-pin.json
+      CHRONOS_OUTPUT_DIR: /output
+    volumes:
+      - model-cache:/cache
+      - ./artifacts/chronos:/output
+    entrypoint: ["python", "scripts/chronos_local.py"]
+    command: ["status"]
+volumes:
+  model-cache:
+    name: pantrypulse-chronos-model-cache
