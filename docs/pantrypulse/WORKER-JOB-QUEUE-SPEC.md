@@ -1,7 +1,9 @@
 # PantryPulse — Worker and Job Queue Build Specification
 
-**Version:** 0.1 · **Date:** October 24, 2026, America/New_York  
-**Parent authority:** [Project specification V5](SPEC-V5.md), especially sections 12–13, V5-A07/A12/A13 and OPEN-29–36.  
+**Version:** 0.1 · **Date:** October 24, 2026, America/New_York
+
+**Parent authority:** [Project specification V5](SPEC-V5.md), especially sections 12–13, V5-A07/A12/A13 and OPEN-29–36.
+
 **Inspected baseline:** main at `ca5909b`; only process health and bounded helpers are implemented. No worker, durable queue, job migrations or public job endpoints exist at this baseline.
 
 **Purpose:** self-contained build context for the worker/queue foundation. Preserve V5's accepted requirements, supply concrete technical proposals, define interfaces and failure behavior, and identify the gates before public/domain integration.
