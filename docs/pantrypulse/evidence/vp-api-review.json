@@ -6,18 +6,19 @@
   "approved_decision": "Converge VP planning on main; retain contracts/storage/verifier/120-300-second budgets",
   "hash_format": "SHA256 of file bytes with CRLF normalized to LF",
   "source_sha256": {
-    "apps/api/app/main.py": "e15893b7483d28b75669b063d1b2d07c78a3cac71790aaeffe7a75e1870b6c79",
+    "apps/api/app/main.py": "3d1d5af47e91dc27bbcd466846b2eeb252d59f1c31cf51851eaa49f374c1aab9",
     "apps/api/app/models/http_commands.py": "5801efe9a485ceee3a8452ccd8e093bbbe204318235f2a61a40b1d5a27568f0c",
     "apps/api/app/models/optimization.py": "c4efe02ef0bd0cbc8e2db86dd433a026a79307decf99c523ccea2d3fa439ebb6",
     "apps/api/app/models/or_records.py": "0ca0856296ab46560d15c8f028bed23b38f913923b2d89905c9d3a4a84609178",
+    "apps/api/app/repositories/import_feedback.py": "b063c2a45c17e0e545e956f4a8de8f4aee5790f457102c32b5916e7d9d09e60a",
     "apps/api/app/repositories/inventory.py": "c7b5db07a6729df6c2c529657dd170d21360e10ba3b07ee958e91bf7e0bbc829",
-    "apps/api/app/repositories/operations_api.py": "2c5b45f32f714ab0ce27a07c300044ac9e7d50f298f272eb5a93887fac717b4f",
+    "apps/api/app/repositories/operations_api.py": "4664fca6d2dd773910e9c77a5ef1698d313951522a0e2401e2b7d98c053f676c",
     "apps/api/app/repositories/plans.py": "352e4dedf4db1d5b9d1313932838691c571edb3a632e31401b78f659eb4e1e40",
     "apps/api/app/repositories/stock_adjustments.py": "102e60a66a9445cfa7b5629061fefcd0f11b1d398645abae9b9ddc4ae9192376",
     "apps/api/app/routers/dashboard.py": "ca930fc702c15c856fe2f4746a5c8595dcdf745613fac4c6e17dd42b56b76efb",
     "apps/api/app/routers/forecasts.py": "751411de505c2cd893af2f240658546093baf2b69f41c393353eabf8a16b50c0",
     "apps/api/app/routers/inventory.py": "c6d05e9836a36e3ef56ad952d642bf71d6cf7fe08bd72fa2b571cd733e90ed2f",
-    "apps/api/app/routers/operations.py": "c3881e95f3b0281316e059cec401b26ba1d543694ba40c85558aec23047c379a",
+    "apps/api/app/routers/operations.py": "783e987027808db1bb21cb65ba72ed086117ce44ade63182db13dc7964a9221d",
     "apps/api/app/routers/planning.py": "59217056c2a9383fcffff838ccf751008478b8b376f3c29c1573a0a7e80207c4",
     "apps/api/app/schemas/inventory_api.py": "77b4dfc144a5508895d698b9a4bb4e4c469fe97e5bd10ee24d0b80caf1e1b2be",
     "apps/api/app/schemas/operations_api.py": "1aac83d2fb7ffeafdd92aa2cff65cde357c502423c7d1a89ed4c9911356e16ef",
@@ -40,7 +41,7 @@
     "apps/api/tests/integration/test_forecast_api_postgres.py": "7707e48a3982d791c9e0be1d9b06b5954f22b0ae796139dcc6798b78aaaa6d59",
     "apps/api/tests/integration/test_inventory_api_postgres.py": "bba38a34d0d94223e7ad7ac933230e287d4b6c2d8bdc3046c166105b694f21c0",
     "apps/api/tests/integration/test_operational_postgres.py": "51c60879392d89cb4902b5673cc475d54aa22db30fd9ec5e394bfad2f1881627",
-    "apps/api/tests/integration/test_operations_api_postgres.py": "ae8ba371736bb8fc1a0b78924b3556a4a981c021b8e61ee4a2c5ed60b7c33e01",
+    "apps/api/tests/integration/test_operations_api_postgres.py": "20de8be8be272c5081e155a6fe22216505a7a5029d27934043e823c4b2d8bed1",
     "apps/api/tests/integration/test_planning_api_postgres.py": "c0eb7ef1851fe4c91672887e8b0118bc69e09231f59faa7e722ed542d938596c",
     "apps/api/tests/integration/test_stock_adjustment_api_postgres.py": "f5431e3851f060ef02120947d17556d8eac7e83509e2f37491f2d901e097eb3b",
     "apps/api/tests/test_allocation_integration.py": "2caab02171c3e2744a22127d2d56133cfad9bd5692e2098a6b7a188b65d104aa",
@@ -60,16 +61,21 @@
     "packages/contracts/src/schema.d.ts": "4889b1ade84ef1c919def99aaa9988a5cb0411873994a1763d6fe86227e81216"
   },
   "backend": {
-    "passed": 1206,
+    "passed": 1207,
     "skipped": 0,
-    "seconds": 266.95,
+    "seconds": 289.78,
     "platform": "Linux Python 3.12.13, OR-Tools 9.15.6755, isolated PostgreSQL 16"
   },
   "browser": {
     "passed": 11,
     "skipped": 0,
     "frontend": "Next production build",
-    "transport": "genuine browser -> same-origin proxy -> API -> PostgreSQL -> Linux worker"
+    "transport": "genuine browser -> same-origin proxy -> API -> PostgreSQL -> Linux worker",
+    "import_feedback_followup": {
+      "passed": 1,
+      "skipped": 0,
+      "transcript": "vp-import-browser.txt"
+    }
   },
   "other_gates": [
     "18 configuration tests",

@@ -46,3 +46,7 @@ supported; no general stock/import management screen is introduced here. Forecas
 provenance, OPTIMAL/FEASIBLE, bounds/gaps, partial failures and stale/historical labels
 remain honest. Outstanding confirmed supply without declared expiry is explicitly
 unsupported by the connected allocation adapter.
+
+Atomic imports return accepted/rejected counts. Row validation or transaction
+errors provide zero-based record indices and field/error codes, without echoing
+submitted values. Historical idempotency replays preserve their saved result shape.

@@ -20,6 +20,8 @@ source identities, retained changes, findings and remaining limitations in the
 review report. Prepare a reviewable integration branch/PR; final merge requires
 the appropriate authorization and passing final evidence.
 
-Local exit gates completed: 1206 backend tests with no skips; 11 production-browser
+Local exit gates completed: 1207 backend tests with no skips; 11 production-browser
 tests; 18 configuration and six proxy tests; static/build/contract checks and
 retained benchmark replay. See the integration report and source manifest.
+
+Prepared PR: [#78](https://github.com/gbw30/PantryPulse/pull/78); final published-head CI is the merge gate.

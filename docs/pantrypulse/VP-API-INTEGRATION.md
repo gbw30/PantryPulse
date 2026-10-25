@@ -78,6 +78,18 @@ supplier planning, Chronos application registration and deployment remain separa
    freeze. The workspace now completes the catalog refresh before reporting ready,
    blocks freezing during forecast preparation, and fences older catalog responses.
 
+6. **P2: import errors lacked row feedback/counts required by SPEC-V5.** Atomic
+   batches now report accepted/rejected counts and zero-based row/field error
+   locations. A failing real-database regression demonstrated the missing feedback;
+   corrected tests also verify rollback and that submitted values are omitted.
+
+Import commits remain atomic. Successful new import results contain atomic=true,
+accepted_count and rejected_count as decimal strings. Rejected parsed batches
+report zero accepted rows, the rejected batch size, and bounded errors containing
+row_index, field and code. CSV record indices exclude the header. No raw submitted
+values or database error text are returned. Old immutable command replays keep
+exactly their historical result shape.
+
 ## Verification
 
 [Source manifest](evidence/vp-api-review.json) records the final changed source hashes,
@@ -85,7 +97,7 @@ base/VP identities, approved architecture and exact gate scope. Local verificati
 
 | Gate | Result |
 |---|---|
-| Complete backend, real Linux containment and isolated PostgreSQL | **1206 passed, zero skipped**, 266.95 seconds; [JUnit](evidence/vp-api-backend.xml) |
+| Complete backend, real Linux containment and isolated PostgreSQL | **1207 passed, zero skipped**, 289.78 seconds; [JUnit](evidence/vp-api-backend.xml) |
 | Full genuine browser/proxy/API/PostgreSQL/worker journey on production build | **11 passed, zero skipped**; [transcript](evidence/vp-api-browser.txt) |
 | Configuration / proxy unit tests | **18 / 6 passed** |
 | Types / ESLint / Ruff / production build / contract drift | PASS |
@@ -96,7 +108,10 @@ passed on the rebuilt application. Historical-fixture retries use an immutable
 idempotency key. A rerun during API restart was discarded as unavailable evidence.
 No failed/skipped attempt is presented as passing.
 
- Tests include real Linux processes and isolated
+Tests include real Linux processes and isolated
 PostgreSQL; skipped tests do not count as application evidence. The browser gate
 runs the production UI and genuine browser/proxy/API/database/worker path, including
 new operational writes, CSV transport, a single plan and simulation review.
+
+Prepared integration PR: [#78](https://github.com/gbw30/PantryPulse/pull/78).
+Final import-feedback changes also passed the [affected browser rerun](evidence/vp-import-browser.txt); final PR CI checks bind the published head.

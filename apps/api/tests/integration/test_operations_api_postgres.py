@@ -315,3 +315,53 @@ def test_same_tenant_in_isolated_schemas_does_not_share_http_write_locks(api):
         other.dispose()
         with runtime.engine.begin() as conn:
             conn.execute(sa.schema.DropSchema(schema, cascade=True))
+
+
+def test_atomic_import_reports_row_fields_and_counts_without_leaking_input(api):
+    client, headers, runtime, catalog = inputs(api)
+    row = dict(
+        source_record_key=uuid4().hex,
+        site_id=catalog["sites"][0]["id"],
+        product_id=catalog["products"][0]["id"],
+        day="2001-01-01",
+        expected_revision=None,
+        requested="3",
+        fulfilled=None,
+        unmet=None,
+    )
+    body = dict(
+        source_id=catalog["data_sources"][0]["id"],
+        rows=[
+            row,
+            row
+            | {
+                "source_record_key": "private-row-marker",
+                "day": "2001-01-02",
+                "requested": "1",
+                "fulfilled": "2",
+            },
+        ],
+    )
+    with runtime.engine.connect() as conn:
+        before = conn.scalar(sa.select(sa.func.count()).select_from(m.DemandRevision))
+    response = post(client, headers, "/api/v1/imports/demand", body)
+    assert response.status_code == 422, response.text
+    details = response.json()["error"]["details"]
+    assert (
+        details["atomic"] is True
+        and details["accepted_count"] == "0"
+        and details["rejected_count"] == "2"
+    )
+    assert details["errors"][0]["row_index"] == 1
+    assert "private-row-marker" not in response.text
+    with runtime.engine.connect() as conn:
+        assert conn.scalar(sa.select(sa.func.count()).select_from(m.DemandRevision)) == before
+    malformed = post(
+        client,
+        headers,
+        "/api/v1/imports/demand",
+        body | {"rows": [row | {"requested": "private-bad-value"}]},
+    )
+    assert malformed.status_code == 422
+    assert malformed.json()["error"]["details"]["errors"][0]["field"] == "requested"
+    assert "private-bad-value" not in malformed.text

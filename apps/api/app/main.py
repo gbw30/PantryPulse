@@ -12,6 +12,7 @@ from starlette.exceptions import HTTPException
 from starlette.responses import JSONResponse
 
 from app.repositories.forecast_history import HistoryRejected
+from app.repositories.import_feedback import validation_feedback
 from app.repositories.inventory import InventoryError
 from app.repositories.jobs import IdempotencyConflict, JobNotFound, JobStateConflict, QueueError
 from app.routers.dashboard import router as dashboard_router
@@ -35,13 +36,13 @@ def health() -> HealthResponse:
     return HealthResponse(status="ok", scope="process")
 
 
-def error_response(code, status, request_id):
+def error_response(code, status, request_id, details=None):
     return JSONResponse(
         {
             "error": {
                 "code": code,
                 "message": code.replace("_", " ").lower(),
-                "details": {},
+                "details": details or {},
             },
             "request_id": str(request_id),
         },
@@ -117,8 +118,13 @@ def create_app(runtime=None):
     @application.exception_handler(RequestValidationError)
     async def invalid(request: Request, error):
         malformed = any(item["type"] == "json_invalid" for item in error.errors())
+        details = None
+        if request.url.path in {"/api/v1/imports/demand", "/api/v1/imports/donation-coverage"}:
+            rows = error.body.get("rows", ()) if isinstance(error.body, dict) else ()
+            total = len(rows) if isinstance(rows, list) else 0
+            details = validation_feedback(error.errors(), total)
         return error_response(
-            "INVALID_REQUEST", 400 if malformed else 422, request.state.request_id
+            "INVALID_REQUEST", 400 if malformed else 422, request.state.request_id, details
         )
 
     async def domain_error(request: Request, error):
@@ -132,7 +138,9 @@ def create_app(runtime=None):
             status = 413 if error.code == "INPUT_TOO_LARGE" else 422
         else:
             status = 503
-        return error_response(error.code, status, request.state.request_id)
+        return error_response(
+            error.code, status, request.state.request_id, getattr(error, "details", None)
+        )
 
     for error_type in (
         AccessError,
