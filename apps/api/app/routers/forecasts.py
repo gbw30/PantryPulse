@@ -152,7 +152,11 @@ def retry(
     rt=RUNTIME,
     scope=PRESENTER,
 ):
-    if rt.queue.get_job(scope, job_id).handler_contract != "forecast.v1":
+    if rt.queue.get_job(scope, job_id).handler_contract not in {
+        "forecast.v1",
+        "or-allocation-v1",
+        "or-comparison-v1",
+    }:
         raise JobNotFound()
     accepted = rt.queue.retry(scope, job_id, idempotency_key)
     status_url = f"/api/v1/jobs/{job_id}"
@@ -163,7 +167,11 @@ def retry(
         state=accepted.state,
         replayed=accepted.replayed,
         status_url=status_url,
-        result_url=f"/api/v1/forecasts/{job_id}",
+        result_url=(
+            f"/api/v1/forecasts/{job_id}"
+            if rt.queue.get_job(scope, job_id).handler_contract == "forecast.v1"
+            else f"/api/v1/allocation-jobs/{job_id}/results"
+        ),
     )
 
 
@@ -176,7 +184,11 @@ def cancel(
     rt=RUNTIME,
     scope=PRESENTER,
 ):
-    if rt.queue.get_job(scope, job_id).handler_contract != "forecast.v1":
+    if rt.queue.get_job(scope, job_id).handler_contract not in {
+        "forecast.v1",
+        "or-allocation-v1",
+        "or-comparison-v1",
+    }:
         raise JobNotFound()
     outcome = rt.queue.cancel(scope, job_id, idempotency_key)
     return ForecastCancelled(
@@ -191,7 +203,7 @@ def cancel(
 @router.get("/jobs/{job_id}", response_model=ForecastJob, tags=["forecasts"])
 def job_status(job_id: UUID, rt=RUNTIME, scope=PRESENTER):
     job = rt.queue.get_job(scope, job_id)
-    if job.handler_contract != "forecast.v1":
+    if job.handler_contract not in {"forecast.v1", "or-allocation-v1", "or-comparison-v1"}:
         raise JobNotFound()
     return ForecastJob(
         job_id=job.job_id,

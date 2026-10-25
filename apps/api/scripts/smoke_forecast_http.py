@@ -16,9 +16,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--env-file", type=Path, required=True)
     parser.add_argument("--access-file", type=Path, required=True)
+    parser.add_argument("--read-only", action="store_true", help="Check new read APIs without submitting jobs")
     args = parser.parse_args()
     access = json.loads(args.access_file.read_text(encoding="utf-8-sig"))
-    manifest = json.loads(Path(access["request_file"]).read_text(encoding="utf-8-sig"))
+    manifest = None if args.read_only else json.loads(Path(access["request_file"]).read_text(encoding="utf-8-sig"))
     with socket.socket() as probe:
         probe.bind(("127.0.0.1", 0))
         port = probe.getsockname()[1]
@@ -52,6 +53,18 @@ def main():
                 raise RuntimeError(f"CATALOG_HTTP_{catalog.status_code}")
             data = catalog.json()
             assert len(data["sites"]) == 7 and len(data["products"]) == 2
+            if args.read_only:
+                results = {}
+                for path in ("operational-catalog", "dashboard/summary", "supplies",
+                             "allocation-methodology", "scenarios"):
+                    response = client.get(f"/api/v1/{path}")
+                    if response.status_code != 200:
+                        raise RuntimeError(f"READ_{path}_HTTP_{response.status_code}")
+                    results[path] = response.status_code
+                assert client.post("/api/v1/presenter/logout", headers=headers).status_code == 200
+                print(json.dumps({"transport": "REAL_LOOPBACK_HTTP", "login": 200,
+                                  "reads": results, "logout": 200}))
+                return 0
             submitted = client.post("/api/v1/forecasts", json=manifest["request"], headers=(
                 headers | {"Idempotency-Key": "configured-http-smoke-v1"}))
             if submitted.status_code == 503:

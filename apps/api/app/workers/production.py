@@ -2,5 +2,6 @@
 
 from app.services.jobs.registry import Registry
 from app.workers.forecasting import REGISTRATION
+from app.workers.or_handler import registrations
 
-REGISTRY = Registry([REGISTRATION])
+REGISTRY = Registry([REGISTRATION, *registrations()])

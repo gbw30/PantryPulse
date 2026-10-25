@@ -105,12 +105,14 @@ def api(forecast_storage, monkeypatch):
         yield client, headers, runtime, demo
 
 
-def advertise(queue):
+def advertise(queue, contracts=None):
     own = queue.acquire_ownership(
         supervisor_id=uuid4(),
         host_identity="TEST_ADMISSION_ONLY",
         effective_limits=supervisor_advertisement(
-            PRODUCTION_PROFILE, handler_contracts=["forecast.v1"], process_containment=True
+            PRODUCTION_PROFILE,
+            handler_contracts=contracts or ["forecast.v1"],
+            process_containment=True,
         ),
     )
     assert own is not None

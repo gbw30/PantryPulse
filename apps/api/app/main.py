@@ -12,8 +12,15 @@ from starlette.exceptions import HTTPException
 from starlette.responses import JSONResponse
 
 from app.repositories.forecast_history import HistoryRejected
+from app.repositories.inventory import InventoryError
 from app.repositories.jobs import IdempotencyConflict, JobNotFound, JobStateConflict, QueueError
+from app.repositories.or_repository import ORStorageError
+from app.routers.dashboard import router as dashboard_router
 from app.routers.forecasts import router
+from app.routers.inventory import router as inventory_router
+from app.routers.operations import router as operations_router
+from app.routers.planning import router as planning_router
+from app.services.inventory.stock import StockError
 from app.services.jobs.registry import InputRejected
 from app.services.presenter_access import AccessError, LoginLimiter
 
@@ -110,8 +117,10 @@ def create_app(runtime=None):
         return error_response("INVALID_REQUEST", 422, request.state.request_id)
 
     async def domain_error(request: Request, error):
-        if isinstance(error, (AccessError, HistoryRejected)):
+        if isinstance(error, (AccessError, HistoryRejected, InventoryError, StockError)):
             status = error.status
+        elif isinstance(error, ORStorageError):
+            status = 404 if error.code == "NOT_FOUND" else 409
         elif isinstance(error, JobNotFound):
             status = 404
         elif isinstance(error, (IdempotencyConflict, JobStateConflict)):
@@ -122,7 +131,15 @@ def create_app(runtime=None):
             status = 503
         return error_response(error.code, status, request.state.request_id)
 
-    for error_type in (AccessError, HistoryRejected, QueueError, InputRejected):
+    for error_type in (
+        AccessError,
+        HistoryRejected,
+        InventoryError,
+        StockError,
+        QueueError,
+        InputRejected,
+        ORStorageError,
+    ):
         application.add_exception_handler(error_type, domain_error)
 
     @application.exception_handler(SQLAlchemyError)
@@ -142,6 +159,10 @@ def create_app(runtime=None):
         return error_response("INTERNAL_ERROR", 500, request.state.request_id)
 
     application.include_router(router)
+    application.include_router(inventory_router)
+    application.include_router(operations_router)
+    application.include_router(planning_router)
+    application.include_router(dashboard_router)
     application.add_api_route(
         "/api/v1/health", health, response_model=HealthResponse, tags=["health"]
     )

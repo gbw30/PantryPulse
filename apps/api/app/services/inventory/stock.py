@@ -198,6 +198,9 @@ def execute_stock(session, actor, request):
                                 ConfirmSupply)):
         raise TypeError("unsupported stock request")
     with session.begin_nested():
+        session.execute(sa.text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))"), {
+            "key": f"vp-operational:{actor.organization_id}",
+        })
         session.execute(sa.text(
             "SELECT pg_advisory_xact_lock(hashtextextended(current_schema() || :key, 0))"
         ), {"key": f":stock:{actor.organization_id}:{request.idempotency_key}"})

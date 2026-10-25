@@ -603,6 +603,9 @@ class QueueRepository:
                     True,
                 )
             self._expire_overdue(conn, now)
+            admit = getattr(registration.publisher, "admit", None)
+            if admit is not None:
+                admit(conn, scope, stored["input"])
             if deduplicate:
                 # The lane lock serializes lookup+admission with publication. Failed,
                 # stopping and incomplete results never qualify. Reuse is available
@@ -736,6 +739,10 @@ class QueueRepository:
             job, attempt = self._locked_scoped_job(conn, scope, job_id)
             if not can_retry(AttemptState(attempt["state"])):
                 raise JobStateConflict(f"cannot retry a {attempt['state']} job")
+            publisher = self.registry.get(job["handler_contract"]).publisher
+            admit = getattr(publisher, "admit", None)
+            if admit is not None:
+                admit(conn, scope, job["input_package"]["input"])
             outcome = self._admission(conn, ctl, now, job["handler_contract"])
             if outcome is not AdmissionOutcome.ACCEPT:
                 rejection = outcome

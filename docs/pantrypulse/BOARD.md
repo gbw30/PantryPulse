@@ -41,6 +41,15 @@ Update after each integration. [Project specification V5](SPEC-V5.md) records th
 | PP-36 | WQ-06 PostgreSQL + supervisor + test-job vertical slice | Lead | PP-32–35 | Linux slice with real supervisor SIGKILL (WQ-T10–T15, T21, T22) | PR #52 foundation; reviewed and regression-tested (see PP-31 packet) |
 | [PP-45](tasks/PP-45.md) | Persisted baseline forecast API (#29) | VaishnaviPhadtare | Operational history + shared worker foundation | 817 unit / 44 PostgreSQL checks; generated contracts / proxy / real pooled-Neon HTTP smoke | Local VP implementation; Linux live-worker smoke, independent review and OR convergence remain open |
 
+| [PP-46](tasks/PP-46.md) | Authenticated current inventory snapshot API | VaishnaviPhadtare / lead | Operational schema + presenter access | 824 non-integration tests passed (11 Linux skips); 5 isolated PostgreSQL/HTTP tests; 2 proxy tests; Ruff, web types/lint and contract drift passed | Implemented locally on VP; independent release review and UI data binding remain open |
+
+| [PP-47](tasks/PP-47.md) | Audited existing-lot adjustment HTTP API | VaishnaviPhadtare / lead | Stock service + PP-46 + presenter access | 848 non-integration tests passed (11 Linux skips); 14 PostgreSQL/HTTP tests (9 adjustment + 5 snapshot); 3 proxy tests; Ruff, web types/lint and contract drift passed | Implemented locally on VP; receipt creation/posting API, UI binding and independent release review remain open |
+
+| [PP-49](tasks/PP-49.md) | Remaining operational and planning APIs | VaishnaviPhadtare / lead | PP-45–48 | 856 backend checks, native solving, isolated PostgreSQL checks, 21 migration checks, two final planning checks and real HTTP read smoke; see task packet | Implemented locally on VP, uncommitted/unpushed; supervised Linux worker, UI binding and independent release acceptance remain open |
+
+PP-49 supersedes earlier remaining-work notes about receipt APIs and OR convergence
+in PP-45/47/48; their original evidence remains historical.
+
 P1 reservations/completion are separate tickets only after all P0 rows are accepted. No worker may claim a shared foundational file without a lead assignment.
 
 Review-fix integration: PR #51 integrated the PR #49 baseline core and PR #50 design lab with V5 corrections. See tasks/PP-30-pr-review-fixes.md for the bounded task and verification evidence.
