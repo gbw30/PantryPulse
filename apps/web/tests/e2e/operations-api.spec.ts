@@ -66,12 +66,14 @@ test("operational history, audited stock and canonical plan review through the b
     return response.status;
   }, { sourceId: catalog.body.data_sources[0].id, siteId: site.id, productId: product.id, recordKey: `vp-e2e-csv-v1-${site.id}-${product.id}` });
   expect(csv).toBe(201);
+  // The Scenario Lab replaced the /optimization workspace (PP-55): generate, then freeze, there.
+  await page.goto("/scenarios");
   await page.getByRole("button", { name: "Generate forecast", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("SUCCEEDED", { timeout: 90_000 });
-  await page.getByLabel("Transfer mode (required)").selectOption("HUB_ONLY");
-  await page.getByRole("button", { name: "Freeze scenario", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Compare frozen scenario", exact: true })).toBeEnabled();
-  const scenarioId = await page.getByLabel("Read a saved scenario").inputValue();
+  await expect(page.locator("[data-job-state]")).toHaveAttribute("data-job-state", "SUCCEEDED", { timeout: 90_000 });
+  await page.getByRole("radio", { name: /Hub to pantry only/ }).check();
+  await page.getByRole("button", { name: "Create frozen scenario", exact: true }).click();
+  await expect(page.getByText(/Frozen scenario [0-9a-f]{8}/).first()).toBeVisible({ timeout: 30_000 });
+  const scenarioId = (await api(page, "planning-catalog")).body.scenarios[0].id as string;
   const scenario = await api(page, `scenarios/${scenarioId}`);
   const accepted = await api(page, `scenarios/${scenarioId}/plans`, {
     expected_scenario_hash: scenario.body.payload.operational_hash, method: "CLASSICAL_GP", search_seconds: 1,

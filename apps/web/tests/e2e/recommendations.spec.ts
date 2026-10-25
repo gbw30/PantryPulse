@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { expectNoSeriousA11yViolations } from "./a11y";
 import {
-  BASE, COMPARISON, COMPARISON_B, HASH_CLASSICAL, PLAN_CLASSICAL, SCENARIO_B, allocationResults, comparison, fail, method, mockApi, ok, scenario,
+  COMPARISON, COMPARISON_B, HASH_CLASSICAL, PLAN_CLASSICAL, SCENARIO_B, allocationResults, comparison, fail, method, mockApi, ok, scenario,
 } from "./recommendations-fixtures";
 
 // PP-54 Recommendations (Collage 2 Action Plan). Every test mocks the browser's /api/v1 requests;
@@ -301,14 +301,17 @@ test("review 401 ends the presenter session", async ({ page }) => {
 });
 
 // Connected: reviews a real saved plan through the proxy. Needs a backend with a saved comparison
-// and presenter credentials in PP_PRESENTER_USERNAME / PP_PRESENTER_PASSWORD.
+// and presenter credentials in PP_E2E_USERNAME / PP_E2E_PASSWORD (set by the CI demo seeder).
 test("connected: presenter reviews a real saved plan", async ({ page }) => {
   test.skip(process.env.PP_RUN_CONNECTED !== "1", "Set PP_RUN_CONNECTED=1 with a running backend");
-  const login = await page.request.post(`${BASE}/api/v1/presenter/login`, {
-    data: { username: process.env.PP_PRESENTER_USERNAME ?? "", password: process.env.PP_PRESENTER_PASSWORD ?? "" },
-    headers: { "Idempotency-Key": crypto.randomUUID() },
-  });
-  expect(login.ok()).toBe(true);
+  test.setTimeout(180_000);
+  // Sign in through the shared sidebar dialog so the proxy sees a same-origin browser request.
+  await page.goto("/overview");
+  await page.getByRole("button", { name: "Presenter sign in" }).click();
+  const dialog = page.getByRole("dialog", { name: "Presenter sign in" });
+  await dialog.getByLabel("Username").fill(process.env.PP_E2E_USERNAME ?? "presenter");
+  await dialog.getByLabel("Password").fill(process.env.PP_E2E_PASSWORD ?? "pantry-local-demo");
+  await Promise.all([page.waitForEvent("load"), dialog.getByRole("button", { name: "Sign in", exact: true }).click()]);
   await open(page);
   await expect(reviewButton(page)).toBeVisible({ timeout: 30_000 });
   await reviewButton(page).click();
