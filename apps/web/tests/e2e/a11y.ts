@@ -19,7 +19,13 @@ export async function expectNoSeriousA11yViolations(page: Page, testInfo: TestIn
   // Exclusions and disabled rules must name the rule and reason inline; none are used yet.
   // Let running CSS transitions finish first: a button fading from disabled to enabled is briefly
   // semi-transparent, and scanning mid-fade reports a contrast failure that no settled state has.
-  await page.evaluate(() => Promise.all(document.getAnimations().map((animation) => animation.finished.catch(() => undefined))));
+  // Infinite animations (the design lab) never finish, so only finite ones are awaited, capped at 1s.
+  await page.evaluate(() => Promise.race([
+    Promise.all(document.getAnimations()
+      .filter((animation) => Number.isFinite(animation.effect?.getComputedTiming().endTime ?? Infinity))
+      .map((animation) => animation.finished.catch(() => undefined))),
+    new Promise((resolve) => setTimeout(resolve, 1000)),
+  ]));
   const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
   const blocking = results.violations.filter((v) => BLOCKING.has(v.impact ?? ""));
   const advisory = results.violations.filter((v) => !BLOCKING.has(v.impact ?? ""));
