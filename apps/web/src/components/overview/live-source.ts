@@ -1,4 +1,5 @@
 import { OverviewApiError, overviewApi, parseQuantity, type DashboardSummary, type ForecastCatalog, type InventorySnapshot, type ShortageProjection } from "@/lib/overview-api";
+import { isStaleCode, noticeReason } from "./notice-copy";
 import { staticFixtureSnapshot } from "./static-fixture";
 import type { ExpiringLots, LiveNotice, OverviewDataSource, OverviewSnapshot, Product, Quantity, Site, SiteProductProjection } from "./types";
 
@@ -6,8 +7,6 @@ import type { ExpiringLots, LiveNotice, OverviewDataSource, OverviewSnapshot, Pr
 // onto the OverviewSnapshot view model. Quantities stay per product; nothing is summed across products.
 
 export const LIVE_LABEL = "Live · simulated network";
-
-const STALE_CODES = new Set(["FORECAST_HORIZON_ALREADY_STARTED", "FORECAST_UNIT_OR_CALENDAR_CHANGED", "FORECAST_NETWORK_SCOPE_CHANGED"]);
 
 /** Simple display plural; the base unit itself is kept in accessible text. */
 export function pluralize(unit: string) {
@@ -35,10 +34,16 @@ function expiringWithin(row: InventorySnapshot | undefined, horizonEnd: string):
   return { count, units };
 }
 
-function noticeReason(notice: LiveNotice) {
-  if (notice.kind === "not_ready") return "No planning-ready forecast yet.";
-  if (notice.kind === "stale") return `Stale forecast (${notice.code}); run a new forecast.`;
-  return `${notice.code}: ${notice.message}`;
+/**
+ * 409s from the shortage read that still leave live inventory worth showing. Anything else (another
+ * 409, a 404, 5xx) returns null and the screen falls back to the labelled fixture with Retry.
+ */
+export function noticeFor409(code: string, recordedAt: string): LiveNotice | null {
+  if (isStaleCode(code)) return { kind: "stale", code, recordedAt };
+  if (code === "FORECAST_NOT_PLANNING_READY") return { kind: "not_ready", code, recordedAt };
+  if (code === "FORECAST_INTEGRITY_FAILED") return { kind: "integrity", code, recordedAt };
+  if (code === "DEMAND_FORECAST_UNAVAILABLE") return { kind: "demand_unavailable", code, recordedAt };
+  return null;
 }
 
 export function buildLiveSnapshot(summary: DashboardSummary, catalog: ForecastCatalog, shortage: ShortageProjection | null, notice: LiveNotice | null): OverviewSnapshot {
@@ -91,7 +96,7 @@ export function buildLiveSnapshot(summary: DashboardSummary, catalog: ForecastCa
               eligibleStockNow,
               eligibleStockAtHorizonEnd: parseQuantity(days[days.length - 1]?.eligible_end),
               expiringLots,
-              provider: series.actual_provider,
+              method: { provider: series.actual_provider, fallbackUsed: series.fallback_used, fallbackReason: series.fallback_reason },
             };
           }
         }
@@ -108,7 +113,9 @@ export function buildLiveSnapshot(summary: DashboardSummary, catalog: ForecastCa
       observedAt: shortage?.observed_at ?? summary.observed_at,
       forecastRunId: forecast?.id ?? null,
       forecastRecordedAt: forecast?.recorded_at ?? null,
-      providers: shortage ? [...new Set(shortage.series.map((series) => series.actual_provider))] : [],
+      methods: shortage
+        ? shortage.series.map((series) => ({ siteId: series.site_id, productId: series.product_id, provider: series.actual_provider, fallbackUsed: series.fallback_used, fallbackReason: series.fallback_reason }))
+        : [],
       warnings: shortage?.warnings ?? [],
       notice,
     },
@@ -132,10 +139,8 @@ export const liveOverviewSource: OverviewDataSource = {
       const shortage = await overviewApi.shortages(latest.id, signal);
       return buildLiveSnapshot(summary, catalog, shortage, null);
     } catch (error) {
-      if (error instanceof OverviewApiError && error.status === 409) {
-        if (error.code === "DEMAND_FORECAST_UNAVAILABLE") return buildLiveSnapshot(summary, catalog, null, { kind: "demand_unavailable", code: error.code, message: error.message });
-        if (STALE_CODES.has(error.code) || error.code.startsWith("FORECAST_")) return buildLiveSnapshot(summary, catalog, null, { kind: "stale", code: error.code, recordedAt: latest.recorded_at });
-      }
+      const notice = error instanceof OverviewApiError && error.status === 409 ? noticeFor409(error.code, latest.recorded_at) : null;
+      if (notice) return buildLiveSnapshot(summary, catalog, null, notice);
       throw error;
     }
   },

@@ -91,6 +91,19 @@ export function nextDeficitLine(projection: SiteProductProjection | undefined, p
   return `${formatDay(dates[next.dayIndex])} · ${formatUnits(next.unmetUnits, product)} unmet`;
 }
 
-export function markerAccessibleName(site: Site, status: MarkerStatus, detail: string) {
-  return `${site.name}, ${roleLabel(site)}, ${STATUS_LABEL[status]}, ${detail}`;
+export function markerAccessibleName(site: Site, status: MarkerStatus, detail: string, extra?: string) {
+  return `${site.name}, ${roleLabel(site)}, ${STATUS_LABEL[status]}, ${detail}${extra ? `, ${extra}` : ""}`;
+}
+
+/** An API instant shown in the network's local time zone, e.g. "Nov 2, 9:30 AM EST". */
+export function formatInstant(iso: string | null | undefined, timeZone: string) {
+  if (!iso) return "unknown time";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  const options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" };
+  try {
+    return date.toLocaleString("en-US", { ...options, timeZone });
+  } catch {
+    return date.toLocaleString("en-US", { ...options, timeZone: "UTC" });
+  }
 }

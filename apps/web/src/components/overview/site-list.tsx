@@ -2,7 +2,8 @@ import { cn } from "@/lib/utils";
 import { StatusGlyph } from "./status-glyph";
 import type { MarkerStatus, Site } from "./types";
 
-export type SiteListItem = { site: Site; status: MarkerStatus; statusLine: string; detail: string };
+/** `fallbackNote` (live only) is added to the chip's accessible name, e.g. "fallback forecast: Moving-average baseline". */
+export type SiteListItem = { site: Site; status: MarkerStatus; statusLine: string; detail: string; fallbackNote?: string };
 
 /** Accessible list of every site, independent of the map. Selecting a row selects the marker. */
 export function SiteList({ items, selectedId, query, onSelect }: { items: SiteListItem[]; selectedId: string | null; query: string; onSelect: (siteId: string, invoker: HTMLElement) => void }) {
@@ -14,7 +15,7 @@ export function SiteList({ items, selectedId, query, onSelect }: { items: SiteLi
         <p className="text-sm text-muted-foreground" role="status">No sites match “{query}”.</p>
       ) : (
         <ul aria-label="All sites" className="flex min-w-0 gap-2 overflow-x-auto pb-1 max-md:pr-10 max-md:[mask-image:linear-gradient(to_right,black_calc(100%-3rem),transparent)] md:flex-wrap md:overflow-visible md:pb-0">
-          {items.map(({ site, status, statusLine, detail }) => {
+          {items.map(({ site, status, statusLine, detail, fallbackNote }) => {
             const selected = site.id === selectedId;
             return (
               <li key={site.id} className="shrink-0">
@@ -31,7 +32,7 @@ export function SiteList({ items, selectedId, query, onSelect }: { items: SiteLi
                   <StatusGlyph status={status} />
                   <span className="leading-tight">
                     <span className="block font-condensed text-[13px] font-semibold text-foreground">{site.shortName}</span>
-                    <span className="block text-[11px] text-foreground">{statusLine}</span>
+                    <span className="block text-[11px] text-foreground">{statusLine}{fallbackNote && <span className="sr-only">, {fallbackNote}</span>}</span>
                   </span>
                 </button>
                 <span id={`site-detail-${site.id}`} hidden>{site.name}: {detail}</span>

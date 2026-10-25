@@ -9,12 +9,23 @@ type Props = {
   projection: BeneficiaryProjection | HubProjection;
   product: Product;
   dates: string[];
-  /** Caption source, e.g. "Static fixture outlook" or "Live projection (SEASONAL_NAIVE)". */
+  /** Caption source, e.g. "Static fixture outlook" or "Live projection, Seasonal-naive baseline". */
   sourceNote: string;
 };
 
 function sum(values: number[]) {
   return values.reduce((total, value) => total + value, 0);
+}
+
+// Projected served (live) and donation outlook (fixture) share the teal hue, so they differ by
+// pattern: served is dotted with square point markers, donations are dashed without markers.
+const SERVED_DASH = "2 3";
+const DONATION_DASH = "6 4";
+
+function ServedMarker(props: { cx?: number; cy?: number; index?: number }) {
+  const { cx, cy, index } = props;
+  if (typeof cx !== "number" || typeof cy !== "number") return <g key={`served-${index}`} />;
+  return <rect key={`served-${index}`} data-chart-marker="served" x={cx - 3} y={cy - 3} width={6} height={6} fill="var(--card)" stroke="var(--pp-teal)" strokeWidth={1.5} />;
 }
 
 /**
@@ -48,8 +59,7 @@ export function DemandOutlookChart({ projection, product, dates, sourceNote }: P
     const first = projection.unmetUnits.findIndex((value) => value > 0);
     const unmetText = unmet > 0 ? ` Projected unmet: ${formatUnits(unmet, product)}, first on ${formatDay(dates[first])}.` : " No projected unmet units.";
     const secondText = donations ? `donation outlook ${formatUnits(sum(donations), product)}` : `projected served ${formatUnits(sum(projection.servedUnits), product)}`;
-    const donationText = donations ? "" : " Donation outlook: Not in this projection.";
-    return `Demand outlook totals ${formatUnits(sum(projection.demandOutlook), product)} and ${secondText} over ${range}.${donationText}${unmetText}`;
+    return `Demand outlook totals ${formatUnits(sum(projection.demandOutlook), product)} and ${secondText} over ${range}.${unmetText}`;
   })();
 
   return (
@@ -58,23 +68,47 @@ export function DemandOutlookChart({ projection, product, dates, sourceNote }: P
         {!isHub && (
           <span className="inline-flex items-center gap-1.5"><svg width="18" height="6" aria-hidden="true"><line x1="0" y1="3" x2="18" y2="3" stroke="var(--pp-forecast)" strokeWidth="2.5" /></svg>Demand outlook</span>
         )}
-        <span className="inline-flex items-center gap-1.5"><svg width="18" height="6" aria-hidden="true"><line x1="0" y1="3" x2="18" y2="3" stroke="var(--pp-teal)" strokeWidth="2.5" strokeDasharray="4 3" /></svg>{second.label}</span>
+        <span className="inline-flex items-center gap-1.5">
+          {servedMode ? (
+            <svg width="18" height="8" aria-hidden="true"><line x1="0" y1="4" x2="18" y2="4" stroke="var(--pp-teal)" strokeWidth="2.5" strokeDasharray={SERVED_DASH} /><rect x="6" y="1" width="6" height="6" fill="var(--card)" stroke="var(--pp-teal)" strokeWidth="1.5" /></svg>
+          ) : (
+            <svg width="18" height="8" aria-hidden="true"><line x1="0" y1="4" x2="18" y2="4" stroke="var(--pp-teal)" strokeWidth="2.5" strokeDasharray={DONATION_DASH} /></svg>
+          )}
+          {second.label}
+        </span>
       </div>
       <figure className="m-0" aria-label={`${product.name} outlook chart, ${product.unitPlural} per day`}>
         <div className="h-40 w-full" aria-hidden="true">
           <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 300, height: 160 }}>
-            <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -12 }} accessibilityLayer={false}>
+            <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }} accessibilityLayer={false}>
               <CartesianGrid vertical={false} stroke="var(--pp-border)" />
               <XAxis dataKey="day" tickLine={false} axisLine={{ stroke: "var(--pp-border)" }} tick={{ fill: "var(--pp-ink-muted)", fontSize: 11 }} interval="preserveStartEnd" minTickGap={8} />
-              <YAxis tickLine={false} axisLine={false} width={44} tick={{ fill: "var(--pp-ink-muted)", fontSize: 11 }} allowDecimals={false} />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                width={52}
+                tick={{ fill: "var(--pp-ink-muted)", fontSize: 11 }}
+                allowDecimals={false}
+                label={{ value: `${product.unitPlural} per day`, angle: -90, position: "insideLeft", offset: 4, style: { fill: "var(--pp-ink-muted)", fontSize: 11, textAnchor: "middle" } }}
+              />
               {!isHub && <Line dataKey="demand" name="Demand outlook" type="linear" stroke="var(--pp-forecast)" strokeWidth={2.5} dot={{ r: 2.5, fill: "var(--pp-forecast)", strokeWidth: 0 }} isAnimationActive={animateLines} animationDuration={600} />}
-              <Line dataKey={second.key} name={second.label} type="linear" stroke="var(--pp-teal)" strokeWidth={2.5} strokeDasharray="5 4" dot={false} isAnimationActive={animateLines} animationDuration={600} />
+              <Line
+                dataKey={second.key}
+                name={second.label}
+                type="linear"
+                stroke="var(--pp-teal)"
+                strokeWidth={2.5}
+                strokeDasharray={servedMode ? SERVED_DASH : DONATION_DASH}
+                dot={servedMode ? ServedMarker : false}
+                isAnimationActive={animateLines}
+                animationDuration={600}
+              />
               <Tooltip formatter={(value) => `${Number(value).toLocaleString("en-US")} ${product.unitPlural}`} contentStyle={{ borderRadius: 8, borderColor: "var(--pp-border)", fontSize: 12 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
         <figcaption className="mt-1 text-[11px] text-muted-foreground">
-          Daily {product.unitPlural}, {range}. {sourceNote}; no interval available.{servedMode ? " Donations and confirmed supply are not in this projection." : ""}
+          Daily {product.unitPlural}, {range}. {sourceNote}; no interval available.{servedMode ? " Donation outlook and confirmed supply: Not in this projection." : ""}
         </figcaption>
       </figure>
       <p className="text-sm">{summary}</p>
@@ -86,7 +120,7 @@ export function DemandOutlookChart({ projection, product, dates, sourceNote }: P
           <table className="w-full table-fixed border-collapse text-left text-xs tabular-nums">
             {/* Short visible headers keep the table inside a 300px inspector; units sit in the caption and each header's accessible name. */}
             <caption className="caption-top pb-1 text-left text-[11px] text-muted-foreground">
-              All values in {product.unitPlural} per day, {range}{servedMode ? ". Donation outlook: not in this projection" : ""}
+              All values in {product.unitPlural} per day, {range}
             </caption>
             <thead>
               <tr className="border-b border-border text-muted-foreground">

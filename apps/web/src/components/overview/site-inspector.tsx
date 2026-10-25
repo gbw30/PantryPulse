@@ -3,10 +3,11 @@ import { motion, useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DemandOutlookChart } from "./demand-outlook-chart";
+import { FallbackNote } from "./forecast-method";
 import { ProvenancePill } from "./provenance-pill";
 import { StatusGlyph } from "./status-glyph";
 import { formatDay, formatUnits, nextDeficitLine, roleLabel, STATUS_LABEL, statusFor } from "./status";
-import type { ExpiringLots, Product, Site, SiteProductProjection } from "./types";
+import type { ExpiringLots, ForecastMethod, Product, Site, SiteProductProjection } from "./types";
 
 type Props = {
   site: Site;
@@ -14,8 +15,8 @@ type Props = {
   projection: SiteProductProjection | undefined;
   dates: string[];
   dayIndex: number;
-  /** Which source the numbers come from, e.g. "Static fixture · simulated" or "Live · simulated network". */
-  provenance: { label: string; detail?: string; chartNote: string };
+  /** Which source the numbers come from (the header pill's label), the forecast method line and chart caption. */
+  provenance: { label: string; tone: "live" | "fixture" | "degraded"; detail?: string; chartNote: string; method?: ForecastMethod };
   /** Renders the heading so the desktop card and the mobile sheet can supply their own element. */
   renderTitle: (title: string) => React.ReactNode;
 };
@@ -115,8 +116,9 @@ export function SiteInspector(props: Props) {
         <p className="text-xs text-foreground">
           {product.name} · {product.unitPlural} <span className="text-muted-foreground">(base unit: {product.unit})</span> · {formatDay(dates[dayIndex])}
         </p>
-        <ProvenancePill className="justify-self-start">{provenance.label}</ProvenancePill>
+        <ProvenancePill className="justify-self-start" tone={provenance.tone}>{provenance.label}</ProvenancePill>
         {provenance.detail && <p className="text-xs text-muted-foreground">{provenance.detail}</p>}
+        {provenance.method?.fallbackUsed && <FallbackNote method={provenance.method} className="mt-1" />}
       </div>
       <Tabs defaultValue="network">
         <TabsList className="w-full">

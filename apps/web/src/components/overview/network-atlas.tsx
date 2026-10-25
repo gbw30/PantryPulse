@@ -15,12 +15,14 @@ import { SchematicMapRenderer, type MapMarker } from "./schematic-map";
 import { SiteInspector } from "./site-inspector";
 import { SiteList } from "./site-list";
 import { StatusGlyph } from "./status-glyph";
+import { FallbackNote, fallbackNameFragment, methodSummary, providerLabel } from "./forecast-method";
+import { LiveNoticeBanner, NOTICE_LINK, NoticeMeta } from "./live-notice";
 import { LIVE_LABEL } from "./live-source";
 import { ProvenancePill } from "./provenance-pill";
 import { overviewSourceFor } from "./sources";
 import { STATIC_FIXTURE_LABEL } from "./static-fixture";
-import { formatDay, formatRange, formatUnits, markerAccessibleName, nextDeficitFrom, nextDeficitLine, roleLabel, STATUS_LABEL, statusDetail, statusFor, statusLine } from "./status";
-import type { BeneficiaryStatus, LiveNotice, MarkerStatus, OverviewSnapshot } from "./types";
+import { formatDay, formatInstant, formatRange, formatUnits, markerAccessibleName, nextDeficitFrom, nextDeficitLine, roleLabel, STATUS_LABEL, statusDetail, statusFor, statusLine } from "./status";
+import type { BeneficiaryStatus, ForecastMethod, MarkerStatus, OverviewSnapshot } from "./types";
 
 type LoadState = { status: "loading" } | { status: "ready"; snapshot: OverviewSnapshot } | { status: "error"; message: string };
 
@@ -38,41 +40,12 @@ function useMediaQuery(query: string, serverValue: boolean) {
 
 const DOI_URL = "https://doi.org/10.1111/itor.70252";
 
-/** An API instant shown in the network's local time zone, e.g. "Nov 2, 9:30 AM EST". */
-function formatInstant(iso: string | null | undefined, timeZone: string) {
-  if (!iso) return "unknown time";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-  const options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" };
-  try {
-    return date.toLocaleString("en-US", { ...options, timeZone });
-  } catch {
-    return date.toLocaleString("en-US", { ...options, timeZone: "UTC" });
-  }
-}
-
-const NOTICE_LINK = "font-medium text-foreground underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-ring";
-
-/** Why live statuses are absent although presenter data loaded; always with a path to fix it. */
-function LiveNoticeBanner({ notice, timeZone }: { notice: LiveNotice; timeZone: string }) {
-  return (
-    <div data-live-notice className="flex items-start gap-2 rounded-lg border border-pp-warning bg-card px-3 py-2 text-sm text-foreground">
-      <StatusGlyph status="not_evaluated" className="mt-0.5" />
-      {notice.kind === "not_ready" && (
-        <span><strong className="font-semibold">No planning-ready forecast yet.</strong> Inventory is live; statuses are Not evaluated.{" "}
-          <Link className={NOTICE_LINK} href="/optimization">Run a forecast in the optimization workspace</Link></span>
-      )}
-      {notice.kind === "stale" && (
-        <span><strong className="font-semibold">Stale: {notice.code}.</strong> The latest forecast (recorded {formatInstant(notice.recordedAt, timeZone)}) no longer matches the network; statuses are Not evaluated and inventory is live.{" "}
-          <Link className={NOTICE_LINK} href="/optimization">Run a new forecast in the optimization workspace</Link></span>
-      )}
-      {notice.kind === "demand_unavailable" && (
-        <span><strong className="font-semibold">{notice.code}:</strong> {notice.message} Statuses are Not evaluated; inventory is live.{" "}
-          <Link className={NOTICE_LINK} href="/optimization">Run a new forecast in the optimization workspace</Link></span>
-      )}
-    </div>
-  );
-}
+// Header pill per source: where the numbers on screen come from.
+const SOURCE_PILL = {
+  visitor: "Static fixture · visitor view",
+  unavailable: "Static fixture · live data unavailable",
+  preview: "Static fixture · design preview",
+} as const;
 
 /** Tracks whether a scroll container has content below its visible area (drives the "More below" cue). */
 function useOverflowBelow(element: HTMLElement | null, contentKey: string) {
@@ -162,7 +135,8 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
       const projection = snapshot.projections[site.id]?.[product.id];
       const status = statusFor(projection, dayIndex);
       const detail = statusDetail(projection, product, snapshot.dates, dayIndex);
-      return { site, projection, status, detail, statusLine: statusLine(status, projection, dayIndex, snapshot.dates) };
+      const method = projection?.kind === "projected" ? projection.method : undefined;
+      return { site, projection, status, detail, method, fallbackNote: fallbackNameFragment(method), statusLine: statusLine(status, projection, dayIndex, snapshot.dates) };
     });
   }, [snapshot, product, dayIndex]);
 
@@ -177,14 +151,20 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
   const horizonLabel = snapshot ? (snapshot.dates.length > 1 ? `Next ${snapshot.dates.length} days · ${formatRange(snapshot.dates)}` : `Inventory · ${formatRange(snapshot.dates)}`) : undefined;
   const live = snapshot?.source.kind === "live" ? snapshot.source : null;
   const fallback = snapshot?.fallback ?? null;
-  const selectedProvider = selected?.projection?.kind === "projected" ? selected.projection.provider : undefined;
+  const sourceLabel = live ? LIVE_LABEL : fallback ? SOURCE_PILL[fallback.kind] : SOURCE_PILL.preview;
+  const sourceTone: "live" | "fixture" | "degraded" = live ? "live" : fallback?.kind === "unavailable" ? "degraded" : "fixture";
+  const selectedMethod = selected?.method;
+  const methodText = selectedMethod ? `${providerLabel(selectedMethod.provider)}${selectedMethod.fallbackUsed ? " (fallback)" : ""}` : null;
   const provenance = live
     ? {
-        label: LIVE_LABEL,
-        detail: `${selectedProvider ? `Provider ${selectedProvider} · ` : ""}observed ${formatInstant(live.observedAt, snapshot?.timezone ?? "UTC")}`,
-        chartNote: `Live projection${selectedProvider ? ` (${selectedProvider})` : ""}`,
+        label: sourceLabel,
+        tone: sourceTone,
+        detail: `${selectedMethod ? `Forecast method: ${providerLabel(selectedMethod.provider)} · ` : ""}observed ${formatInstant(live.observedAt, snapshot?.timezone ?? "UTC")}`,
+        chartNote: `Live projection${methodText ? `, ${methodText}` : ""}`,
+        method: selectedMethod,
       }
-    : { label: "Static fixture · simulated", chartNote: "Static fixture outlook" };
+    : { label: sourceLabel, tone: sourceTone, chartNote: "Static fixture outlook" };
+  const methodLine = live && snapshot ? methodSummary(live.methods, snapshot.sites, snapshot.products) : null;
 
   // Return focus to the control that opened the selection. If it was remounted (e.g. while other
   // routes compile in development), fall back to the site's marker found by its stable id.
@@ -256,7 +236,7 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
   const contentKey = `${selectedId ?? "none"}-${product?.id ?? ""}-${dayIndex}`;
   const inspectorBelow = useOverflowBelow(inspectorPanel, contentKey);
   const sheetBelow = useOverflowBelow(sheetPanel, `${contentKey}-${sheetOpen}`);
-  const markers: MapMarker[] = rows.map(({ site, status, detail, statusLine: line }) => ({ site, status, statusLine: line, accessibleName: markerAccessibleName(site, status, detail) }));
+  const markers: MapMarker[] = rows.map(({ site, status, detail, fallbackNote, statusLine: line }) => ({ site, status, statusLine: line, accessibleName: markerAccessibleName(site, status, detail, fallbackNote) }));
   const deficits = rows
     .map((row) => ({ row, next: nextDeficitFrom(row.projection, dayIndex) }))
     .filter((item): item is { row: (typeof rows)[number]; next: { dayIndex: number; unmetUnits: number } } => item.next !== null)
@@ -310,8 +290,8 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
           },
         }}
       >
-        <div className="flex flex-1 flex-col gap-4 px-4 py-4 md:px-6 md:py-5 lg:min-h-[calc(100svh-3.5rem)] lg:gap-6">
-          <header data-atlas-header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div className="flex flex-1 flex-col gap-3 px-4 pt-3 pb-4 md:gap-4 md:px-6 md:py-5 lg:min-h-[calc(100svh-3.5rem)] lg:gap-6">
+          <header data-atlas-header className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between md:gap-3">
             <div className="min-w-0">
               <p className="font-condensed text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Network intelligence</p>
               <h1 className="text-[26px] leading-tight font-semibold tracking-tight md:text-[28px]">Network Atlas</h1>
@@ -320,14 +300,8 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
                 // Says which source is showing; on narrow layouts it shares the line with the horizon.
                 <p data-overview-source={snapshot.source.kind} className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-foreground">
                   {horizonLabel && <span className="md:hidden">{horizonLabel} ·</span>}
-                  {live ? (
-                    <>
-                      <ProvenancePill>{LIVE_LABEL}</ProvenancePill>
-                      <span className="text-muted-foreground">Presenter data, observed {formatInstant(live.observedAt, snapshot.timezone)}</span>
-                    </>
-                  ) : (
-                    <span className="text-muted-foreground">Static fixture</span>
-                  )}
+                  <ProvenancePill tone={sourceTone}>{sourceLabel}</ProvenancePill>
+                  {live && <span className="text-muted-foreground">Presenter data, observed {formatInstant(live.observedAt, snapshot.timezone)}</span>}
                 </p>
               )}
             </div>
@@ -363,15 +337,19 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
             </p>
           )}
           {fallback?.kind === "visitor" && (
-            <div data-live-notice className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground">
+            <div data-live-notice="visitor" role="status" className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground">
               <span><strong className="font-semibold">Sign in for live data.</strong> You are viewing the static design fixture.{" "}
                 <Link className={NOTICE_LINK} href="/optimization">Sign in through the optimization workspace</Link></span>
             </div>
           )}
           {fallback?.kind === "unavailable" && (
-            <div role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-pp-danger bg-card px-3 py-1 text-xs leading-tight text-foreground">
-              <span className="min-w-0 flex-1"><strong className="font-semibold">Live data unavailable</strong> ({fallback.code}). Showing the static design fixture.</span>
-              <Button variant="outline" size="sm" onClick={retry}>Retry</Button>
+            // A failure, so an alert; plain sentence first and the code as secondary text.
+            <div role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-pp-danger bg-card px-3 py-1.5 text-sm text-foreground md:py-2">
+              <div className="grid min-w-0 flex-1 gap-0.5">
+                <p><strong className="font-semibold">Live data is unavailable right now.</strong> Showing the static design fixture.</p>
+                <NoticeMeta code={fallback.code} />
+              </div>
+              <Button variant="outline" size="sm" className="max-md:h-11 max-md:px-4" onClick={retry}>Retry</Button>
             </div>
           )}
           {live?.notice && <LiveNoticeBanner notice={live.notice} timeZone={snapshot?.timezone ?? "UTC"} />}
@@ -410,7 +388,7 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
 
           {snapshot && <SiteList items={matches} selectedId={selectedId} query={query} onSelect={select} />}
 
-          <section aria-label="Network map" className="relative flex min-h-0 flex-col gap-4 lg:block lg:min-h-[540px] lg:flex-1">
+          <section aria-label="Network map" className="relative flex min-h-0 flex-col gap-3 md:gap-4 lg:block lg:min-h-[540px] lg:flex-1">
             <RiskLegend
               ref={setLegend}
               context={legendContext}
@@ -554,8 +532,10 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
             {snapshot && live && (
               <>
                 <span>Observed {formatInstant(live.observedAt, snapshot.timezone)}</span>
-                {live.forecastRunId && <span>Forecast run {live.forecastRunId.slice(0, 8)}, recorded {formatInstant(live.forecastRecordedAt, snapshot.timezone)}</span>}
-                {live.providers.length > 0 && <span>Provider: {live.providers.join(", ")}</span>}
+                {live.forecastRunId && (
+                  <span className="min-w-0">Forecast run <code className="font-mono text-[11px] break-all text-foreground">{live.forecastRunId}</code>, recorded {formatInstant(live.forecastRecordedAt, snapshot.timezone)}</span>
+                )}
+                {methodLine && <span>{methodLine}</span>}
               </>
             )}
             {snapshot && !live && <span>Fixture {snapshot.provenance.fixtureId}; sites and products from {snapshot.provenance.sourceDataset}</span>}
@@ -581,7 +561,7 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
   );
 }
 
-type Row = { site: OverviewSnapshot["sites"][number]; projection: OverviewSnapshot["projections"][string][string] | undefined; status: MarkerStatus; detail: string };
+type Row = { site: OverviewSnapshot["sites"][number]; projection: OverviewSnapshot["projections"][string][string] | undefined; status: MarkerStatus; detail: string; method?: ForecastMethod };
 
 function PopoverSummary({ row, product, snapshot, dayIndex, onInspect }: { row: Row; product: OverviewSnapshot["products"][number]; snapshot: OverviewSnapshot; dayIndex: number; onInspect: () => void }) {
   const day = formatDay(snapshot.dates[dayIndex]);
@@ -614,6 +594,7 @@ function PopoverSummary({ row, product, snapshot, dayIndex, onInspect }: { row: 
         </span>
       </p>
       <p className="text-xs">{deficitLine}</p>
+      {row.method && (row.method.fallbackUsed ? <FallbackNote method={row.method} /> : <p className="text-xs text-muted-foreground">Forecast method: {providerLabel(row.method.provider)}</p>)}
     </div>
   );
 }
