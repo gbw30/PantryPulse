@@ -72,7 +72,7 @@ function Step({ n, current, status, children }: { n: number; current: number; st
         <span>Step {n} of 4 · {STEP_TITLES[n - 1]}</span>
         <span id={`step-${n}-status`}><StatusBadge status={status} /></span>
       </legend>
-      <div className="grid gap-3">{children}</div>
+      <div className="grid min-w-0 gap-3 [&>*]:min-w-0 [&_[data-slot=select-trigger]]:max-w-full [&_[data-slot=select-value]]:truncate">{children}</div>
     </motion.fieldset>
   );
 }
@@ -102,7 +102,7 @@ export function GuidedScenarioStepper(props: Props) {
   const setMultiplier = (key: string, value: string) => setDraft((d) => ({ ...d, multipliers: { ...d.multipliers, [key]: value } }));
 
   return (
-    <form aria-label="Scenario builder" className="grid gap-5 rounded-lg border border-border bg-card p-4" onSubmit={(e) => e.preventDefault()} data-current-step={current}>
+    <form aria-label="Scenario builder" className="grid min-w-0 gap-5 rounded-lg border border-border bg-card p-4 md:sticky md:top-4 md:max-h-[calc(100svh-2rem)] md:overflow-y-auto md:overscroll-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" tabIndex={0} onSubmit={(e) => e.preventDefault()} data-current-step={current}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-base font-semibold">Scenario builder</h2>
         {dirty && !readOnly && <Badge variant="outline" className="border-pp-warning text-foreground">Draft changes — not computed</Badge>}
