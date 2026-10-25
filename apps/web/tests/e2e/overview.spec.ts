@@ -100,10 +100,21 @@ async function waitForSnapshot(page: Page) {
   await expect(page.locator("[data-marker-role]")).toHaveCount(7, { timeout: 15_000 });
 }
 
+// These specs exercise the static fixture. Pin the presenter API to what an anonymous visitor really
+// gets (401 PRESENTER_REQUIRED, as in CI's connected run) instead of depending on whether a backend
+// happens to be reachable; overview-live.spec.ts covers the live and failure states.
+async function asVisitor(page: Page) {
+  await page.route("**/api/v1/**", (route) => route.fulfill({
+    status: 401,
+    json: { error: { code: "PRESENTER_REQUIRED", message: "presenter required", details: {} }, request_id: "00000000-0000-4000-8000-000000000000" },
+  }));
+}
+
 // Opens the atlas at one viewport with reduced motion; returns the page errors seen so far.
 async function openAtlas(page: Page, width: number, height: number) {
   const pageErrors: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
+  await asVisitor(page);
   await page.setViewportSize({ width, height });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/overview");
@@ -172,7 +183,8 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
       for (const item of await legend.getByRole("listitem").all()) expect((await box(item)).y + (await box(item)).height).toBeLessThanOrEqual(height);
       for (const name of ["Riverbend Pantry", "Oak Terrace Pantry"]) {
         const rect = await box(marker(page, name));
-        expect(rect.y + rect.height, `${name} below the first viewport`).toBeLessThanOrEqual(height);
+        // 16px clearance: font metrics differ across platforms (CI's Linux runner landed 1.4px over).
+        expect(rect.y + rect.height, `${name} below the first viewport`).toBeLessThanOrEqual(height - 16);
       }
       await expect(page.getByText("Scroll sideways for all 7 sites")).toBeVisible();
     }
@@ -385,6 +397,7 @@ for (const key of ["toString", "__proto__", "constructor", "hasOwnProperty"]) {
 test("water product and hub views at 1440x900", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "reduce" });
+  await asVisitor(page);
   await page.goto("/overview");
   await waitForSnapshot(page);
   await chooseProduct(page, /Bottled water/);
@@ -420,6 +433,7 @@ test("water product and hub views at 1440x900", async ({ page }, testInfo) => {
 test("next deficits follow the selected local day (Wed, Oct 28)", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "reduce" });
+  await asVisitor(page);
   await page.goto("/overview");
   await waitForSnapshot(page);
   await page.getByRole("combobox", { name: "Local day" }).click();
@@ -463,6 +477,7 @@ test("next deficits follow the selected local day (Wed, Oct 28)", async ({ page 
 
 test("site search filters the list and selects a match", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
+  await asVisitor(page);
   await page.goto("/overview");
   await waitForSnapshot(page);
   const search = page.getByRole("searchbox", { name: "Search sites or products" });
@@ -479,6 +494,7 @@ test("site search filters the list and selects a match", async ({ page }) => {
 test("product search offers a product and switches units", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "reduce" });
+  await asVisitor(page);
   await page.goto("/overview");
   await waitForSnapshot(page);
   const search = page.getByRole("searchbox", { name: "Search sites or products" });
@@ -508,6 +524,7 @@ test("product search offers a product and switches units", async ({ page }, test
 test("first load animates supply links and markers, then settles", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
+  await asVisitor(page);
   await page.goto("/overview");
   await page.locator("[data-supply-link]").first().waitFor({ state: "attached" });
   const sample = () => page.evaluate(() => ({
@@ -552,4 +569,23 @@ test("adapter failure shows an alert and no fabricated data", async ({ page }) =
   await expect(page.getByRole("alert").filter({ hasText: "Network snapshot unavailable" })).toBeVisible();
   await expect(page.locator("[data-marker-role]")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Retry" })).toBeVisible();
+});
+
+// The unavailable alert is a different height from the visitor notice; both must keep the first
+// two markers in the 390x844 first viewport.
+test("unavailable alert keeps the first two markers in the 390x844 first viewport", async ({ page }) => {
+  await page.route("**/api/v1/**", (route) => route.fulfill({
+    status: 503,
+    json: { error: { code: "PRESENTER_UNAVAILABLE", message: "presenter unavailable", details: {} }, request_id: "00000000-0000-4000-8000-000000000000" },
+  }));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/overview");
+  await expect(page.getByRole("alert").filter({ hasText: "Live data is unavailable" })).toBeVisible();
+  await expect(page.locator("[data-marker-role]")).toHaveCount(7, { timeout: 15_000 });
+  for (const name of ["Riverbend Pantry", "Oak Terrace Pantry"]) {
+    const rect = await page.getByRole("button", { name: new RegExp(`^${name}, `) }).boundingBox();
+    expect(rect).not.toBeNull();
+    expect(rect!.y + rect!.height, `${name} below the first viewport`).toBeLessThanOrEqual(844 - 16);
+  }
 });

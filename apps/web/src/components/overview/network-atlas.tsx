@@ -337,16 +337,20 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
             </p>
           )}
           {fallback?.kind === "visitor" && (
-            <div data-live-notice="visitor" role="status" className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground">
-              <span><strong className="font-semibold">Sign in for live data.</strong> You are viewing the static design fixture.{" "}
-                <Link className={NOTICE_LINK} href="/optimization">Sign in through the optimization workspace</Link></span>
+            // Compact below md: the source pill already says "Static fixture · visitor view", so the long
+            // wording stays available to screen readers without pushing the map below the first viewport.
+            <div data-live-notice="visitor" role="status" className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground md:py-2">
+              <span><strong className="font-semibold">Sign in for live data.</strong><span className="max-md:sr-only"> You are viewing the static design fixture.</span>{" "}
+                <Link className={NOTICE_LINK} href="/optimization">Sign in<span className="max-md:sr-only"> through the optimization workspace</span></Link></span>
             </div>
           )}
           {fallback?.kind === "unavailable" && (
-            // A failure, so an alert; plain sentence first and the code as secondary text.
-            <div role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-pp-danger bg-card px-3 py-1.5 text-sm text-foreground md:py-2">
+            // A failure, so an alert; plain sentence first and the code as secondary text. Retry stays beside
+            // the text (no wrap) and the second sentence is visually hidden below md, where the source pill
+            // already says "live data unavailable", so the map keeps its first-viewport markers.
+            <div role="alert" className="flex items-center gap-x-3 rounded-lg border border-pp-danger bg-card px-3 py-1.5 text-sm text-foreground md:py-2">
               <div className="grid min-w-0 flex-1 gap-0.5">
-                <p><strong className="font-semibold">Live data is unavailable right now.</strong> Showing the static design fixture.</p>
+                <p><strong className="font-semibold">Live data is unavailable right now.</strong><span className="max-md:sr-only"> Showing the static design fixture.</span></p>
                 <NoticeMeta code={fallback.code} />
               </div>
               <Button variant="outline" size="sm" className="max-md:h-11 max-md:px-4" onClick={retry}>Retry</Button>
