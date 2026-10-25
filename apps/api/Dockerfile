@@ -6,6 +6,8 @@ ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-extra forecast
 COPY app ./app
+COPY alembic.ini ./
+COPY migrations ./migrations
 COPY tests ./tests
 COPY scripts ./scripts
 EXPOSE 8000
