@@ -30,13 +30,14 @@
   --lab-map: #e9efe6;
   --lab-fg: #172e2c;
   --lab-soft: #31514b;
-  --lab-muted: #637d75;
+  /* Shared tokens keep light-mode secondary and risk text at WCAG AA contrast. */
+  --lab-muted: var(--muted-foreground);
   --lab-border: #cbd8cd;
   --lab-border-soft: rgba(40, 96, 79, .13);
   --lab-accent: #1b785e;
   --lab-accent-deep: #176b58;
-  --lab-attention: #b56146;
-  --lab-attention-soft: rgba(181, 97, 70, .1);
+  --lab-attention: var(--destructive);
+  --lab-attention-soft: color-mix(in srgb, var(--destructive) 10%, transparent);
   --lab-shadow: rgba(50, 73, 56, .09);
   --lab-forecast: #2f5b95;
 }
