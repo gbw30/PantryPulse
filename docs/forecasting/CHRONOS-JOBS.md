@@ -58,6 +58,13 @@ It identifies the last generated job, actual providers, fallback and incomplete
 planning readiness rather than assuming the selected strategy actually ran.
 Raw model intervals are uncalibrated.
 
+Main's live Overview consumes the same committed forecast records. An incomplete
+result keeps physical inventory visible while marking forecast statuses as not
+evaluated; it cannot supply a planning projection. A complete fallback result
+shows the actual moving-average method and fallback reason. Optional visitor
+access applies only to saved dashboard, shortage and catalog reads; job status,
+forecast submission and mutations still require a presenter session.
+
 The actual child receives only trusted Chronos enable/revision/cache settings in
 addition to existing non-secret process/thread settings. Database URLs and model
 tokens remain outside the child environment. Inference stays univariate CPU

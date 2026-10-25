@@ -16,7 +16,7 @@ test("connected presenter forecast scenario comparison and revision", async ({ p
   await expect(page.getByRole("heading", { name: "1 · Select a forecast" })).toBeVisible();
   await expect(page.getByLabel("Transfer mode (required)")).toHaveValue("");
   await page.getByRole("button", { name: "Generate forecast", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("SUCCEEDED", { timeout: 90_000 });
+  await expect(page.getByRole("region", { name: "Computation progress" }).getByRole("status")).toContainText("SUCCEEDED", { timeout: 90_000 });
   await expect(page.getByLabel("Saved planning-ready forecast")).not.toHaveValue("");
   await page.getByLabel("Transfer mode (required)").selectOption("HUB_ONLY");
   await page.getByRole("button", { name: "Freeze scenario", exact: true }).click();

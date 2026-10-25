@@ -1,7 +1,8 @@
 # Forecasting implementation and qualification decision
 
-October 25, 2026. Workstream #80–#86, branch `feat/forecasting-next`, based on
-main `5add760`. Implementation through the qualification decision is complete
+October 25, 2026. Workstream #80–#86, branch `feat/forecasting-next`, originally based on
+main `5add760` and now integrated with main `3251ca6` (PRs #87–#90).
+Implementation through the qualification decision is complete
 locally; review/publication and deployment are separate. Chronos stays
 **experimental / insufficient evidence**, with no provider-default change.
 
@@ -125,8 +126,22 @@ Linux process-control and isolated PostgreSQL tests. Ruff and whitespace checks
 passed. All **18 configuration tests passed**, after supplying checksum-verified
 portable PowerShell 7.6.6 in `/tmp`; no system installation or test weakening was
 used. Frontend typecheck/lint/generated-contract/proxy-unit/build passed in FC-05.
-Browser E2E was not rerun for this candidate. Recorded verification:
+Browser E2E was not rerun at that original qualification checkpoint. Recorded verification:
 [combined-verification-v1.json](evidence/combined-verification-v1.json).
+
+The subsequent main integration preserves its live Overview, shared shell/themes,
+visitor reads and typed dashboard contracts. The expanded real Chronos job smoke
+also checks Overview's incomplete-result rejection, moving-average fallback
+provenance and presenter-only computation. Integration checks and their precise
+browser scope are recorded separately in
+[main-integration-v1.json](evidence/main-integration-v1.json): **1,322 backend tests
+with zero skips, 40 browser checks, 20 configuration checks**, frontend build,
+typecheck/lint, contract drift and six proxy unit tests all passed. Browser checks
+include actual forecast-to-OR, failure/cancellation/retry and live Overview journeys;
+the added result-display checks cover desktop/mobile readiness, provenance and
+accessibility. This is scoped integration verification, not every browser suite.
+The model experiment
+was not rerun and its one-time final holdout was not reopened.
 
 Keep Chronos opt-in/experimental and preserve existing defaults. Follow-up under
 existing #9/#46/#70 must explicitly qualify a nonnegative-output policy for

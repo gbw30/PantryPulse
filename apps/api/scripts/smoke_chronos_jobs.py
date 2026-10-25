@@ -115,6 +115,7 @@ def main():
             PP_PRESENTER_USERNAME="fc84-smoke",
             PP_PRESENTER_PASSWORD_HASH=f"scrypt$16384$8$1${salt}${digest}",
             PP_PRESENTER_ORGANIZATION_ID=demo["organization_id"],
+            PP_VISITOR_ORGANIZATION_ID=demo["organization_id"],
             PP_ALLOWED_ORIGINS=origin,
             PP_COOKIE_SECURE="false",
         )
@@ -164,6 +165,42 @@ def main():
                 value = status.json()
                 return value if value["state"] not in {"QUEUED", "RUNNING", "STOPPING"} else None
 
+            def overview(result):
+                # Main's read-only Overview must consume the same committed model result,
+                # including incomplete readiness and truthful whole-batch fallback provenance.
+                with httpx.Client(base_url=origin, timeout=30) as visitor:
+                    response = visitor.get("/api/v1/forecast-catalog")
+                    assert response.status_code == 200, response.text
+                    assert response.json()["sources"]
+                    response = visitor.get("/api/v1/dashboard/summary")
+                    assert response.status_code == 200, response.text
+                    latest = response.json()["latest_forecast"]
+                    assert latest["id"] == result["job_id"]
+                    assert latest["planning_ready"] is result["planning_ready"]
+                    response = visitor.get(f"/api/v1/shortages/{result['job_id']}")
+                    if result["planning_ready"]:
+                        assert response.status_code == 200, response.text
+                        series = response.json()["series"]
+                        assert len(series) == 12 and all(len(row["days"]) == 7 for row in series)
+                        assert all(
+                            row["actual_provider"] == "MOVING_AVERAGE"
+                            and row["fallback_used"]
+                            and row["fallback_reason"]
+                            for row in series
+                        )
+                    else:
+                        assert response.status_code == 409, response.text
+                        assert response.json()["error"]["code"] == "FORECAST_NOT_PLANNING_READY"
+                    assert visitor.get(f"/api/v1/jobs/{result['job_id']}").status_code == 401
+                    assert visitor.post("/api/v1/forecasts", json=request).status_code == 401
+                return {
+                    "forecast_run_id": latest["id"],
+                    "planning_ready": latest["planning_ready"],
+                    "shortages_status": response.status_code,
+                    "visitor_reads_verified": True,
+                    "presenter_only_compute_verified": True,
+                }
+
             request = demo["request"] | {
                 "policy": demo["request"]["policy"]
                 | {
@@ -188,6 +225,7 @@ def main():
                 ),
                 "forecast_points": sum(len(r["points"]) for r in partial["forecast"]["series"]),
             }
+            summary["overview_partial"] = overview(partial)
             fallback_request = request | {"policy": request["policy"] | {"allow_fallback": True}}
             fallback = post("forecasts", fallback_request, 202)
             fallback_state = wait_for(lambda: terminal(fallback))
@@ -214,6 +252,7 @@ def main():
                 "fallback_series": 26,
                 "forecast_points": 182,
             }
+            summary["overview_fallback"] = overview(saved)
 
             # Run an actual contained child cancellation, then retry the same frozen pin.
             cancelling = post("forecasts", request | {"force_refresh": True}, 202)

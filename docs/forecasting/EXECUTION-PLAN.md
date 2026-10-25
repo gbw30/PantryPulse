@@ -2,6 +2,8 @@
 
 Updated October 25, 2026. Owner: **@GestebanFalcon**. Inspected baseline:
 `main` at `5add76008faddae08a969514c2e827299bc84d50` (through PR #78).
+The implementation branch subsequently merged main `3251ca6` (through PR #90);
+the original experimental freeze and qualification evidence retain their identities.
 Status: **local implementation and qualification decision complete** on
 `feat/forecasting-next`, pending review/publication. The user
 authorized two coordinated agents through #86. [Protocol v1](QUALIFICATION-PROTOCOL.md)
