@@ -364,7 +364,7 @@ function ScenarioLabScreen() {
         </Alert>
       )}
 
-      <div className="grid gap-4 md:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] min-[1400px]:grid-cols-[minmax(0,18.5rem)_minmax(0,1fr)_minmax(0,19rem)]">
+      <div className="grid gap-4 md:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] min-[1400px]:grid-cols-[minmax(0,24rem)_minmax(0,1fr)_minmax(0,19rem)]">
         {/* R3 wizard + R9 constraints */}
         <div className="min-w-0">
           {loading && session !== "visitor" ? <Skeleton className="h-96 w-full" /> : (
