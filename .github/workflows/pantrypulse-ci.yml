@@ -9,6 +9,56 @@ concurrency:
   group: pantrypulse-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  # Frontend gates and the mocked Playwright suite. No backend: every mocked spec routes /api/v1 itself.
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.16.0'
+          cache: npm
+      - run: npm ci
+      - run: npm run test:config
+      - run: npm run typecheck && npm run lint && npm run test:unit --workspace @pantrypulse/web
+      - run: npm run build
+      - name: Resolve Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/@playwright/test'].version")" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
+      - if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+        working-directory: apps/web
+      - if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+        working-directory: apps/web
+      - name: Mocked browser suite against the production build
+        env:
+          PP_E2E_PRODUCTION: '1'
+          PP_ALLOWED_ORIGINS: http://127.0.0.1:3000
+          PP_COOKIE_SECURE: 'false'
+          PANTRYPULSE_API_ORIGIN: http://127.0.0.1:8000
+          PLAYWRIGHT_JUNIT_OUTPUT_FILE: ../../artifacts/browser-mocked.xml
+        run: |
+          mkdir -p artifacts
+          npm run test:e2e --workspace @pantrypulse/web -- --workers=4 --grep-invert "connected|operations-api\.spec" --reporter=list,junit
+          python3 scripts/quality/require-test-evidence.py artifacts/browser-mocked.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pantrypulse-linux-evidence-web
+          path: |
+            artifacts/*.xml
+            apps/web/test-results/
+          if-no-files-found: error
+
+  # Required check: backend, PostgreSQL, contracts and the connected browser journey.
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -39,17 +89,29 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - run: npm ci
       - run: uv sync --frozen --project apps/api
-      - run: npm run test:config
-      - run: npm run typecheck && npm run lint && npm run test:unit --workspace @pantrypulse/web
       - run: uv run --frozen --directory apps/api ruff check .
       - name: All backend tests including actual Linux processes and PostgreSQL
         run: uv run --frozen --directory apps/api pytest -q --junitxml=../../artifacts/backend.xml
       - name: Reject skipped backend gates
         run: python scripts/quality/require-test-evidence.py artifacts/backend.xml
       - run: apps/api/.venv/bin/python scripts/or/verify_budget_evidence.py docs/optimization/evidence/budget-sweep-v2.json
+      # Needs the API virtualenv (export_openapi.py), so it runs here rather than in the web job.
       - run: npm run contracts:check --workspace @pantrypulse/web
       - run: npm run build
-      - run: npx playwright install --with-deps chromium
+      - name: Resolve Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/@playwright/test'].version")" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
+      - if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+        working-directory: apps/web
+      - if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
         working-directory: apps/web
       - name: Seed and start isolated connected demo
         run: |
@@ -71,12 +133,13 @@ jobs:
           (cd apps/api && .venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000) > artifacts/api.log 2>&1 &
           (cd apps/api && .venv/bin/python -m app.workers.supervisor --registry production --schema ppor_demo_ci) > artifacts/worker.log 2>&1 &
           apps/api/.venv/bin/python scripts/quality/wait-demo.py
-          npm run test:e2e --workspace @pantrypulse/web -- --workers=1 --reporter=list,junit
+          # operations-api.spec.ts holds a PP_RUN_CONNECTED test whose title lacks "connected".
+          npm run test:e2e --workspace @pantrypulse/web -- --workers=1 --grep "connected|operations-api\.spec" --reporter=list,junit
           python scripts/quality/require-test-evidence.py artifacts/browser.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: pantrypulse-linux-evidence
+          name: pantrypulse-linux-evidence-verify
           path: |
             artifacts/*.xml
             artifacts/*.log
