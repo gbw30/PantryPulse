@@ -33,6 +33,7 @@ function NetworkFacts({ site, product, projection, dates, dayIndex }: Omit<Props
   const statusLine = status === "hub" ? "Hub · source (no beneficiary status)" : `${STATUS_LABEL[status]} on ${day}`;
 
   return (
+    <>
     <dl className="grid">
       <Fact label="Status">
         <span className="inline-flex items-center gap-1.5"><StatusGlyph status={status} />{statusLine}</span>
@@ -71,11 +72,12 @@ function NetworkFacts({ site, product, projection, dates, dayIndex }: Omit<Props
           {projection.expiringLots.count === 0 ? "None" : `${projection.expiringLots.count} ${projection.expiringLots.count === 1 ? "lot" : "lots"} · ${formatUnits(projection.expiringLots.units, product)}`}
         </Fact>
       )}
+    </dl>
       <div className="mt-2 flex items-start gap-2 rounded-lg bg-muted px-2.5 py-2 text-xs">
         <Route className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
         <span><span className="font-medium">Routes hidden — no saved plan</span><span className="block text-muted-foreground">Transfers appear only after an allocation plan is saved. {site.role === "HUB" ? "" : "A deficit here has no proposed transfer."}</span></span>
       </div>
-    </dl>
+    </>
   );
 }
 
@@ -86,7 +88,8 @@ export function SiteInspector(props: Props) {
 
   return (
     <div className="grid gap-3">
-      <div className="grid gap-1">
+      {/* Sticky so site, product/unit, day and provenance stay visible while the tab content scrolls. */}
+      <div className="sticky -top-4 z-10 -mx-4 -mt-4 grid gap-1 border-b border-border bg-card px-4 pt-4 pb-3">
         {renderTitle(site.name)}
         <p className="text-xs text-muted-foreground first-letter:uppercase">{roleLabel(site)}</p>
         <p className="text-xs text-foreground">
@@ -111,7 +114,7 @@ export function SiteInspector(props: Props) {
         </TabsContent>
       </Tabs>
       <div className="grid gap-1">
-        <Button disabled aria-describedby={`${site.id}-detail-note`}>Go to Site Details</Button>
+        <Button variant="outline" disabled aria-describedby={`${site.id}-detail-note`}>Go to Site Details</Button>
         <p id={`${site.id}-detail-note`} className="text-center text-xs text-muted-foreground">Site detail not built yet</p>
       </div>
     </div>

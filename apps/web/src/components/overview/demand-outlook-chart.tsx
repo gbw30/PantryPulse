@@ -61,25 +61,26 @@ export function DemandOutlookChart({ projection, product, dates }: Props) {
       </Button>
       <div id={tableId} hidden={!showTable} className="overflow-x-auto rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" role="region" aria-label={`${product.name} daily outlook table`} tabIndex={showTable ? 0 : -1}>
         {showTable && (
-          <table className="w-full border-collapse text-left text-xs tabular-nums">
-            <caption className="sr-only">{product.name} daily outlook, {range}</caption>
+          <table className="w-full table-fixed border-collapse text-left text-xs tabular-nums">
+            {/* Short visible headers keep the table inside a 300px inspector; units sit in the caption and each header's accessible name. */}
+            <caption className="caption-top pb-1 text-left text-[11px] text-muted-foreground">All values in {product.unitPlural} per day, {range}</caption>
             <thead>
               <tr className="border-b border-border text-muted-foreground">
-                <th scope="col" className="py-1 pr-2 font-medium">Date</th>
-                {!isHub && <th scope="col" className="py-1 pr-2 text-right font-medium">Demand outlook ({product.unitPlural})</th>}
-                <th scope="col" className="py-1 pr-2 text-right font-medium">Donation outlook ({product.unitPlural})</th>
-                {!isHub && <th scope="col" className="py-1 pr-2 text-right font-medium">Projected served ({product.unitPlural})</th>}
-                {!isHub && <th scope="col" className="py-1 text-right font-medium">Projected unmet ({product.unitPlural})</th>}
+                <th scope="col" className="w-[22%] py-1 font-medium">Date</th>
+                {!isHub && <th scope="col" className="py-1 text-right font-medium">Demand<span className="sr-only"> outlook ({product.unitPlural})</span></th>}
+                <th scope="col" className="py-1 text-right font-medium">Donation<span className="sr-only"> outlook ({product.unitPlural})</span></th>
+                {!isHub && <th scope="col" className="py-1 text-right font-medium">Served<span className="sr-only">, projected ({product.unitPlural})</span></th>}
+                {!isHub && <th scope="col" className="py-1 text-right font-medium">Unmet<span className="sr-only">, projected ({product.unitPlural})</span></th>}
               </tr>
             </thead>
             <tbody>
               {dates.map((date, index) => (
                 <tr key={date} className="border-b border-border/70">
-                  <th scope="row" className="py-1 pr-2 font-normal whitespace-nowrap">{formatDay(date)}</th>
-                  {!isHub && <td className="py-1 pr-2 text-right">{projection.demandOutlook[index].toLocaleString("en-US")}</td>}
-                  <td className="py-1 pr-2 text-right">{projection.donationOutlook[index].toLocaleString("en-US")}</td>
-                  {!isHub && <td className="py-1 pr-2 text-right">{projection.servedUnits[index].toLocaleString("en-US")}</td>}
-                  {!isHub && <td className="py-1 text-right">{projection.unmetUnits[index].toLocaleString("en-US")}</td>}
+                  <th scope="row" className="py-1 font-normal whitespace-nowrap"><span className="sr-only">{formatDay(date).split(",")[0]}, </span>{formatShortDate(date)}</th>
+                  {!isHub && <td className="py-1 text-right">{projection.demandOutlook[index].toLocaleString("en-US")}</td>}
+                  <td className="py-1 text-right">{projection.donationOutlook[index].toLocaleString("en-US")}</td>
+                  {!isHub && <td className="py-1 text-right">{projection.servedUnits[index].toLocaleString("en-US")}</td>}
+                  {!isHub && <td className={projection.unmetUnits[index] > 0 ? "py-1 text-right font-semibold" : "py-1 text-right"}>{projection.unmetUnits[index].toLocaleString("en-US")}</td>}
                 </tr>
               ))}
             </tbody>

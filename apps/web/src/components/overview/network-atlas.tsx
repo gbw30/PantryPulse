@@ -10,12 +10,12 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/
 import { Skeleton } from "@/components/ui/skeleton";
 import { resolveAtlasLayout } from "./atlas-layout";
 import { RiskLegend } from "./risk-legend";
-import { SchematicMapRenderer, type MapMarker } from "./schematic-map";
+import { SchematicMapRenderer, type MapMarker, type SelectionContext } from "./schematic-map";
 import { SiteInspector } from "./site-inspector";
 import { SiteList } from "./site-list";
 import { StatusGlyph } from "./status-glyph";
 import { overviewSourceFor, STATIC_FIXTURE_LABEL } from "./static-fixture";
-import { firstDeficit, formatDay, formatRange, formatUnits, markerAccessibleName, roleLabel, STATUS_LABEL, statusDetail, statusFor } from "./status";
+import { firstDeficit, formatDay, formatRange, formatUnits, markerAccessibleName, nextDeficitFrom, roleLabel, STATUS_LABEL, statusDetail, statusFor, statusLine } from "./status";
 import type { BeneficiaryStatus, MarkerStatus, OverviewSnapshot } from "./types";
 
 type LoadState = { status: "loading" } | { status: "ready"; snapshot: OverviewSnapshot } | { status: "error"; message: string };
@@ -34,6 +34,18 @@ function useMediaQuery(query: string, serverValue: boolean) {
 
 const DOI_URL = "https://doi.org/10.1111/itor.70252";
 
+const POPOVER_WIDTH = 272;
+// Offsets clear the marker button (112px wide; 20px above and 58px below its point).
+const SIDE_GAP = 62;
+
+/** Place the popover beside the marker when it fits inside the map area left of the inspector, otherwise above/below. */
+function popoverPlacement({ point, boundaryWidth, boundaryHeight }: SelectionContext) {
+  const pad = 12;
+  if (point.left + SIDE_GAP + POPOVER_WIDTH + pad <= boundaryWidth) return { side: "right" as const, offset: SIDE_GAP, align: point.top < boundaryHeight * 0.55 ? ("start" as const) : ("end" as const) };
+  if (point.left - SIDE_GAP - POPOVER_WIDTH - pad >= 0) return { side: "left" as const, offset: SIDE_GAP, align: point.top < boundaryHeight * 0.55 ? ("start" as const) : ("end" as const) };
+  return point.top < boundaryHeight * 0.5 ? { side: "bottom" as const, offset: 64, align: "center" as const } : { side: "top" as const, offset: 26, align: "center" as const };
+}
+
 export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
   const { source, preview } = overviewSourceFor(statePreview);
   const [load, setLoad] = useState<LoadState>({ status: "loading" });
@@ -47,6 +59,8 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
   const invokerRef = useRef<HTMLElement | null>(null);
   const afterPopoverClose = useRef<"invoker" | "inspector" | "none">("invoker");
   const inspectorHeadingRef = useRef<HTMLHeadingElement>(null);
+  const [legend, setLegend] = useState<HTMLDivElement | null>(null);
+  const [legendHeight, setLegendHeight] = useState(0);
   const isDesktop = useMediaQuery("(min-width: 1024px)", true);
   const isWide = useMediaQuery("(min-width: 1400px)", true);
 
@@ -63,6 +77,14 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
     return () => controller.abort();
   }, [source, attempt]);
 
+  // Markers start below the floating legend, whose height depends on width and wrapping.
+  useEffect(() => {
+    if (!legend) return;
+    const observer = new ResizeObserver(([entry]) => setLegendHeight(entry.borderBoxSize?.[0]?.blockSize ?? entry.contentRect.height));
+    observer.observe(legend);
+    return () => observer.disconnect();
+  }, [legend]);
+
   const snapshot = load.status === "ready" ? load.snapshot : null;
   const product = snapshot ? snapshot.products.find((item) => item.id === productId) ?? snapshot.products[0] : null;
   const positions = useMemo(() => resolveAtlasLayout(snapshot?.sites ?? []), [snapshot]);
@@ -73,7 +95,7 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
       const projection = snapshot.projections[site.id]?.[product.id];
       const status = statusFor(projection, dayIndex);
       const detail = statusDetail(projection, product, snapshot.dates);
-      return { site, projection, status, detail };
+      return { site, projection, status, detail, statusLine: statusLine(status, projection, dayIndex, snapshot.dates) };
     });
   }, [snapshot, product, dayIndex]);
 
@@ -90,6 +112,8 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
     afterPopoverClose.current = "invoker";
     setSelectedId(siteId);
     setPopoverOpen(true);
+    // Narrow layouts: the map can sit partly below the fold; bring all of it (and so the popover) into view.
+    if (!isDesktop) document.querySelector("[data-atlas-map]")?.scrollIntoView({ block: "nearest" });
   }
 
   function clearSelection() {
@@ -115,7 +139,17 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
     setAttempt((value) => value + 1);
   }
 
-  const markers: MapMarker[] = rows.map(({ site, status, detail }) => ({ site, status, accessibleName: markerAccessibleName(site, status, detail) }));
+  const markers: MapMarker[] = rows.map(({ site, status, detail, statusLine: line }) => ({ site, status, statusLine: line, accessibleName: markerAccessibleName(site, status, detail) }));
+  const deficits = rows
+    .map((row) => ({ row, next: nextDeficitFrom(row.projection, dayIndex) }))
+    .filter((item): item is { row: (typeof rows)[number]; next: { dayIndex: number; unmetUnits: number } } => item.next !== null)
+    .sort((a, b) => a.next.dayIndex - b.next.dayIndex || b.next.unmetUnits - a.next.unmetUnits);
+
+  // Focus returns to the marker, which outlives the list button that triggered the selection.
+  function selectFromList(siteId: string, button: HTMLElement) {
+    const markerButton = document.querySelector<HTMLElement>(`[data-site-id="${siteId}"]`);
+    select(siteId, markerButton ?? button);
+  }
   const legendContext = product && dayLabel ? `${product.name} (${product.unitPlural}) on ${dayLabel}` : "Waiting for the network snapshot";
 
   const counts = rows.reduce<Record<BeneficiaryStatus, number>>((acc, row) => {
@@ -153,7 +187,7 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
           onSubmit: (invoker) => { if (matches[0]) select(matches[0].site.id, invoker); },
         }}
       >
-        <div className="flex flex-1 flex-col gap-4 px-4 py-4 md:px-6 md:py-5 lg:h-[calc(100svh-3.5rem)] lg:min-h-[620px]">
+        <div className="flex flex-1 flex-col gap-4 px-4 py-4 md:px-6 md:py-5 lg:min-h-[calc(100svh-3.5rem)]">
           <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="min-w-0">
               <p className="font-condensed text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Network intelligence</p>
@@ -208,44 +242,50 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
 
           {snapshot && <SiteList items={matches} selectedId={selectedId} query={query} onSelect={select} />}
 
-          <section aria-label="Network map" className="relative flex min-h-0 flex-col gap-3 md:block md:min-h-[400px] md:flex-1">
+          <section aria-label="Network map" className="relative flex min-h-0 flex-col gap-3 lg:block lg:min-h-[460px] lg:flex-1">
             <RiskLegend
+              ref={setLegend}
               context={legendContext}
-              className="order-2 md:absolute md:top-4 md:left-4 md:z-10"
+              className="lg:absolute lg:top-4 lg:left-4 lg:z-10"
               style={isDesktop ? { right: reserveRight + 16 } : undefined}
             />
             {load.status === "loading" && (
-              <div role="status" className="relative grid h-[55svh] place-items-center overflow-hidden rounded-2xl border border-border bg-pp-surface-muted md:h-full">
+              <div role="status" className="relative grid h-[52svh] place-items-center overflow-hidden rounded-2xl border border-border bg-pp-surface-muted lg:h-full">
                 <Skeleton className="absolute inset-6 rounded-xl bg-pp-border/50" />
                 <span className="relative rounded-md bg-card px-3 py-1.5 text-sm text-foreground">Loading network snapshot…</span>
               </div>
             )}
             {load.status === "error" && (
-              <div className="grid h-[55svh] place-items-center rounded-2xl border border-dashed border-border bg-pp-surface-muted p-6 text-center text-sm text-muted-foreground md:h-full">
+              <div className="grid h-[52svh] place-items-center rounded-2xl border border-dashed border-border bg-pp-surface-muted p-6 text-center text-sm text-muted-foreground lg:h-full">
                 The map stays empty until a snapshot loads.
               </div>
             )}
             {snapshot && product && (
               <SchematicMapRenderer
-                className="h-[55svh] md:h-full"
+                className="h-[52svh] lg:h-full"
+                compact={!isDesktop}
                 markers={markers}
                 positions={positions}
                 selectedId={selectedId}
                 onSelect={select}
                 reserveRight={reserveRight}
-                reserveTop={isDesktop ? 48 : 0}
-                renderSelection={(point) => selected && (
+                reserveTop={isDesktop && legendHeight > 0 ? 16 + legendHeight : 0}
+                renderSelection={(context) => selected && (() => {
+                  const placement = popoverPlacement(context);
+                  return (
                   <Popover open={popoverOpen} onOpenChange={(open) => { if (!open) setPopoverOpen(false); }}>
                     <PopoverAnchor asChild>
-                      <span aria-hidden="true" className="pointer-events-none absolute size-px" style={{ left: point.left, top: point.top }} />
+                      <span aria-hidden="true" className="pointer-events-none absolute size-px" style={{ left: context.point.left, top: context.point.top }} />
                     </PopoverAnchor>
                     <PopoverContent
-                      side="right"
-                      align="start"
-                      sideOffset={30}
-                      collisionPadding={12}
+                      side={placement.side}
+                      align={placement.align}
+                      sideOffset={placement.offset}
+                      collisionPadding={8}
+                      collisionBoundary={context.boundary}
                       aria-label={selected.site.name}
-                      className="w-72 motion-reduce:animate-none"
+                      className="motion-reduce:animate-none!"
+                      style={{ width: POPOVER_WIDTH }}
                       onCloseAutoFocus={(event) => {
                         event.preventDefault();
                         if (afterPopoverClose.current === "invoker") invokerRef.current?.focus();
@@ -254,7 +294,8 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
                       <PopoverSummary row={selected} product={product} snapshot={snapshot} dayIndex={dayIndex} onInspect={inspect} />
                     </PopoverContent>
                   </Popover>
-                )}
+                  );
+                })()}
               />
             )}
             {snapshot && product && isDesktop && (
@@ -274,6 +315,27 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
                   <div className="grid gap-3 text-sm">
                     <h2 className="text-base font-semibold">Site inspector</h2>
                     <p className="text-muted-foreground">Select a site on the map or in the site list to see its stock, first deficit and outlook.</p>
+                    <div className="grid gap-1.5">
+                      <h3 className="text-xs font-medium text-muted-foreground">Projected deficits from {dayLabel}, earliest first</h3>
+                      {deficits.length === 0 ? (
+                        <p>No projected deficits from {dayLabel} through {formatDay(snapshot.dates[snapshot.dates.length - 1])}.</p>
+                      ) : (
+                        <ul aria-label="Projected deficits" className="grid gap-1.5">
+                          {deficits.map(({ row, next }) => (
+                            <li key={row.site.id}>
+                              <button
+                                type="button"
+                                onClick={(event) => selectFromList(row.site.id, event.currentTarget)}
+                                className="flex min-h-10 w-full items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-1.5 text-left outline-none hover:border-foreground/40 focus-visible:ring-2 focus-visible:ring-ring"
+                              >
+                                <StatusGlyph status={row.status} />
+                                <span>{row.site.shortName} · {formatDay(snapshot.dates[next.dayIndex])} · {formatUnits(next.unmetUnits, product)} unmet</span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
                     <dl className="grid gap-1.5 rounded-lg bg-muted px-3 py-2.5">
                       <dt className="text-xs text-muted-foreground">{beneficiaryCount} pantries, {legendContext}</dt>
                       {(Object.keys(counts) as BeneficiaryStatus[]).map((status) => (
@@ -294,7 +356,7 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
               <SheetContent
                 side="bottom"
                 data-testid="site-inspector"
-                className="max-h-[85svh] overflow-y-auto rounded-t-2xl p-4 pt-5"
+                className="max-h-[85svh] overflow-y-auto rounded-t-2xl bg-card p-4 [&>button:last-child]:z-20"
                 onCloseAutoFocus={(event) => {
                   event.preventDefault();
                   invokerRef.current?.focus();

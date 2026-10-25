@@ -67,7 +67,7 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
     for (const [state, meaning] of [["Shortfall", "unmet on this day"], ["Watch", "deficit later"], ["Covered", "no unmet ahead"], ["Not evaluated", "no projection"]]) {
       const item = legend.getByRole("listitem").filter({ hasText: state });
       await expect(item.getByText(state, { exact: true })).toBeVisible();
-      await expect(item.getByText(meaning, { exact: false })).toBeVisible();
+      await expect(item.getByText(meaning, { exact: true })).toBeVisible();
     }
 
     // Six beneficiaries plus one hub, all inside the map canvas, clear of the controls.
@@ -106,7 +106,6 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
     await expectNoSeriousA11yViolations(page, testInfo, `overview ${width}x${height} default`);
 
     // Popovers open by keyboard, stay inside the map and clear of the inspector, and return focus on Esc.
-    const mapBox = await box(page.locator("[data-atlas-map]"));
     for (const [name, slug, deficit] of [["Riverbend Pantry", "riverbend", "First deficit Sat, Oct 24 · 20 meals unmet"], ["Oak Terrace Pantry", "oak-terrace", "First deficit Tue, Oct 27 · 35 meals unmet"]]) {
       const target = marker(page, name);
       await target.focus();
@@ -116,6 +115,8 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
       await expect(popover).toContainText(deficit);
       await expect(popover.getByRole("button", { name: "Inspect site" })).toBeVisible();
       const popoverBox = await box(popover);
+      // Measured after opening: on narrow layouts selecting scrolls the map fully into view.
+      const mapBox = await box(page.locator("[data-atlas-map]"));
       expect(inside(popoverBox, mapBox), `${name} popover leaves the map`).toBe(true);
       if (desktop) expect(overlaps(popoverBox, await box(page.getByTestId("site-inspector"))), `${name} popover covers the inspector`).toBe(false);
       expect(overlaps(popoverBox, await box(target)), `${name} popover covers its marker`).toBe(false);

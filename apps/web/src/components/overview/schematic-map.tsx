@@ -6,7 +6,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils";
 import type { ResolvedPosition } from "./atlas-layout";
 import { StatusGlyph } from "./status-glyph";
-import { STATUS_LABEL } from "./status";
 import type { MarkerStatus, Site } from "./types";
 
 /**
@@ -14,7 +13,16 @@ import type { MarkerStatus, Site } from "./types";
  * SchematicMapRenderer draws it as SVG + HTML markers. A future geographic renderer can take the
  * same props once validated coordinates exist; until then positions are illustrative only.
  */
-export type MapMarker = { site: Site; status: MarkerStatus; accessibleName: string };
+/** `statusLine` is the short visible status, e.g. "Watch · Oct 27". */
+export type MapMarker = { site: Site; status: MarkerStatus; statusLine: string; accessibleName: string };
+
+export type SelectionContext = {
+  point: { left: number; top: number };
+  /** The map area not covered by floating panels; popovers stay inside it. */
+  boundary: HTMLElement | null;
+  boundaryWidth: number;
+  boundaryHeight: number;
+};
 
 export type NetworkMapProps = {
   markers: MapMarker[];
@@ -23,10 +31,12 @@ export type NetworkMapProps = {
   onSelect: (siteId: string, invoker: HTMLElement) => void;
   /** Width covered by a floating panel on the right; markers fit in the remaining space. */
   reserveRight: number;
-  /** Height covered by a floating panel along the top (the legend on desktop). */
+  /** Bottom edge of a floating panel along the top (the legend on desktop); markers start below it. */
   reserveTop?: number;
+  /** Narrow layout: controls in a row along the bottom, caption at the top. */
+  compact?: boolean;
   /** Rendered at the selected marker's point (used to anchor the popover). */
-  renderSelection?: (point: { left: number; top: number }) => React.ReactNode;
+  renderSelection?: (context: SelectionContext) => React.ReactNode;
   className?: string;
 };
 
@@ -35,6 +45,9 @@ const ZOOM_MAX = 1.8;
 const PAD_X = 64;
 const PAD_TOP = 40;
 const PAD_BOTTOM = 60;
+// Leaves >= 8px between the bottom marker label (82px tall) and the 46px control row.
+const PAD_BOTTOM_COMPACT = 104;
+const MARKER_RISE = 36;
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
@@ -87,6 +100,7 @@ function AtlasMarker({ marker, point, selected, onSelect }: { marker: MapMarker;
     <button
       type="button"
       data-marker-role={isHub ? "hub" : "beneficiary"}
+      data-site-id={site.id}
       data-status={status}
       aria-label={marker.accessibleName}
       aria-pressed={selected}
@@ -108,14 +122,15 @@ function AtlasMarker({ marker, point, selected, onSelect }: { marker: MapMarker;
       </span>
       <span className="max-w-full rounded-md bg-card/95 px-1.5 py-0.5 text-center leading-tight shadow-xs">
         <span className="block truncate font-condensed text-xs font-semibold text-foreground">{site.shortName}</span>
-        <span className="block truncate text-[11px] text-foreground">{STATUS_LABEL[status]}</span>
+        <span className="block truncate text-[11px] text-foreground">{marker.statusLine}</span>
       </span>
     </button>
   );
 }
 
-export function SchematicMapRenderer({ markers, positions, selectedId, onSelect, reserveRight, reserveTop = 0, renderSelection, className }: NetworkMapProps) {
+export function SchematicMapRenderer({ markers, positions, selectedId, onSelect, reserveRight, reserveTop = 0, compact = false, renderSelection, className }: NetworkMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
+  const [boundary, setBoundary] = useState<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -129,11 +144,13 @@ export function SchematicMapRenderer({ markers, positions, selectedId, onSelect,
     return () => observer.disconnect();
   }, []);
 
+  const top = reserveTop > 0 ? reserveTop + MARKER_RISE : PAD_TOP;
+  const bottom = compact ? PAD_BOTTOM_COMPACT : PAD_BOTTOM;
   const area = {
     left: PAD_X,
-    top: PAD_TOP + reserveTop,
+    top,
     width: Math.max(1, size.width - reserveRight - PAD_X * 2),
-    height: Math.max(1, size.height - reserveTop - PAD_TOP - PAD_BOTTOM),
+    height: Math.max(1, size.height - top - bottom),
   };
   const center = { x: area.left + area.width / 2, y: area.top + area.height / 2 };
 
@@ -180,8 +197,9 @@ export function SchematicMapRenderer({ markers, positions, selectedId, onSelect,
         if (!position) return null;
         return <AtlasMarker key={marker.site.id} marker={marker} point={project(position)} selected={marker.site.id === selectedId} onSelect={onSelect} />;
       })}
-      {ready && selectedPosition && renderSelection?.(project(selectedPosition))}
-      <div className="absolute bottom-3 left-3 z-10 flex flex-col overflow-hidden rounded-lg border border-border bg-card shadow-sm" role="group" aria-label="Map controls">
+      <div ref={setBoundary} aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0" style={{ right: reserveRight }} />
+      {ready && selectedPosition && renderSelection?.({ point: project(selectedPosition), boundary, boundaryWidth: size.width - reserveRight, boundaryHeight: size.height })}
+      <div className={cn("absolute bottom-3 left-3 z-10 flex overflow-hidden rounded-lg border border-border bg-card shadow-sm", compact ? "flex-row" : "flex-col")} role="group" aria-label="Map controls">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" className="size-9 rounded-none max-md:size-11" aria-label="Zoom in" onClick={() => setZoom((value) => clamp(value + 0.15, ZOOM_MIN, ZOOM_MAX))}><Plus /></Button>
@@ -190,18 +208,18 @@ export function SchematicMapRenderer({ markers, positions, selectedId, onSelect,
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-9 rounded-none border-t border-border max-md:size-11" aria-label="Zoom out" onClick={() => setZoom((value) => clamp(value - 0.15, ZOOM_MIN, ZOOM_MAX))}><Minus /></Button>
+            <Button variant="ghost" size="icon" className="size-9 rounded-none border-border max-md:size-11 data-[compact=true]:border-l data-[compact=false]:border-t" data-compact={compact} aria-label="Zoom out" onClick={() => setZoom((value) => clamp(value - 0.15, ZOOM_MIN, ZOOM_MAX))}><Minus /></Button>
           </TooltipTrigger>
           <TooltipContent side="right">Zoom out</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-9 rounded-none border-t border-border max-md:size-11" aria-label="Fit network" onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}><Focus /></Button>
+            <Button variant="ghost" size="icon" className="size-9 rounded-none border-border max-md:size-11 data-[compact=true]:border-l data-[compact=false]:border-t" data-compact={compact} aria-label="Fit network" onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}><Focus /></Button>
           </TooltipTrigger>
           <TooltipContent side="right">Fit network</TooltipContent>
         </Tooltip>
       </div>
-      <p className="absolute right-3 bottom-3 z-10 rounded-md bg-card/95 px-2 py-1 text-xs text-muted-foreground shadow-xs" style={{ right: 12 + reserveRight }}>
+      <p className={cn("absolute z-10 rounded-md bg-card/95 px-2 py-1 text-xs text-muted-foreground shadow-xs", compact ? "top-3 left-3" : "bottom-3")} style={compact ? undefined : { right: 12 + reserveRight }}>
         Illustrative layout — not geography
       </p>
     </div>
