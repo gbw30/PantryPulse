@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page, type TestInfo } from "@playwright/test";
 import { expectNoSeriousA11yViolations } from "./a11y";
 
 // Mockup-only content (docs/design/reference/overview.md) must never reach the app.
@@ -75,17 +75,27 @@ async function expectScrollCueWhenOverflowing(inspector: Locator) {
   if (overflows) await expect(inspector.getByText("More below")).toBeVisible();
 }
 
-for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
-  test(`network atlas at ${width}x${height}`, async ({ page }, testInfo) => {
-    const pageErrors: string[] = [];
-    page.on("pageerror", (error) => pageErrors.push(error.message));
-    const shot = (name: string) => page.screenshot({ path: testInfo.outputPath(`overview-${width}-${name}.png`), fullPage: true });
-    const desktop = width >= 1024;
-    await page.setViewportSize({ width, height });
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/overview");
+// Opens the atlas at one viewport with reduced motion; returns the page errors seen so far.
+async function openAtlas(page: Page, width: number, height: number) {
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.setViewportSize({ width, height });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/overview");
+  await expect(page.getByRole("heading", { level: 1, name: "Network Atlas" })).toBeVisible();
+  await expect(page.locator("[data-marker-role]")).toHaveCount(7);
+  return pageErrors;
+}
 
-    await expect(page.getByRole("heading", { level: 1, name: "Network Atlas" })).toBeVisible();
+// Each viewport runs as four focused tests (default view, popovers, inspector, product switch) so no
+// single test approaches the 30s timeout in a loaded checkout. Every assertion, scan and capture is kept.
+for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
+  const desktop = width >= 1024;
+  const shooter = (page: Page, testInfo: TestInfo) => (name: string) => page.screenshot({ path: testInfo.outputPath(`overview-${width}-${name}.png`), fullPage: true });
+
+  test(`network atlas at ${width}x${height}: default view, legend, deficits and shell`, async ({ page }, testInfo) => {
+    const pageErrors = await openAtlas(page, width, height);
+    const shot = shooter(page, testInfo);
     await expect(page.getByText("SIMULATED — static design fixture, not model output")).toBeVisible();
     await expect(page.getByText("Illustrative layout — not geography")).toBeVisible();
     await expect(page.getByText("Simulated network", { exact: true })).toBeVisible();
@@ -140,6 +150,12 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
 
     await shot("map-unselected");
     await expectNoSeriousA11yViolations(page, testInfo, `overview ${width}x${height} default`);
+    expect(pageErrors).toEqual([]);
+  });
+
+  test(`network atlas at ${width}x${height}: popovers for every site`, async ({ page }, testInfo) => {
+    const pageErrors = await openAtlas(page, width, height);
+    const shot = shooter(page, testInfo);
 
     // Popovers open by keyboard, stay inside the map and clear of the inspector, and return focus on Esc.
     for (const [name, slugName, deficit] of [["Riverbend Pantry", "riverbend", "Next deficit Sat, Oct 24 · 20 meals unmet"], ["Oak Terrace Pantry", "oak-terrace", "Next deficit Tue, Oct 27 · 35 meals unmet"]]) {
@@ -206,6 +222,12 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
         await expect(chip).toBeFocused();
       }
     }
+    expect(pageErrors).toEqual([]);
+  });
+
+  test(`network atlas at ${width}x${height}: inspector network and demand table`, async ({ page }, testInfo) => {
+    const pageErrors = await openAtlas(page, width, height);
+    const shot = shooter(page, testInfo);
 
     // Inspect site opens the inspector on the Network tab with the selected product's units.
     const riverbend = marker(page, "Riverbend Pantry");
@@ -252,7 +274,12 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
     await shot("inspector-demand-table-open");
     await page.keyboard.press("Escape");
     await expect(riverbend).toBeFocused();
+    expect(pageErrors).toEqual([]);
+  });
 
+  test(`network atlas at ${width}x${height}: product switch changes units`, async ({ page }) => {
+    const pageErrors = await openAtlas(page, width, height);
+    const riverbend = marker(page, "Riverbend Pantry");
     // Switching product changes the units and statuses shown.
     await chooseProduct(page, /Bottled water/);
     await expect(page.getByRole("button", { name: /^Pine Ridge Pantry, beneficiary pantry, Not evaluated/ })).toBeVisible();
@@ -263,6 +290,39 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
     await expect(popover).not.toContainText("meal");
     await page.keyboard.press("Escape");
     await expect(riverbend).toBeFocused();
+    expect(pageErrors).toEqual([]);
+  });
+}
+
+// Escape must not depend on where focus happens to be: with a site open in the inspector and focus
+// on the page body (e.g. after the focused control was remounted), Escape still clears the selection
+// and returns focus to the site's marker.
+test("Escape with focus outside the inspector clears the selection at 1280x720", async ({ page }) => {
+  const pageErrors = await openAtlas(page, 1280, 720);
+  const riverbend = marker(page, "Riverbend Pantry");
+  await riverbend.focus();
+  await page.keyboard.press("Enter");
+  await page.getByRole("button", { name: "Inspect site" }).click();
+  const inspector = page.getByTestId("site-inspector");
+  await expect(inspector.getByRole("heading", { name: "Riverbend Pantry" })).toBeVisible();
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await expect.poll(() => page.evaluate(() => document.activeElement === document.body)).toBe(true);
+  await page.keyboard.press("Escape");
+  await expect(riverbend).toHaveAttribute("aria-pressed", "false");
+  await expect(inspector.getByRole("heading", { name: "Site inspector" })).toBeVisible();
+  await expect(riverbend).toBeFocused();
+  expect(pageErrors).toEqual([]);
+});
+
+// Unknown or inherited preview keys fall back to the static fixture instead of crashing.
+for (const key of ["toString", "__proto__", "constructor", "hasOwnProperty"]) {
+  test(`?state=${key} shows the normal atlas without errors`, async ({ page }) => {
+    const pageErrors: string[] = [];
+    page.on("pageerror", (error) => pageErrors.push(error.message));
+    await page.goto(`/overview?state=${key}`);
+    await expect(page.getByRole("heading", { level: 1, name: "Network Atlas" })).toBeVisible();
+    await expect(page.locator("[data-marker-role]")).toHaveCount(7);
+    await expect(page.getByRole("note")).toHaveCount(0);
     expect(pageErrors).toEqual([]);
   });
 }
@@ -347,12 +407,43 @@ test("next deficits follow the selected local day (Wed, Oct 28)", async ({ page 
 test("site search filters the list and selects a match", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/overview");
-  const search = page.getByRole("searchbox", { name: "Search sites, regions, or products" });
+  const search = page.getByRole("searchbox", { name: "Search sites or products" });
+  await expect(search).toHaveAttribute("placeholder", "Search sites or products…");
   await search.fill("oak");
   const list = page.getByRole("list", { name: "All sites" });
   await expect(list.getByRole("button")).toHaveCount(1);
+  await expect(page.getByRole("list", { name: "Matching products" })).toHaveCount(0);
   await search.press("Enter");
   await expect(page.getByRole("dialog", { name: "Oak Terrace Pantry" })).toBeVisible();
+});
+
+// The fixture has no region data, so search covers sites and products only.
+test("product search offers a product and switches units", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/overview");
+  const search = page.getByRole("searchbox", { name: "Search sites or products" });
+  const product = page.getByRole("combobox", { name: "Product" });
+  await expect(product).toHaveText(/Shelf-stable meals \(meals\)/);
+
+  await search.fill("water");
+  const results = page.getByRole("list", { name: "Matching products" });
+  const water = results.getByRole("button", { name: /Bottled water \(bottles\)/ });
+  await expect(water).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("overview-1440-search-water.png"), fullPage: true });
+  await water.click();
+  await expect(product).toHaveText(/Bottled water \(bottles\)/);
+  await expect(page.getByText(/Site status · Bottled water \(bottles\)/)).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Pine Ridge Pantry, beneficiary pantry, Not evaluated/ })).toBeVisible();
+
+  // Keyboard: Enter selects the first match; with no matching site that is the product.
+  await search.fill("meal");
+  await expect(page.getByRole("list", { name: "Matching products" }).getByRole("button", { name: /Shelf-stable meals/ })).toBeVisible();
+  await search.press("Enter");
+  await expect(product).toHaveText(/Shelf-stable meals \(meals\)/);
+  await search.fill("bottle");
+  await search.press("Enter");
+  await expect(product).toHaveText(/Bottled water \(bottles\)/);
 });
 
 test("loading keeps the legend and a stable skeleton", async ({ page }) => {

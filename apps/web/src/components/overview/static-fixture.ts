@@ -204,7 +204,7 @@ export const OVERVIEW_STATE_PREVIEWS = {
 export type OverviewStatePreview = keyof typeof OVERVIEW_STATE_PREVIEWS;
 
 export function overviewSourceFor(preview: string | undefined): { source: OverviewDataSource; preview: OverviewStatePreview | null } {
-  if (preview && preview in OVERVIEW_STATE_PREVIEWS) {
+  if (preview && Object.hasOwn(OVERVIEW_STATE_PREVIEWS, preview)) {
     const key = preview as OverviewStatePreview;
     return { source: OVERVIEW_STATE_PREVIEWS[key], preview: key };
   }
