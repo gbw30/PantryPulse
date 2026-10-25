@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FlaskConical, GitCompareArrows, ListChecks, Map as MapIcon, Settings, Table2, UserRound } from "lucide-react";
+import { FlaskConical, GitCompareArrows, ListChecks, Map as MapIcon, Settings, Table2 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -11,6 +11,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { PresenterFooter } from "./presenter-footer";
 
 // "optimization" is the connected presenter workspace (a utility destination, not a blueprint page).
 export type NavKey = "overview" | "data" | "recommendations" | "scenarios" | "optimization";
@@ -94,10 +95,7 @@ export function AppSidebar({ active }: { active: NavKey }) {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        <div className="flex items-center gap-2.5 rounded-lg border border-dashed border-sidebar-border px-3 py-2.5 text-xs text-muted-foreground">
-          <UserRound className="size-4 shrink-0" aria-hidden="true" />
-          <span>No account · read-only demo</span>
-        </div>
+        <PresenterFooter />
       </SidebarFooter>
     </Sidebar>
   );
