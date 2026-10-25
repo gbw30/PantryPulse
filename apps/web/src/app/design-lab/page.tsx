@@ -19,16 +19,17 @@ import {
   Package,
   Plus,
   Sun,
-  Warehouse,
 } from "lucide-react";
+import { ForecastChart } from "./forecast-chart";
 import { Network3D } from "./network-3d";
+import { buildOutlook, coverFor, formatMeals } from "./outlook-data";
 import "./design-lab.css";
 
 type Theme = "dark" | "light";
-type NodeTreatment = "orbit" | "pin" | "ledger";
 type Status = "hub" | "needs" | "covered";
 type Site = {
   id: string;
+  code: string;
   name: string;
   x: number;
   y: number;
@@ -38,13 +39,13 @@ type Site = {
 };
 
 const sites: Site[] = [
-  { id: "hub", name: "Gator Hub", x: 500, y: 338, status: "hub", need: 0, note: "Central distribution hub" },
-  { id: "riverbend", name: "Riverbend", x: 575, y: 94, status: "needs", need: 120, note: "Needs support by Tuesday" },
-  { id: "oak", name: "Oak Terrace", x: 205, y: 194, status: "needs", need: 90, note: "Needs support this week" },
-  { id: "cedar", name: "Cedar Grove", x: 800, y: 211, status: "covered", need: 0, note: "Demand covered this week" },
-  { id: "maple", name: "Maple Crossing", x: 176, y: 486, status: "covered", need: 0, note: "Demand covered this week" },
-  { id: "willow", name: "Willow Creek", x: 536, y: 568, status: "covered", need: 0, note: "Demand covered this week" },
-  { id: "pine", name: "Pine Ridge", x: 827, y: 494, status: "covered", need: 0, note: "Demand covered this week" },
+  { id: "hub", code: "HUB", name: "Gator Hub", x: 500, y: 338, status: "hub", need: 0, note: "Central distribution hub" },
+  { id: "riverbend", code: "RB", name: "Riverbend", x: 575, y: 94, status: "needs", need: 120, note: "Needs support by Tuesday" },
+  { id: "oak", code: "OT", name: "Oak Terrace", x: 205, y: 194, status: "needs", need: 90, note: "Needs support this week" },
+  { id: "cedar", code: "CG", name: "Cedar Grove", x: 800, y: 211, status: "covered", need: 0, note: "Demand covered this week" },
+  { id: "maple", code: "MC", name: "Maple Crossing", x: 176, y: 486, status: "covered", need: 0, note: "Demand covered this week" },
+  { id: "willow", code: "WC", name: "Willow Creek", x: 536, y: 568, status: "covered", need: 0, note: "Demand covered this week" },
+  { id: "pine", code: "PR", name: "Pine Ridge", x: 827, y: 494, status: "covered", need: 0, note: "Demand covered this week" },
 ];
 
 const paths: Record<string, string> = {
@@ -56,11 +57,46 @@ const paths: Record<string, string> = {
   pine: "M 500 338 Q 659 407 827 494",
 };
 
-const treatments: { id: NodeTreatment; label: string; description: string }[] = [
-  { id: "orbit", label: "Orbit", description: "Layered rings and emphasis" },
-  { id: "pin", label: "Pin", description: "Map marker silhouette" },
-  { id: "ledger", label: "Ledger", description: "Compact status marker" },
-];
+const SEAL_RADIUS = 26;
+const SEAL_CIRCUMFERENCE = 2 * Math.PI * SEAL_RADIUS;
+
+// Site marker: the ring fills with days of cover (out of 7). The dashed remainder marks uncovered days,
+// and the corner badge repeats the status as a shape so colour is never the only signal.
+function SiteSeal({ site }: { site: Site }) {
+  const cover = coverFor(site.id);
+  const covered = (cover?.fraction ?? 1) * SEAL_CIRCUMFERENCE;
+  if (site.status === "hub") {
+    return (
+      <svg className="lab-node-seal" viewBox="0 0 72 72" aria-hidden="true">
+        <polygon className="lab-hub-shape" points="36,4 63.7,20 63.7,52 36,68 8.3,52 8.3,20" />
+        <polygon className="lab-hub-inner" points="36,11 57.6,23.5 57.6,48.5 36,61 14.4,48.5 14.4,23.5" />
+        <circle className="lab-seal-select" cx="36" cy="36" r="35" />
+        <text className="lab-seal-id" x="36" y="37">{site.code}</text>
+      </svg>
+    );
+  }
+  return (
+    <svg className="lab-node-seal" viewBox="0 0 64 64" aria-hidden="true">
+      <circle className="lab-seal-fill" cx="32" cy="32" r="31" />
+      <circle className="lab-seal-track" cx="32" cy="32" r={SEAL_RADIUS} />
+      {site.status === "needs" && <circle className="lab-seal-gap" cx="32" cy="32" r={SEAL_RADIUS} transform="rotate(-90 32 32)" />}
+      <circle className="lab-seal-arc" cx="32" cy="32" r={SEAL_RADIUS} strokeDasharray={`${covered} ${SEAL_CIRCUMFERENCE}`} transform="rotate(-90 32 32)" />
+      <circle className="lab-seal-select" cx="32" cy="32" r="31" />
+      <text className="lab-seal-id" x="32" y="33">{site.code}</text>
+      <circle className="lab-seal-badge" cx="53" cy="11" r="8" />
+      {site.status === "needs"
+        ? <path className="lab-seal-badge-mark" d="M53 6.5 v5 M53 14.4 v.1" />
+        : <path className="lab-seal-badge-mark" d="M49.3 11.2 l2.6 2.6 l4.6 -5" />}
+    </svg>
+  );
+}
+
+function siteStatusLine(site: Site) {
+  if (site.status === "hub") return "Distribution hub";
+  const cover = coverFor(site.id);
+  if (!cover) return "";
+  return cover.days >= 7 ? "7+ days of cover" : `${cover.days.toFixed(1)} days of cover`;
+}
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
@@ -81,7 +117,6 @@ function getServerReducedMotion() { return true; }
 
 export default function DesignLabPage() {
   const [theme, setTheme] = useState<Theme>("dark");
-  const [treatment, setTreatment] = useState<NodeTreatment>("orbit");
   const [selectedId, setSelectedId] = useState("riverbend");
   const [filter, setFilter] = useState<"all" | "needs" | "covered">("all");
   const [motionOn, setMotionOn] = useState(true);
@@ -97,6 +132,7 @@ export default function DesignLabPage() {
   const prefersReducedMotion = useSyncExternalStore(subscribeReducedMotion, getReducedMotion, getServerReducedMotion);
   const animate = motionOn && !prefersReducedMotion;
   const selected = sites.find((site) => site.id === selectedId) ?? sites[1];
+  const outlook = buildOutlook(selected.id, selected.name);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -138,7 +174,7 @@ export default function DesignLabPage() {
     <main className={`lab lab-${theme} ${animate ? "lab-animated" : ""}`}>
       <div className="lab-shell">
         <aside className="lab-rail" aria-label="Main navigation">
-          <div className="lab-mark" aria-label="PantryPulse"><span className="lab-mark-leaf">◕</span></div>
+          <div className="lab-mark" role="img" aria-label="PantryPulse"><svg viewBox="0 0 26 26" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2 14h5l3-8 5 15 3-7h6" /></svg></div>
           <div className="lab-rail-links">
             <button className="lab-rail-link is-active" aria-label="Network" title="Network"><Compass size={21} /></button>
             <button className="lab-rail-link" aria-label="Scenarios" title="Scenarios"><Layers2 size={21} /></button>
@@ -162,7 +198,7 @@ export default function DesignLabPage() {
           <div className="lab-workspace">
             <div className="lab-title-row">
               <div>
-                <div className="lab-eyebrow"><span className="lab-eyebrow-line" /> NETWORK OVERVIEW <span className="lab-eyebrow-dot">·</span> THIS WEEK</div>
+                <div className="lab-eyebrow"><span className="lab-eyebrow-line" /> Network overview, week of Oct 19</div>
                 <h1>Where does the network need help?</h1>
                 <p>See the distribution picture at a glance. Select a location for the details that matter.</p>
               </div>
@@ -218,27 +254,26 @@ export default function DesignLabPage() {
                   {sites.map((site) => {
                     const dimmed = site.status !== "hub" && filter !== "all" && filter !== site.status;
                     const active = site.id === selectedId;
-                    const Icon = site.status === "hub" ? Warehouse : House;
                     return (
                       <motion.button
                         key={site.id}
                         type="button"
-                        className={`lab-node lab-node-${treatment} lab-node-${site.status} ${active ? "is-selected" : ""} ${dimmed ? "lab-dimmed" : ""}`}
+                        className={`lab-node lab-node-${site.status} ${active ? "is-selected" : ""} ${dimmed ? "lab-dimmed" : ""}`}
                         style={{ left: site.x, top: site.y }}
-                        animate={{ scale: active ? 1.07 : 1 }}
+                        animate={{ scale: active ? 1.06 : 1 }}
                         transition={animate ? { type: "spring", stiffness: 250, damping: 22 } : { duration: 0 }}
                         onClick={() => { setSelectedId(site.id); setExplainOpen(false); setForecastOpen(false); }}
                         aria-pressed={active}
-                        aria-label={`${site.name}, ${site.status === "hub" ? "central hub" : site.status === "needs" ? "needs support" : "covered"}`}
+                        aria-label={`${site.name}, ${site.status === "hub" ? "central hub" : site.status === "needs" ? "needs support" : "covered"}, ${siteStatusLine(site)}`}
                       >
-                        <span className="lab-node-symbol"><Icon size={site.status === "hub" ? 25 : 20} strokeWidth={1.8} /></span>
-                        <span className="lab-node-text"><strong>{site.name}</strong><small>{site.status === "hub" ? "CENTRAL HUB" : site.status === "needs" ? "NEEDS SUPPORT" : "COVERED"}</small></span>
+                        <SiteSeal site={site} />
+                        <span className="lab-node-text"><strong>{site.name}</strong><small>{siteStatusLine(site)}</small></span>
                       </motion.button>
                     );
                   })}
                   {selectedId === "riverbend" && <div className="lab-route-label" style={{ left: 545, top: 210 }}><Package size={13} /> 80 meals proposed</div>}
                 </div>
-                <div className="lab-map-hint"><span className="lab-hint-icon">✦</span> Drag to move · Scroll to zoom</div>
+                <div className="lab-map-hint">Drag to move, scroll to zoom</div>
                 <div className="lab-map-controls" aria-label="Map controls">
                   <button onClick={() => setZoom((value) => clamp(value + 0.15, 0.7, 1.7))} aria-label="Zoom in"><Plus size={17} /></button>
                   <button onClick={() => setZoom((value) => clamp(value - 0.15, 0.7, 1.7))} aria-label="Zoom out"><Minus size={17} /></button>
@@ -251,11 +286,49 @@ export default function DesignLabPage() {
                 <div className="lab-stage-fineprint">Planning example · amounts are illustrative</div>
               </div>
             </section>
+
+            <section className="lab-outlook" aria-labelledby="lab-outlook-title">
+              <div className="lab-outlook-head">
+                <div>
+                  <h2 id="lab-outlook-title">Seven-day outlook{outlook ? <> for {selected.name}</> : null}</h2>
+                  <p>Cumulative meals balance at end of day, Oct 15 to Oct 25. Negative balances show shortfall, not physical stock.</p>
+                </div>
+                <span className="lab-provenance">Illustrative forecast on simulated data</span>
+              </div>
+              {outlook ? <>
+                <div className="lab-outlook-body">
+                  <ForecastChart outlook={outlook} animate={animate} />
+                  <dl className="lab-outlook-facts">
+                    <div><dt>First shortage</dt><dd className={outlook.firstShortageDay ? "risk" : ""}>{outlook.firstShortageDay ?? "None this week"}</dd></div>
+                    <div><dt>{outlook.endWith !== null ? "Sun 25 without route" : "Balance Sun 25"}</dt><dd className={outlook.endWithout < 0 ? "risk" : ""}>{formatMeals(outlook.endWithout)} <small>meals</small></dd></div>
+                    {outlook.endWith !== null && <div><dt>Sun 25 with {outlook.transferQty}-meal route</dt><dd className={outlook.endWith < 0 ? "risk" : ""}>{formatMeals(outlook.endWith)} <small>meals</small></dd></div>}
+                  </dl>
+                </div>
+                <div className="lab-legend lab-outlook-legend" aria-hidden="true">
+                  <span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="var(--lab-fg)" strokeWidth="2.4" /></svg> Observed</span>
+                  <span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="var(--lab-forecast)" strokeWidth="2.2" strokeDasharray="7 5" /></svg> Forecast without route</span>
+                  {outlook.endWith !== null && <span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="var(--lab-accent)" strokeWidth="2.8" strokeDasharray="2 4" strokeLinecap="round" /></svg> Forecast with route</span>}
+                  <span><i className="lab-swatch-band" /> Illustrative range, not model quantiles or a calibrated interval</span>
+                  <span><i className="lab-swatch-unmet" /> Below zero is cumulative shortfall</span>
+                </div>
+                <p className="lab-outlook-summary">{outlook.summary}</p>
+                <details className="lab-outlook-table">
+                  <summary>View data table</summary>
+                  <div className="lab-outlook-table-scroll" tabIndex={0} role="region" aria-label="Outlook data table">
+                    <table>
+                      <caption>Cumulative meals balance at end of day for {selected.name}. Negative values show shortfall, not physical stock. Range values are illustrative.</caption>
+                      <thead><tr><th scope="col">Day</th><th scope="col">Observed</th><th scope="col">Forecast without route</th>{outlook.endWith !== null && <th scope="col">Forecast with route</th>}<th scope="col">Illustrative range</th></tr></thead>
+                      <tbody>{outlook.points.map((point) => <tr key={point.day}><th scope="row">{point.day}</th><td>{point.observed !== undefined ? formatMeals(point.observed) : "n/a"}</td><td>{point.withoutRoute !== undefined ? formatMeals(point.withoutRoute) : "n/a"}</td>{outlook.endWith !== null && <td>{point.withRoute !== undefined ? formatMeals(point.withRoute) : "n/a"}</td>}<td>{point.range && point.range[0] !== point.range[1] ? `${formatMeals(point.range[0])} to ${formatMeals(point.range[1])}` : "n/a"}</td></tr>)}</tbody>
+                    </table>
+                  </div>
+                </details>
+              </> : <p className="lab-outlook-summary">The hub holds supply for the network and has no demand forecast. Select a pantry to see its outlook.</p>}
+            </section>
           </div>
         </div>
 
         <aside className="lab-inspector" aria-label="Location details">
-          <div className="lab-inspector-top"><span>LOCATION INSPECTOR</span><Compass size={17} /></div>
+          <div className="lab-inspector-top"><span>Location inspector</span><Compass size={17} /></div>
           <AnimatePresence mode="wait">
             <motion.div key={selected.id} className="lab-inspector-body" initial={animate ? { opacity: 0, y: 10 } : false} animate={{ opacity: 1, y: 0 }} exit={animate ? { opacity: 0, y: -8 } : undefined} transition={{ duration: 0.22 }}>
               <div className="lab-location-badge"><span className={`lab-location-icon ${selected.status}`}><House size={23} /></span><span>{selected.status === "hub" ? "Distribution hub" : "Community pantry"}</span></div>
@@ -264,10 +337,10 @@ export default function DesignLabPage() {
               <div className="lab-inspector-rule" />
               {selected.id === "riverbend" ? <>
                 <p className="lab-inspector-question">Can we cover this location’s need?</p>
-                <p className="lab-inspector-answer">Partially. The hub can provide 80 of the 120 meals needed by Tuesday.</p>
+                <p className="lab-inspector-answer">Partially. The hub can provide 80 meals on Tuesday toward this week’s 120-meal shortfall.</p>
                 <div className="lab-coverage-visual"><div><span style={{ width: "66.67%" }} /></div><small>67% covered by proposed route</small></div>
                 <div className="lab-figures"><div><strong>120</strong><span>meals needed</span></div><div><strong>80</strong><span>can be sent</span></div><div className="gap"><strong>40</strong><span>still needed</span></div></div>
-                <div className="lab-route-card"><span className="lab-route-icon"><Package size={17} /></span><div><small>SUGGESTED ROUTE</small><strong>Gator Hub <ArrowRight size={15} /> Riverbend</strong></div><span>80</span></div>
+                <div className="lab-route-card"><span className="lab-route-icon"><Package size={17} /></span><div><small>Suggested route</small><strong>Gator Hub <ArrowRight size={15} /> Riverbend</strong></div><span>80</span></div>
               </> : selected.status === "needs" ? <>
                 <p className="lab-inspector-question">What is the remaining need?</p>
                 <p className="lab-inspector-answer">{selected.name} needs support this week. No confirmed route is proposed in this sample.</p>
@@ -283,13 +356,12 @@ export default function DesignLabPage() {
               {forecastOpen && <p className="lab-disclosure-copy">A seven-day need estimate informs this view. Forecasts do not change physical inventory.</p>}
             </motion.div>
           </AnimatePresence>
-          <div className="lab-inspector-bottom"><span className="lab-small-star">✳</span> Select any location on the map to explore its status.</div>
+          <div className="lab-inspector-bottom">Select any location on the map to explore its status.</div>
         </aside>
       </div>
 
       <div className="lab-experiment-bar" aria-label="Design lab controls">
-        <div className="lab-experiment-label"><span className="lab-experiment-spark">✦</span><strong>Component lab</strong><span>Compare treatments in the same dashboard</span></div>
-        <div className="lab-experiment-controls"><span>Node treatment</span><div className="lab-segmented" role="group" aria-label="Node treatment">{treatments.map((item) => <button key={item.id} className={treatment === item.id ? "active" : ""} onClick={() => setTreatment(item.id)} title={item.description}>{item.label}</button>)}</div></div>
+        <div className="lab-experiment-label"><strong>Component lab</strong><span>Prototype only. Amounts and routes are illustrative.</span></div>
         <label className="lab-motion-toggle"><input type="checkbox" checked={motionOn} onChange={(event) => setMotionOn(event.target.checked)} /><span>Route motion</span></label>
       </div>
     </main>
