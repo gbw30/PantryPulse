@@ -55,6 +55,27 @@
   --sidebar-ring: var(--pp-teal);
 }
 
+/* Dark theme (user decision 2026-10-25), from the design lab's dark palette. Text pairs measured on
+   --pp-surface: ink 14.8:1, ink-muted 7.5:1, teal 10.8:1, forecast 7.7:1, warning 8.3:1, danger 6.5:1. */
+.dark {
+  color-scheme: dark;
+  --pp-canvas: #071721;
+  --pp-surface: #0d222e;
+  --pp-surface-muted: #12303d;
+  --pp-ink: #edf6f1;
+  --pp-ink-muted: #9ab4b9;
+  --pp-border: #2d5262;
+  --pp-teal: #77e5ce;
+  --pp-teal-soft: #123a34;
+  --pp-forecast: #8db4ea;
+  --pp-warning: #e9ae65;
+  --pp-danger: #f0857a;
+  --pp-neutral: #8ca8ae;
+  --primary-foreground: #071721;
+  --destructive-foreground: #071721;
+  --sidebar-primary-foreground: #071721;
+}
+
 @theme inline {
   --color-pp-canvas: var(--pp-canvas);
   --color-pp-surface: var(--pp-surface);

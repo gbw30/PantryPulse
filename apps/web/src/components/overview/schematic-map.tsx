@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState, type PointerEvent } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Focus, Minus, Plus } from "lucide-react";
+import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { animate as animateValue, AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { Focus, Minus, Plus, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { clampInside, DROP_GAP, GLYPH_FROM_TOP_LABEL_ABOVE, GLYPH_FROM_TOP_LABEL_BELOW, glyphPoint, markerBox, relativeBox, settleBox, type Box, type Point } from "./atlas-geometry";
 import type { ResolvedPosition } from "./atlas-layout";
+import { PRESS, SPRING } from "./atlas-motion";
 import { StatusGlyph } from "./status-glyph";
 import type { MarkerStatus, Site } from "./types";
 
@@ -37,15 +39,16 @@ export type NetworkMapProps = {
   compact?: boolean;
   /** Rendered at the selected marker's point (used to anchor the popover). */
   renderSelection?: (context: SelectionContext) => React.ReactNode;
+  /** Saves a dragged or keyboard-moved node, normalised on the placement area like atlas-layout.ts. */
+  onMoveNode?: (siteId: string, position: { x: number; y: number }) => void;
+  /** Restores atlas-layout.ts defaults for nodes and panels. */
+  onResetLayout?: () => void;
+  layoutCustomized?: boolean;
   className?: string;
 };
 
 const ZOOM_MIN = 0.7;
 const ZOOM_MAX = 1.8;
-// Marker box: 104px wide, ~82px tall. Its glyph centre sits 22px from the box top (label below)
-// or 59px from the top (label above).
-const GLYPH_FROM_TOP_LABEL_BELOW = 22;
-const GLYPH_FROM_TOP_LABEL_ABOVE = 59;
 const PAD_X = 60;
 // Top clearance for labels drawn above the top row (and, on narrow layouts, the caption).
 const PAD_TOP = 84;
@@ -56,12 +59,16 @@ const CAPTION_WIDTH = 232;
 // Leaves >= 8px between the bottom marker label and the 46px control row.
 const PAD_BOTTOM_COMPACT = 112;
 const DOCK_INSET = 16;
+// Desktop drops stay above the docked-card band: the tallest card (live, with a fallback note) plus its inset.
+const CARD_BAND = 150;
+// A press that moves less than this is a click (select), not a drag.
+const DRAG_THRESHOLD = 4;
+const KEY_STEP = 8;
+const MOVE_HINT_ID = "atlas-move-hint";
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
-
-type Point = { left: number; top: number };
 
 /**
  * Supply link geometry, hub -> beneficiary only (permitted in both transfer modes, so no mode is implied).
@@ -116,25 +123,45 @@ function MapTexture() {
   );
 }
 
+type NodeHandlers = {
+  start: (siteId: string, event: PointerEvent<HTMLButtonElement>) => void;
+  move: (event: PointerEvent<HTMLButtonElement>) => void;
+  end: (event: PointerEvent<HTMLButtonElement>, cancelled: boolean) => void;
+  /** True when the click that follows a drag must not select. */
+  consumeClick: (siteId: string) => boolean;
+  key: (site: Site, event: KeyboardEvent<HTMLButtonElement>) => void;
+  blur: (site: Site) => void;
+};
+
 type MarkerProps = {
   marker: MapMarker;
   point: Point;
   labelAbove: boolean;
   selected: boolean;
+  lifted: boolean;
+  moving: boolean;
   index: number;
   animate: boolean;
   onSelect: NetworkMapProps["onSelect"];
+  handlers: NodeHandlers | null;
 };
 
-/** AtlasMarker: one site as a keyboard-operable button. Status is shape + text, not colour alone. */
-function AtlasMarker({ marker, point, labelAbove, selected, index, animate, onSelect }: MarkerProps) {
+/** AtlasMarker: one site as a keyboard-operable, draggable button. Status is shape + text, not colour alone. */
+function AtlasMarker({ marker, point, labelAbove, selected, lifted, moving, index, animate, onSelect, handlers }: MarkerProps) {
   const { site, status } = marker;
   const isHub = site.role === "HUB";
+  const [hovered, setHovered] = useState(false);
+  // Spring scale: picked up > selected > hovered (transforms, so reduced motion makes them instant).
+  const scale = lifted ? 1.16 : selected ? 1.1 : hovered ? 1.06 : 1;
   const glyph = (
     <motion.span
-      className={cn("relative grid size-10 place-items-center rounded-full border bg-card shadow-sm transition-colors duration-200", selected ? "border-primary" : "border-border group-hover:border-foreground/40")}
-      animate={{ scale: selected ? 1.1 : 1 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
+      data-glyph
+      className={cn(
+        "relative grid size-10 place-items-center rounded-full border bg-card transition-[border-color,box-shadow] duration-200",
+        lifted ? "border-primary shadow-lg" : selected || moving ? "border-primary shadow-sm" : "border-border shadow-sm group-hover:border-foreground/40",
+      )}
+      animate={{ scale }}
+      transition={SPRING}
     >
       {selected && (
         <motion.span
@@ -142,12 +169,13 @@ function AtlasMarker({ marker, point, labelAbove, selected, index, animate, onSe
           className="absolute -inset-1.5 rounded-full border-2 border-primary"
           initial={animate ? { opacity: 0, scale: 0.7 } : false}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.2, ease: "easeOut" }}
+          transition={SPRING}
         />
       )}
+      {moving && <span aria-hidden="true" className="absolute -inset-2.5 rounded-full border-2 border-dashed border-primary" />}
       {animate ? (
         <AnimatePresence initial={false} mode="wait">
-          <motion.span key={status} className="grid place-items-center" initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.6 }} transition={{ duration: 0.22 }}>
+          <motion.span key={status} className="grid place-items-center" initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.12 } }} transition={SPRING}>
             <StatusGlyph status={status} size={isHub ? 22 : 20} />
           </motion.span>
         </AnimatePresence>
@@ -161,7 +189,7 @@ function AtlasMarker({ marker, point, labelAbove, selected, index, animate, onSe
       <span className="block font-condensed text-xs font-semibold whitespace-nowrap text-foreground">{site.shortName}</span>
       {animate ? (
         <AnimatePresence initial={false} mode="wait">
-          <motion.span key={marker.statusLine} className="block text-[11px] whitespace-nowrap text-foreground" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+          <motion.span key={marker.statusLine} className="block text-[11px] whitespace-nowrap text-foreground" initial={{ opacity: 0, y: 3 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, transition: { duration: 0.1 } }} transition={SPRING}>
             {marker.statusLine}
           </motion.span>
         </AnimatePresence>
@@ -177,27 +205,53 @@ function AtlasMarker({ marker, point, labelAbove, selected, index, animate, onSe
       data-site-id={site.id}
       data-status={status}
       data-label={labelAbove ? "above" : "below"}
+      data-moving={moving ? "true" : undefined}
       aria-label={marker.accessibleName}
       aria-pressed={selected}
-      onClick={(event) => onSelect(site.id, event.currentTarget)}
-      className="group absolute flex w-26 -translate-x-1/2 flex-col items-center gap-1 rounded-lg p-0.5 outline-none transition-[translate] duration-150 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:translate-y-0"
+      aria-describedby={handlers ? MOVE_HINT_ID : undefined}
+      onClick={(event) => {
+        if (handlers?.consumeClick(site.id)) return;
+        onSelect(site.id, event.currentTarget);
+      }}
+      onPointerDown={handlers ? (event) => handlers.start(site.id, event) : undefined}
+      onPointerMove={handlers?.move}
+      onPointerUp={handlers ? (event) => handlers.end(event, false) : undefined}
+      onPointerCancel={handlers ? (event) => handlers.end(event, true) : undefined}
+      onPointerEnter={(event) => { if (event.pointerType === "mouse") setHovered(true); }}
+      onPointerLeave={() => setHovered(false)}
+      onKeyDown={handlers ? (event) => handlers.key(site, event) : undefined}
+      onBlur={handlers ? () => handlers.blur(site) : undefined}
+      className={cn(
+        "group absolute flex w-26 -translate-x-1/2 touch-none flex-col items-center gap-1 rounded-lg p-0.5 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        handlers && "cursor-grab",
+        lifted && "z-30 cursor-grabbing",
+      )}
       style={{ left: point.left, top: point.top - (labelAbove ? GLYPH_FROM_TOP_LABEL_ABOVE : GLYPH_FROM_TOP_LABEL_BELOW) }}
       initial={animate ? { opacity: 0, scale: 0.85 } : false}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.25, delay: 0.1 + index * 0.06, ease: "easeOut" }}
+      transition={{ ...SPRING, delay: 0.1 + index * 0.06 }}
     >
       {labelAbove ? <>{label}{glyph}</> : <>{glyph}{label}</>}
     </motion.button>
   );
 }
 
-export function SchematicMapRenderer({ markers, positions, selectedId, onSelect, reserveRight, reserveTop = 0, compact = false, renderSelection, className }: NetworkMapProps) {
+export function SchematicMapRenderer({ markers, positions, selectedId, onSelect, reserveRight, reserveTop = 0, compact = false, renderSelection, onMoveNode, onResetLayout, layoutCustomized = false, className }: NetworkMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const drag = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
-  // First-load reveals and status transitions explain change; they are skipped under reduced motion.
+  // Node drag: the pointer's live point overrides the saved position until the drop settles.
+  const [live, setLive] = useState<{ siteId: string; point: Point } | null>(null);
+  const liveRef = useRef<{ siteId: string; point: Point } | null>(null);
+  const [lifted, setLifted] = useState<string | null>(null);
+  const [moving, setMoving] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState("");
+  const nodeDrag = useRef<{ siteId: string; pointerId: number; x: number; y: number; origin: Point; moved: boolean } | null>(null);
+  const settling = useRef<ReturnType<typeof animateValue> | null>(null);
+  const suppressClick = useRef<string | null>(null);
+  // First-load reveals, status transitions and the drop settle explain change; reduced motion skips them.
   const animate = !useReducedMotion();
 
   useEffect(() => {
@@ -207,6 +261,8 @@ export function SchematicMapRenderer({ markers, positions, selectedId, onSelect,
     observer.observe(map);
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => () => settling.current?.stop(), []);
 
   const top = reserveTop > 0 ? reserveTop + LABEL_ABOVE_CLEARANCE : PAD_TOP;
   const bottom = compact ? PAD_BOTTOM_COMPACT : PAD_BOTTOM;
@@ -218,10 +274,26 @@ export function SchematicMapRenderer({ markers, positions, selectedId, onSelect,
   };
   const center = { x: area.left + area.width / 2, y: area.top + area.height / 2 };
 
-  function project(position: ResolvedPosition) {
+  function project(position: ResolvedPosition): Point {
     const baseX = area.left + position.x * area.width;
     const baseY = area.top + position.y * area.height;
     return { left: center.x + (baseX - center.x) * zoom + pan.x, top: center.y + (baseY - center.y) * zoom + pan.y };
+  }
+
+  // Inverse of project(): a map point back to the normalised placement area at the current zoom and pan.
+  function unproject(point: Point) {
+    const baseX = center.x + (point.left - pan.x - center.x) / zoom;
+    const baseY = center.y + (point.top - pan.y - center.y) / zoom;
+    return { x: (baseX - area.left) / area.width, y: (baseY - area.top) / area.height };
+  }
+
+  function updateLive(next: { siteId: string; point: Point } | null) {
+    liveRef.current = next;
+    setLive(next);
+  }
+
+  function announce(text: string) {
+    setAnnouncement(text);
   }
 
   function onPointerDown(event: PointerEvent<HTMLDivElement>) {
@@ -243,22 +315,183 @@ export function SchematicMapRenderer({ markers, positions, selectedId, onSelect,
   const selectedPosition = selectedId ? positions.get(selectedId) : undefined;
   const ready = size.width > 0;
   const hubs = markers.filter((marker) => marker.site.role === "HUB");
-  const hubY = positions.get(hubs[0]?.site.id ?? "")?.y ?? 0.5;
+  const hubIds = new Set(hubs.map((hub) => hub.site.id));
+  const projected = new Map<string, Point>();
+  if (ready) {
+    for (const marker of markers) {
+      const position = positions.get(marker.site.id);
+      if (position) projected.set(marker.site.id, project(position));
+    }
+  }
+  const pointFor = (siteId: string) => (live?.siteId === siteId ? live.point : projected.get(siteId));
+  const hubPoint = hubs[0] ? pointFor(hubs[0].site.id) : undefined;
+  // Labels sit above the glyph for sites level with or above the hub, below it otherwise (links never cross them).
+  const labelAboveAt = (siteId: string, point: Point) => hubIds.has(siteId) || !hubPoint || point.top <= hubPoint.top + 1e-6;
+
+  // Drops stay on the map and clear of the legend, inspector, zoom controls, caption and (desktop) the
+  // docked-card band. Obstacles are measured when the drop happens, so moved panels count where they are.
+  const bounds: Box = { left: DROP_GAP, top: DROP_GAP, width: Math.max(0, size.width - DROP_GAP * 2), height: Math.max(0, size.height - DROP_GAP * 2) };
+  function obstacles(): Box[] {
+    const map = mapRef.current;
+    if (!map) return [];
+    const scope = map.parentElement ?? map;
+    const boxes = [...scope.querySelectorAll("[data-atlas-obstacle]")].filter((element) => element.getClientRects().length > 0).map((element) => relativeBox(element, map));
+    if (!compact) boxes.push({ left: 0, top: size.height - DOCK_INSET - CARD_BAND, width: size.width, height: CARD_BAND + DOCK_INSET });
+    return boxes;
+  }
+
+  function resolveDrop(siteId: string, point: Point): Point | null {
+    const labelAbove = labelAboveAt(siteId, point);
+    const settled = settleBox(markerBox(point, labelAbove), bounds, obstacles());
+    return settled ? glyphPoint(settled, labelAbove) : null;
+  }
+
+  function placeNode(siteId: string, point: Point) {
+    onMoveNode?.(siteId, unproject(point));
+  }
+
+  const handlers: NodeHandlers | null = onMoveNode
+    ? {
+        start(siteId, event) {
+          if (event.button !== 0) return;
+          const origin = pointFor(siteId);
+          if (!origin) return;
+          settling.current?.stop();
+          settling.current = null;
+          if (liveRef.current && liveRef.current.siteId !== siteId) updateLive(null);
+          suppressClick.current = null;
+          try {
+            event.currentTarget.setPointerCapture(event.pointerId);
+          } catch {
+            // The drag still follows this element's own move events.
+          }
+          nodeDrag.current = { siteId, pointerId: event.pointerId, x: event.clientX, y: event.clientY, origin, moved: false };
+        },
+        move(event) {
+          const state = nodeDrag.current;
+          if (!state || state.pointerId !== event.pointerId) return;
+          const dx = event.clientX - state.x;
+          const dy = event.clientY - state.y;
+          if (!state.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+          if (!state.moved) {
+            state.moved = true;
+            setLifted(state.siteId);
+            setMoving(null);
+          }
+          // While dragging the node follows the pointer, kept on the map; obstacles resolve on drop.
+          const raw = { left: state.origin.left + dx, top: state.origin.top + dy };
+          const labelAbove = labelAboveAt(state.siteId, raw);
+          updateLive({ siteId: state.siteId, point: glyphPoint(clampInside(markerBox(raw, labelAbove), bounds), labelAbove) });
+        },
+        end(event, cancelled) {
+          const state = nodeDrag.current;
+          if (!state || state.pointerId !== event.pointerId) return;
+          nodeDrag.current = null;
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+          if (!state.moved) return; // A click follows and selects.
+          // The click that follows this pointerup (same task) is not a selection.
+          suppressClick.current = state.siteId;
+          window.setTimeout(() => {
+            if (suppressClick.current === state.siteId) suppressClick.current = null;
+          }, 0);
+          setLifted(null);
+          const from = liveRef.current?.siteId === state.siteId ? liveRef.current.point : state.origin;
+          if (cancelled) {
+            updateLive(null);
+            return;
+          }
+          const target = resolveDrop(state.siteId, from) ?? state.origin;
+          placeNode(state.siteId, target);
+          if (!animate || (Math.abs(from.left - target.left) < 0.5 && Math.abs(from.top - target.top) < 0.5)) {
+            updateLive(null);
+            return;
+          }
+          // Spring settle from the drop point to the clamped point; marker and link move together.
+          settling.current = animateValue(0, 1, {
+            ...SPRING,
+            onUpdate: (t) => updateLive({ siteId: state.siteId, point: { left: from.left + (target.left - from.left) * t, top: from.top + (target.top - from.top) * t } }),
+            onComplete: () => {
+              settling.current = null;
+              updateLive(null);
+            },
+          });
+        },
+        consumeClick(siteId) {
+          if (suppressClick.current !== siteId) return false;
+          suppressClick.current = null;
+          return true;
+        },
+        key(site, event) {
+          if (moving !== site.id) {
+            if ((event.key === "m" || event.key === "M") && !event.ctrlKey && !event.metaKey && !event.altKey) {
+              event.preventDefault();
+              setMoving(site.id);
+              announce(`Moving ${site.name}. Arrow keys move it ${KEY_STEP} pixels at a time; Enter or Escape places it.`);
+            }
+            return;
+          }
+          const step = ({ ArrowLeft: [-KEY_STEP, 0], ArrowRight: [KEY_STEP, 0], ArrowUp: [0, -KEY_STEP], ArrowDown: [0, KEY_STEP] } as Record<string, [number, number]>)[event.key];
+          if (step) {
+            event.preventDefault();
+            const from = pointFor(site.id);
+            if (!from) return;
+            const target = resolveDrop(site.id, { left: from.left + step[0], top: from.top + step[1] });
+            if (target) placeNode(site.id, target);
+            return;
+          }
+          if (event.key === "Enter" || event.key === "Escape") {
+            // Placing never selects the site or clears the current selection.
+            event.preventDefault();
+            event.stopPropagation();
+            setMoving(null);
+            announce(`${site.name} placed. Reset layout restores the default layout.`);
+          }
+        },
+        blur(site) {
+          if (moving !== site.id) return;
+          setMoving(null);
+          announce(`${site.name} placed.`);
+        },
+      }
+    : null;
+
   // One link per hub -> beneficiary pair; never pantry <-> pantry (that topology needs a transfer mode).
   const links = ready
     ? hubs.flatMap((hub) => {
-        const hubPosition = positions.get(hub.site.id);
-        if (!hubPosition) return [];
+        const hubAt = pointFor(hub.site.id);
+        if (!hubAt) return [];
         return markers
           .filter((marker) => marker.site.role !== "HUB")
           .flatMap((marker) => {
-            const position = positions.get(marker.site.id);
-            return position ? [{ hubId: hub.site.id, siteId: marker.site.id, d: supplyLinkPath(project(hubPosition), project(position)) }] : [];
+            const at = pointFor(marker.site.id);
+            return at ? [{ hubId: hub.site.id, siteId: marker.site.id, d: supplyLinkPath(hubAt, at) }] : [];
           });
       })
     : [];
-  const selectedIsHub = hubs.some((hub) => hub.site.id === selectedId);
+  const selectedIsHub = hubIds.has(selectedId ?? "");
   const emphasized = (link: { hubId: string; siteId: string }) => selectedIsHub ? link.hubId === selectedId : link.siteId === selectedId;
+
+  function resetLayout() {
+    if (!layoutCustomized) {
+      announce("The layout is already the default.");
+      return;
+    }
+    settling.current?.stop();
+    settling.current = null;
+    updateLive(null);
+    setMoving(null);
+    onResetLayout?.();
+    announce("Layout reset: sites and panels are back in their default places.");
+  }
+
+  const resetButton = onResetLayout && (
+    <Button asChild variant="outline" size="sm" className="h-8 bg-card text-foreground shadow-sm aria-disabled:text-muted-foreground max-md:h-11">
+      <motion.button type="button" aria-disabled={!layoutCustomized} onClick={resetLayout} {...PRESS}>
+        <RotateCcw aria-hidden="true" />
+        Reset layout
+      </motion.button>
+    </Button>
+  );
 
   return (
     <div
@@ -299,6 +532,7 @@ export function SchematicMapRenderer({ markers, positions, selectedId, onSelect,
           <motion.path
             key={`emphasis-${selectedId}-${link.siteId}`}
             data-supply-emphasis={link.siteId}
+            className="pp-supply-emphasis"
             d={link.d}
             fill="none"
             strokeLinecap="round"
@@ -309,20 +543,37 @@ export function SchematicMapRenderer({ markers, positions, selectedId, onSelect,
             transition={{ duration: 0.4, ease: "easeOut" }}
           />
         ))}
+        {/* Flow (decision 4): dashes travel hub -> pantry on every link; same pattern everywhere, so no quantity. */}
+        {links.map((link) => {
+          const isEmphasized = emphasized(link);
+          return (
+            <path
+              key={`flow-${link.hubId}-${link.siteId}`}
+              data-supply-flow={link.siteId}
+              data-emphasis={String(isEmphasized)}
+              data-dimmed={String(Boolean(selectedId) && !isEmphasized)}
+              className="pp-supply-flow"
+              d={link.d}
+            />
+          );
+        })}
       </svg>
       {ready && markers.map((marker, index) => {
-        const position = positions.get(marker.site.id);
-        if (!position) return null;
+        const point = pointFor(marker.site.id);
+        if (!point) return null;
         return (
           <AtlasMarker
             key={marker.site.id}
             marker={marker}
-            point={project(position)}
-            labelAbove={position.y <= hubY + 1e-6}
+            point={point}
+            labelAbove={labelAboveAt(marker.site.id, point)}
             selected={marker.site.id === selectedId}
+            lifted={marker.site.id === lifted}
+            moving={marker.site.id === moving}
             index={index}
             animate={animate}
             onSelect={onSelect}
+            handlers={handlers}
           />
         );
       })}
@@ -333,29 +584,51 @@ export function SchematicMapRenderer({ markers, positions, selectedId, onSelect,
             : { left: DOCK_INSET, top: size.height - 64, width: size.width - DOCK_INSET * 2, side: "top" }
           : { left: PAD_X, top: size.height - DOCK_INSET, width: clamp(size.width - reserveRight - PAD_X - 12 - CAPTION_WIDTH, 280, 420), side: "top" },
       )}
-      <div className={cn("absolute bottom-3 left-3 z-10 flex overflow-hidden rounded-lg border border-border bg-card shadow-sm", compact ? "flex-row" : "flex-col")} role="group" aria-label="Map controls">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-9 rounded-none max-md:size-11" aria-label="Zoom in" onClick={() => setZoom((value) => clamp(value + 0.15, ZOOM_MIN, ZOOM_MAX))}><Plus /></Button>
-          </TooltipTrigger>
-          <TooltipContent side="right">Zoom in</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-9 rounded-none border-border max-md:size-11 data-[compact=true]:border-l data-[compact=false]:border-t" data-compact={compact} aria-label="Zoom out" onClick={() => setZoom((value) => clamp(value - 0.15, ZOOM_MIN, ZOOM_MAX))}><Minus /></Button>
-          </TooltipTrigger>
-          <TooltipContent side="right">Zoom out</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-9 rounded-none border-border max-md:size-11 data-[compact=true]:border-l data-[compact=false]:border-t" data-compact={compact} aria-label="Fit network" onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}><Focus /></Button>
-          </TooltipTrigger>
-          <TooltipContent side="right">Fit network</TooltipContent>
-        </Tooltip>
+      <div data-atlas-obstacle className="absolute bottom-3 left-3 z-20 flex items-end gap-2">
+        <div className={cn("flex overflow-hidden rounded-lg border border-border bg-card shadow-sm", compact ? "flex-row" : "flex-col")} role="group" aria-label="Map controls">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button asChild variant="ghost" size="icon" className="size-9 rounded-none max-md:size-11">
+                <motion.button type="button" aria-label="Zoom in" onClick={() => setZoom((value) => clamp(value + 0.15, ZOOM_MIN, ZOOM_MAX))} {...PRESS}><Plus /></motion.button>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Zoom in</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button asChild variant="ghost" size="icon" className="size-9 rounded-none border-border max-md:size-11 data-[compact=true]:border-l data-[compact=false]:border-t" data-compact={compact}>
+                <motion.button type="button" aria-label="Zoom out" onClick={() => setZoom((value) => clamp(value - 0.15, ZOOM_MIN, ZOOM_MAX))} {...PRESS}><Minus /></motion.button>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Zoom out</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button asChild variant="ghost" size="icon" className="size-9 rounded-none border-border max-md:size-11 data-[compact=true]:border-l data-[compact=false]:border-t" data-compact={compact}>
+                <motion.button type="button" aria-label="Fit network" onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }} {...PRESS}><Focus /></motion.button>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Fit network</TooltipContent>
+          </Tooltip>
+        </div>
+        {compact && resetButton}
       </div>
-      <p className={cn("absolute z-10 rounded-md bg-card/95 px-2 py-1 text-xs text-muted-foreground shadow-xs", compact ? "top-3 left-3" : "bottom-3")} style={compact ? undefined : { right: 12 + reserveRight }}>
-        Illustrative layout — not geography
-      </p>
+      {compact ? (
+        <p data-atlas-obstacle className="absolute top-3 left-3 z-10 rounded-md bg-card/95 px-2 py-1 text-xs text-muted-foreground shadow-xs">
+          Illustrative layout — not geography
+        </p>
+      ) : (
+        <div data-atlas-obstacle className="absolute bottom-3 z-20 flex flex-col items-end gap-1.5" style={{ right: 12 + reserveRight }}>
+          {resetButton}
+          <p className="rounded-md bg-card/95 px-2 py-1 text-xs text-muted-foreground shadow-xs">Illustrative layout — not geography</p>
+        </div>
+      )}
+      {onMoveNode && (
+        <span id={MOVE_HINT_ID} hidden>
+          Press M to move this site on the map, then use the arrow keys; Enter or Escape places it. Dragging also moves it.
+        </span>
+      )}
+      <p data-atlas-announcer role="status" aria-live="polite" className="sr-only">{announcement}</p>
     </div>
   );
 }

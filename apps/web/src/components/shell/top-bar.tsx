@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "./theme-toggle";
 
 export type TopBarSearch = {
   value: string;
@@ -14,7 +15,7 @@ export type TopBarSearch = {
 
 const SEARCH_LABEL = "Search sites or products";
 
-/** Shared top bar (blueprint §2): search left; simulated-network pill and horizon right. No identity here. */
+/** Shared top bar (blueprint §2): search left; simulated-network pill, horizon and theme toggle right. No identity here. */
 export function TopBar({ search, horizonLabel }: { search?: TopBarSearch; horizonLabel?: string }) {
   const { toggleSidebar } = useSidebar();
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -63,6 +64,7 @@ export function TopBar({ search, horizonLabel }: { search?: TopBarSearch; horizo
             {horizonLabel}
           </span>
         )}
+        <ThemeToggle />
       </div>
     </header>
   );

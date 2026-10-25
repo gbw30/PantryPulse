@@ -159,6 +159,28 @@ def authenticate(request, runtime, *, mutation=False):
     return TrustedScope(row["organization_id"], row["actor_id"])
 
 
+VISITOR_ACTOR = "visitor:read-only"
+
+
+def read_scope(request, runtime):
+    """GET-only reads: the presenter session when present, else the opt-in read-only visitor.
+
+    PP_VISITOR_ORGANIZATION_ID (user decision 2026-10-25) lets visitors see saved Overview data for
+    one demo organization. Unset means presenter-only, as before. It never applies to mutations.
+    """
+    try:
+        return authenticate(request, runtime, mutation=False)
+    except AccessError as error:
+        visitor = os.environ.get("PP_VISITOR_ORGANIZATION_ID", "").strip()
+        if error.code != "PRESENTER_REQUIRED" or not visitor:
+            raise
+        try:
+            organization = UUID(visitor)
+        except ValueError:
+            raise AccessError("VISITOR_ACCESS_MISCONFIGURED", 503) from None
+        return TrustedScope(organization, VISITOR_ACTOR)
+
+
 def logout(request, response, runtime):
     authenticate(request, runtime, mutation=True)
     with runtime.engine.begin() as conn:

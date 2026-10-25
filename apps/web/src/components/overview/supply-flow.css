@@ -1,0 +1,60 @@
+/*
+ * Supply-link flow (PP-52 decision 4: an explicit user override of ART-DIRECTION's perpetual-motion ban).
+ * Dashes travel from the hub to each pantry along its supply link, always on, as in the design lab's
+ * .lab-edge-flow. Every link uses the same dash pattern and speed, so the flow never encodes a quantity;
+ * the selected site's link only flows brighter and faster. Colours are tokens, so both themes work.
+ * OS reduced motion removes the dashes: the link stays a static line.
+ */
+.pp-supply-flow {
+  fill: none;
+  stroke: var(--pp-teal);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-dasharray: 2 10;
+  opacity: 0.6;
+  pointer-events: none;
+  /* Starts after the links draw in; the fade-in is a one-off, the flow loops. */
+  animation: pp-supply-flow 2.4s linear infinite, pp-supply-flow-in 0.4s ease-out 0.7s backwards;
+  transition: opacity 0.2s ease-out, stroke-width 0.2s ease-out;
+}
+
+.pp-supply-flow[data-dimmed="true"] {
+  opacity: 0.25;
+}
+
+.pp-supply-flow[data-emphasis="true"] {
+  stroke-width: 3.25;
+  stroke-dasharray: 3 9;
+  opacity: 1;
+  animation-duration: 1.2s, 0.4s;
+}
+
+@keyframes pp-supply-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+@keyframes pp-supply-flow-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pp-supply-flow {
+    display: none;
+    animation: none;
+  }
+}
+
+/* Under the flow, the selected link's teal line steps back so the moving dashes read as the bright part. */
+.pp-supply-emphasis {
+  stroke-opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pp-supply-emphasis {
+    stroke-opacity: 1;
+  }
+}

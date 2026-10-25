@@ -521,6 +521,8 @@ test("product search offers a product and switches units", async ({ page }, test
   await expect(product).toHaveText(/Bottled water \(bottles\)/);
 });
 
+// The flowing dashes on supply links ([data-supply-flow]) loop by user decision (PP-52 decision 4) and are
+// covered by overview-layout.spec.ts; everything else animates in once and settles.
 test("first load animates supply links and markers, then settles", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
@@ -530,7 +532,10 @@ test("first load animates supply links and markers, then settles", async ({ page
   const sample = () => page.evaluate(() => ({
     links: [...document.querySelectorAll("[data-supply-link]")].map((path) => `${path.getAttribute("stroke-dasharray")}|${path.getAttribute("stroke-dashoffset")}`),
     markers: [...document.querySelectorAll("[data-marker-role]")].map((marker) => `${getComputedStyle(marker).opacity}|${getComputedStyle(marker).transform}`),
-    running: document.getAnimations().filter((animation) => animation.playState === "running").length,
+    running: document.getAnimations().filter((animation) => {
+      const target = (animation.effect as KeyframeEffect | null)?.target;
+      return animation.playState === "running" && !(target instanceof Element && target.matches("[data-supply-flow]"));
+    }).length,
   }));
   const first = await sample();
   await page.waitForTimeout(120);
