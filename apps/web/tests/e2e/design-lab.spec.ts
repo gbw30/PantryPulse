@@ -45,16 +45,12 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
     // The readable selector remains usable when the overview is scaled down.
     await page.getByRole("combobox", { name: "Location", exact: true }).selectOption("pine");
     await expect(page.getByRole("heading", { name: "Pine Ridge", exact: true })).toBeVisible();
+    await expectNoSeriousA11yViolations(page, testInfo, `design-lab ${width}x${height} dark`);
     await page.getByRole("button", { name: "Switch to light mode" }).click();
     await expect(page.locator(".lab-light")).toBeVisible();
     await expect(page.locator(".lab-edge-flow")).toHaveCount(0);
     expect(pageErrors).toEqual([]);
-    // Report-only: the illustrative design lab fails WCAG AA color-contrast (serious) in light mode at
-    // all three viewports as of 873d356. Fixing it is a visual change pending a frontend task; then enforce.
-    await expectNoSeriousA11yViolations(page, testInfo, `design-lab ${width}x${height}`, {
-      enforce: false,
-      reason: "known design-lab color-contrast debt; enforce after the contrast fix",
-    });
+    await expectNoSeriousA11yViolations(page, testInfo, `design-lab ${width}x${height} light`);
     await page.screenshot({ path: testInfo.outputPath(`design-lab-${width}.png`), fullPage: true });
   });
 }
