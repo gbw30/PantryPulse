@@ -18,7 +18,7 @@ async function proxy(request: Request) {
       new RegExp(`^inventory/sites/${uuid}/products/${uuid}$`).test(path) ||
       new RegExp(`^allocation-jobs/${uuid}/results$`).test(path) ||
       new RegExp(`^legacy-planning/(scenarios|plans|comparisons)/${uuid}$`).test(path)
-    : request.method === "POST" && (["forecasts", "scenarios", "comparisons", "planning-assumptions", "presenter/login", "presenter/logout", "receipts", "supplies", "imports/demand", "imports/demand/csv", "imports/donation-coverage"].includes(path) ||
+    : request.method === "POST" && (["forecasts", "scenarios", "comparisons", "planning-assumptions", "presenter/login", "presenter/logout", "receipts", "supplies", "products", "imports/demand", "imports/demand/csv", "imports/donation-coverage"].includes(path) ||
       new RegExp(`^jobs/${uuid}/(retry|cancel)$`).test(path) ||
       new RegExp(`^receipts/${uuid}/(revisions|post|reconcile)$`).test(path) ||
       new RegExp(`^inventory/lots/${uuid}/declarations$`).test(path) ||

@@ -18,9 +18,9 @@ from app.models import operational as m  # noqa: E402
 from scripts.forecasting_fixture import SPEC_PATH, build_fixture  # noqa: E402
 
 
-def seed_history(conn, *, first_planning_date=None):
+def seed_history(conn, *, first_planning_date=None, spec_path=None):
     """One transaction: catalog + revisions only. No inventory, supply or fake forecast."""
-    spec = json.loads(SPEC_PATH.read_text(encoding="utf-8"))
+    spec = json.loads((spec_path or SPEC_PATH).read_text(encoding="utf-8"))
     if first_planning_date is not None:
         start = first_planning_date - timedelta(days=spec["history_days"])
         spec["start_date"] = start.isoformat()

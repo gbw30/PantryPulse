@@ -31,9 +31,9 @@ class AssumptionsPayload(ORContract):
     policy: ORPolicy
     routes: tuple[Route, ...] = Field(max_length=182)
     capacities: Capacities
-    reserves: tuple[Reserve, ...] = Field(max_length=28)
+    reserves: tuple[Reserve, ...] = Field(max_length=112)  # 14 sites x 8 products
     vulnerability_attributes: tuple[VulnerabilityAttributes, ...] = Field(max_length=12)
-    handling: tuple[HandlingCoefficient, ...] = Field(min_length=1, max_length=2)
+    handling: tuple[HandlingCoefficient, ...] = Field(min_length=1, max_length=8)  # per product
 
 
 class AssumptionsRequest(ORContract):
@@ -58,7 +58,7 @@ class ScenarioRequest(ORContract):
     expected_source_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
     transfer_mode: TransferMode
     planning_days: int = Field(strict=True, ge=1, le=3)
-    modifiers: tuple[DemandModifier, ...] = Field(max_length=28)
+    modifiers: tuple[DemandModifier, ...] = Field(max_length=112)  # 14 sites x 8 products
 
 
 class ScenarioResult(ORContract):

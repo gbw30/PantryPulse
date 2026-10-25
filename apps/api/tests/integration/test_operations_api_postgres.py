@@ -365,3 +365,41 @@ def test_atomic_import_reports_row_fields_and_counts_without_leaking_input(api):
     assert malformed.status_code == 422
     assert malformed.json()["error"]["details"]["errors"][0]["field"] == "requested"
     assert "private-bad-value" not in malformed.text
+
+
+def test_presenter_creates_products_up_to_the_limit(api):
+    """More than two products: create, reject duplicates, enforce the active-product cap."""
+    from app.repositories.operations_api import MAX_ACTIVE_PRODUCTS
+
+    client, headers, _runtime, catalog = inputs(api)
+    existing = len([p for p in catalog["products"] if p["active"]])
+    created = post(
+        client, headers, "/api/v1/products", {"name": "Canned vegetables", "base_unit": "can"}
+    )
+    assert created.status_code == 201, created.text
+    product = created.json()["result"]
+    assert (product["name"], product["base_unit"], product["active"]) == (
+        "Canned vegetables",
+        "can",
+        True,
+    )
+    after = client.get("/api/v1/operational-catalog").json()["products"]
+    assert any(p["id"] == product["id"] for p in after)
+    duplicate = post(
+        client, headers, "/api/v1/products", {"name": "canned VEGETABLES", "base_unit": "can"}
+    )
+    assert duplicate.status_code == 409 and duplicate.json()["error"]["code"] == "PRODUCT_EXISTS"
+    for index in range(MAX_ACTIVE_PRODUCTS - existing - 1):
+        filler = post(
+            client, headers, "/api/v1/products", {"name": f"Item {index}", "base_unit": "unit"}
+        )
+        assert filler.status_code == 201, filler.text
+    over = post(client, headers, "/api/v1/products", {"name": "One too many", "base_unit": "unit"})
+    assert over.status_code == 409 and over.json()["error"]["code"] == "PRODUCT_LIMIT_REACHED"
+    visitor = client.post(
+        "/api/v1/products",
+        json={"name": "No session", "base_unit": "unit"},
+        headers={"Idempotency-Key": uuid4().hex},
+        cookies={},
+    )
+    assert visitor.status_code in (401, 403)

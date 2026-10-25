@@ -250,6 +250,46 @@ def stock_write(session, scope, key, operation, body, identity):
     return dict(command_id=outcome["command_id"], operation=operation, result=wire(outcome))
 
 
+MAX_ACTIVE_PRODUCTS = 8  # planning.MAX_PLANNING_PRODUCTS
+
+
+def product_create(session, scope, body):
+    org = scope.organization_id
+    active = list(
+        session.scalars(
+            sa.select(m.Product).where(m.Product.organization_id == org, m.Product.active.is_(True))
+        )
+    )
+    name = body.name.strip()
+    if any(row.name.strip().casefold() == name.casefold() for row in active):
+        raise StockError("PRODUCT_EXISTS", 409)
+    if len(active) >= MAX_ACTIVE_PRODUCTS:
+        raise StockError("PRODUCT_LIMIT_REACHED", 409)
+    category_name = (body.category_name or name).strip()
+    category = session.scalar(
+        sa.select(m.Category).where(
+            m.Category.organization_id == org,
+            sa.func.lower(m.Category.name) == category_name.casefold(),
+            m.Category.active.is_(True),
+        )
+    )
+    if category is None:
+        category = m.Category(id=uuid4(), organization_id=org, name=category_name, active=True)
+        session.add(category)
+        session.flush()
+    row = m.Product(
+        id=uuid4(),
+        organization_id=org,
+        category_id=category.id,
+        name=name,
+        base_unit=body.base_unit.strip(),
+        active=True,
+    )
+    session.add(row)
+    session.flush()
+    return row_data(row)
+
+
 def supply_create(session, scope, body):
     org = scope.organization_id
     for model, identity in (
