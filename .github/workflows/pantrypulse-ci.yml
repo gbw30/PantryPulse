@@ -7,7 +7,8 @@ permissions:
   contents: read
 concurrency:
   group: pantrypulse-${{ github.ref }}
-  cancel-in-progress: true
+  # Superseded PR runs cancel; main runs always finish so post-merge verification completes.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   # Merge gate, capped at 2 minutes: static checks only (user decision 2026-10-25).
   # Backend tests, build and browser journeys run in the parallel `full` job.
