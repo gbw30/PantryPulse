@@ -1,4 +1,6 @@
+import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
+import { PRESS } from "./atlas-motion";
 import { StatusGlyph } from "./status-glyph";
 import type { MarkerStatus, Site } from "./types";
 
@@ -19,8 +21,9 @@ export function SiteList({ items, selectedId, query, onSelect }: { items: SiteLi
             const selected = site.id === selectedId;
             return (
               <li key={site.id} className="shrink-0">
-                <button
+                <motion.button
                   type="button"
+                  {...PRESS}
                   aria-pressed={selected}
                   aria-describedby={`site-detail-${site.id}`}
                   onClick={(event) => onSelect(site.id, event.currentTarget)}
@@ -34,7 +37,7 @@ export function SiteList({ items, selectedId, query, onSelect }: { items: SiteLi
                     <span className="block font-condensed text-[13px] font-semibold text-foreground">{site.shortName}</span>
                     <span className="block text-[11px] text-foreground">{statusLine}{fallbackNote && <span className="sr-only">, {fallbackNote}</span>}</span>
                   </span>
-                </button>
+                </motion.button>
                 <span id={`site-detail-${site.id}`} hidden>{site.name}: {detail}</span>
               </li>
             );

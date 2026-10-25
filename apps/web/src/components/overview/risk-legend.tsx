@@ -17,13 +17,17 @@ const ROWS: { status: MarkerStatus; meaning: string; full: string }[] = [
  * RiskLegend: a compact card with shape, label and a one-line meaning for each status (two rows on
  * desktop), plus the supply-link key. Supply links show where the hub can send, never a planned route.
  */
-export function RiskLegend({ context, className, style, ref }: { context: string; className?: string; style?: React.CSSProperties; ref?: React.Ref<HTMLDivElement> }) {
+export function RiskLegend({ context, className, style, ref, grip, lifted = false }: { context: string; className?: string; style?: React.CSSProperties; ref?: React.Ref<HTMLDivElement>; grip?: React.ReactNode; lifted?: boolean }) {
   return (
-    <div ref={ref} data-legend-card className={cn("rounded-xl border border-border bg-card/95 px-3.5 py-2 text-foreground md:py-2.5 shadow-sm", className)} style={style}>
-      <p className="text-xs">
-        <span className="font-semibold">Site status</span>
-        <span className="text-muted-foreground"> · {context}</span>
-      </p>
+    // An obstacle for dropped map nodes (PP-52); on narrow layouts it sits above the map and never overlaps.
+    <div ref={ref} data-legend-card data-atlas-obstacle className={cn("rounded-xl border border-border bg-card/95 px-3.5 py-2 text-foreground md:py-2.5 transition-shadow duration-150", lifted ? "shadow-xl ring-1 ring-primary/40" : "shadow-sm", className)} style={style}>
+      <div className="flex items-center gap-1.5">
+        {grip && <span className="-my-1 -ml-1.5 inline-flex">{grip}</span>}
+        <p className="text-xs">
+          <span className="font-semibold">Site status</span>
+          <span className="text-muted-foreground"> · {context}</span>
+        </p>
+      </div>
       <ul aria-label="Site status legend" className="mt-1 grid grid-cols-1 gap-x-4 gap-y-0.5 text-[13px] md:mt-1.5 md:gap-y-1 sm:grid-cols-2 lg:grid-cols-[repeat(3,auto)]">
         {ROWS.map((row) => (
           <li key={row.status} className="flex items-center gap-1.5 whitespace-nowrap">

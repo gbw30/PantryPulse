@@ -31,7 +31,7 @@
   --lab-fg: #172e2c;
   --lab-soft: #31514b;
   /* Shared tokens keep light-mode secondary and risk text at WCAG AA contrast. */
-  --lab-muted: var(--muted-foreground);
+  --lab-muted: #52636a; /* literal so the app's dark theme can't leak into the lab's light mode */
   --lab-border: #cbd8cd;
   --lab-border-soft: rgba(40, 96, 79, .13);
   --lab-accent: #1b785e;
