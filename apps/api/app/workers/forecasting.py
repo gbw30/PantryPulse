@@ -24,12 +24,22 @@ from app.services.jobs.registry import (
 
 
 class ForecastHandler:
+    def validate_policy(self, inputs):
+        BaselinePolicy.model_validate(inputs.policy.model_dump())
+
+    def primary_adapter(self, inputs):
+        return (
+            SeasonalNaiveAdapter()
+            if inputs.policy.strategy == "SEASONAL_NAIVE"
+            else MovingAverageAdapter()
+        )
+
     def validate_input(self, payload):
         if not isinstance(payload, Mapping) or set(payload) != {"forecast_input"}:
             raise InputRejected("INVALID_INPUT", "Unknown forecast payload")
         try:
             inputs = validate_input(ForecastInput.model_validate(payload["forecast_input"]))
-            BaselinePolicy.model_validate(inputs.policy.model_dump())
+            self.validate_policy(inputs)
             if len(inputs.series) > 800 or sum(len(s.observations) for s in inputs.series) > 60_000:
                 raise ValueError("History exceeds worker bounds")
         except (ValueError, TypeError, AttributeError) as exc:
@@ -56,11 +66,7 @@ class ForecastHandler:
         ):
             raise ValueError("Fallback requires explicit opt-in and a classified failure")
         # The supervisor owns the primary/fallback boundary and their shared deadline.
-        adapter = (
-            SeasonalNaiveAdapter()
-            if step == "primary" and inputs.policy.strategy == "SEASONAL_NAIVE"
-            else MovingAverageAdapter()
-        )
+        adapter = self.primary_adapter(inputs) if step == "primary" else MovingAverageAdapter()
         output = forecast(inputs, adapter=adapter, run_id=context.job_id, single_candidate=True)
         if (
             step == "primary"
@@ -100,6 +106,33 @@ class ForecastHandler:
 
 
 class ForecastPublisher:
+    contract = "forecast.v1"
+
+    def primary_identity(self, inputs):
+        BaselinePolicy.model_validate(inputs.policy.model_dump())
+        return (
+            MovingAverageAdapter.identity
+            if inputs.policy.strategy == "MOVING_AVERAGE"
+            else SeasonalNaiveAdapter.identity
+        )
+
+    @staticmethod
+    def validate_series(row, expected, fallback):
+        if row.actual_provider != expected or row.fallback_used != fallback:
+            raise ValueError("Provider provenance contradicts execution")
+        for point in row.points:
+            if expected.name == "CHRONOS2":
+                if (
+                    point.interval_method != "MODEL_QUANTILES"
+                    or point.estimate_kind != "MEDIAN"
+                    or any(v is None for v in (point.p10, point.p50, point.p90))
+                ):
+                    raise ValueError("Chronos must retain actual model quantiles")
+            elif point.interval_method != "NONE" or point.estimate_kind != (
+                "MEAN" if expected.name == "MOVING_AVERAGE" else "POINT"
+            ):
+                raise ValueError("Baseline outputs cannot claim model quantiles")
+
     def validate(self, validated, outcomes):
         try:
             inputs = validate_input(ForecastInput.model_validate(validated["forecast_input"]))
@@ -124,22 +157,11 @@ class ForecastPublisher:
                 )
             ):
                 raise ValueError("Invalid execution path")
-            expected = (
-                MovingAverageAdapter.identity
-                if fallback or inputs.policy.strategy == "MOVING_AVERAGE"
-                else SeasonalNaiveAdapter.identity
-            )
+            expected = MovingAverageAdapter.identity if fallback else self.primary_identity(inputs)
             for row in output.series:
                 if row.status != "AVAILABLE":
                     continue
-                if row.actual_provider != expected or row.fallback_used != fallback:
-                    raise ValueError("Provider provenance contradicts execution")
-                if any(
-                    p.interval_method != "NONE"
-                    or p.estimate_kind != ("MEAN" if expected.name == "MOVING_AVERAGE" else "POINT")
-                    for p in row.points
-                ):
-                    raise ValueError("Baseline outputs cannot claim model quantiles")
+                self.validate_series(row, expected, fallback)
         except (ValueError, TypeError, KeyError, AttributeError) as exc:
             raise PublicationRejected("OUTPUT_INVALID") from exc
         return {"forecast_output": output.model_dump(mode="json")}
@@ -168,9 +190,21 @@ class ForecastPublisher:
             if (
                 output.run_id != identity.job_id
                 or inputs.organization_id != identity.organization_id
-                or identity.handler_contract != "forecast.v1"
+                or identity.handler_contract != self.contract
             ):
                 raise ValueError("Publication ownership mismatch")
+            primary = self.primary_identity(inputs)
+            available = [row for row in output.series if row.status == "AVAILABLE"]
+            if len({row.fallback_used for row in available}) > 1:
+                raise ValueError("Publication requires whole-batch provider provenance")
+            for row in available:
+                if row.fallback_used and not inputs.policy.allow_fallback:
+                    raise ValueError("Fallback was not authorized")
+                self.validate_series(
+                    row,
+                    MovingAverageAdapter.identity if row.fallback_used else primary,
+                    row.fallback_used,
+                )
         except (ValueError, TypeError, KeyError) as exc:
             raise PublicationRejected("OUTPUT_INVALID") from exc
         own = {"organization_id": identity.organization_id}

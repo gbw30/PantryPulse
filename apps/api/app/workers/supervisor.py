@@ -167,11 +167,14 @@ class Supervisor:
         if not self.driver.capable:
             log_event("COMPUTE_CAPABILITY_MISSING", capability="process_containment")
             return False
+        contracts, handler_profiles = self.registry.execution_advertisement()
         advertisement = supervisor_advertisement(
             self.profile,
-            handler_contracts=self.registry.contracts(),
+            handler_contracts=contracts,
             process_containment=True,
         )
+        if handler_profiles:
+            advertisement["capabilities"]["handler_profiles"] = handler_profiles
         own = self.repo.acquire_ownership(
             supervisor_id=self.supervisor_id,
             host_identity=self.driver.host_identity_text(),
@@ -661,11 +664,16 @@ class Supervisor:
     # --- shutdown --------------------------------------------------------------------------
 
     def _wait_idle(self, timeout_s: float | None) -> None:
-        budget = timeout_s if timeout_s is not None else max(
-            self.profile.forecast_total_s,
-            self.profile.allocation_total_s,
-            self.profile.comparison_total_s,
-        ) + 30
+        budget = (
+            timeout_s
+            if timeout_s is not None
+            else max(
+                self.profile.forecast_total_s,
+                self.profile.allocation_total_s,
+                self.profile.comparison_total_s,
+            )
+            + 30
+        )
         end = self.clock() + budget
         while self.active is not None and self.clock() < end and not self.ownership_lost:
             self.tick()
@@ -716,8 +724,11 @@ def main(argv: list[str] | None = None) -> int:
 
     parser = argparse.ArgumentParser(description="PantryPulse compute supervisor")
     parser.add_argument("--registry", default="production", choices=["production", "test"])
-    parser.add_argument("--schema", default=os.environ.get("PP_DATABASE_SCHEMA") or None,
-                        help="search_path schema (defaults to PP_DATABASE_SCHEMA)")
+    parser.add_argument(
+        "--schema",
+        default=os.environ.get("PP_DATABASE_SCHEMA") or None,
+        help="search_path schema (defaults to PP_DATABASE_SCHEMA)",
+    )
     parser.add_argument("--profile-json", default=None, help="shorter limits only")
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stderr)

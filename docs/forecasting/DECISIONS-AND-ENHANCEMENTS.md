@@ -1,5 +1,10 @@
 # Open decisions and work beyond the current core
 
+**October 25 execution update:** the user resumed the bounded Chronos and
+evaluation workstream. The [implementation/qualification dossier](QUALIFICATION.md)
+supersedes older pause and implementation-absence notes for this local candidate.
+Chronos remains experimental; fitted calibration and improvements stay under #70.
+
 **Historical October 24 decision/planning notes.** Current implementation and accepted runtime changes are indexed in [CURRENT-STATUS.md](../pantrypulse/CURRENT-STATUS.md) and SPEC-V5. Old implementation-absence statements do not reopen completed API/job/OR/proxy/CI work; genuinely unresolved policy and optional improvements remain subordinate to the current specification.
 
 

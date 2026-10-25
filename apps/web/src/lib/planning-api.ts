@@ -58,11 +58,11 @@ export const isUuid = (value: string | null | undefined): value is string => typ
 export const TERMINAL_JOB_STATES = new Set<Schema["AttemptState"]>(["SUCCEEDED", "FAILED", "TIMED_OUT", "INTERRUPTED", "CANCELLED", "EXPIRED"]);
 
 /** The demo forecast request used by the connected workspace: seven days from yesterday's cutoff. */
-export function demoForecastRequest(sourceId: string, timezone: string): Schema["ForecastRequest"] {
+export function demoForecastRequest(sourceId: string, timezone: string, strategy: Schema["ForecastSubmissionPolicy"]["strategy"] = "SEASONAL_NAIVE"): Schema["ForecastRequest"] {
   return { source_id: sourceId,
     data_cutoff_date: localDay(timezone, -1), history_start_date: localDay(timezone, -90),
     snapshot_as_of: new Date().toISOString(), force_refresh: false,
-    policy: { strategy: "SEASONAL_NAIVE", policy_version: "demo-proposal-14d-3samples-v1",
+    policy: { strategy, policy_version: "demo-proposal-14d-3samples-v1",
       adapter_version: "core-v1", preprocessing_version: "preserve-gaps-v1", postprocessing_version: "reject-invalid-v1",
       sparse_window_days: 14, sparse_min_samples: 3, allow_fallback: true,
       allow_fulfilled_proxy: false, allow_mixed_proxy_history: false } };

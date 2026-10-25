@@ -224,6 +224,7 @@ const step = (page: Page, n: number) => page.getByRole("group", { name: new RegE
 const mobile = (width: number) => width < 768;
 async function showStep(page: Page, width: number, n: number) {
   if (!mobile(width)) return;
+  await expect(page.locator("[data-current-step]")).toBeVisible();
   for (let i = 0; i < 4 && !(await step(page, n).isVisible()); i += 1) {
     const current = Number((await page.locator("[data-current-step]").getAttribute("data-current-step")) ?? "1");
     await page.getByRole("button", { name: current < n ? "Next step" : "Previous step" }).click();
@@ -294,7 +295,10 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
     expect(freezes).toHaveLength(1);
     const body = freezes[0].body as Schemas["ScenarioRequest"];
     expect(body).toMatchObject({ forecast_run_id: FORECAST, assumptions_id: ASSUMPTIONS, expected_source_revision: REVISION, transfer_mode: "HUB_AND_PANTRY", planning_days: 1 });
-    expect(body.modifiers).toHaveLength(12);
+    expect(body.modifiers).toHaveLength(14);
+    expect(body.modifiers.filter((m) => m.site_id === HUB)).toEqual(PRODUCTS.map((p) => ({
+      site_id: HUB, product_id: p.id, mode: "CENTRAL", multiplier: "1", buffer_fraction: null,
+    })));
     expect(body.modifiers.every((m) => m.mode === "CENTRAL" && m.multiplier === "1" && m.buffer_fraction === null)).toBe(true);
 
     await page.getByRole("button", { name: "Compare methods" }).dblclick();
@@ -421,11 +425,20 @@ test("connected: freeze → compare → verified results end to end", async ({ p
   const dialog = page.getByRole("dialog", { name: "Presenter sign in" });
   await dialog.getByLabel("Username").fill(process.env.PP_E2E_USERNAME ?? "presenter");
   await dialog.getByLabel("Password").fill(process.env.PP_E2E_PASSWORD ?? "pantry-local-demo");
-  await dialog.getByRole("button", { name: "Sign in", exact: true }).click();
+  await Promise.all([page.waitForEvent("load"), dialog.getByRole("button", { name: "Sign in", exact: true }).click()]);
+  await expect(page.getByText("Presenter session · simulated demo")).toBeVisible();
   await page.goto("/scenarios");
+  await page.getByRole("button", { name: "Generate forecast", exact: true }).click();
+  await expect(page.locator("[data-job-state]")).toHaveAttribute("data-job-state", "SUCCEEDED", { timeout: 90_000 });
   await step(page, 2).getByRole("radio", { name: /Hub and pantry-to-pantry/ }).check();
   await page.getByRole("button", { name: "Create frozen scenario" }).click();
+  await page.getByLabel("Search seconds per method").fill("1");
+  const submitting = page.waitForResponse((response) => /\/scenarios\/[^/]+\/compare-methods$/.test(new URL(response.url()).pathname) && response.request().method() === "POST");
   await page.getByRole("button", { name: "Compare methods" }).click();
+  const accepted = await submitting;
+  expect(accepted.status()).toBe(202);
+  const comparisonId = (await accepted.json()).job_id as string;
+  await expect(page.locator("[data-job-state]")).toContainText(comparisonId.slice(0, 8));
   await expect(page.locator("[data-job-state]")).toHaveAttribute("data-job-state", "SUCCEEDED", { timeout: 540_000 });
   await expect(page.getByRole("table", { name: /Goals by site and product/ })).toBeVisible();
 });

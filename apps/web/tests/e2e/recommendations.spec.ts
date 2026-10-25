@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { expectNoSeriousA11yViolations } from "./a11y";
 import {
-  BASE, COMPARISON, COMPARISON_B, HASH_CLASSICAL, PLAN_CLASSICAL, SCENARIO_B, allocationResults, comparison, fail, method, mockApi, ok, scenario,
+  COMPARISON, COMPARISON_B, HASH_CLASSICAL, PLAN_CLASSICAL, SCENARIO_B, allocationResults, comparison, fail, method, mockApi, ok, scenario,
 } from "./recommendations-fixtures";
 
 // PP-54 Recommendations (Collage 2 Action Plan). Every test mocks the browser's /api/v1 requests;
@@ -300,16 +300,30 @@ test("review 401 ends the presenter session", async ({ page }) => {
   await expect(reviewButton(page)).toHaveCount(0);
 });
 
-// Connected: reviews a real saved plan through the proxy. Needs a backend with a saved comparison
-// and presenter credentials in PP_PRESENTER_USERNAME / PP_PRESENTER_PASSWORD.
+// Connected: creates and reviews its own real comparison through the current presenter flow.
 test("connected: presenter reviews a real saved plan", async ({ page }) => {
   test.skip(process.env.PP_RUN_CONNECTED !== "1", "Set PP_RUN_CONNECTED=1 with a running backend");
-  const login = await page.request.post(`${BASE}/api/v1/presenter/login`, {
-    data: { username: process.env.PP_PRESENTER_USERNAME ?? "", password: process.env.PP_PRESENTER_PASSWORD ?? "" },
-    headers: { "Idempotency-Key": crypto.randomUUID() },
-  });
-  expect(login.ok()).toBe(true);
-  await open(page);
+  test.setTimeout(180_000);
+  await page.goto("/overview");
+  await page.getByRole("button", { name: "Presenter sign in" }).click();
+  const signIn = page.getByRole("dialog", { name: "Presenter sign in" });
+  await signIn.getByLabel("Username").fill(process.env.PP_E2E_USERNAME ?? "presenter");
+  await signIn.getByLabel("Password").fill(process.env.PP_E2E_PASSWORD ?? "pantry-local-demo");
+  await Promise.all([page.waitForEvent("load"), signIn.getByRole("button", { name: "Sign in", exact: true }).click()]);
+  await page.goto("/scenarios");
+  await page.getByRole("button", { name: "Generate forecast", exact: true }).click();
+  await expect(page.locator("[data-job-state]")).toHaveAttribute("data-job-state", "SUCCEEDED", { timeout: 90_000 });
+  await page.getByRole("radio", { name: "Hub to pantry only" }).check();
+  await page.getByRole("button", { name: "Create frozen scenario" }).click();
+  await page.getByLabel("Search seconds per method").fill("1");
+  const submitting = page.waitForResponse((response) => /\/scenarios\/[^/]+\/compare-methods$/.test(new URL(response.url()).pathname) && response.request().method() === "POST");
+  await page.getByRole("button", { name: "Compare methods", exact: true }).click();
+  const accepted = await submitting;
+  expect(accepted.status()).toBe(202);
+  const comparisonId = (await accepted.json()).job_id as string;
+  await expect(page.locator("[data-job-state]")).toContainText(comparisonId.slice(0, 8));
+  await expect(page.locator("[data-job-state]")).toHaveAttribute("data-job-state", "SUCCEEDED", { timeout: 90_000 });
+  await open(page, `?comparison=${comparisonId}`);
   await expect(reviewButton(page)).toBeVisible({ timeout: 30_000 });
   await reviewButton(page).click();
   await page.getByRole("dialog").getByRole("button", { name: "Mark reviewed" }).click();

@@ -1,0 +1,156 @@
+{
+  "cancel_retry": {
+    "boundary_empty": true,
+    "cancelled_state": "CANCELLED",
+    "database_credentials_absent_in_child": true,
+    "retry_state": "SUCCEEDED",
+    "same_job_new_attempt": true
+  },
+  "canonical_scenario": {
+    "frozen": true,
+    "id": "fbdc7728-e3cc-4f62-87e1-b2ac64dcce08",
+    "provider": "MOVING_AVERAGE"
+  },
+  "capability": {
+    "adapter_version": "chronos2-univariate-cpu-f32-v1",
+    "checkpoint": "amazon/chronos-2",
+    "checkpoint_revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
+    "package_version": "2.3.2"
+  },
+  "disposable_schema_removed": true,
+  "downstream_comparison": {
+    "forecast_actual_provider": "MOVING_AVERAGE",
+    "job_id": "1f41b77b-e47e-40f0-b954-4ec254c10d80",
+    "methods": [
+      {
+        "candidate_hash": "180f0c8273ac08cc052e34260314f22b9978c97c642cd23cdd35992957d34141",
+        "gap": 0.0,
+        "independent_verification_passed": true,
+        "method": "CLASSICAL_GP",
+        "native_bound": 4.4432,
+        "native_status": "OPTIMAL",
+        "objective": {
+          "denominator": 625,
+          "numerator": 2777
+        },
+        "operational_hash": "e83a2b58b3308d16cb36e2da8a459cc6d2d2b3b589be51dbbc4f7c94ff4efc3a",
+        "outcome": "VERIFIED",
+        "policy_hash": "e1a5a175fa17d7a7ae81815538e8a6e06048040638458d0a66f00a20d1f414eb",
+        "settings_hash": "4f316326b2523fe50ea28efe421ac17be1fc650cd38d36c27c634d1e5b4f617e",
+        "total_seconds": 0.36033656999643426
+      },
+      {
+        "candidate_hash": "4f7641cfb8d59d16cb148c5f46a06a03074b33a6543c0d9fa80748931657ef27",
+        "gap": 0.0,
+        "independent_verification_passed": true,
+        "method": "EGP_PI_INSPIRED",
+        "native_bound": 7.059500000000001,
+        "native_status": "OPTIMAL",
+        "objective": {
+          "denominator": 2000,
+          "numerator": 14119
+        },
+        "operational_hash": "e83a2b58b3308d16cb36e2da8a459cc6d2d2b3b589be51dbbc4f7c94ff4efc3a",
+        "outcome": "VERIFIED",
+        "policy_hash": "e1a5a175fa17d7a7ae81815538e8a6e06048040638458d0a66f00a20d1f414eb",
+        "settings_hash": "4f316326b2523fe50ea28efe421ac17be1fc650cd38d36c27c634d1e5b4f617e",
+        "total_seconds": 1.033362678004778
+      }
+    ],
+    "operational_hash": "e83a2b58b3308d16cb36e2da8a459cc6d2d2b3b589be51dbbc4f7c94ff4efc3a",
+    "outcome": "SUCCEEDED",
+    "policy_hash": "e1a5a175fa17d7a7ae81815538e8a6e06048040638458d0a66f00a20d1f414eb",
+    "requested_forecast_strategy": "CHRONOS2",
+    "saved_replay_equal": true,
+    "scenario_id": "fbdc7728-e3cc-4f62-87e1-b2ac64dcce08",
+    "settings": {
+      "comparison_wall_milliseconds": 120000,
+      "method_wall_milliseconds": 45000,
+      "search_milliseconds": 15000,
+      "seed": 0,
+      "version": "or-solver-settings-v2",
+      "workers": 1
+    },
+    "state": "SUCCEEDED"
+  },
+  "fallback": {
+    "actual_providers": [
+      "MOVING_AVERAGE"
+    ],
+    "fallback_series": 26,
+    "forecast_points": 182,
+    "job_id": "9b465710-c412-4186-a827-9172c17fe925",
+    "planning_ready": true,
+    "state": "SUCCEEDED"
+  },
+  "generated_at": "2026-10-25T17:48:39.499580+00:00",
+  "handler_contract": "forecast.chronos.v1",
+  "no_fallback": {
+    "actual_providers": [
+      "CHRONOS2"
+    ],
+    "available_series": 12,
+    "forecast_points": 84,
+    "job_id": "4ca72d5f-b5c3-4911-8bca-6d19108dd952",
+    "planning_ready": false,
+    "state": "SUCCEEDED"
+  },
+  "offline_new_computation": "COMPUTE_UNAVAILABLE",
+  "offline_saved_reuse": true,
+  "production_profile": {
+    "limits": {
+      "allocation_total_s": 330,
+      "comparison_total_s": 690,
+      "forecast_primary_cutoff_s": 270,
+      "forecast_total_s": 300,
+      "heartbeat_interval_s": 5,
+      "heartbeat_stale_s": 15,
+      "kill_margin_s": 0.25,
+      "max_queued": 2,
+      "method_min_s": 1,
+      "method_search_s": 300,
+      "method_wall_s": 330,
+      "publication_reserve_s": 2,
+      "queue_wait_s": 1800,
+      "stop_grace_s": 2,
+      "worker_cpu": 6,
+      "worker_memory_gib": 8
+    },
+    "version": 2
+  },
+  "qualification_scope": "SIMULATED_REAL_HTTP_POSTGRES_LINUX_MODEL_FALLBACK_TO_BOTH_VERIFIED_OR_METHODS; NOT_PREDICTIVE_QUALITY",
+  "raw_evidence_sha256": "1b56c8db2f212ce973df49da2a729ef1ceac3615e967ba5d11d7c9350f55f91f",
+  "schema": "ppfc84_test_6b4412eeb9764bd9b7bd93603d8a5dcd",
+  "schema_version": "chronos-jobs-smoke-v1",
+  "scope": "SIMULATED",
+  "source_sha256": {
+    "apps/api/app/repositories/forecast_history.py": "398402926129bf6692b308b675acb21b34750c05b28d87001cb730efbe74e647",
+    "apps/api/app/repositories/jobs.py": "9c3e90a0dd897777e424b773b67ab76a27c9c01f371b0255adcec0c4d953fe1c",
+    "apps/api/app/routers/forecasts.py": "abe516b4fa5f50cf888f1899a5ac541388451a8f8f5783e35404b0246535ffd3",
+    "apps/api/app/schemas/forecast_api.py": "215ba8675be8242b017c9ab7a7766ffefd961c3ccac930a12c90260a1f4d2440",
+    "apps/api/app/services/chronos_runtime.py": "51e05dff1abece6b8c311c49de4a2cb55955bd3a2f4349a1f27acb4894772dfe",
+    "apps/api/app/services/forecasting/adapters/base.py": "4d6684220b85362e1ce4a441d61fcf95b07d111498debc65fb74c2d181e01965",
+    "apps/api/app/services/forecasting/adapters/chronos2.py": "83efe880ed295c6e71b0fce4ad50406acaf597a18f7821b09ce120d3da6773dc",
+    "apps/api/app/services/forecasting/adapters/moving_average.py": "da0267aaa7da79dcca650aef5743d73b64f5cd1c11662be82f0efe62cf6c5c59",
+    "apps/api/app/services/forecasting/adapters/seasonal_naive.py": "32e5e33a138cb7e9f91a97864a0baf2efa17c0ceb6140b7ea39403c49fcc0c0c",
+    "apps/api/app/services/forecasting/benchmark_data.py": "887bd2cdf2d3aa98574cde60b6b0afec76cc36b89ae0354c976536ecbcf2a223",
+    "apps/api/app/services/forecasting/benchmark_evaluation.py": "e330efca18d6061f3564b2e0062d20a2fbe9db739d8db30b62fa75c4b5770ca7",
+    "apps/api/app/services/forecasting/evaluation.py": "edb6aeaa1f649005c77a304e6ed5b2f874df5d7de4ccce55f65981bc06645518",
+    "apps/api/app/services/forecasting/schemas.py": "e63734e3f50a9d37a5abc1bd89926d111f8caef57c1ee257c334f0672e544eb0",
+    "apps/api/app/services/jobs/registry.py": "695d40b56b2ae2b8eda7285f30e6dfab44b2aa60bc182b83497224cac5894443",
+    "apps/api/app/workers/chronos_forecasting.py": "d3ab54df9d02faa743a249c4f350590c8ddd80925e25cdfca71c7a3ecefd973d",
+    "apps/api/app/workers/forecasting.py": "7df7b5acf687930c7c3ecd2325532b6b2702bdf76cb2285ff34cb4fe2737ea79",
+    "apps/api/app/workers/process_driver.py": "7eb1916fc6294239e637c8e99b6f8eab5661bad9d2c4fe4b45144e61ade7e545",
+    "apps/api/app/workers/production.py": "bf7a8b9675ace103e076d8264968a05349ce41df5d8e7de68ed7e0d23c11afe3",
+    "apps/api/app/workers/supervisor.py": "be1b5b76727f01e26eb637ddbc2a545eedaf4ec2a53dc86f4807eb3d8696e10f",
+    "apps/api/scripts/evaluate_retail_forecasting.py": "d0913fc9b5a123e7f0f01017793305b4d2aa9882228b7aa35cabea02af4958da",
+    "apps/api/scripts/forecasting_data.py": "5149a951bf27adfcc2ec8e75a542056bed31d08faabee18471ce06f1de667a3a",
+    "apps/api/scripts/smoke_chronos_jobs.py": "308912e0d08fae135c161078975fc3d636f4262e1f295df9e78c71b274b16d12",
+    "apps/api/tests/forecasting/test_chronos_jobs.py": "f486d12b5488b713bf0e82167450a91b1c9d2db5a42e23be53fe1aea1104d650",
+    "apps/web/src/app/optimization/workspace.tsx": "7825d8f2114a311eea4a4ed4303bff7b49759fddbf28c9c53c0d77044cf36ad8",
+    "docs/forecasting/QUALIFICATION-PROTOCOL.md": "6514a3dc202d09e3b77e1b469a8993310c8b8c07b84f0c0b30a1f4e926b7d5e1",
+    "packages/contracts/openapi.json": "c5e0a23ae22bd6ed8acf37be761955d8eaaecce3ee41407152831830d43f3280",
+    "packages/contracts/src/schema.d.ts": "e458cbcbd8ecbe49530375e2875e10d388f68a5b0b72476927ef0585e7e35134"
+  },
+  "wall_seconds": 59.31444652000209
+}
