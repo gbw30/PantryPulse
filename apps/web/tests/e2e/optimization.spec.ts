@@ -98,9 +98,9 @@ test("cancel and retry a durable comparison through the real proxy", async ({ pa
   await page.getByRole("button", { name: "Compare frozen scenario", exact: true }).click();
   await expect(page).toHaveURL(/kind=comparisons/);
   await page.getByRole("button", { name: "Cancel computation", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("CANCELLED", { timeout: 30_000 });
+  await expect(page.getByRole("region", { name: "Computation progress" }).getByRole("status")).toContainText("CANCELLED", { timeout: 30_000 });
   await page.reload();
-  await expect(page.getByRole("status")).toContainText("CANCELLED");
+  await expect(page.getByRole("region", { name: "Computation progress" }).getByRole("status")).toContainText("CANCELLED");
   await page.getByRole("button", { name: "Retry frozen attempt", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Comparison results · SUCCEEDED", exact: true })).toBeVisible({ timeout: 60_000 });
   await expect(page.getByText("2s search per method.", { exact: false })).toBeVisible();

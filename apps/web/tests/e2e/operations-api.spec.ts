@@ -66,7 +66,7 @@ test("operational history, audited stock and canonical plan review through the b
   }, { sourceId: catalog.body.data_sources[0].id, siteId: site.id, productId: product.id, recordKey: `vp-e2e-csv-v1-${site.id}-${product.id}` });
   expect(csv).toBe(201);
   await page.getByRole("button", { name: "Generate forecast", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("SUCCEEDED", { timeout: 90_000 });
+  await expect(page.getByRole("region", { name: "Computation progress" }).getByRole("status")).toContainText("SUCCEEDED", { timeout: 90_000 });
   await page.getByLabel("Transfer mode (required)").selectOption("HUB_ONLY");
   await page.getByRole("button", { name: "Freeze scenario", exact: true }).click();
   await expect(page.getByRole("button", { name: "Compare frozen scenario", exact: true })).toBeEnabled();
