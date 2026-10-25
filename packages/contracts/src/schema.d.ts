@@ -1057,6 +1057,14 @@ export interface components {
              */
             site_id: string;
         };
+        /** DashboardSummary */
+        DashboardSummary: {
+            /** Inventory */
+            inventory: components["schemas"]["InventorySnapshot"][];
+            latest_forecast: components["schemas"]["LatestForecast"] | null;
+            /** Observed At */
+            observed_at: string;
+        };
         /** DemandDay */
         DemandDay: {
             /**
@@ -1771,6 +1779,23 @@ export interface components {
             timezone: string;
             /** Usable Quantity */
             usable_quantity: string;
+        };
+        /** LatestForecast */
+        LatestForecast: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Job Id
+             * Format: uuid
+             */
+            job_id: string;
+            /** Planning Ready */
+            planning_ready: boolean;
+            /** Recorded At */
+            recorded_at: string;
         };
         /** LoginRequest */
         LoginRequest: {
@@ -2579,6 +2604,67 @@ export interface components {
              */
             unit_version: string;
         };
+        /** ShortageDay */
+        ShortageDay: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /**
+             * Demand
+             * @description Nonnegative base units.
+             */
+            demand: string;
+            /**
+             * Eligible End
+             * @description Eligible physical stock left at day end.
+             */
+            eligible_end: string;
+            /**
+             * Served
+             * @description Nonnegative base units.
+             */
+            served: string;
+            /**
+             * Unmet
+             * @description Nonnegative base units.
+             */
+            unmet: string;
+        };
+        /** ShortageProjection */
+        ShortageProjection: {
+            /**
+             * Forecast Run Id
+             * Format: uuid
+             */
+            forecast_run_id: string;
+            /** Observed At */
+            observed_at: string;
+            /** Series */
+            series: components["schemas"]["ShortageSeries"][];
+            /** Warnings */
+            warnings: string[];
+        };
+        /** ShortageSeries */
+        ShortageSeries: {
+            /** Actual Provider */
+            actual_provider: string;
+            /** Base Unit */
+            base_unit: string;
+            /** Days */
+            days: components["schemas"]["ShortageDay"][];
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /**
+             * Site Id
+             * Format: uuid
+             */
+            site_id: string;
+        };
         /** Site */
         Site: {
             /**
@@ -3182,7 +3268,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["DashboardSummary"];
                 };
             };
             /** @description Unauthorized */
@@ -5865,7 +5951,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["ShortageProjection"];
                 };
             };
             /** @description Unauthorized */
