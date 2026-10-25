@@ -4,5 +4,7 @@ Start with [Project specification V5](../pantrypulse/SPEC-V5.md), the current so
 
 The finalized frontend libraries and component registry policy are recorded in [0002-ui-stack.md](0002-ui-stack.md).
 
-The unmerged forecasting branch's ADR 0003 and experimental core are linked with an immutable commit in V5; they are not yet part of this main baseline.
+This review-fix branch includes the offline core from PR #49. [ADR 0003](0003-forecasting-core.md) records its experimental shared-contract boundary; V5 retains the historical main/branch baseline.
 
+
+[ADR 0004](0004-design-lab-3d-exception.md) records the user-approved optional 3D exception limited to `/design-lab`.
