@@ -25,6 +25,22 @@ export function firstDeficit(projection: SiteProductProjection | undefined): { d
   return dayIndex < 0 ? null : { dayIndex, unmetUnits: projection.unmetUnits[dayIndex] };
 }
 
+/** Next projected deficit on or after the selected day (Watch and Shortfall sites). */
+export function nextDeficitFrom(projection: SiteProductProjection | undefined, fromIndex: number): { dayIndex: number; unmetUnits: number } | null {
+  if (!projection || projection.kind !== "projected") return null;
+  for (let index = fromIndex; index < projection.unmetUnits.length; index += 1) {
+    if (projection.unmetUnits[index] > 0) return { dayIndex: index, unmetUnits: projection.unmetUnits[index] };
+  }
+  return null;
+}
+
+/** Short visible status line: Watch adds the date of its next deficit. */
+export function statusLine(status: MarkerStatus, projection: SiteProductProjection | undefined, dayIndex: number, dates: string[]) {
+  if (status !== "watch") return STATUS_LABEL[status];
+  const next = nextDeficitFrom(projection, dayIndex);
+  return next ? `Watch · ${formatShortDate(dates[next.dayIndex])}` : STATUS_LABEL[status];
+}
+
 export function formatUnits(value: number, product: Product) {
   return `${value.toLocaleString("en-US")} ${value === 1 ? product.unit : product.unitPlural}`;
 }

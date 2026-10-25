@@ -1,8 +1,25 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { expectNoSeriousA11yViolations } from "./a11y";
 
 // Mockup-only content (docs/design/reference/overview.md) must never reach the app.
 const MOCKUP_ONLY = ["Alex Chen", "Phoenix", "Canned Protein", "Riverside Community Pantry", "62%", "4,200"];
+
+type Box = { x: number; y: number; width: number; height: number };
+
+function overlaps(a: Box, b: Box, gap = 0) {
+  return a.x < b.x + b.width + gap && b.x < a.x + a.width + gap && a.y < b.y + b.height + gap && b.y < a.y + a.height + gap;
+}
+
+function inside(inner: Box, outer: Box, tolerance = 1) {
+  return inner.x >= outer.x - tolerance && inner.y >= outer.y - tolerance
+    && inner.x + inner.width <= outer.x + outer.width + tolerance && inner.y + inner.height <= outer.y + outer.height + tolerance;
+}
+
+async function box(locator: Locator) {
+  const result = await locator.boundingBox();
+  expect(result).not.toBeNull();
+  return result!;
+}
 
 async function expectMarkersInsideMap(page: Page) {
   await expect.poll(() => page.locator("[data-atlas-map]").evaluate((map) => {
@@ -15,15 +32,27 @@ async function expectMarkersInsideMap(page: Page) {
   })).toBe(true);
 }
 
+// Map controls keep at least 8px of clearance from every marker and its label.
+async function expectControlsClearOfMarkers(page: Page) {
+  const controls = await box(page.getByRole("group", { name: "Map controls" }));
+  for (const marker of await page.locator("[data-marker-role]").all()) {
+    expect(overlaps(controls, await box(marker), 8), "map controls crowd a marker").toBe(false);
+  }
+}
+
 async function chooseProduct(page: Page, name: RegExp) {
   await page.getByRole("combobox", { name: "Product" }).click();
   await page.getByRole("option", { name }).click();
 }
 
+const marker = (page: Page, name: string) => page.getByRole("button", { name: new RegExp(`^${name}, `) });
+
 for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
   test(`network atlas at ${width}x${height}`, async ({ page }, testInfo) => {
     const pageErrors: string[] = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
+    const shot = (name: string) => page.screenshot({ path: testInfo.outputPath(`overview-${width}-${name}.png`), fullPage: true });
+    const desktop = width >= 1024;
     await page.setViewportSize({ width, height });
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/overview");
@@ -33,17 +62,38 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
     await expect(page.getByText("Illustrative layout — not geography")).toBeVisible();
     await expect(page.getByText("Simulated network", { exact: true })).toBeVisible();
 
-    // Legend: the four beneficiary states, each named in text.
+    // Legend: the four beneficiary states, each with a visible one-line meaning.
     const legend = page.getByRole("list", { name: "Site status legend" });
-    for (const state of ["Shortfall", "Watch", "Covered", "Not evaluated"]) {
-      await expect(legend.getByText(state, { exact: true })).toBeVisible();
+    for (const [state, meaning] of [["Shortfall", "unmet on this day"], ["Watch", "deficit later"], ["Covered", "no unmet ahead"], ["Not evaluated", "no projection"]]) {
+      const item = legend.getByRole("listitem").filter({ hasText: state });
+      await expect(item.getByText(state, { exact: true })).toBeVisible();
+      await expect(item.getByText(meaning, { exact: false })).toBeVisible();
     }
 
-    // Six beneficiaries plus one hub, all inside the map canvas.
+    // Six beneficiaries plus one hub, all inside the map canvas, clear of the controls.
     await expect(page.locator('[data-marker-role="beneficiary"]')).toHaveCount(6);
     await expect(page.locator('[data-marker-role="hub"]')).toHaveCount(1);
     await expectMarkersInsideMap(page);
+    await expectControlsClearOfMarkers(page);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+
+    // Mobile first viewport: every legend state and the first two markers are visible together.
+    if (!desktop) {
+      for (const item of await legend.getByRole("listitem").all()) expect((await box(item)).y + (await box(item)).height).toBeLessThanOrEqual(height);
+      for (const name of ["Riverbend Pantry", "Oak Terrace Pantry"]) {
+        const rect = await box(marker(page, name));
+        expect(rect.y + rect.height, `${name} below the first viewport`).toBeLessThanOrEqual(height);
+      }
+      await expect(page.getByText("Scroll sideways for all 7 sites")).toBeVisible();
+    }
+
+    // Watch sites name their next deficit date without a click.
+    await expect(page.getByRole("list", { name: "All sites" }).getByRole("button", { name: /Oak Terrace Watch · Oct 27/ })).toBeVisible();
+    await expect(page.getByRole("list", { name: "All sites" }).getByRole("button", { name: /Willow Creek Watch · Oct 29/ })).toBeVisible();
+    if (desktop) {
+      const deficits = page.getByRole("list", { name: "Projected deficits" });
+      await expect(deficits.getByRole("button")).toHaveText([/Riverbend · Sat, Oct 24 · 20 meals unmet/, /Oak Terrace · Tue, Oct 27 · 35 meals unmet/, /Willow Creek · Thu, Oct 29 · 36 meals unmet/]);
+    }
 
     // The top bar carries no person, avatar or account identity.
     const topBar = page.getByRole("banner");
@@ -52,56 +102,104 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
     for (const text of MOCKUP_ONLY) await expect(page.getByText(text, { exact: false })).toHaveCount(0);
     await expect(page.getByText("No account · read-only demo")).toHaveCount(width >= 768 ? 1 : 0);
 
+    await shot("map-unselected");
     await expectNoSeriousA11yViolations(page, testInfo, `overview ${width}x${height} default`);
-    await page.screenshot({ path: testInfo.outputPath(`overview-${width}-map.png`), fullPage: true });
 
-    // Keyboard selection opens the popover; Esc closes it and returns focus to the marker.
-    const marker = page.getByRole("button", { name: /^Riverbend Pantry, beneficiary pantry, / });
-    await expect(marker).toHaveAccessibleName(/Shortfall/);
-    await marker.focus();
-    await page.keyboard.press("Enter");
-    const popover = page.getByRole("dialog", { name: "Riverbend Pantry" });
-    await expect(popover).toBeVisible();
-    await expect(popover).toContainText("Shortfall");
-    await expect(popover).toContainText("meals");
-    await page.keyboard.press("Escape");
-    await expect(popover).toBeHidden();
-    await expect(marker).toBeFocused();
+    // Popovers open by keyboard, stay inside the map and clear of the inspector, and return focus on Esc.
+    const mapBox = await box(page.locator("[data-atlas-map]"));
+    for (const [name, slug, deficit] of [["Riverbend Pantry", "riverbend", "First deficit Sat, Oct 24 · 20 meals unmet"], ["Oak Terrace Pantry", "oak-terrace", "First deficit Tue, Oct 27 · 35 meals unmet"]]) {
+      const target = marker(page, name);
+      await target.focus();
+      await page.keyboard.press("Enter");
+      const popover = page.getByRole("dialog", { name });
+      await expect(popover).toBeVisible();
+      await expect(popover).toContainText(deficit);
+      await expect(popover.getByRole("button", { name: "Inspect site" })).toBeVisible();
+      const popoverBox = await box(popover);
+      expect(inside(popoverBox, mapBox), `${name} popover leaves the map`).toBe(true);
+      if (desktop) expect(overlaps(popoverBox, await box(page.getByTestId("site-inspector"))), `${name} popover covers the inspector`).toBe(false);
+      expect(overlaps(popoverBox, await box(target)), `${name} popover covers its marker`).toBe(false);
+      await shot(`popover-${slug}`);
+      await page.keyboard.press("Escape");
+      await expect(popover).toBeHidden();
+      await expect(target).toBeFocused();
+    }
 
-    // Inspect site opens the inspector with the selected product's units.
+    // Inspect site opens the inspector on the Network tab with the selected product's units.
+    const riverbend = marker(page, "Riverbend Pantry");
+    await expect(riverbend).toHaveAccessibleName(/Shortfall/);
+    await riverbend.focus();
     await page.keyboard.press("Enter");
     await page.getByRole("button", { name: "Inspect site" }).click();
     const inspector = page.getByTestId("site-inspector");
-    await expect(inspector.getByRole("heading", { name: "Riverbend Pantry" })).toBeVisible();
+    const heading = inspector.getByRole("heading", { name: "Riverbend Pantry" });
+    await expect(heading).toBeVisible();
     await expect(inspector).toContainText("Shelf-stable meals");
-    await expect(inspector).toContainText("meals");
     await expect(inspector).not.toContainText("bottle");
     await expect(inspector.getByText("Routes hidden — no saved plan")).toBeVisible();
+    await expect(inspector.getByRole("button", { name: "Go to Site Details" })).toBeDisabled();
+    await expect(page.locator("button.bg-primary:not([disabled]):visible")).toHaveCount(0);
+    await shot("inspector-network");
+    await expectNoSeriousA11yViolations(page, testInfo, `overview ${width}x${height} inspector network`);
 
-    // Demand tab: chart with a text summary and a data table alternative.
+    // Demand tab: the data table fits the inspector width; the header stays visible while scrolling.
     await inspector.getByRole("tab", { name: "Demand" }).click();
     await inspector.getByRole("button", { name: "Show data table" }).click();
     const table = inspector.getByRole("table");
     await expect(table).toBeVisible();
     await expect(table.getByRole("row")).toHaveCount(8);
     await expect(table.getByRole("columnheader", { name: "Demand outlook (meals)" })).toBeVisible();
-    await expectNoSeriousA11yViolations(page, testInfo, `overview ${width}x${height} inspector`);
-    await page.screenshot({ path: testInfo.outputPath(`overview-${width}.png`), fullPage: true });
+    const tableRegion = inspector.getByRole("region", { name: /daily outlook table/ });
+    expect(await tableRegion.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+    const lastUnmet = table.getByRole("row", { name: /Fri, Oct 30/ }).getByRole("cell").last();
+    await lastUnmet.scrollIntoViewIfNeeded();
+    await expect(lastUnmet).toBeInViewport();
+    expect(inside(await box(lastUnmet), await box(inspector))).toBe(true);
+    expect(inside(await box(heading), await box(inspector)), "inspector header scrolled out of view").toBe(true);
+    await expect(heading).toBeInViewport();
+    await expectNoSeriousA11yViolations(page, testInfo, `overview ${width}x${height} inspector demand`);
+    await shot("inspector-demand-table-open");
     await page.keyboard.press("Escape");
-    await expect(marker).toBeFocused();
+    await expect(riverbend).toBeFocused();
 
     // Switching product changes the units and statuses shown.
     await chooseProduct(page, /Bottled water/);
     await expect(page.getByRole("button", { name: /^Pine Ridge Pantry, beneficiary pantry, Not evaluated/ })).toBeVisible();
-    await marker.focus();
+    await riverbend.focus();
     await page.keyboard.press("Enter");
+    const popover = page.getByRole("dialog", { name: "Riverbend Pantry" });
     await expect(popover).toContainText("bottles");
     await expect(popover).not.toContainText("meal");
     await page.keyboard.press("Escape");
-    await expect(marker).toBeFocused();
+    await expect(riverbend).toBeFocused();
     expect(pageErrors).toEqual([]);
   });
 }
+
+test("water product and hub views at 1440x900", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/overview");
+  await chooseProduct(page, /Bottled water/);
+  const pine = marker(page, "Pine Ridge Pantry");
+  await expect(pine).toHaveAccessibleName(/Not evaluated, insufficient data/);
+  await pine.focus();
+  await page.keyboard.press("Enter");
+  await page.getByRole("button", { name: "Inspect site" }).click();
+  const inspector = page.getByTestId("site-inspector");
+  await expect(inspector).toContainText("Insufficient data");
+  await expect(inspector).toContainText("96 bottles");
+  await page.screenshot({ path: testInfo.outputPath("overview-1440-water-insufficient.png"), fullPage: true });
+  await page.keyboard.press("Escape");
+  await chooseProduct(page, /Shelf-stable meals/);
+  const hub = marker(page, "Gator Distribution Hub");
+  await hub.focus();
+  await page.keyboard.press("Enter");
+  await page.getByRole("button", { name: "Inspect site" }).click();
+  await expect(inspector).toContainText("Hub · source");
+  await expect(inspector).toContainText("the hub has no demand forecast");
+  await page.screenshot({ path: testInfo.outputPath("overview-1440-hub.png"), fullPage: true });
+});
 
 test("site search filters the list and selects a match", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -126,7 +224,7 @@ test("empty snapshot shows every site as not evaluated", async ({ page }) => {
   await expect(page.getByText("No projection is available for this snapshot.", { exact: false })).toBeVisible();
   const markers = page.locator('[data-marker-role="beneficiary"]');
   await expect(markers).toHaveCount(6);
-  for (const marker of await markers.all()) await expect(marker).toHaveAccessibleName(/Not evaluated/);
+  for (const item of await markers.all()) await expect(item).toHaveAccessibleName(/Not evaluated/);
 });
 
 test("adapter failure shows an alert and no fabricated data", async ({ page }) => {
