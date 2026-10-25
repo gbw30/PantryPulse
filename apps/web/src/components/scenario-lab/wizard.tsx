@@ -10,6 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { Schema } from "@/lib/planning-api";
+import { pluralize } from "@/components/data-explorer/format";
 import { cn } from "@/lib/utils";
 import { MODE_LABEL, checkMultiplier, shortId, when, type ProductInfo, type SiteInfo } from "./model";
 
@@ -79,6 +80,8 @@ export function GuidedScenarioStepper(props: Props) {
   const [jsonText, setJsonText] = useState("");
   const [jsonError, setJsonError] = useState("");
   const lock = readOnly || busy;
+  // One multiplier column per product (up to 8), so a row never wraps onto a second line.
+  const columns = { gridTemplateColumns: `minmax(6rem,1fr) repeat(${Math.max(products.length, 1)}, minmax(3.75rem,4.75rem))` };
 
   const errors = Object.fromEntries(Object.entries(draft.multipliers).map(([k, v]) => [k, checkMultiplier(v)]));
   const invalid = Object.values(errors).some(Boolean);
@@ -166,12 +169,12 @@ export function GuidedScenarioStepper(props: Props) {
 
       <Step n={3} current={current} status={s3}>
         <p className="text-xs text-muted-foreground">Demand multiplier per site and product, 0–3 (1 = baseline forecast). Central forecast estimate.</p>
-        <div className="grid gap-1.5">
-          <div className="grid grid-cols-[minmax(0,1fr)_repeat(2,4.75rem)] gap-x-2 text-[11px] font-medium text-muted-foreground" aria-hidden="true">
-            <span>Site</span>{products.map((p) => <span key={p.id}>{p.unit}s ×</span>)}
+        <div className="grid gap-1.5 overflow-x-auto">
+          <div className="grid gap-x-2 text-[11px] font-medium text-muted-foreground" style={columns} aria-hidden="true">
+            <span>Site</span>{products.map((p) => <span key={p.id} className="truncate">{pluralize(p.unit)} ×</span>)}
           </div>
           {beneficiaries.map((site) => (
-            <div key={site.id} className="grid grid-cols-[minmax(0,1fr)_repeat(2,4.75rem)] items-start gap-x-2">
+            <div key={site.id} className="grid items-start gap-x-2" style={columns}>
               <span className="truncate pt-1.5 text-xs">{site.name}</span>
               {products.map((p) => {
                 const key = modifierKey(site.id, p.id);

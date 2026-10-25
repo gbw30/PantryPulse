@@ -168,6 +168,7 @@ type Options = {
   jobStates?: Record<string, { state: State; reason?: string }[]>;
   comparisons?: Record<string, Schemas["SavedComparison"]>;
   initial?: Reply;
+  network?: Schemas["ForecastCatalog"];
 };
 
 async function mockApi(page: Page, options: Options = {}) {
@@ -187,7 +188,7 @@ async function mockApi(page: Page, options: Options = {}) {
     if (path === "allocation-methodology") return reply(200, methodology);
     if (options.initial && (path === "planning-catalog" || path === "forecast-catalog")) return reply(options.initial.status, options.initial.body);
     if (path === "planning-catalog") return reply(200, options.catalog ?? catalog());
-    if (path === "forecast-catalog") return reply(200, network);
+    if (path === "forecast-catalog") return reply(200, options.network ?? network);
     if (path === `planning-assumptions/${ASSUMPTIONS}`) return reply(200, assumptions);
     if (path === "scenarios" && method === "POST") return options.freeze ? reply(options.freeze.status, options.freeze.body) : reply(201, scenarios[SCENARIO]);
     if (path.endsWith("/compare-methods")) return options.compare ? reply(options.compare.status, options.compare.body) : reply(202, accepted(JOB));
@@ -224,6 +225,8 @@ const step = (page: Page, n: number) => page.getByRole("group", { name: new RegE
 const mobile = (width: number) => width < 768;
 async function showStep(page: Page, width: number, n: number) {
   if (!mobile(width)) return;
+  // The wizard renders as a skeleton until the catalog loads; wait for it before stepping.
+  await expect(page.locator("[data-current-step]")).toBeVisible();
   for (let i = 0; i < 4 && !(await step(page, n).isVisible()); i += 1) {
     const current = Number((await page.locator("[data-current-step]").getAttribute("data-current-step")) ?? "1");
     await page.getByRole("button", { name: current < n ? "Next step" : "Previous step" }).click();
@@ -337,6 +340,17 @@ test("multiplier above 3 or with five decimals blocks freezing with a field mess
   await input.fill("1.25");
   await expect(input).not.toHaveAttribute("aria-invalid", "true");
   await expect(freeze).toBeEnabled();
+});
+
+test("four products get one multiplier column each on every site row", async ({ page }) => {
+  const four = [...PRODUCTS, { id: id(103), name: "Canned vegetables", base_unit: "can" }, { id: id(104), name: "Hygiene kits", base_unit: "kit" }];
+  await mockApi(page, { network: { ...network, products: four } });
+  await open(page, 1440, 900);
+  const inputs = four.map((p) => page.getByLabel(`Lakeside Pantry · ${p.name} demand multiplier`));
+  const boxes = await Promise.all(inputs.map(async (input) => { await expect(input).toBeVisible(); return input.boundingBox(); }));
+  const rows = new Set(boxes.map((box) => Math.round(box!.y)));
+  expect(rows.size).toBe(1);
+  await expect(step(page, 3)).toContainText("cans ×");
 });
 
 test("a failed job shows Retry and keeps the previous verified result with its time", async ({ page }) => {

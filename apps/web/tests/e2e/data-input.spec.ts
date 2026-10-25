@@ -32,12 +32,12 @@ const SNAPSHOT = {
   ],
 };
 
-async function asPresenter(page: Page, handler: (path: string, route: Route) => Promise<boolean> | boolean) {
+async function asPresenter(page: Page, handler: (path: string, route: Route) => Promise<boolean> | boolean, catalog: () => typeof CATALOG = () => CATALOG) {
   await page.context().addCookies([{ name: "pp_csrf", value: "token", url: BASE }]);
   await page.route("**/api/v1/**", async (route) => {
     const path = new URL(route.request().url()).pathname.slice("/api/v1/".length);
     if (path === "allocation-methodology") return route.fulfill({ status: 200, json: { methods: [] } });
-    if (path === "operational-catalog") return route.fulfill({ status: 200, json: CATALOG });
+    if (path === "operational-catalog") return route.fulfill({ status: 200, json: catalog() });
     if (await handler(path, route)) return;
     return route.fulfill({ status: 404, json: envelope("NOT_FOUND") });
   });
@@ -273,4 +273,48 @@ test("connected: CSV import, receipt post and adjustment against the seeded API"
   // Covered by the packet's connected plan; exercised when PP_RUN_CONNECTED=1 with the demo launcher.
   await page.goto("/data/inputs");
   await expect(page.getByRole("heading", { level: 2, name: "Data input" })).toBeVisible();
+});
+
+test("presenter adds a product; the catalog refreshes and a duplicate name explains itself", async ({ page }, testInfo) => {
+  const products = [...CATALOG.products];
+  const bodies: Record<string, unknown>[] = [];
+  const keys: string[] = [];
+  await asPresenter(page, (path, route) => {
+    if (path === "products" && route.request().method() === "POST") {
+      const body = route.request().postDataJSON() as { name: string; base_unit: string };
+      bodies.push(body);
+      keys.push(route.request().headers()["idempotency-key"]);
+      if (products.some((p) => p.name.toLowerCase() === body.name.toLowerCase())) {
+        void route.fulfill({ status: 409, json: envelope("PRODUCT_EXISTS") });
+        return true;
+      }
+      const row = { id: "99999999-9999-4999-8999-999999999999", name: body.name, base_unit: body.base_unit };
+      products.push(row);
+      void route.fulfill({ status: 201, json: { command_id: "88888888-8888-4888-8888-888888888888", operation: "product-create", result: row } });
+      return true;
+    }
+    return false;
+  }, () => ({ ...CATALOG, products }));
+  await page.goto("/data/inputs");
+  await page.getByRole("navigation", { name: "Data input sections" }).getByRole("button", { name: "Products" }).click();
+  const list = page.getByRole("table", { name: /Active products/ });
+  await expect(list.getByRole("row").filter({ hasText: "Shelf-stable meals" })).toContainText("meal");
+  await expect(page.getByText("1 of 8 products", { exact: false })).toBeVisible();
+
+  const add = page.getByRole("button", { name: "Add product" });
+  await expect(add).toBeDisabled();
+  await page.getByLabel("Product name").fill("Canned vegetables");
+  await page.getByLabel("Base unit").fill("can");
+  await add.click();
+  await expect(page.getByText("Canned vegetables added", { exact: false })).toBeVisible();
+  await expect(list.getByRole("row").filter({ hasText: "Canned vegetables" })).toContainText("can");
+  await expect(page.getByText("2 of 8 products", { exact: false })).toBeVisible();
+  expect(bodies[0]).toEqual({ name: "Canned vegetables", base_unit: "can", category_name: null });
+
+  await page.getByLabel("Product name").fill("shelf-stable MEALS");
+  await page.getByLabel("Base unit").fill("meal");
+  await add.click();
+  await expect(page.getByText("A product with this name already exists", { exact: false })).toBeVisible();
+  expect(keys[1]).not.toBe(keys[0]);
+  await expectNoSeriousA11yViolations(page, testInfo, "add product");
 });

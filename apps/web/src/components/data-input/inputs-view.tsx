@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/lib/planning-api";
 import { dataInputApi, describeError, type OperationalCatalog } from "./api";
 import { ImportsSection } from "./imports-section";
+import { ProductsSection } from "./products-section";
 import { ReceiptsSection } from "./receipts-section";
 import { SuppliesSection } from "./supplies-section";
 import { DataInputHeader, ErrorAlert, nativeSelect, PresenterRequired } from "./shared";
@@ -16,6 +17,7 @@ const SECTIONS = [
   { key: "coverage", label: "Donation coverage" },
   { key: "receipts", label: "Receipts" },
   { key: "supplies", label: "Expected supplies" },
+  { key: "products", label: "Products" },
 ] as const;
 type SectionKey = (typeof SECTIONS)[number]["key"];
 
@@ -37,7 +39,7 @@ function InputsContent() {
   }, [state, expired]);
 
   if (state === "checking") return <p role="status" className="text-sm text-muted-foreground">Checking presenter session…</p>;
-  if (state === "visitor") return <PresenterRequired what="Entering demand history, donations, receipts and supplies changes the demo database." />;
+  if (state === "visitor") return <PresenterRequired what="Entering demand history, donations, receipts, supplies and products changes the demo database." />;
   if (error) return <ErrorAlert message={describeError(error)} onRetry={() => { setCatalog(null); setError(null); dataInputApi.catalog().then(setCatalog).catch(setError); }} />;
   if (!catalog) return <Skeleton className="h-64 w-full" />;
 
@@ -64,6 +66,7 @@ function InputsContent() {
         {section === "coverage" && <ImportsSection key="coverage" catalog={catalog} coverage />}
         {section === "receipts" && <ReceiptsSection catalog={catalog} />}
         {section === "supplies" && <SuppliesSection catalog={catalog} />}
+        {section === "products" && <ProductsSection catalog={catalog} onChanged={() => dataInputApi.catalog().then(setCatalog)} />}
       </div>
     </div>
   );
@@ -73,7 +76,7 @@ export function InputsView() {
   return (
     <AppShell active="data">
       <div className="flex flex-1 flex-col gap-4 px-4 pt-3 pb-6 md:gap-6 md:px-6 md:py-5">
-        <DataInputHeader active="inputs" title="Data input" description="Presenter-only operational records for the simulated demo network: demand history, donation coverage, receipts and expected supplies." />
+        <DataInputHeader active="inputs" title="Data input" description="Presenter-only operational records for the simulated demo network: demand history, donation coverage, receipts, expected supplies and products." />
         <InputsContent />
       </div>
     </AppShell>

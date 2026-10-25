@@ -166,7 +166,7 @@ export function MethodologyView() {
             <CardContent className="grid gap-2 text-sm">
               <p>Seven-day demand and donation forecasts are projections. The demo baseline is seasonal naive with an explicitly enabled, labeled fallback; Chronos-2 and OR-Tools are supporting technology. Each screen shows the provider that actually ran.</p>
               <p>Missing demand stays missing; it is never turned into zero. Raw quantiles, when a model produces them, are not calibrated intervals or stockout probabilities. Predicted donations never count as stock; only confirmed arrivals do.</p>
-              <p>Meals and bottled water are separate products with separate units and are never added together.</p>
+              <p>Each product (for example meals and bottled water) keeps its own unit; quantities are never added across products.</p>
             </CardContent>
           </Card>
           <Card>

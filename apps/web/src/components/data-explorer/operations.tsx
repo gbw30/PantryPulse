@@ -25,7 +25,7 @@ function Lots({ cell, product }: { cell: InventoryCell | undefined; product: Pro
   );
 }
 
-/** SiteRiskCard: one beneficiary, both products, each with its own unit, deficit and lot status. */
+/** SiteRiskCard: one beneficiary, every product, each with its own unit, deficit and lot status. */
 function SiteRiskCard({ snapshot, site, productId }: { snapshot: ExplorerSnapshot; site: Site; productId: string | null }) {
   const range = formatRange(snapshot.dates);
   return (
@@ -87,7 +87,7 @@ function HubCard({ snapshot, site }: { snapshot: ExplorerSnapshot; site: Site })
   );
 }
 
-/** Operations Board: six beneficiary cards × two products, then hubs as sources. */
+/** Operations Board: six beneficiary cards × every product, then hubs as sources. */
 export function OperationsBoard({ snapshot, productId }: { snapshot: ExplorerSnapshot | null; productId: string | null }) {
   if (!snapshot) {
     return (
