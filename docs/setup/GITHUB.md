@@ -8,7 +8,7 @@ Purpose: keep PantryPulse source, reviewed changes and test evidence available t
 2. Open the existing repository: https://github.com/gbw30/PantryPulse.
 3. Ask the repository owner for the access needed to contribute. An administrator can manage collaborators/teams in repository settings. Do not create a second repository or transfer ownership as part of ordinary onboarding.
 4. Configure Git authentication through Git Credential Manager/browser login or SSH using GitHub's official authentication instructions.
-5. If using Vercel, its setup guide requests GitHub App access. Limit the app to this repository. The laptop backend builds from the reviewed local checkout and needs no GitHub App or CI token.
+5. The simulated Vercel preview is already connected to this repository. Review the GitHub App's repository access in the account if needed; the laptop backend builds from the reviewed local checkout and needs no GitHub App or CI token.
 
 See [GitHub authentication](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/about-authentication-to-github) and [repository access management](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/managing-teams-and-people-with-access-to-your-repository).
 
@@ -60,6 +60,6 @@ Configure branch protections/required checks when the checks are active. Hosting
 - [ ] The exact reviewed deployment commit is present on GitHub.
 - [ ] Lockfiles and required source files are included.
 - [ ] CI is described truthfully as active or pending.
-- [ ] Vercel integration access is limited to the intended repository.
+- [ ] Owner verifies the existing Vercel GitHub integration has only the intended repository access.
 
 No GitHub token is required in the PantryPulse application runtime. Follow the laptop workflow in [EXTERNAL-SERVICES.md](../../EXTERNAL-SERVICES.md); Vercel's dashboard integration is optional for a hosted frontend. Do not commit tokens.

@@ -102,7 +102,7 @@ The Google Doc's **Q-Discuss** tab proposes one planning agent using Microsoft A
 
 ## 3. What exists today
 
-### 3.1 Integrated main baseline
+### 3.1 Historical main baseline at V5 consolidation
 
 | Component | Inspected state and boundary |
 |---|---|
@@ -122,7 +122,7 @@ The Google Doc's **Q-Discuss** tab proposes one planning agent using Microsoft A
 
 The six helpers were integrated through PR #7. Their task packets preserve bounded test evidence and explicitly say the independent verifier pass was not completed. Merged/tested does not imply independent research or product acceptance.
 
-### 3.2 Unmerged forecasting branch
+### 3.2 Forecasting branch at V5 consolidation
 
 Branch: [`forecasting` at `bed08544e3dc9b00499224806d92dd8f437f0644`](https://github.com/gbw30/PantryPulse/tree/bed08544e3dc9b00499224806d92dd8f437f0644). At inspection, main had 15 commits not on that branch and the branch had one commit not on main. It includes **36 changed files** relative to their common ancestor. No merge was performed for V5.
 
@@ -141,7 +141,7 @@ Branch: [`forecasting` at `bed08544e3dc9b00499224806d92dd8f437f0644`](https://gi
 
 These modules do not implement public endpoints, database publication, stock posting, complete operational scenarios, durable jobs, deadlines, authentication or allocation. `ready_for_publication` is computational completeness; it is not committed `planning_ready`.
 
-**Review-fix candidate:** The `codex/pr49-pr50-review-fixes` branch combines PR #49 and PR #50 with review corrections. Its [PP-30 packet](tasks/PP-30-pr-review-fixes.md) records current verification. The original main/branch evidence below remains the consolidation baseline, not a claim that this candidate has already merged.
+**Subsequent integration:** PR #51 merged the review corrections for PR #49's offline forecasting core and PR #50's illustrative design lab. Its [PP-30 packet](tasks/PP-30-pr-review-fixes.md) preserves that verification. The original main/branch evidence below remains the consolidation baseline.
 
 ### 3.3 Evidence at consolidation
 
@@ -155,6 +155,10 @@ These modules do not implement public endpoints, database publication, stock pos
 | Real Chronos inference, domain DB/API, durable jobs, both allocation methods, judge workflow | UNVERIFIED / NOT IMPLEMENTED as described above | No release claim |
 
 Sandbox-only test stalls/temporary Git permission failures were resolved by authorized reruns; they are not product failures. Earlier build, database-runtime and one-test Playwright records remain historical evidence at their original scope. None was reclassified as a fresh full-product run.
+
+### 3.4 Worker foundation review (PR #52)
+
+WQ-01–06 implement the internal durable queue, jobs-only Alembic revision, admission and idempotency rules, Linux process containment, heartbeat, deadlines, cancellation, recovery and fenced publication. [ADR 0005](../architecture/0005-worker-job-queue.md), the [PP-31–36 packet](tasks/PP-31.md) and the [worker runbook](../setup/WORKER-QUEUE.md) record the scope and test evidence. The production registry is empty; test handlers publish only test infrastructure artifacts. These changes do not implement public job routes, authentication, forecast/allocation handlers, measured CPU/memory enforcement or a deployed compute service. A1/A7 remain provisional for deployment.
 
 ## 4. Architecture and ownership boundaries
 
@@ -647,7 +651,7 @@ The eventual deployed browser still uses the selected Next.js proxy. Old direct 
 
 ### 15.3 Configuration and secrets
 
-Tracked examples include `apps/api/.env.example`, `apps/api/demo.env.example` and `apps/web/.env.example`. Private local paths such as `apps/api/.env`, `apps/api/.env.demo` and `apps/web/.env.local` remain ignored. No database password, model token or presenter credential may enter Git, screenshots/logs or a `NEXT_PUBLIC_` value.
+Tracked examples include `apps/api/.env.example` and `apps/api/demo.env.example`; no web environment example is currently tracked. Private local paths such as `apps/api/.env`, `apps/api/.env.demo` and `apps/web/.env.local` remain ignored. The static web scaffold and Vercel preview need no environment file. No database password, model token or presenter credential may enter Git, screenshots/logs or a `NEXT_PUBLIC_` value.
 
 Demo Compose explicitly injects `.env.demo`; merely placing a URL in another dotenv file does not switch the API's database. The current API has no settings/dotenv loader, CORS middleware or auth implementation. `APP_ENV`/`DEMO_MODE` in configuration are not access controls by themselves. Retain provider-supplied TLS/security parameters on hosted database URLs and use deliberate migration/runtime connection roles.
 
@@ -657,7 +661,9 @@ The standalone model cache is a persistent Docker volume, while outputs under `a
 
 Hosting/model setup remains paused after the user's reported step 2. No specific later guide step is inferred complete. Do not start containers, build heavy images, download checkpoints or benchmark models until the user resumes that work. Documentation review and offline baseline/helper tests do not resume it.
 
-Before any later release, select the exact target, apply reviewed migrations as one controlled step, seed only the isolated demo, verify proxy/auth/DB/compute behavior, record a release manifest and test rollback/local fallback. No hosted deployment, operational order/payment or dispatch is established by this spec. Provider account menus/limits in older guides must be rechecked when actually used.
+**Subsequent user decision (October 24, 2026):** Resume only a Vercel-hosted frontend prototype preview from an isolated feature branch. The [live `/design-lab` preview](https://pantrypulse-prototype-preview-git-codex-e82088-gbw30s-projects.vercel.app/design-lab) is simulated and has no API, database, tunnel or presenter controls. This does not resume backend/model hosting or satisfy V5 release acceptance. [Preview setup](../setup/VERCEL.md) records the deployment boundary and account checks.
+
+Before any later release, select the exact target, apply reviewed migrations as one controlled step, seed only the isolated demo, verify proxy/auth/DB/compute behavior, record a release manifest and test rollback/local fallback. The static preview is not a hosted product release; no operational order/payment or dispatch is established by this spec. Provider account menus/limits in older guides must be rechecked when actually used.
 
 ## 16. Validation and release acceptance
 
