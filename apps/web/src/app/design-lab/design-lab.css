@@ -36,8 +36,8 @@
   --lab-border-soft: rgba(40, 96, 79, .13);
   --lab-accent: #1b785e;
   --lab-accent-deep: #176b58;
-  --lab-attention: var(--destructive);
-  --lab-attention-soft: color-mix(in srgb, var(--destructive) 10%, transparent);
+  --lab-attention: #a52f3a; /* pinned: blueprint --pp-danger fails 4.5:1 on this tint */
+  --lab-attention-soft: color-mix(in srgb, #a52f3a 10%, transparent);
   --lab-shadow: rgba(50, 73, 56, .09);
   --lab-forecast: #2f5b95;
 }
