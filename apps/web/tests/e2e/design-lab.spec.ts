@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { expectNoSeriousA11yViolations } from "./a11y";
 
 async function expectNetworkFits(page: Page) {
   await expect.poll(() => page.locator(".lab-map").evaluate((map) => {
@@ -23,6 +24,9 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
     await expect(page.getByText("proposed to move", { exact: true })).toBeVisible();
     await expect(page.getByText("confirmed to move", { exact: true })).toHaveCount(0);
     await expect(page.locator(".lab-node")).toHaveCount(7);
+    await expect(page.getByRole("heading", { name: "Seven-day outlook for Riverbend", exact: true })).toBeVisible();
+    await expect(page.locator(".lab-outlook-summary")).toHaveText("Without the proposed route, Riverbend runs out of meals on Tuesday and ends the week 120 meals short. With 80 meals from Gator Hub on Tuesday, it ends 40 short.");
+    await expect(page.locator(".lab-inspector-answer")).toContainText("on Tuesday toward this week’s 120-meal shortfall");
     await expectNetworkFits(page);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     // Every filter and view control must remain within the visible header.
@@ -41,13 +45,36 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
     await page.mouse.up();
     await page.getByRole("button", { name: "Fit network", exact: true }).click();
     await expectNetworkFits(page);
+    // The default shortage state, routed series and table must be accessible too.
+    const tableToggle = page.getByText("View data table", { exact: true });
+    await tableToggle.focus();
+    await page.keyboard.press("Enter");
+    const table = page.getByRole("table");
+    await expect(table).toBeVisible();
+    await expect(table.getByRole("row", { name: "Mon 19 n/a 14 14 8 to 20", exact: true })).toBeVisible();
+    await expect(table.getByRole("row", { name: "Tue 20 n/a −8 72 −16 to 0", exact: true })).toBeVisible();
+    await expect(table.getByRole("row", { name: "Sun 25 n/a −120 −40 −141 to −99", exact: true })).toBeVisible();
+    await expectNoSeriousA11yViolations(page, testInfo, `design-lab ${width}x${height} Riverbend dark`);
+    await page.screenshot({ path: testInfo.outputPath(`design-lab-${width}-dark.png`), fullPage: true });
+    await page.getByRole("button", { name: "Switch to light mode" }).click();
+    await expectNoSeriousA11yViolations(page, testInfo, `design-lab ${width}x${height} Riverbend light`);
+    await page.screenshot({ path: testInfo.outputPath(`design-lab-${width}-light.png`), fullPage: true });
+    await tableToggle.focus();
+    await page.keyboard.press("Enter");
+    await expect(table).toBeHidden();
+    await page.getByRole("button", { name: "Switch to dark mode" }).click();
     // The readable selector remains usable when the overview is scaled down.
     await page.getByRole("combobox", { name: "Location", exact: true }).selectOption("pine");
     await expect(page.getByRole("heading", { name: "Pine Ridge", exact: true })).toBeVisible();
+    await expectNoSeriousA11yViolations(page, testInfo, `design-lab ${width}x${height} dark`);
     await page.getByRole("button", { name: "Switch to light mode" }).click();
     await expect(page.locator(".lab-light")).toBeVisible();
     await expect(page.locator(".lab-edge-flow")).toHaveCount(0);
     expect(pageErrors).toEqual([]);
+    await expectNoSeriousA11yViolations(page, testInfo, `design-lab ${width}x${height} light`);
+    await page.getByRole("combobox", { name: "Location", exact: true }).selectOption("hub");
+    await expect(page.getByText("The hub holds supply for the network and has no demand forecast.", { exact: false })).toBeVisible();
+    await expect(page.locator(".lab-chart")).toHaveCount(0);
     await page.screenshot({ path: testInfo.outputPath(`design-lab-${width}.png`), fullPage: true });
   });
 }
