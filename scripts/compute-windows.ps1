@@ -42,7 +42,7 @@ try {
     if ($Action -eq 'Status') {
         Invoke-Docker @('ps', '--format', '{{.Names}} | {{.Status}} | {{.Ports}}')
         Invoke-Docker @('stats', '--no-stream', '--format', '{{.Name}} | {{.CPUPerc}} | {{.MemUsage}}')
-        Write-Host 'Resource limits are ceilings, not reserved host RAM. Source supports baseline forecasts; verify the installed worker image. Chronos tools remain standalone.'
+        Write-Host 'Resource limits are ceilings, not reserved host RAM. Source supports baseline forecasts and OR comparisons; verify the installed worker image. Chronos tools remain standalone.'
         return
     }
     if ($Action -eq 'Build') {

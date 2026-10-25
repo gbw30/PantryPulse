@@ -1,5 +1,8 @@
 # Work remaining for a complete PantryPulse MVP
 
+**Historical October 24 planning baseline.** Baseline API/persistence, production jobs, connected comparisons/UI and active CI have since landed. Use [current status](../pantrypulse/CURRENT-STATUS.md) and [connected integration](../optimization/CONNECTED-INTEGRATION.md) for current delivery gaps; the old future-work sequence below is retained as history.
+
+
 > **Current authority:** [Project specification V5](../pantrypulse/SPEC-V5.md). V5 supersedes conflicting V4-era instructions. BD-41 requires explicit `HUB_ONLY` or `HUB_AND_PANTRY` with no default in the full operational scenario; the forecast-only handoff does not select topology. Experimental policies and live integration gates remain open.
 
 Updated: October 24, 2026 (America/New_York).

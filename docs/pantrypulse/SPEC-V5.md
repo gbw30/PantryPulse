@@ -174,6 +174,12 @@ The bounded forecast HTTP contract and generated OpenAPI/TypeScript are implemen
 
 Fresh Windows/Python 3.12/PostgreSQL 16 review evidence: **950 backend tests passed**, including **133 database integration tests**; **20 Linux process-control tests skipped**. Backend Ruff, frontend types/lint/build, generated-contract drift checks and proxy tests passed. Docker Desktop failed during secrets-engine socket initialization; the available WSL image has no Python runtime. Linux supervisor execution is **UNVERIFIED in this review**, not a passing worker smoke or deployment qualification. Actual Chronos inference remains paused/unverified. Detailed commands, additional HTTP/browser evidence and limitations are recorded in [PR-75-REVIEW.md](PR-75-REVIEW.md).
 
+### 3.6 Current integrated source — PR #76 and compute PR #77
+
+[Current status](CURRENT-STATUS.md) supersedes historical implementation-absence statements in §§3.1–3.5 and dated local-work paragraphs below. Main includes baseline forecasting plus immutable planning assumptions/scenarios, verified classical/research-inspired comparisons, the connected `/optimization` workspace, generated contracts and active Linux/PostgreSQL/browser CI. Production contracts are `forecast.v1` and `or-comparison.v2`; the migration head is `ppor_0005`. See [connected integration](../optimization/CONNECTED-INTEGRATION.md) for the approved bounded domain, defaults/maxima and source-bound evidence. This is a simulated application, not real dispatch or demonstrated real-world policy efficacy.
+
+The opt-in local/Fly compute configuration uses the frozen forecast extra and persistent model storage. Full pinned Chronos-2 has passed a separate real CPU smoke and ten warm synthetic predictions; application model-handler integration, representative accuracy/calibration and public hosting remain unqualified. [Local compute](../setup/LOCAL-COMPUTE.md) distinguishes initial laptop evidence from later current-main review. No running image/database is updated by a source merge. Local stop grace is 725 seconds for the supervisor's 720-second drain; Fly's 300-second window requires a previously drained/idle lane before deployment.
+
 ## 4. Architecture and ownership boundaries
 
 ### Local implementation update — issues #8 and #19, October 24
@@ -702,15 +708,15 @@ Frozen installs use `npm ci` and `uv sync --frozen`. Do not replace locks, insta
 
 ### 15.2 Chosen presentation topology
 
-The selected presentation compute is the laptop. Local development uses `compose.yaml`; the separate `compose.demo.yaml` runs the API with a dedicated Neon database; `compose.chronos.yaml` is a standalone optional model exercise. Development and demo API containers both bind loopback port 8000 and must not run there simultaneously. The web app uses loopback 3000.
+The selected presentation compute is the laptop. `compose.yaml` plus opt-in `compose.compute.yaml` supports bounded local API/worker/PostgreSQL; `compose.forecast.yaml` supports the separately configured hosted-database API/worker path. `compose.demo.yaml` is an API/DB reachability probe, and `compose.chronos.yaml` retains the separate model exercise. These environments can collide on loopback port 8000; inspect/isolate them rather than stopping existing tasks. The normal web port is 3000.
 
-For online presentation, Neon stores dedicated synthetic demo data. A fully local PostgreSQL path is the offline alternative once schema/fixtures are implemented. Vercel plus a Cloudflare tunnel is optional for remote access; Fly.io is an optional hosted-backend alternative. Railway is a superseded historical guide, not the selected path.
+For online presentation, Neon can store a deliberately selected isolated synthetic demo. A fully local PostgreSQL path supports offline rehearsal after explicit migration/loading. Vercel plus a Cloudflare tunnel is optional remote access; Fly is a prepared alternative requiring account/platform/deployment qualification. Railway is historical. No merge automatically deploys these paths.
 
-The eventual deployed browser still uses the selected Next.js proxy. Old direct public API environment/CORS examples describe reachability or historical client configuration; they do not override BD-14 or establish integration. Final server-side API-origin variable names and credential forwarding belong to OPEN-29/31/36.
+The connected browser uses the implemented same-origin Next.js proxy. Its server-only variables are `PANTRYPULSE_API_ORIGIN` and `PP_TRUSTED_PROXY_TOKEN`, with backend presenter/CSRF/origin checks. Broader OPEN-29/31/36 qualification remains; old direct browser/CORS examples do not override this architecture.
 
 ### 15.3 Configuration and secrets
 
-Tracked examples include `apps/api/.env.example` and `apps/api/demo.env.example`; no web environment example is currently tracked. Private local paths such as `apps/api/.env`, `apps/api/.env.demo` and `apps/web/.env.local` remain ignored. The static web scaffold and Vercel preview need no environment file. No database password, model token or presenter credential may enter Git, screenshots/logs or a `NEXT_PUBLIC_` value.
+Tracked examples include `apps/api/.env.example`, `apps/api/compute.env.example`, `apps/api/demo.env.example` and `apps/web/.env.example`. Private `.env`, `.env.demo`, `.env.compute`, `.env.fly` and web `.env.local` remain ignored. The old static preview needs no backend variables; the connected source requires explicit private server configuration. No database password, model token or presenter credential may enter Git, screenshots/logs or a `NEXT_PUBLIC_` value.
 
 Demo Compose explicitly injects `.env.demo`; merely placing a URL in another dotenv file does not switch the API's database. The API uses explicit environment configuration and presenter session/CSRF authentication through the same-origin proxy; no dotenv loader or direct-browser CORS dependency is implied. `APP_ENV`/`DEMO_MODE` in configuration are not access controls by themselves. Retain provider-supplied TLS/security parameters on hosted database URLs and use deliberate migration/runtime connection roles.
 
@@ -718,11 +724,11 @@ The standalone model cache is a persistent Docker volume, while outputs under `a
 
 ### 15.4 Pauses and release controls
 
-Hosting/model setup remains paused after the user's reported step 2. No specific later guide step is inferred complete. Do not start containers, build heavy images, download checkpoints or benchmark models until the user resumes that work. Documentation review and offline baseline/helper tests do not resume it.
+Historical pause: setup originally stopped after the user's reported step 2; documentation review alone did not resume it. The explicit October 25 decision below resumes bounded local backend/model preparation and Fly configuration, preserving existing tasks. Public deployment, integrated model qualification and supplier planning remain separate.
 
 **Subsequent user decision (October 24, 2026):** Resume only a Vercel-hosted frontend prototype preview from an isolated feature branch. The [live `/design-lab` preview](https://pantrypulse-prototype-preview-git-codex-e82088-gbw30s-projects.vercel.app/design-lab) is simulated and has no API, database, tunnel or presenter controls. This does not resume backend/model hosting or satisfy V5 release acceptance. [Preview setup](../setup/VERCEL.md) records the deployment boundary and account checks.
 
-**Subsequent user decision (October 25, 2026):** Resume local backend/computer configuration and Chronos compute preparation, and prepare Fly.io compute hosting configuration. Preserve every already-running task; do not stop/restart unrelated workloads or change global WSL/security/power settings. This authorizes bounded local image/model setup and verification, superseding the setup pause for this scope. It does not select unresolved domain/authentication contracts, resume supplier planning, create paid Fly resources or establish a public product release. [Local server setup](../setup/LOCAL-COMPUTE.md) records configuration, measured evidence and remaining gates; [Fly setup](../setup/FLY.md) records the prepared hosted alternative. The subsequent request authorizes a scoped PR prepared for merge into main, without merging it.
+**Subsequent user decision (October 25, 2026):** Resume local backend/computer configuration and Chronos compute preparation, and prepare Fly.io compute hosting configuration. Preserve every already-running task; do not stop/restart unrelated workloads or change global WSL/security/power settings. This authorizes bounded local image/model setup and verification, superseding the setup pause for this scope. It does not select unresolved domain/authentication contracts, resume supplier planning, create paid Fly resources or establish a public product release. [Local server setup](../setup/LOCAL-COMPUTE.md) records configuration, measured evidence and remaining gates; [Fly setup](../setup/FLY.md) records the prepared hosted alternative. The subsequent request authorized preparing PR #77; the later explicit request authorizes review, relevant documentation reconciliation and merge into main. Neither request authorizes deployment or interruption of existing tasks.
 
 Before any later release, select the exact target, apply reviewed migrations as one controlled step, seed only the isolated demo, verify proxy/auth/DB/compute behavior, record a release manifest and test rollback/local fallback. The static preview is not a hosted product release; no operational order/payment or dispatch is established by this spec. Provider account menus/limits in older guides must be rechecked when actually used.
 
@@ -738,7 +744,7 @@ V5 acceptance IDs avoid V4's reused FR numbers. Existing FR/INV/TEST-EGP/F ident
 | V5-A02 Historical truth | Gaps/zeros/proxies/revisions, donor versus receiver, complete receipt revisions, data/knowledge cutoff leakage tests | BRANCH offline evidence; operational persistence/import policy open; INV-10/11/13 |
 | V5-A03 Stock transactions | Historical import leaves stock unchanged; exactly-once posting, corrections, rollback, competing versions/idempotency and audit | IMPLEMENTED/VERIFIED — local #21 internal services, real PostgreSQL concurrency/rollback; HTTP/import integration and P1 movement/reservation remain separate |
 | V5-A04 Baseline forecast | Seven dates per required demand/donation series, explicit insufficiency, null intervals, actual provider  | PASS baseline persisted forecast through actual browser/proxy/API/PostgreSQL/Linux worker; Chronos remains outside this integration. |
-| V5-A05 Qualification/fallback | Classified failure → permitted usable baseline; explicit failure otherwise; actual pinned Chronos separately qualified | BRANCH fallback boundary tested; real Chronos UNVERIFIED/PAUSED; INV-13/14; F-25 |
+| V5-A05 Qualification/fallback | Classified failure → permitted usable baseline; explicit failure otherwise; actual pinned Chronos separately qualified | Baseline boundary implemented; standalone pinned CPU inference/benchmark verified; application Chronos handler and representative accuracy/calibration remain unqualified; INV-13/14; F-25 |
 | V5-A06 Evaluation | Chronological equal-scored-set metrics, denominator/zero/missing counts, source and actual-provider identity | Synthetic branch experiment reproduced; representative evaluation/selection open; F-07–12 / OPEN-18 |
 | V5-A07 Atomic publication/reuse | Committed complete results before planning; exact identity, concurrent deduplication, force refresh, rollback/stale-attempt rejection  | PASS committed forecast publication/reuse and fenced comparison publication; concurrency, rollback and stale-attempt regressions retained. |
 | V5-A08 Frozen scenarios | Complete input schema/hash, explicit mode/exclusions, changed inputs → new scenario, replay after mutable-source changes  | PASS scenario-v2: repeatable-read committed sources, explicit mode/expiry, immutable history, source staleness and new-scenario revisions. |
@@ -897,15 +903,15 @@ This register preserves every original OPEN topic. It is not a list of 36 new hu
 | OPEN-35 | PARTIAL | Process/thread settings, effective limits, terminate/cleanup and benchmark protocol |
 | OPEN-36 | PARTIAL | Branch/docs reconciliation, migrations, generated-contract workflow and integration handoff |
 
-No accepted parameter is reopened merely because details remain. Conversely, no illustrative buffer, coverage period, capacity coefficient, currency, auth scheme or solver coefficient becomes a default because documentation needs an example. Keep supplier design and heavy hosting/model setup paused.
+No accepted parameter is reopened merely because details remain. Conversely, no illustrative buffer, coverage period, capacity coefficient, currency, auth scheme or solver coefficient becomes a default because documentation needs an example. Keep supplier design paused; local backend/model preparation is resumed only within §15.4's explicit scope. Public deployment and integrated provider qualification remain separate.
 
 ## 20. Reconciled conflicts
 
 | Earlier or conflicting material | V5 resolution |
 |---|---|
 | Three sites / six total forecast series / North-Central-South seed | At least six beneficiaries plus hub(s), two products; full required scope is explicit; old fixture is supplemental |
-| Backend “only scaffold / all helpers not started” prose | Main includes BE-01–06 and 437 API tests; surrounding domain features remain unimplemented |
-| All forecasting absent | Main lacks integrated forecasting; unmerged branch has the tested offline core |
+| Backend “only scaffold / all helpers not started” prose | Superseded by §§3.5–3.6: presenter/forecast/planning APIs, persistence, production jobs, verified comparisons and connected UI are implemented |
+| All forecasting absent | Main includes persisted baseline forecasts and production jobs; standalone Chronos is not an application model provider |
 | Branch/older BD-32 has one topology | Later BD-41 requires both explicit modes without a default |
 | VP names its transfer-mode update BD-30 | Preserve that update's substance as main's BD-41; main BD-30 remains observability. Do not collide decision IDs |
 | Recorded requested units as allocation targets | Historical requested units train/evaluate demand; planning targets use selected forecasts and frozen assumptions, rounded per day |

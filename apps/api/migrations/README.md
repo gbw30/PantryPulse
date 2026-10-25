@@ -1,4 +1,6 @@
-# Operational and worker migrations — local VP integration
+# Operational, forecast and planning migrations
+
+Current head: `ppor_0005`. PR #75 integrated operational/worker/forecast histories; PR #76 added four immutable planning tables. Earlier revisions and dated application records below are preserved. See [current status](../../../docs/pantrypulse/CURRENT-STATUS.md).
 
 `pp19_0001` implements [operational-v1](../../../docs/pantrypulse/OPERATIONAL-CONTRACT.md)
 with 22 domain tables. SQLAlchemy models live in `app/models/operational.py`.
@@ -6,7 +8,7 @@ The revision reads frozen sibling SQL files, never mutable current ORM metadata.
 Subsequent changes require a new migration. `alembic_version` is an additional
 infrastructure table. Main also supplies the five durable-job tables from immutable
 revision `0001_jobs_foundation`, per [ADR 0005](../../../docs/architecture/0005-worker-job-queue.md).
-Forecast persistence is added by `pp45_0004`; scenario persistence remains separate work.
+Forecast persistence is added by `pp45_0004`; `ppor_0005` adds planning assumptions, scenarios, comparisons and verification records.
 
 `pp21_0002` follows that baseline and adds positive/reversal partial unique indexes
 for supply allocations. Both revisions are applied to the selected Neon branch.
@@ -21,7 +23,7 @@ apply the new head to the user's Neon schema automatically.
 
 `pp45_0004` now follows the merge head. It adds three immutable forecast tables,
 presenter sessions, and scoped queue identity constraints, without rewriting any
-earlier revision. The complete schema has 31 application tables plus
+earlier revision. That revision's schema has 31 application tables plus
 `alembic_version`. See [forecast API flow](../../../docs/pantrypulse/FORECAST-API-FLOW.md).
 The local demo loader applies this only inside its new `pp45_demo_*` schema;
 existing `public` tables/data are not migrated or reset by that command.

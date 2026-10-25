@@ -1,6 +1,6 @@
 # Vercel Next.js setup
 
-> **Scope (October 24, 2026):** This guide records the live, simulated `/design-lab` preview. The root page remains the scaffold. The preview does not contact the API, use Neon, require a tunnel, or need `NEXT_PUBLIC_API_BASE_URL`. Backend/model hosting remains paused. [Project specification V5](../pantrypulse/SPEC-V5.md) requires a thin same-origin Next.js proxy before any later connected frontend or product release.
+> **Scope (October 24, 2026):** This guide records the live, simulated `/design-lab` preview. That historical deployment's root remains static. The preview does not contact the API, use Neon, require a tunnel, or need `NEXT_PUBLIC_API_BASE_URL`. Local backend/Chronos preparation is now resumed; the preview's scope remains unchanged. [Project specification V5](../pantrypulse/SPEC-V5.md) requires a thin same-origin Next.js proxy before any later connected frontend or product release.
 
 ## Connected prototype project
 
@@ -46,7 +46,7 @@ Vercel selects a supported Node major and manages its patch version; it does not
 
 ## Future connected frontend
 
-Do not set `NEXT_PUBLIC_API_BASE_URL` on this project. Earlier direct browser-to-FastAPI examples in [EXTERNAL-SERVICES.md](../../EXTERNAL-SERVICES.md) and other setup guides are historical reachability examples, not the selected V5 architecture. A future connected frontend needs an implemented and tested thin same-origin Next.js proxy, FastAPI authorization, a server-side API-origin setting, an isolated API/database mapping and the remaining V5 release gates. The final variable names and credential forwarding are open design work; never put database or presenter secrets in `NEXT_PUBLIC_` variables.
+Do not set `NEXT_PUBLIC_API_BASE_URL` on this project. Earlier direct browser-to-FastAPI examples in [EXTERNAL-SERVICES.md](../../EXTERNAL-SERVICES.md) and other setup guides are historical reachability examples, not the selected V5 architecture. Main now implements the connected `/optimization` workspace, same-origin proxy and FastAPI presenter/CSRF controls. A separately authorized connected deployment must configure server-only `PANTRYPULSE_API_ORIGIN`, matching `PP_TRUSTED_PROXY_TOKEN`, actual backend allowed origins/secure cookies and an isolated API/schema mapping, then verify that target. Never put database or presenter secrets in `NEXT_PUBLIC_` variables. The existing ignored-build branch policy does not deploy these main changes.
 
 ## Deploy and verify
 

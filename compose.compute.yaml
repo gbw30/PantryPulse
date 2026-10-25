@@ -35,7 +35,7 @@ services:
     pids_limit: 256
     restart: unless-stopped
     stop_signal: SIGTERM
-    stop_grace_period: 330s
+    stop_grace_period: 725s
     env_file:
       - path: ./apps/api/.env.compute
         required: false

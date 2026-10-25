@@ -1,6 +1,6 @@
 # Optional Hugging Face / Chronos-2 setup
 
-Purpose: obtain versioned Amazon Chronos-2 model artifacts if we validate live inference. This is optional. The research allocation engine and seasonal-naive forecast path must not depend on a hosted model API.
+Purpose: obtain versioned Amazon Chronos-2 model artifacts. Full pinned standalone CPU inference and a synthetic ten-run benchmark have been executed on the laptop; see [current compute evidence](LOCAL-COMPUTE.md). This is optional. The research allocation engine and seasonal-naive forecast path must not depend on a hosted model API.
 
 **For this Windows laptop, start with [CHRONOS-LOCAL.md](../../CHRONOS-LOCAL.md).** It provides the separate model-enabled Docker image and runnable preparation/session/benchmark commands. The native commands below remain a reference for compatible hosts; they are not the recommended path for the original machine's blocked native libraries.
 
@@ -24,7 +24,7 @@ uv sync --frozen --project apps/api --python 3.12.13 --extra forecast
 
 This uses the existing uv.lock; do not pip-install a parallel model stack. The extra includes chronos-forecasting and its ML dependencies. Default setup later removes unselected extras.
 
-The default API Dockerfile explicitly excludes forecast. The command above does not modify that image. The optional Dockerfile.chronos and compose.chronos.yaml now supply a separate standalone model exercise using the existing lock. It is not the application's forecasting adapter; integration and acceptance tests remain pending.
+The default API Dockerfile explicitly excludes forecast. The command above does not modify that image. The opt-in Dockerfile.compute/compose.compute.yaml reuse that lock and persistent cache for bounded tools; Dockerfile.chronos/compose.chronos.yaml retain the standalone alternative. It is not the application's forecasting adapter; integration and acceptance tests remain pending.
 
 ## Account and access
 

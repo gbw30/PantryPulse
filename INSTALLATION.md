@@ -2,9 +2,9 @@
 
 For a shorter walkthrough with separate host and teammate instructions, follow the [Windows installation and Cloudflare connection quickstart](docs/setup/WINDOWS-QUICKSTART.md).
 
-This guide targets Windows x64 with PowerShell 5.1 or 7. [Project specification V5](docs/pantrypulse/SPEC-V5.md) is authoritative for accepted requirements, current main/forecasting-branch status and unresolved work. The [V4 tab](https://docs.google.com/document/d/1WcsV69YCE1mqW2pI7IyEFQBSuwQB_hMhVQKfU20ZFk8/edit?tab=t.951hp1xdarlq) and saved snapshot are historical sources. Setup commands do not override V5's proxy/job architecture or resume paused model/hosting work.
+This guide targets Windows x64 with PowerShell 5.1 or 7. [Current status](docs/pantrypulse/CURRENT-STATUS.md) and [SPEC-V5](docs/pantrypulse/SPEC-V5.md) distinguish merged source, running images and remaining release work. The [V4 tab](https://docs.google.com/document/d/1WcsV69YCE1mqW2pI7IyEFQBSuwQB_hMhVQKfU20ZFk8/edit?tab=t.951hp1xdarlq) and saved snapshot are historical. Local backend/Chronos preparation is resumed; cloud deployment and supplier planning remain separate authorizations.
 
-**Current state:** frontend/API scaffold plus backend primitives for transfer modes, route eligibility, demand rounding, fixed-point arithmetic, solver outcomes and forecast-history alignment. The complete EGP-PI-inspired and classical allocation engines, forecasting adapters, domain migrations and complete demo are pending. Installed libraries do not imply those features work.
+**Current state:** presenter-protected baseline forecasts, persisted scenarios/comparisons, two bounded allocation methods and independent verification, connected `/optimization`/same-origin proxy, migrations through `ppor_0005`, and active Linux/PostgreSQL/browser CI. Use [local compute](docs/setup/LOCAL-COMPUTE.md) for the opt-in resource-bounded image/model tools and [connected setup](docs/optimization/CONNECTED-INTEGRATION.md) for deliberate synthetic loading. Existing running containers are preserved; a source merge does not upgrade them. Chronos has standalone CPU evidence but is not the application provider.
 
 ## 1. Install these prerequisites manually
 

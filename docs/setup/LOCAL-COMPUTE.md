@@ -33,15 +33,16 @@ For a fresh checkout, install Docker/Desktop and the locked toolchain as describ
 
 **Current main includes operational, queue, forecast and presenter-session migrations.** Review the complete graph and select an isolated target before applying `head`. The jobs-only migration mentioned in the historical verification record below describes the earlier setup commit, not the current graph. This PR does not migrate or restart the already-running laptop setup.
 
-After selecting the dedicated local target, explicitly migrate before starting a first supervisor:
+For a fresh connected local demo, first confirm that no existing API/worker in this project would need replacing. Start only the selected database and use the explicit loader, which creates/migrates a NEW schema and refuses reuse:
 
 ```powershell
-docker compose -f compose.yaml -f compose.compute.yaml --profile api up -d --no-recreate --no-build --wait api
-docker compose -f compose.yaml -f compose.compute.yaml run --rm --no-deps worker python -m alembic upgrade head
-./scripts/compute-windows.ps1 Start
+docker compose -f compose.yaml -f compose.compute.yaml up -d --no-recreate --no-build --wait postgres
+docker compose -f compose.yaml -f compose.compute.yaml run --rm --no-deps --env DATABASE_URL_UNPOOLED=postgresql+psycopg://pantrypulse:local_dev_only@postgres:5432/pantrypulse_dev --volume "${PWD}:/repo:ro" --workdir /repo/apps/api worker python scripts/load_optimization_demo.py --schema ppor_demo_local --output /cache/ppor-demo-local.json
 ```
 
-`Start` preserves already-created services (`--no-recreate`), does not automatically build/migrate/seed, and never runs the test handler registry. Existing containers retain their actual image/resource settings; inspect them instead of assuming the overlay retroactively updates them. Applying a newly built image or changing an existing deployment requires a later controlled operation after active work finishes. On this machine the previously stopped API/database containers were capped before their initial start.
+The connection above is the documented local development credential only, not a hosted secret. The complete checkout mount supplies loader fixtures missing from the API-only build context. The output contains fictional demo identities/request inputs, not computed results. Select that schema and organization in private `.env.compute`, configure presenter/origin/proxy settings and the web server environment, then run `./scripts/compute-windows.ps1 Start`. A bare `alembic upgrade head` does not select `PP_DATABASE_SCHEMA`; use explicit migration/loader schema controls and never accidentally migrate public instead of the selected demo.
+
+`Start` preserves already-created services (`--no-recreate`), does not automatically build/migrate/seed, and never runs the test handler registry. Existing containers retain their actual image/resource/settings; inspect them instead of assuming the overlay retroactively updates them. Applying a newly built image or changing an existing deployment requires a later controlled operation after active work finishes. Production contracts are `forecast.v1` and `or-comparison.v2`, capability version 2. Local shutdown grace is **725 seconds**, covering the supervisor's maximum **720-second** drain/reconciliation allowance. On this machine the previously stopped API/database containers were capped before their initial start; those initial images remain distinct from current main.
 
 ```powershell
 ./scripts/compute-windows.ps1 Prepare
@@ -54,7 +55,7 @@ Preparation pins a full Hugging Face checkpoint SHA and reuses that pin. Inferen
 
 ## Product boundary
 
-Main now exposes the persisted **baseline** forecast API with presenter/CSRF controls and the same-origin Next.js proxy; its production registry contains `forecast.v1`. Configure its schema, presenter organization/credentials, allowed origins and matching proxy token privately, and deliberately migrate/seed the dedicated demo. Backend `apps/api/.env.compute` and web `apps/web/.env.local` are separate configuration files; see their tracked examples and [forecast flow](../pantrypulse/FORECAST-API-FLOW.md). `APP_ENV`/`DEMO_MODE` alone are not access controls. Visitor access, complete scenario/allocation/UI integration and the research/release gates remain open.
+Main exposes persisted **baseline** forecasts, immutable assumptions/scenarios, verified paired OR comparisons and the connected `/optimization` workspace with presenter/CSRF controls and same-origin proxy. Configure the schema, presenter organization/credentials, allowed origins and matching proxy token privately. Backend `apps/api/.env.compute` and web `apps/web/.env.local` are separate files; see their tracked examples, [forecast flow](../pantrypulse/FORECAST-API-FLOW.md) and [connected OR contract](../optimization/CONNECTED-INTEGRATION.md). `APP_ENV`/`DEMO_MODE` alone are not access controls. Visitor access, broader scenarios/data-management, supplier planning, real dispatch and actual hosted release qualification remain separate.
 
 Installing Chronos does not make that baseline handler use it. Real Chronos remains a standalone offline exercise and is not offered by the application forecast policy. Keep the internal test registry private. The current child environment allowlist does not forward model-cache configuration; review that deliberately when integrating a model handler.
 

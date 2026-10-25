@@ -1,6 +1,6 @@
 # Run Chronos-2 on your Windows laptop
 
-> **Current authority:** [Project specification V5](docs/pantrypulse/SPEC-V5.md). Standalone model-exercise guide, not an integrated forecast service. V5 records its unverified execution status, distinct scope and setup pause; reading this guide does not resume heavy model work.
+> **Current authority:** [Project specification V5](docs/pantrypulse/SPEC-V5.md). Standalone model-exercise guide, not an integrated forecast service. Current standalone execution evidence and the explicit local-setup resumption are recorded in [LOCAL-COMPUTE.md](docs/setup/LOCAL-COMPUTE.md); its measured model exercise is separate from the application provider.
 
 **October 25, 2026 follow-up:** the user explicitly resumed local backend/Chronos preparation and Fly configuration, with existing tasks preserved. Use [the bounded compute setup and current evidence](docs/setup/LOCAL-COMPUTE.md) for this computer; it reuses one compute image and the persistent model cache. The dated verification record below remains historical. The standalone runner still does not constitute an integrated forecasting API.
 
@@ -34,7 +34,7 @@ A step-by-step guide for PantryPulse · Updated October 24, 2026
 | Docker Desktop | Install [Docker Desktop for Windows](https://docs.docker.com/desktop/setup/install/windows-install/), finish its setup and use **Linux containers** |
 | WSL 2 / virtualization | Follow Docker's prerequisites; enabling them may need administrator access and a reboot |
 | PantryPulse checkout | Use the existing repository, or clone it using Git for Windows |
-| Free memory | Close unused applications; aim for roughly **10–12 GiB available before starting** as operating headroom, not a published model minimum |
+| Free memory | Preserve existing tasks; inspect available host/VM headroom and aim for roughly **10–12 GiB available before starting** as operating headroom, not a published model minimum |
 | Free disk | Allow **30 GB or more** initially for Docker images, dependency downloads, build cache and model files; actual usage varies |
 | Internet | Needed for first-time image/dependency/model downloads; prepared model inference uses downloaded files only |
 
@@ -80,11 +80,11 @@ docker info --format '{{.OSType}}'
 
 ### Step 2.3 — Check resource headroom
 
-Open **Task Manager → Performance → Memory**. Close unused browsers, development servers and other memory-heavy work. Keep the laptop plugged in and prevent sleep during the presentation.
+Open **Task Manager → Performance → Memory**. Preserve existing tasks and use the bounded compute helper's host/VM headroom checks before starting additional work. Keep the laptop plugged in and prevent sleep during the presentation.
 
 The supplied Compose file limits this runner to **6 CPUs and 8 GiB RAM**. This is a starting envelope, not reserved memory and not proof that enough host RAM is free. Docker/WSL must have access to at least those resources. WSL resource settings can affect other Linux workloads: review them deliberately rather than overwriting an existing configuration.
 
-For the first model check, leave unrelated API containers and builds stopped if they are not needed. Do not run an image build and model benchmark at the same time.
+For the first model check, preserve already-running API containers and unrelated tasks; do not launch an additional heavy build concurrently. Do not run an image build and model benchmark at the same time.
 
 ### Step 2.4 — Build the optional model image
 

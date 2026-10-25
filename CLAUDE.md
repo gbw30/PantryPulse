@@ -1,8 +1,8 @@
 # PantryPulse
 
-V5 authority update (2026-10-24): Start with [docs/pantrypulse/SPEC-V5.md](docs/pantrypulse/SPEC-V5.md). It consolidates V4, accepted BD-01–41, current main and the unmerged forecasting branch, open/paused work and acceptance. Its requirements override conflicting older text below. Preserve six beneficiaries plus hub(s), hard FEFO, both explicit transfer modes with no default, frozen scenarios, durable jobs, the Next.js proxy and the research gate. Branch experiments do not finalize public contracts; hosting/model and supplier planning remain paused.
+Current authority (2026-10-25): Start with [CURRENT-STATUS.md](docs/pantrypulse/CURRENT-STATUS.md) and [SPEC-V5.md](docs/pantrypulse/SPEC-V5.md). Main includes the baseline API/presenter flow, connected OR comparisons and Linux/browser CI; PR #77 supplies bounded compute/Fly configuration and standalone Chronos evidence. Preserve six beneficiaries plus hub(s), hard FEFO, both explicit transfer modes with no default, frozen scenarios, durable jobs, the Next.js proxy and the research gate. Local backend/model preparation is resumed; supplier planning and public/paid deployment remain separate. Historical notes below do not undo newer accepted decisions.
 
-Build the Gator Hack V 48-hour MVP: three fictional sites, two resource categories, seven-day forecasts, and a 1–3-day simulated allocation window. Preserve the current repository and user changes.
+Build the Gator Hack V MVP: at least six fictional beneficiaries plus hub(s), two products, seven-day forecasts and a 1–3-day simulated allocation window. Preserve the current repository, user changes and running tasks.
 
 ## Read first
 - docs/pantrypulse/SPEC-V5.md: current project source of truth, code/branch status, accepted decisions, unresolved contracts and acceptance.
@@ -11,7 +11,7 @@ Build the Gator Hack V 48-hour MVP: three fictional sites, two resource categori
 - docs/pantrypulse/ART-DIRECTION.md: approved visual direction.
 - docs/pantrypulse/TASK-PROTOCOL.md: ownership, review and integration.
 - docs/pantrypulse/DEMO.md: reset and judge journey.
-- docs/pantrypulse/BOARD.md: delivery board. Task packets (docs/pantrypulse/tasks/PP-NN.md) do not exist yet; the lead writes one per task, so without a packet, ask for one.
+- docs/pantrypulse/BOARD.md: current integration summary followed by historical delivery rows. Existing task packets are in docs/pantrypulse/tasks/; lead records bounded ownership before delegation.
 - docs/pantrypulse/IMPLEMENTATION-PLAN.md and docs/architecture/ (ADR 0001 research gate, ADR 0002 UI stack): current V4 plan and decisions.
 - docs/pantrypulse/ACCEPTANCE-MATRIX.md: required evidence per requirement. docs/pantrypulse/BACKEND-DATA-FLOW.md: how data moves through the API.
 - INSTALLATION.md and docs/pantrypulse/WINDOWS-DEVELOPMENT.md: setup. SCAFFOLD-VERIFICATION.md: what has actually been run and what has not.
@@ -20,8 +20,8 @@ Build the Gator Hack V 48-hour MVP: three fictional sites, two resource categori
 ## Repository map
 The repository root is this folder and the only Git repo. Do not create or run from nested copies; the history of a former nested copy is the `legacy/main` ref.
 - apps/web: Next.js 16 app (src/app, src/lib, tests/e2e, Playwright). It is the only npm workspace; the root package-lock.json owns the lock.
-- apps/api: FastAPI with only GET /api/v1/health exposed. Main includes six pure planning/history helpers; domain routers, ORM/repositories/migrations and allocation remain unfinished. The separately reviewed forecasting branch has an offline core; see V5 for its exact unmerged scope. Also tests/ and uv.lock (the Python lock).
-- packages/contracts: shared contract output (README only so far).
+- apps/api: FastAPI presenter, forecast and planning routers; ORM/repositories; migration head ppor_0005; production forecast.v1/or-comparison.v2 workers; bounded allocation core and independent verifier. Chronos remains a standalone exercise. uv.lock owns Python dependencies.
+- packages/contracts: generated OpenAPI and TypeScript output, plus regeneration instructions.
 - docs/pantrypulse: product contract, protocol, plans. docs/architecture: ADRs.
 - scripts/quality: gate runner and hook tests. scripts/*-windows.ps1: setup and doctor. data/demo: golden fixtures. .claude: agents, hooks, rules, skills and quality-gate.json.
 
@@ -78,7 +78,7 @@ When a skill conflicts with a project constraint, keep the project rule and use 
 - App checks: npm run check (types, lint, ruff, API tests), npm run build, npm run test:e2e.
 - Backend runs in Docker on this Windows host because Application Control blocks OR-Tools natively: npm run dev:api:docker, npm run test:api:docker, npm run check:runtime:docker.
 - The Stop gate is enabled and runs the quick gate; it does not run full or e2e.
-Gate commands are declared in .claude/quality-gate.json. Create and validate the application commands before enabling Stop enforcement. Do not install this kit's templates over existing manifests.
+Gate commands are declared in .claude/quality-gate.json. Active .github/workflows/pantrypulse-ci.yml verifies Linux/PostgreSQL and connected browser behavior and rejects skipped evidence. Do not install historical templates over executable manifests. Solver ceilings are now 300s search / 330s method / 690s comparison, queue expiry 1800s; local stop grace is 725s. Forecast 270/300s and worker 6-CPU/8-GiB ceilings remain.
 
 ## Operating limits
 - Two materially different failed fixes: return a minimal failing case to the lead.

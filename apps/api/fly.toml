@@ -57,7 +57,9 @@ kill_timeout = 300
   initial_size = "10gb"
   processes = ["worker"]
 
-# Main's production registry runs baseline forecasts; Chronos is a standalone tool.
+# Production supports forecast.v1 and or-comparison.v2; Chronos is standalone.
+# Fly's 300-second shutdown cannot cover a 690-second comparison: drain/confirm
+# an idle lane before deployment, as described in docs/setup/FLY.md.
 # Configure the actual schema, presenter credentials/origins and trusted proxy token
 # through private Fly secrets. No automatic migration, seeding or model download.
 # Keep exactly one worker; inspect existing Machines before every deployment.
