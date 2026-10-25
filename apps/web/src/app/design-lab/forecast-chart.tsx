@@ -19,7 +19,7 @@ function OutlookTooltip({ active, payload, label }: TooltipContentProps) {
       {rows.filter(([, value]) => value !== undefined).map(([name, value, color]) => (
         <span key={name}><i style={{ background: color }} />{name}<b>{formatMeals(value as number)} meals</b></span>
       ))}
-      {point.range && point.range[0] !== point.range[1] ? <small>Raw quantile range {formatMeals(point.range[0])} to {formatMeals(point.range[1])}</small> : null}
+      {point.range && point.range[0] !== point.range[1] ? <small>Illustrative range {formatMeals(point.range[0])} to {formatMeals(point.range[1])}</small> : null}
     </div>
   );
 }
