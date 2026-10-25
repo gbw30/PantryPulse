@@ -661,7 +661,7 @@ function PopoverSummary({ row, product, snapshot, dayIndex, onInspect, grip }: {
         <Button asChild size="sm" className="shrink-0 max-md:h-11">
           <motion.button type="button" onClick={onInspect} {...PRESS}>Inspect site</motion.button>
         </Button>
-        {grip && <span className="-mr-1.5 inline-flex self-center">{grip}</span>}
+        {grip && <span className="inline-flex self-center">{grip}</span>}
       </div>
       <p className="flex items-center gap-1.5 text-[13px]">
         <StatusGlyph status={row.status} />
