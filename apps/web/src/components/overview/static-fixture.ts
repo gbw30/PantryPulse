@@ -148,6 +148,7 @@ const PROVENANCE = {
 
 export const staticFixtureSnapshot: OverviewSnapshot = {
   snapshotId: "overview-static-v1",
+  source: { kind: "fixture" },
   provenance: PROVENANCE,
   timezone: "America/New_York",
   dates: DATES,
@@ -160,6 +161,7 @@ const EMPTY_REASON = "No projection is available for this snapshot. Every site i
 
 export const emptyFixtureSnapshot: OverviewSnapshot = {
   snapshotId: "overview-static-empty-v1",
+  source: { kind: "fixture" },
   provenance: { ...PROVENANCE, fixtureId: "overview-static-empty-v1" },
   timezone: "America/New_York",
   dates: DATES,
@@ -202,11 +204,3 @@ export const OVERVIEW_STATE_PREVIEWS = {
 } as const;
 
 export type OverviewStatePreview = keyof typeof OVERVIEW_STATE_PREVIEWS;
-
-export function overviewSourceFor(preview: string | undefined): { source: OverviewDataSource; preview: OverviewStatePreview | null } {
-  if (preview && Object.hasOwn(OVERVIEW_STATE_PREVIEWS, preview)) {
-    const key = preview as OverviewStatePreview;
-    return { source: OVERVIEW_STATE_PREVIEWS[key], preview: key };
-  }
-  return { source: staticFixtureSource, preview: null };
-}
