@@ -1,4 +1,4 @@
-"""Linux process-group execution boundary (WQ-04, ADR 0004 A2).
+"""Linux process-group execution boundary (WQ-04, ADR 0005 A2).
 
 Each step child runs in its own session/process group, carries a per-boundary nonce in its
 environment and asks the kernel to SIGKILL it if its parent dies. Stop = SIGTERM to the
@@ -67,7 +67,7 @@ class ProcStat:
 def read_stat(pid: int) -> ProcStat | None:
     try:
         raw = (_PROC / str(pid) / "stat").read_text()
-    except (FileNotFoundError, ProcessLookupError, PermissionError):
+    except (FileNotFoundError, ProcessLookupError):
         return None
     # comm (field 2) may contain spaces and parentheses; fields resume after the last ')'.
     rest = raw[raw.rindex(")") + 2 :].split()
@@ -160,6 +160,9 @@ class PosixProcessDriver:
         self.cwd = str(cwd)
         self.thread_limit = int(thread_limit)
         self.capable = linux_containment_available()
+        # The deadline watchdog and main loop share handles. Keep the unreaped-leader
+        # identity check atomic with signaling so another thread cannot reap it mid-check.
+        self._process_lock = threading.RLock()
 
     # --- identity --------------------------------------------------------------------------
 
@@ -203,7 +206,10 @@ class PosixProcessDriver:
         )
 
     def confirm_empty(self, identity: BoundaryIdentity) -> bool:
-        return self._same_host(identity) and not self.members(identity)
+        try:
+            return self._same_host(identity) and not self.members(identity)
+        except OSError:
+            return False  # unreadable /proc is not evidence of an empty boundary
 
     # --- lifecycle -------------------------------------------------------------------------
 
@@ -238,7 +244,10 @@ class PosixProcessDriver:
             start_new_session=True,
             close_fds=True,
         )
-        stat = read_stat(process.pid)
+        try:
+            stat = read_stat(process.pid)
+        except PermissionError:
+            stat = None  # retain the live handle; recovery must establish its own evidence
         identity = BoundaryIdentity(
             boot_id=host.boot_id,
             pid_namespace=host.pid_namespace,
@@ -264,15 +273,23 @@ class PosixProcessDriver:
 
     def poll(self, handle: ChildHandle) -> int | None:
         """Nonblocking; reaps the leader when it has exited."""
-        return handle.process.poll()
+        with self._process_lock:
+            return handle.process.poll()
 
     def _signal_group(self, handle: ChildHandle, sig: int) -> None:
+        with self._process_lock:
+            self._signal_group_locked(handle, sig)
+
+    def _signal_group_locked(self, handle: ChildHandle, sig: int) -> None:
         identity = handle.identity
         if handle.process.returncode is None:
             # Unreaped leader (alive or zombie) still holds the pgid: it is ours.
             targets_ok = True
         else:
-            live = self.members(identity)
+            try:
+                live = self.members(identity)
+            except OSError:
+                return
             if not live:
                 return
             targets_ok = all(self._has_marker(pid, identity.nonce) for pid in live)
@@ -314,6 +331,12 @@ class PosixProcessDriver:
 
     def cleanup_foreign(self, identity: BoundaryIdentity, *, timeout_s: float) -> dict | None:
         """Return concrete containment evidence, or None when it cannot be established."""
+        try:
+            return self._cleanup_foreign(identity, timeout_s=timeout_s)
+        except OSError:
+            return None
+
+    def _cleanup_foreign(self, identity: BoundaryIdentity, *, timeout_s: float) -> dict | None:
         host = current_host_identity()
         if host is None:
             return None
@@ -322,7 +345,11 @@ class PosixProcessDriver:
         if host.pid_namespace != identity.pid_namespace:
             return None
         leader = read_stat(identity.leader_pid)
-        if leader is not None and leader.start_ticks != identity.leader_start_ticks:
+        if (
+            leader is not None
+            and identity.leader_start_ticks >= 0
+            and leader.start_ticks != identity.leader_start_ticks
+        ):
             # The PID was reused, which the kernel allows only after the group emptied.
             return {"method": "LEADER_PID_REUSED", "pgid": identity.pgid}
         live = self.members(identity)

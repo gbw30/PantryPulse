@@ -117,6 +117,9 @@ class Execution:
     cleanup_deadline: float | None = None
     cleanup_quarantined: bool = False
     publish_pending: bool = False
+    finalize_pending: bool = False
+    failure_reason: ReasonCode | None = None
+    failure_error: dict | None = None
     uncertain: bool = False
     last_state_poll: float = 0.0
 
@@ -152,6 +155,8 @@ class Supervisor:
         self._fenced = threading.Event()
         self._hb_stop = threading.Event()
         self._hb_thread: threading.Thread | None = None
+        self._watchdog_stop = threading.Event()
+        self._watchdog_thread: threading.Thread | None = None
         self._last_ownership_check = 0.0
         self._last_recovery_check = 0.0
         self._last_expiry_scan = 0.0
@@ -178,6 +183,8 @@ class Supervisor:
         self.own = own
         log_event("OWNERSHIP_ACQUIRED", supervisor_id=own.supervisor_id, generation=own.generation)
         self._start_heartbeat()
+        self._watchdog_thread = threading.Thread(target=self._watchdog_loop, daemon=True)
+        self._watchdog_thread.start()
         self._recovery_pass()
         return True
 
@@ -201,6 +208,40 @@ class Supervisor:
         self._hb_stop.set()
         if self._hb_thread is not None:
             self._hb_thread.join(5)
+
+    def _watchdog_loop(self) -> None:
+        """Enforce local child limits even while the main loop is blocked on database I/O.
+
+        This thread only polls/signals the current boundary. It never publishes, starts a
+        child, releases a slot or performs database work; those remain fenced main-loop work.
+        """
+        while not self._watchdog_stop.wait(0.01):
+            ex = self.active
+            run = ex.current if ex is not None else None
+            if run is None:
+                continue
+            try:
+                now = self.clock()
+                if self.driver.poll(run.handle) is not None:
+                    if not self.driver.confirm_empty(run.handle.identity):
+                        self.driver.force_stop(run.handle)
+                    continue
+                if self._fenced.is_set() or (ex.stopping and now >= ex.kill_at):
+                    self.driver.force_stop(run.handle)
+                elif _overflowing(run.handle):
+                    run.overflowed = True
+                    run.kill_sent_at = run.kill_sent_at or now
+                    self.driver.force_stop(run.handle)
+                elif now >= run.force_at:
+                    run.timed_out = True
+                    run.kill_sent_at = run.kill_sent_at or now
+                    self.driver.force_stop(run.handle)
+                elif now >= run.soft_at and not run.term_sent:
+                    run.timed_out = run.term_sent = True
+                    self.driver.request_stop(run.handle)
+            except OSError as exc:
+                # Missing containment evidence must never be interpreted as cleanup.
+                log_event("WATCHDOG_CONTAINMENT_UNAVAILABLE", error_type=type(exc).__name__)
 
     def _recovery_pass(self) -> bool:
         """Resolve occupying attempts with evidence; quarantine what cannot be resolved."""
@@ -245,7 +286,7 @@ class Supervisor:
                 self._on_ownership_lost()
                 return
             if self.active is not None:
-                self._drive(self.active, now)
+                self._drive(self.active, self.clock())
             elif self.quarantined:
                 if now - self._last_recovery_check >= self.config.recovery_recheck_s:
                     self._last_recovery_check = now
@@ -335,6 +376,9 @@ class Supervisor:
             if not should_run_step(spec, ex.outcomes):
                 ex.index += 1
                 continue
+            if not self.repo.prepare_boundary(self.own, ex.claim, spec.name):
+                self._timeout(ex)
+                return
             elapsed = self.clock() - ex.mono_start
             window = plan_step_window(
                 spec, elapsed_s=elapsed, budget_s=ex.claim.budget_s, profile=self.profile
@@ -397,6 +441,9 @@ class Supervisor:
         self._publish(ex)
 
     def _drive(self, ex: Execution, now: float) -> None:
+        if ex.finalize_pending:
+            self._finish(ex, failure_reason=ex.failure_reason, error=ex.failure_error)
+            return
         if ex.uncertain:
             self._reconcile(ex)
             return
@@ -408,6 +455,7 @@ class Supervisor:
             attempt = self.repo.read_attempt(ex.claim.attempt_id)
             if attempt.state is AttemptState.STOPPING:  # cancellation recorded by the API
                 self._begin_stop(ex, now)
+            now = self.clock()
         # Step windows already stop children by budget - reserve; this backstop must not
         # pre-empt a step's own cutoff (reserve may equal grace) and discard earlier outcomes.
         backstop = now >= ex.hard_deadline or (ex.current is None and now >= ex.soft_deadline)
@@ -496,8 +544,8 @@ class Supervisor:
     def _begin_stop(self, ex: Execution, now: float) -> None:
         if ex.stopping:
             return
-        ex.stopping = True
         ex.kill_at = min(now + self.profile.stop_grace_s, max(now, ex.hard_deadline))
+        ex.stopping = True
         if ex.current is not None and self.driver.poll(ex.current.handle) is None:
             self.driver.request_stop(ex.current.handle)
 
@@ -532,6 +580,9 @@ class Supervisor:
         An attempt already finalized elsewhere (operator attestation while local cleanup
         was pending) is left as recorded; the loop continues.
         """
+        ex.finalize_pending = True
+        ex.failure_reason = failure_reason
+        ex.failure_error = error
         try:
             state = self.repo.finalize(
                 self.own,
@@ -599,6 +650,11 @@ class Supervisor:
         if outcome == "ABSENT":
             ex.uncertain = False
             self._finish(ex, failure_reason=ReasonCode.PUBLICATION_COMMIT_LOST)
+        elif outcome == "OTHER_STOPPING":
+            # Cancellation may win after an unacknowledged, rolled-back publication.
+            # Children are already cleaned up; complete the recorded stop and free the slot.
+            ex.uncertain = False
+            self._finish(ex)
         else:
             self.active = None
 
@@ -642,6 +698,9 @@ class Supervisor:
     def close(self) -> None:
         """Stop background work without writing anything (also models a crash in tests)."""
         self.pause_heartbeat()
+        self._watchdog_stop.set()
+        if self._watchdog_thread is not None:
+            self._watchdog_thread.join(5)
         self.closed = True
 
     simulate_crash = close

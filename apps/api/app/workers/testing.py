@@ -1,4 +1,4 @@
-"""Fixed test handlers for queue infrastructure evidence (ADR 0004 A6).
+"""Fixed test handlers for queue infrastructure evidence (ADR 0005 A6).
 
 Loaded only through the named ``test`` registry. Their outputs are test infrastructure
 artifacts: never a forecast, allocation, feasible plan or research result. Behaviors are

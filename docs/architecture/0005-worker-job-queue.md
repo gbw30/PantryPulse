@@ -1,4 +1,4 @@
-# ADR 0004: Worker and job queue foundation decisions
+# ADR 0005: Worker and job queue foundation decisions
 
 > **Authority:** [Project specification V5](../pantrypulse/SPEC-V5.md) §§12–13 and BD-11/12/30/31/34–38 remain the accepted requirements. This ADR records the lead's review of the technical proposals in [WORKER-JOB-QUEUE-SPEC.md](../pantrypulse/WORKER-JOB-QUEUE-SPEC.md) (WQ-D01–D11) for the internal foundation packages WQ-01–06 only. It does not close OPEN-29/30/31/33/35, expose public routes or select deployment.
 
@@ -37,6 +37,10 @@ Date: 2026-10-24. Base: main `04df41ced650896bd4f4a4cd10de1354b406d216`. Status:
 **A7 — acceptance scope.** WQ-01–06 target WQ-T01–T23, T26 and T27. WQ-T24/T25 wait for public routes (WQ-09) and WQ-T28 for runtime limits (WQ-10); they are reported NOT RUN, not passed. **USER CONFIRM:** this is the P0 test scope for the foundation.
 
 **A8 — input identity.** The input hash covers the package exactly as JSONB stores it (JSONB rewrites values such as `-0.0` or `1e16`), and the handler must re-validate that stored form unchanged; input that changes on storage or cannot be stored (e.g. a NUL character) is rejected at submit with `INPUT_NOT_REPRESENTABLE`, never accepted and failed later.
+
+**A9 — review corrections (PR #52).** A separate local watchdog enforces child stop deadlines and descendant cleanup without database I/O, including while the main loop is blocked in a database call. Only the main loop may publish, finalize or release the slot. Before each child spawn, a committed preparation transaction clears the previous boundary identity; a crash before the new identity is saved therefore quarantines recovery. An unreadable `/proc` scan never counts as cleanup evidence. Failed finalization is retried without re-executing the handler, and cancellation during uncertain-publication reconciliation completes the recorded stop before releasing the slot.
+
+The worker ADR was renumbered from 0004 to 0005 during review because 0004 already identifies the design-lab exception. Merging this internal foundation does not resolve the provisional A1/A7 deployment decisions or enable a public compute service.
 
 ## Rollback trigger
 

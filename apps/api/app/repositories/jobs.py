@@ -1155,6 +1155,25 @@ class QueueRepository:
             raise Fenced("attempt token or generation mismatch", code="PUBLICATION_FENCED")
         return ctl, now, job, attempt
 
+    def prepare_boundary(self, own: Ownership, claim: ClaimedAttempt, phase: str) -> bool:
+        """Invalidate the previous step's identity BEFORE a new child can be spawned.
+
+        A crash between spawning and recording the new boundary must quarantine recovery,
+        never prove cleanup using the already-empty boundary from the previous step.
+        """
+        with self._tx() as conn:
+            _, now, _, attempt = self._lock_claimed(conn, own, claim)
+            if attempt["state"] != AttemptState.RUNNING or now >= attempt["execution_deadline_at"]:
+                return False
+            conn.execute(
+                sa.text(
+                    "UPDATE compute_attempts SET execution_boundary = NULL, current_phase = :p"
+                    " WHERE attempt_id = :a"
+                ),
+                {"p": phase[:64], "a": claim.attempt_id},
+            )
+        return True
+
     def record_boundary(
         self, own: Ownership, claim: ClaimedAttempt, boundary: Mapping[str, Any], phase: str
     ) -> bool:
@@ -1553,7 +1572,7 @@ class QueueRepository:
     def operator_attest_cleanup(
         self, attempt_id: uuid.UUID, operator_ref: str, note: str
     ) -> AttemptState:
-        """Administrative recovery: an operator attests the old boundary is gone (ADR 0004 A1).
+        """Administrative recovery: an operator attests the old boundary is gone (ADR 0005 A1).
 
         Recorded as OPERATOR_ATTESTATION evidence, distinct from automatic proof.
         """

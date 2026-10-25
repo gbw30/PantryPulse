@@ -1,6 +1,6 @@
 """Internal job vocabulary, runtime profile and canonical input identity (WQ-01).
 
-These enums are WQ PROPOSAL internal contracts accepted for the foundation in ADR 0004, not
+These enums are WQ PROPOSAL internal contracts accepted for the foundation in ADR 0005, not
 public V5 enums. A job lifecycle state is never a native solver status, and a completed
 operation is never by itself a feasible plan.
 """
@@ -135,7 +135,7 @@ class RuntimeProfile:
     comparison_total_s: float = 60
     stop_grace_s: float = 2
     publication_reserve_s: float = 2
-    # Engineering margin (ADR 0004 A4): SIGKILL lands this long before a hard cutoff so
+    # Engineering margin (ADR 0005 A4): SIGKILL lands this long before a hard cutoff so
     # termination/scheduling latency still meets it.
     kill_margin_s: float = 0.25
     method_min_s: float = 1

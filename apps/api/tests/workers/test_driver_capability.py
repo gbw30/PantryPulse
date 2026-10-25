@@ -1,4 +1,4 @@
-"""Containment capability is reported truthfully on every host (ADR 0004 A2)."""
+"""Containment capability is reported truthfully on every host (ADR 0005 A2)."""
 
 import sys
 

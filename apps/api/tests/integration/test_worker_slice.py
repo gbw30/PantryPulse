@@ -152,6 +152,49 @@ def boundary(q, org, job_id, attempt=0):
 DRIVER = PosixProcessDriver(cwd=API_ROOT)
 
 
+def test_watchdog_stops_real_child_while_database_read_blocks(q, org, monkeypatch):
+    from app.workers.supervisor import Supervisor, SupervisorConfig
+
+    sup = Supervisor(q, REGISTRY, DRIVER, SupervisorConfig("test", q.profile))
+    handle = None
+    try:
+        assert sup.start()
+        accepted = submit(q, org, {"sleep_s": 60, "ignore_sigterm": True, "spawn_descendant": True})
+        sup.tick()
+        run = sup.active.current
+        handle = run.handle
+        wait_for(lambda: len(DRIVER.members(handle.identity)) >= 2)
+        original_control = q.control
+
+        def blocked_control():
+            # Keep the repository call blocked until beyond the step's hard deadline.
+            while time.monotonic() < run.hard_at + 0.1:
+                time.sleep(0.01)
+            assert DRIVER.poll(handle) is not None
+            assert DRIVER.confirm_empty(handle.identity)
+            return original_control()
+
+        monkeypatch.setattr(q, "control", blocked_control)
+        sup._last_ownership_check = 0
+        sup.tick()
+        monkeypatch.setattr(q, "control", original_control)
+
+        def finished():
+            sup.tick()
+            return terminal(q, org, accepted.job_id)()
+
+        wait_for(finished)
+        assert state(q, org, accepted.job_id) is AttemptState.TIMED_OUT
+        assert q.control().active_attempt_id is None
+        sup.shutdown_drain()
+    finally:
+        sup.close()
+        if handle is not None:
+            DRIVER.force_stop(handle)
+            handle.process.wait(timeout=5)
+            DRIVER.dispose(handle)
+
+
 def test_accepted_job_runs_once_in_a_contained_child(q, org, supervisors):
     supervisors()
     accepted = submit(q, org)

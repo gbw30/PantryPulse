@@ -643,3 +643,103 @@ def test_supervisor_reconciles_an_uncertain_commit(db, org, cls, expected):  # W
     assert len(driver.started) == 1  # never recomputed
     assert repo.control().active_attempt_id is None
     sup.shutdown_drain()
+
+
+def test_deadlines_survive_a_blocked_database_call(q, org, monkeypatch):
+    sup, driver = started(q)
+    accepted = submit(
+        q, org, payload={"value": 1, "behavior": {"sleep_s": 30, "ignore_sigterm": True}}
+    )
+    sup.tick()
+    run = sup.active.current
+    assert run is not None
+
+    def blocked_control():
+        # A stalled DB socket holds the main loop beyond the child cutoff.
+        while time.monotonic() < run.hard_at + 0.1:
+            time.sleep(0.01)
+        assert driver.started[0].killed, "DB I/O must not delay SIGKILL"
+        return original_control()
+
+    original_control = q.control
+    monkeypatch.setattr(q, "control", blocked_control)
+    sup._last_ownership_check = 0
+    sup.tick()
+    monkeypatch.setattr(q, "control", original_control)
+    run_until(sup, settled(q, org, accepted.job_id))
+    assert q.control().active_attempt_id is None
+    sup.shutdown_drain()
+
+
+def test_crash_before_recording_second_boundary_cannot_reuse_first(q, org, monkeypatch):
+    from app.repositories.jobs import QueueStorageUnavailable
+
+    sup, driver = started(q)
+    accepted = submit(
+        q,
+        org,
+        "test.forecast.v1",
+        {
+            "fallback_allowed": True,
+            "primary": {"fail": "classified"},
+            "fallback": {"sleep_s": 30},
+        },
+    )
+    original_record = q.record_boundary
+
+    def lose_second_boundary(own, claim, boundary, phase):
+        if phase == "fallback":
+            raise QueueStorageUnavailable("lost before recording new child")
+        return original_record(own, claim, boundary, phase)
+
+    monkeypatch.setattr(q, "record_boundary", lose_second_boundary)
+    run_until(sup, lambda: len(driver.started) == 2)
+    assert q.read_attempt(accepted.attempt_id).execution_boundary is None
+    sup.simulate_crash()
+    with q.engine.begin() as conn:
+        conn.execute(
+            sa.text(
+                "UPDATE compute_control SET heartbeat_at = "
+                "clock_timestamp() - interval '10 seconds'"
+            )
+        )
+    successor, successor_driver = started(q)
+    assert q.control().state is SupervisorState.QUARANTINED
+    assert q.control().active_attempt_id == accepted.attempt_id
+    assert not successor_driver.foreign_checked
+
+
+def test_cancel_during_uncertain_commit_reconciliation_releases_slot(db, org):
+    repo = _LoseBeforeCommit(db, registry=REGISTRY, profile=PROFILE)
+    sup, driver = started(repo)
+    accepted = submit(repo, org)
+    run_until(sup, lambda: sup.active is not None and sup.active.uncertain)
+    repo.cancel(org, accepted.job_id, "cancel-uncertain")
+    sup.tick()
+    assert repo.read_attempt(accepted.attempt_id).state is AttemptState.CANCELLED
+    assert repo.control().active_attempt_id is None
+    assert len(driver.started) == 1
+    sup.shutdown_drain()
+
+
+def test_failed_spawn_is_not_retried_when_finalization_storage_recovers(q, org, monkeypatch):
+    from app.repositories.jobs import QueueStorageUnavailable
+
+    sup, driver = started(q)
+    driver.fail_spawn = True
+    accepted = submit(q, org)
+    original_finalize = q.finalize
+
+    def unavailable(*args, **kwargs):
+        raise QueueStorageUnavailable("finalization offline")
+
+    monkeypatch.setattr(q, "finalize", unavailable)
+    sup.tick()
+    driver.fail_spawn = False
+    monkeypatch.setattr(q, "finalize", original_finalize)
+    run_until(sup, settled(q, org, accepted.job_id))
+    attempt = q.read_attempt(accepted.attempt_id)
+    assert attempt.state is AttemptState.FAILED
+    assert attempt.reason_code == "SPAWN_FAILED"
+    assert not driver.started  # only an explicit retry may run this attempt's input again
+    sup.shutdown_drain()

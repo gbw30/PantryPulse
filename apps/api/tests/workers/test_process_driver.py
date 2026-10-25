@@ -263,3 +263,26 @@ def _alive_non_zombie(pid):
     except FileNotFoundError:
         return False
     return stat[stat.rindex(")") + 2] != "Z"
+
+
+def test_unreadable_proc_is_not_cleanup_evidence(driver, monkeypatch):
+    from pathlib import Path
+
+    from app.workers.process_driver import read_stat
+
+    host = current_host_identity()
+    identity = BoundaryIdentity(
+        host.boot_id, host.pid_namespace, os.getpid(), os.getpid(), 1, "unreadable"
+    )
+    original_read = Path.read_text
+
+    def deny_stat(path, *args, **kwargs):
+        if path.name == "stat":
+            raise PermissionError("proc inaccessible")
+        return original_read(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", deny_stat)
+    with pytest.raises(PermissionError):
+        read_stat(os.getpid())
+    assert not driver.confirm_empty(identity)
+    assert driver.cleanup_foreign(identity, timeout_s=0.1) is None

@@ -8,6 +8,8 @@
 
 **Design status:** implementation proposal. Requirements labeled **V5 REQUIRED** are already accepted. Details labeled **WQ PROPOSAL** are specified here for review and bounded implementation; they are not additional previously accepted BD decisions. This document does not amend V5 or mark OPEN-30/33/35 complete. Public schemas, authentication, domain publication and operational deployment retain their gates.
 
+**Implementation follow-up:** PR #52 implements WQ-01–06 with fixed test handlers. [ADR 0005](../architecture/0005-worker-job-queue.md) records foundation decisions and review corrections; [PP-31–36](tasks/PP-31.md) records verification, and the [worker runbook](../setup/WORKER-QUEUE.md) covers local setup and recovery. The baseline above is historical; WQ-07–10 and the public/deployment gates remain open.
+
 ## 1. Outcome and build boundary
 
 Build a durable, PostgreSQL-backed queue and a supervisor that runs one expensive operation at a time outside the HTTP process. Demonstrate admission, execution, publication, cancellation, interruption and manual retry with fixed test handlers before connecting forecasting or allocation.

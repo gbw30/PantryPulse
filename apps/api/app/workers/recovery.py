@@ -1,4 +1,4 @@
-"""Containment evidence for attempts left by a lost supervisor (WQ-03, ADR 0004 A1)."""
+"""Containment evidence for attempts left by a lost supervisor (WQ-03, ADR 0005 A1)."""
 
 from typing import Any, Protocol
 

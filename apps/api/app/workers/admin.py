@@ -1,4 +1,4 @@
-"""Operator commands for the compute lane (ADR 0004 A1).
+"""Operator commands for the compute lane (ADR 0005 A1).
 
     python -m app.workers.admin status
     python -m app.workers.admin attest-cleanup --attempt UUID --operator REF --note TEXT
