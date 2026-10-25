@@ -50,6 +50,19 @@ const marker = (page: Page, name: string) => page.getByRole("button", { name: ne
 const SITES = ["Riverbend Pantry", "Oak Terrace Pantry", "Cedar Grove Pantry", "Maple Crossing Pantry", "Willow Creek Pantry", "Pine Ridge Pantry", "Gator Distribution Hub"];
 const slug = (name: string) => name.replace(/ (Pantry|Distribution Hub)$/, (match) => (match.includes("Hub") ? " hub" : "")).toLowerCase().replace(/ /g, "-");
 
+// No text in the scope is clipped: nothing overflows its box and nothing is truncated with an ellipsis.
+async function expectNoClippedText(scope: Locator, label: string) {
+  const clipped = await scope.evaluate((root) => [root, ...root.querySelectorAll("*")]
+    .filter((element) => {
+      if (!(element instanceof HTMLElement)) return false;
+      return element.scrollWidth > element.clientWidth + 1 || getComputedStyle(element).textOverflow === "ellipsis";
+    })
+    .map((element) => `${element.tagName.toLowerCase()} "${(element.textContent ?? "").slice(0, 40)}"`));
+  expect(clipped, `${label}: clipped text`).toEqual([]);
+}
+
+const chipName = (name: string) => (name.includes("Hub") ? "Gator Hub" : name.replace(/ Pantry$/, ""));
+
 async function markerBoxes(page: Page) {
   const boxes = new Map<string, Box>();
   for (const name of SITES) boxes.set(name, await box(marker(page, name)));
@@ -166,9 +179,31 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
         expect(inside(popoverBox, await box(page.locator("[data-atlas-map]"))), `${name} popover leaves the map`).toBe(true);
         expect(overlaps(popoverBox, await box(page.getByTestId("site-inspector"))), `${name} popover covers the inspector`).toBe(false);
         for (const [other, rect] of await markerBoxes(page)) expect(overlaps(popoverBox, rect), `${name} popover covers ${other}`).toBe(false);
-        if (width === 1280 && (name === "Gator Distribution Hub" || name === "Maple Crossing Pantry")) await shot(`popover-${name.includes("Hub") ? "hub" : slug(name)}`);
+        await expectNoClippedText(popover, `${width} ${name} card`);
+        if (width === 1280 && ["Gator Distribution Hub", "Maple Crossing Pantry", "Pine Ridge Pantry"].includes(name)) await shot(`popover-${name.includes("Hub") ? "hub" : slug(name)}`);
         await page.keyboard.press("Escape");
         await expect(target).toBeFocused();
+      }
+    }
+
+    if (!desktop) {
+      const chips = page.getByRole("list", { name: "All sites" });
+      for (const name of SITES) {
+        const chip = chips.getByRole("button", { name: new RegExp(`^${chipName(name)} `) });
+        await chip.click();
+        const popover = page.getByRole("dialog", { name });
+        await expect(popover).toBeVisible();
+        const popoverBox = await box(popover);
+        expect(inside(popoverBox, await box(page.locator("[data-atlas-map]"))), `${name} card leaves the map`).toBe(true);
+        expect(overlaps(popoverBox, await box(marker(page, name))), `${name} card covers its own marker`).toBe(false);
+        expect(overlaps(popoverBox, await box(page.getByRole("group", { name: "Map controls" }))), `${name} card covers the zoom controls`).toBe(false);
+        const clear = [...(await markerBoxes(page)).values()].filter((rect) => !overlaps(popoverBox, rect));
+        expect(clear.length, `${name}: fewer than four markers stay visible`).toBeGreaterThanOrEqual(4);
+        await expectNoClippedText(popover, `${width} ${name} card`);
+        if (["Willow Creek Pantry", "Cedar Grove Pantry", "Maple Crossing Pantry", "Gator Distribution Hub"].includes(name)) await shot(`popover-${name.includes("Hub") ? "gator-hub" : slug(name)}`);
+        await page.keyboard.press("Escape");
+        await expect(popover).toBeHidden();
+        await expect(chip).toBeFocused();
       }
     }
 
@@ -197,6 +232,13 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
     await expect(table).toBeVisible();
     await expect(table.getByRole("row")).toHaveCount(8);
     await expect(table.getByRole("columnheader", { name: "Demand outlook (meals)" })).toBeVisible();
+    const labels = table.locator("thead [data-col-label]");
+    const labelBoxes = await Promise.all((await labels.all()).map((label) => box(label)));
+    expect(labelBoxes.length).toBe(5);
+    for (let index = 1; index < labelBoxes.length; index += 1) {
+      const gap = labelBoxes[index].x - (labelBoxes[index - 1].x + labelBoxes[index - 1].width);
+      expect(gap, `table header gap before column ${index + 1}`).toBeGreaterThanOrEqual(8);
+    }
     const tableRegion = inspector.getByRole("region", { name: /daily outlook table/ });
     expect(await tableRegion.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
     const lastUnmet = table.getByRole("row", { name: /Fri, Oct 30/ }).getByRole("cell").last();

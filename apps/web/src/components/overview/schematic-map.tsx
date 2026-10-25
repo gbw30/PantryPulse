@@ -17,10 +17,12 @@ import type { MarkerStatus, Site } from "./types";
 export type MapMarker = { site: Site; status: MarkerStatus; statusLine: string; accessibleName: string };
 
 /**
- * Where the selection card docks: a band along the bottom of the map that markers never enter
- * (desktop), or a band above the zoom row (compact). `top` is the band's bottom edge in map pixels.
+ * Where the selection card docks, in map pixels. `top` is the anchor line and `side` the side of it the
+ * card opens on. Desktop: a band along the bottom of the map that markers never enter. Compact: above
+ * the zoom row, or below the caption at the top when the selected marker sits in the lower half, so the
+ * card never covers the site it describes. Position only; nothing pans or animates.
  */
-export type SelectionContext = { left: number; top: number; width: number };
+export type SelectionContext = { left: number; top: number; width: number; side: "top" | "bottom" };
 
 export type NetworkMapProps = {
   markers: MapMarker[];
@@ -198,8 +200,10 @@ export function SchematicMapRenderer({ markers, positions, selectedId, onSelect,
       })}
       {ready && selectedPosition && renderSelection?.(
         compact
-          ? { left: 12, top: size.height - 64, width: size.width - 24 }
-          : { left: 60, top: size.height - 12, width: clamp(size.width - reserveRight - 60 - 12 - CAPTION_WIDTH, 280, 420) },
+          ? project(selectedPosition).top > size.height / 2
+            ? { left: 12, top: 44, width: size.width - 24, side: "bottom" }
+            : { left: 12, top: size.height - 64, width: size.width - 24, side: "top" }
+          : { left: 60, top: size.height - 12, width: clamp(size.width - reserveRight - 60 - 12 - CAPTION_WIDTH, 280, 420), side: "top" },
       )}
       <div className={cn("absolute bottom-3 left-3 z-10 flex overflow-hidden rounded-lg border border-border bg-card shadow-sm", compact ? "flex-row" : "flex-col")} role="group" aria-label="Map controls">
         <Tooltip>

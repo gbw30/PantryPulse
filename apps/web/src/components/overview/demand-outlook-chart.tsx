@@ -66,11 +66,11 @@ export function DemandOutlookChart({ projection, product, dates }: Props) {
             <caption className="caption-top pb-1 text-left text-[11px] text-muted-foreground">All values in {product.unitPlural} per day, {range}</caption>
             <thead>
               <tr className="border-b border-border text-muted-foreground">
-                <th scope="col" className="w-[22%] py-1 font-medium">Date</th>
-                {!isHub && <th scope="col" className="py-1 text-right font-medium">Demand<span className="sr-only"> outlook ({product.unitPlural})</span></th>}
-                <th scope="col" className="py-1 text-right font-medium">Donation<span className="sr-only"> outlook ({product.unitPlural})</span></th>
-                {!isHub && <th scope="col" className="py-1 text-right font-medium">Served<span className="sr-only">, projected ({product.unitPlural})</span></th>}
-                {!isHub && <th scope="col" className="py-1 text-right font-medium">Unmet<span className="sr-only">, projected ({product.unitPlural})</span></th>}
+                <th scope="col" className={isHub ? "w-1/2 py-1 font-medium" : "w-[17%] py-1 font-medium"}><span data-col-label>Date</span></th>
+                {!isHub && <th scope="col" className="w-[20%] py-1 text-right font-medium"><span data-col-label>Demand</span><span className="sr-only"> outlook ({product.unitPlural})</span></th>}
+                <th scope="col" className={isHub ? "py-1 text-right font-medium" : "w-[25%] py-1 text-right font-medium"}><span data-col-label>Donation</span><span className="sr-only"> outlook ({product.unitPlural})</span></th>
+                {!isHub && <th scope="col" className="w-[19%] py-1 text-right font-medium"><span data-col-label>Served</span><span className="sr-only">, projected ({product.unitPlural})</span></th>}
+                {!isHub && <th scope="col" className="w-[19%] py-1 text-right font-medium"><span data-col-label>Unmet</span><span className="sr-only">, projected ({product.unitPlural})</span></th>}
               </tr>
             </thead>
             <tbody>

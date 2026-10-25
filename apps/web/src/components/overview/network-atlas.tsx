@@ -311,7 +311,7 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
                       <span aria-hidden="true" className="pointer-events-none absolute h-0" style={{ left: dock.left, top: dock.top, width: dock.width }} />
                     </PopoverAnchor>
                     <PopoverContent
-                      side="top"
+                      side={dock.side}
                       align="start"
                       sideOffset={0}
                       avoidCollisions={false}
@@ -436,21 +436,26 @@ function PopoverSummary({ row, product, snapshot, dayIndex, onInspect }: { row: 
     deficitLine = next ? `Next deficit ${nextDeficitLine(row.projection, product, snapshot.dates, dayIndex)}` : nextDeficitLine(row.projection, product, snapshot.dates, dayIndex);
   }
 
+  // Nothing truncates: name and role wrap on their own lines; the day and unit stay together.
   return (
-    <div className="flex items-start gap-3">
-      <div className="grid min-w-0 flex-1 gap-0.5">
-        <p className="truncate text-sm font-semibold">
-          {row.site.name} <span className="text-xs font-normal text-muted-foreground">· {roleLabel(row.site)}</span>
-        </p>
-        <p className="flex items-center gap-1.5 text-[13px]">
-          <StatusGlyph status={row.status} />
-          <span><strong className="font-semibold">{STATUS_LABEL[row.status]}</strong>{row.status !== "hub" && <> on {day}</>} · {product.unitPlural}</span>
-        </p>
-        <p className="text-xs">{deficitLine}</p>
+    <div className="grid gap-1.5">
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm leading-snug font-semibold">{row.site.name}</p>
+          <p className="text-xs text-muted-foreground first-letter:uppercase">{roleLabel(row.site)}</p>
+        </div>
+        <Button onClick={onInspect} size="sm" className="shrink-0 max-md:h-11">
+          Inspect site
+        </Button>
       </div>
-      <Button onClick={onInspect} size="sm" className="shrink-0 max-md:h-11">
-        Inspect site
-      </Button>
+      <p className="flex items-center gap-1.5 text-[13px]">
+        <StatusGlyph status={row.status} />
+        <span>
+          <strong className="font-semibold">{STATUS_LABEL[row.status]}</strong>{" "}
+          <span className="whitespace-nowrap">{row.status === "hub" ? `· ${product.unitPlural}` : `on ${day} · ${product.unitPlural}`}</span>
+        </span>
+      </p>
+      <p className="text-xs">{deficitLine}</p>
     </div>
   );
 }
