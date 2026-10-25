@@ -52,3 +52,37 @@ The six-fixture oracle uses exact integer scoring with denominator 6000000, incl
 ## Evidence and remaining limits
 
 `apps/api/tests/optimization/test_or_oracle.py` independently tests 12 cases, including all mathematically feasible six-beneficiary pairs, physical tiny cases, threshold/group boundaries, coefficient equivalence and dependency independence. The production checker and CP builder must be compared with these oracles. Every actual emitted activity, real paired native solve, parent-owned publication and whole-process termination require their own evidence. This proof never promotes a citation or a fixture-only result into application acceptance.
+
+## October 25 constructed-model evidence
+
+The implementation obligations above now have local evidence: the production
+builder is checked against independent tiny feasible vectors and literal native
+optima, including diagnostic AP/RP ablations. Every solve audits actual emitted
+integer activities after attaching its objective and calls native model validation.
+The auditor handles OR-Tools 9.15 repeated-domain endpoints by nonnegative index;
+negative indexing in that native container cannot be assumed to behave like a list.
+
+Routes with an upper bound of zero retain a fixed-zero decision and extraction
+identity but create no lot debit or inbound trajectory. Algebraically, every
+omitted packing step has `x=min(B,0)=0`, `B'=B`, `R'=0`; its incoming balance,
+consumption and expiry are all zero. Removing those equalities therefore preserves
+the projection and feasible route vectors. Both methods use the same reduced
+physical build. [Qualification](QUALIFICATION.md) records the measured effect and
+new model sizes; a model fingerprint is an emitted-build identity, not a stable
+identifier across implementation versions.
+
+Parent comparison assembly now revalidates the frozen scenario, policy/settings/
+mode/replay/decision identities, reconstructs the physical fingerprint when present,
+and independently replays successful candidates and metrics. Offline child cleanup
+has its own real-process tests. Shared-runtime publication and live-source guarantees
+remain external. This evidence updates the historical future-tense obligations;
+it does not turn this local proof into whole-application acceptance.
+
+Two further reductions use the same deterministic recurrence. A zero-demand date
+cannot consume any balance; a constant zero balance cannot serve or expire stock.
+For a proposed sublot, `sum(consumption through H)=quantity` plus nonnegative
+balances and conservation forces its end-H balance and all its expiry to zero;
+post-H trajectory variables can therefore be omitted. If no proposed inbound
+exists for a source/product, its ordinary projection is already the required
+no-inbound donor projection and can be reused. Native tiny-vector equivalence,
+expiry/ETA cases and the size-bound forced-zero replay check guard these reductions.

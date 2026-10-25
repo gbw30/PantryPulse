@@ -1,22 +1,30 @@
 # OR-only acceptance ledger
 
 Current authority: [execution revision 1.2](03_OR_Codex_Execution_Spec.md).
-The user approved narrowing this deliverable to the research-centered OR service.
-No current HTTP/DB/browser/Next integration acceptance is claimed. Prior broad
-acceptance/evidence is archived in Git and the [handoff](SCOPE-CORRECTION.md).
+October 25 finalization is based on `1cd0cf7f45cec0df8bdd6ea89fe5568317d6bf3d`
+plus the user's uncommitted OR-only milestone. [FINALIZATION.md](FINALIZATION.md)
+records exact commands, results, source identity and ownership checks.
 
-| OR boundary | Evidence |
-|---|---|
-| Frozen schemas/source precision/hash/replay | Pure/native/CLI tests; no committed-source read claim |
-| Candidate/FEFO/conservation/donor/capacity model | Independent replay and native tiny feasible-set checks |
-| Both objectives and AP/RP | Exact oracle, native unique optima, strict thresholds and ablations |
-| Safe extraction and numerical bounds | Native status sentinels, emitted interval/overflow tests |
-| Independent outcomes and common metrics | Verified single/pair/partial/zero-transfer tests; no persistence claim |
-| Offline termination | Real OR-local child deadlines, descendant cleanup and output/environment limits |
-| No adjacent ownership | Import-boundary test plus one-time baseline restoration audit |
-| External APIs/UI/persistence/shared runtime | HANDOFF; not this assignment's acceptance |
+| OR boundary | Status | Current evidence |
+|---|---|---|
+| Strict frozen inputs, source precision/hash/replay | PASS, supplied-data scope | Pure, adapter, tamper, rounding and CLI tests; no source-store commitment claim |
+| Candidates/FEFO/conservation/donor/capacity | PASS, selected local formulation | Native tiny-vector equivalence, dated expiry/ETA, donor and shared-capacity tests; size-bound forced-zero native projection/replay |
+| Both objectives and AP/RP | PASS, provisional policy | Exact independent oracle, unique native optima, equality/+1 reification, decision-changing ablations |
+| Safe extraction and numerical bounds | PASS | Unreadable native status sentinels; emitted-domain audits, model validator and overflow rejection; size/numeric qualification |
+| Pair identity and independent verification | PASS | Success/partial/failure matrix, mixed and jointly forged identity regressions, exact report/objective/candidate replay, expected settings |
+| Offline CLI and owned child execution | PASS, Linux offline scope | Real CLI/native child deadlines, descendant cleanup, environment/output limits; 48 verified qualification outcomes |
+| Size and policy qualification | PASS for recorded cases, quality limited | [24-pair report](QUALIFICATION.md): all verified; size-ceiling incumbents can have near-100% gaps |
+| Research/decision documentation | PASS, local audit | Publisher mapping/deviations rechecked; twenty concrete alternatives/limitations; 18 core and two external/withdrawn marker statuses |
+| No adjacent ownership changes | PASS | 41 protected file hashes unchanged, OR allowlist diff and no deletions |
+| External API/UI/persistence/shared runtime/LIVE sources | HANDOFF | No acceptance claimed; their owners retain implementation and qualification |
 
-Actual final correction commands/counts and limits are in [the correction record](SCOPE-CORRECTION.md).
-The old OR-A01–12 matrix covered broader integration; it must not be used to assign
-external layers back to the OR developer. LIVE-source publication/reads, global
-runtime controls, auth/public API and frontend remain their respective owners' work.
+The complete retained suite passes **641 Python tests**, including **153 OR tests**,
+with TypeScript, ESLint, Ruff and **17 configuration tests** passing. Final arithmetic
+and native qualification have separate evidence; mocks alone do not establish them.
+The only suite warning is the existing Starlette/httpx deprecation notice.
+
+The old OR-A01–12 matrix covered broader integration and is archived in Git and the
+[scope-correction record](SCOPE-CORRECTION.md). It does not reassign external systems
+or establish current HTTP/DB/browser acceptance. Hosted/global runtime guarantees,
+source publication, policy approval and real-data decision quality remain unqualified
+here. No issue is closed or branch committed automatically by this ledger.

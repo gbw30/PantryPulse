@@ -14,3 +14,9 @@ history only; they do not authorize reintroducing those layers or prove current
 application integration. #54 remains the tracker. Supplier/model/hosting stays paused.
 
 [Callable interface and offline example](INTEGRATION-INTERFACE.md) explain how owning services consume the OR component without HTTP, DB or shared-worker dependencies.
+
+[Final OR milestone](FINALIZATION.md), [qualification and limits](QUALIFICATION.md)
+and the [current acceptance ledger](ACCEPTANCE.md) record comparison hardening,
+policy sensitivity and actual native performance. Core completion is distinct from
+external source/API/storage/runtime integration and domain approval of provisional
+policy values.

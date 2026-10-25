@@ -133,3 +133,17 @@ hosting work remain paused.
 
 Stop at a substantial tested milestone for the user's commit. No automatic commit,
 push, merge, deployment, physical stock action or broader product-completion claim.
+
+## October 25 finalization clarification
+
+Pair identity checks apply to every outcome, including FAILED and TIMED_OUT.
+Assembly replays verified plans and reconstructs any supplied physical fingerprint;
+callers pass expected solver settings to bind the pair to their request. Retain
+independent partial results without accepting mixed policies or stale metadata.
+
+Qualification must include the declared size ceilings together, both modes, numeric
+quantity/goal limits and diagnostic policy extremes. Report FEASIBLE/UNKNOWN and
+actual gaps honestly: shape bounds do not guarantee optimality within 15 seconds.
+Performance reductions must preserve the shared feasible region and pass independent
+native/replay tests. Current evidence belongs in FINALIZATION.md and QUALIFICATION.md;
+these requirements add no frontend, routing, storage, shared-runtime or CI ownership.

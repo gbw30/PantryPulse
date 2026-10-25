@@ -4,6 +4,7 @@ import argparse
 
 from app.services.optimization.compare import assemble
 from app.services.optimization.offline import bounded_methods
+from app.services.optimization.service import DEFAULT_SETTINGS
 from scripts.or_common import snapshot, write
 
 
@@ -16,7 +17,11 @@ def main(argv=None):
         value = snapshot(args.snapshot)
     except (ValueError, OSError, TypeError):
         return 2
-    result = assemble(value, bounded_methods(value, ("CLASSICAL_GP", "EGP_PI_INSPIRED")))
+    result = assemble(
+        value,
+        bounded_methods(value, ("CLASSICAL_GP", "EGP_PI_INSPIRED")),
+        expected_settings=DEFAULT_SETTINGS,
+    )
     write(args.output, {"execution": "OFFLINE", "comparison": result.model_dump(mode="json")})
     return {"SUCCEEDED": 0, "PARTIAL": 5, "FAILED": 4}[result.outcome]
 

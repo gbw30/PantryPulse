@@ -10,14 +10,14 @@ From `apps/api`, consume an already frozen scenario:
 ```python
 from app.schemas.or_inputs import ORScenarioPayload
 from app.services.optimization.scenario import verify_scenario
-from app.services.optimization.service import solve_one
+from app.services.optimization.service import DEFAULT_SETTINGS, solve_one
 from app.services.optimization.compare import assemble
 
 scenario = ORScenarioPayload.model_validate_json(saved_scenario_json)
 verify_scenario(scenario)
 classical = solve_one(scenario, "CLASSICAL_GP")
 research = solve_one(scenario, "EGP_PI_INSPIRED")
-comparison = assemble(scenario, (classical, research))
+comparison = assemble(scenario, (classical, research), expected_settings=DEFAULT_SETTINGS)
 ```
 
 A shared runtime owner can run the methods in its own controlled children and call
@@ -50,3 +50,20 @@ uv run --frozen --directory apps/api python -m scripts.or_compare \
 The separate frontend owner consumes FastAPI under the team's access contract.
 Never introduce Next.js API routes/proxies. Historical integration patches are for
 owner review, not wholesale application; their withdrawn Next proxy is prohibited.
+
+Pair assembly validates policy, operational, mode, historical and decision identities
+for failed as well as successful outcomes. Settings hashes must agree; pass
+`expected_settings` to bind them to the caller's requested configuration. Without
+that argument, equal hashes establish agreement only, not the intended settings.
+Any supplied physical fingerprint must match a fresh physical build; verified
+results require it. Successful candidates, verification reports and objectives are
+replayed independently. Invalid identities/results raise `ValueError` with a
+`PAIRED_` code rather than becoming a partial comparison. A failure before model
+construction may have no fingerprint. Hashes establish content consistency, not
+trusted origin or authorization.
+
+Physical fingerprints identify the current emitted model. After a compiler change,
+assemble newly solved outcomes or replay with the matching compiler version;
+historical fingerprints are not portable across implementations. Frozen input
+identity and independent plan feasibility remain separate checks. Native status,
+bound and gap describe that search; replay validates a candidate, not its optimality.

@@ -29,7 +29,7 @@ The actual pre-solver gate now has checked source mapping, frozen Draft 1.1 coef
 | Six beneficiaries/two products, unique optima | PASS | [Full oracle](evidence/oracle-six-beneficiary-v1.json) |
 | Loading/service uniqueness, linkage, conservation | PASS, local proof/test scope | [Proof](NUMERICAL-PROOF.md), tiny exhaustive packing tests |
 | Integer bound families and objective clearing | PASS, analytic scope | [Proof](NUMERICAL-PROOF.md) |
-| Every actual CP expression audited/equivalent feasible sets | UNVERIFIED at pre-solver handoff | Required in constructed model and solver tests |
+| Every actual CP expression audited/equivalent feasible sets | PASS for constructed local models and enumerated cases; October 25 follow-up | `audit_model`, native tiny-vector equivalence, oracle/threshold tests; [qualification](QUALIFICATION.md) |
 
 Command (from `apps/api`): `/tmp/pantrypulse-forecast-venv/bin/python -m pytest tests/optimization/test_or_oracle.py -q`: 12 passed. Python 3.12.3. Ruff passes for the two oracle files. The stdlib-only enumerator has no application or OR-Tools imports (tested with AST). Mathematical fixtures are evaluated independently of production packing, projection, metrics or verifier code.
 
@@ -45,3 +45,25 @@ Command (from `apps/api`): `/tmp/pantrypulse-forecast-venv/bin/python -m pytest 
 | Six/research | (2,2,1,1,0,0), twice | 1393/300 |
 
 The full oracle enumerates all 435 per-product vectors and 189225 feasible pairs, including underused supply; it does not assume that all supply must be dispatched. Both methods have optimum_count=1. The 18-unit handling bound matches `2*meals+water`; cost reference is exactly 12 and cost floors are computed before scoring. No hidden preference or shortage-first objective was added.
+
+## October 25 implementation audit
+
+The opening checkpoint and old command above describe the pre-solver handoff, not
+current implementation status. The [publisher full text](https://onlinelibrary.wiley.com/doi/full/10.1111/itor.70252)
+was rechecked for §2.1.2 equation (7), the AP/RP definitions and Appendix A.
+`EGP_PI_INSPIRED` remains a bounded adaptation with fixed prepared proxy weights,
+a single dispatch batch and local integer thresholds. It does not reproduce
+endogenous normalized weights, the full multi-period formulation or reported results.
+
+Current native evidence checks both objectives against exact unique optima,
+forces flags at equality and one integer quantum above, and compares all tiny
+route vectors against independent replay. `audit_model` reads emitted variable
+domains and affine/min/max activities after objective attachment and rejects
+unsafe intervals before native search. These checks substantiate the selected
+local formulation; finite tests do not establish all possible-instance equivalence.
+
+[Qualification](QUALIFICATION.md) records size/numeric workloads, policy sensitivity,
+native bounds/gaps and explicit performance limitations. All data remain SIMULATED.
+No observed poverty reduction, live operational benefit, API, persistence or UI
+acceptance follows from this audit. Decisions 012/014 retain their external/withdrawn
+status. The current full test command and counts are in [FINALIZATION.md](FINALIZATION.md).

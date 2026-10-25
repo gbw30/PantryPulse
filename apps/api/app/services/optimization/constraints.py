@@ -52,6 +52,12 @@ def build_physical_model(problem) -> PhysicalModel:
         candidate = candidate_by_key[key.route_id, key.product_id]
         y = m.new_int_var(0, candidate.upper, f"y:{key.route_id}:{key.product_id}")
         physical.y[key.route_id, key.product_id] = y
+        if candidate.upper == 0:
+            # A fixed-zero route cannot debit a lot or create an inbound sublot.
+            # Keep extraction identities without emitting zero-balance trajectories.
+            for lot_id in candidate.lot_ids:
+                physical.x[lot_id, key.route_id] = 0
+            continue
         request = y
         for lot_id in candidate.lot_ids:
             lot = lots[lot_id]
@@ -105,13 +111,19 @@ def build_physical_model(problem) -> PhysicalModel:
         for index, point in enumerate(series.days):
             request = point.units
             wastes = []
-            for identity, _, bound, arrival, expiry, _proposed in resources:
+            for identity, _, bound, arrival, expiry, proposed in resources:
                 if arrival > point.day:
+                    continue
+                if proposed and index >= s.planning_days:
+                    # Every proposed sublot must be consumed by H (enforced below).
+                    balances[identity] = 0
                     continue
                 balance = balances[identity]
                 if expiry <= point.day:
                     wastes.append(balance)
                     balances[identity] = 0
+                    continue
+                if point.units == 0 or (isinstance(balance, int) and balance == 0):
                     continue
                 consumed = m.new_int_var(
                     0, min(bound, point.units), f"consume:{prefix}:{identity}:{index}"
@@ -159,7 +171,10 @@ def build_physical_model(problem) -> PhysicalModel:
             sending = m.new_bool_var(f"sending:{prefix}")
             m.add(sum(outgoing[key]) >= 1).only_enforce_if(sending)
             m.add(sum(outgoing[key]) == 0).only_enforce_if(~sending)
-            protected_service, protected_ends, _ = project(series, [], f"protected:{prefix}")
+            if received[key]:
+                protected_service, protected_ends, _ = project(series, [], f"protected:{prefix}")
+            else:
+                protected_service, protected_ends = served, ends
             for i, point in enumerate(series.days):
                 m.add(protected_service[i] == point.units).only_enforce_if(sending)
                 m.add(protected_ends[i] >= reserves[key][i]).only_enforce_if(sending)
