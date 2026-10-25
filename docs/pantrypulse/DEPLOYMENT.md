@@ -2,6 +2,8 @@
 
 Provider-by-provider account/configuration instructions are in [EXTERNAL-SERVICES.md](../../EXTERNAL-SERVICES.md). GitHub and Neon support the demo, with Fly.io and Vercel as hosting options. The guide includes the current scaffold's fixed-port, CORS/settings and migration limitations; this runbook describes the later full release workflow.
 
+An isolated [frontend-only Vercel preview](../setup/VERCEL.md) now serves simulated `/design-lab` content from `codex/vercel-prototype-preview`. It has no API, database, proxy, model or presenter controls. Its successful build and browser smoke do not satisfy this runbook's integrated Preview or Judge demo gates.
+
 For the demo-only presentation, the preferred compute is now the presenter's laptop; follow [LOCAL-DEMO.md](../setup/LOCAL-DEMO.md) and the separate compose.demo.yaml configuration. Fly.io below is the optional hosted alternative. The scaffold health/runtime checks do not establish readiness of the unimplemented domain workflow.
 
 This runbook prepares a deployable candidate. It does not create accounts, buy services, expose a real operational database or deploy without the user's target authorization. Provider menus and limits change; confirm current settings in the named account at setup.
@@ -13,10 +15,11 @@ This runbook prepares a deployable candidate. It does not create accounts, buy s
 | Local dev | 127.0.0.1:3000 / :8000 | dedicated dev DB | baseline first, optional Chronos | demo org only |
 | Worker | unique ports per lane | worker DB/schema/Neon branch | fixtures/baseline | worker demo only |
 | CI | ephemeral servers | PostgreSQL service | baseline/provider doubles; no model downloads | isolated test seed |
+| UI prototype | Vercel `/design-lab` only; no API | none | simulated values | branch deployment |
 | Preview | Vercel preview + separate API target or explicitly shared demo API | isolated preview/demo DB | cached verified forecast + fallback | presenter protected |
 | Judge demo | frozen web/API release pair | dedicated demo DB | prewarmed verified provider/cache, fallback available | presenter protected |
 
-A Vercel preview does not automatically create a matching Python API or database. Record the actual three-way mapping in the release manifest. Preview URL changes require an explicit allowed CORS origin, or route requests through a tested same-origin server proxy. Do not allow every origin to avoid setup work.
+A Vercel preview does not automatically create a matching Python API or database. The current UI prototype intentionally has neither. For a future integrated Preview, implement the selected same-origin Next.js proxy and record the actual web/API/database mapping in the release manifest. Do not broaden CORS to bypass the selected architecture.
 
 ## Database and backend
 
@@ -30,9 +33,9 @@ A Vercel preview does not automatically create a matching Python API or database
 
 ## Frontend and integration
 
-Set Vercel project root to apps/web, build with the locked package's build script, and configure NEXT_PUBLIC_API_BASE_URL for each environment. Its value is public and typically embedded at build time; changing it requires a rebuild. Only API URL belongs there, never database credentials. Confirm framework output settings rather than forcing an unrelated output directory.
+The prototype project's root is `apps/web`; it builds with the root lockfile and needs no API variable. For a later connected frontend, implement V5's thin same-origin Next.js proxy and configure its server-side API target for each environment after the open proxy/auth design decisions are settled. Do not put API credentials, database URLs or presenter secrets in browser-visible variables. Confirm framework output settings rather than forcing an unrelated output directory.
 
-Use exact https URLs for demo origins and API targets. Confirm error envelopes, preflight behavior, background forecast polling and plan POSTs through the deployed frontend. CORS is not authentication: protect reset and any consequential mutations server-side. The public demo should contain synthetic data, conservative request limits and an admin/presenter boundary around reset/adjustment. If there is no time to build a safe presenter reset flow, disable public reset and use a private server-side seed command on the dedicated demo database; document that tradeoff.
+Use exact HTTPS URLs for demo origins and API targets. Confirm error envelopes, proxy authorization, background forecast polling and plan POSTs through the deployed frontend. The proxy is not authorization by itself: protect reset and any consequential mutations in FastAPI. The public demo should contain synthetic data, conservative request limits and an admin/presenter boundary around reset/adjustment. If there is no time to build a safe presenter reset flow, disable public reset and use a private server-side seed command on the dedicated demo database; document that tradeoff.
 
 Capture a release manifest containing web commit/build URL, API commit/image/revision/URL, schema revision, demo dataset version/hash, forecast run/provider/checkpoint/cutoff, solver version/settings, allowed origins, feature flags and rollback target. Never put secret values in it. A deployment is verified only after actual URL readback and main workflow smoke test.
 

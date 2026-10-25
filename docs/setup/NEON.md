@@ -130,7 +130,7 @@ Keep any additional connection-security parameters supplied by Neon. Credentials
 
 For the selected laptop demo, store DATABASE_URL privately in apps/api/.env.demo, loaded by compose.demo.yaml as described in [the external services guide](../../EXTERNAL-SERVICES.md#4-store-the-database-secret-on-the-backend-laptop). Leave apps/api/.env and the original development Compose setup unchanged. DATABASE_URL_UNPOOLED is a proposed release/migration configuration convention; the current app does not consume it yet. Store it only in the controlled environment that will run migrations. For the optional hosted alternative, use a Fly app secret instead.
 
-Do not put either URL in Vercel NEXT_PUBLIC_ variables. The Next.js browser talks to FastAPI; it does not connect to PostgreSQL.
+Do not put either URL in Vercel `NEXT_PUBLIC_` variables. The current simulated preview has no database connection. In a future integrated frontend, the browser uses the selected same-origin Next.js proxy, which forwards authorized requests to FastAPI; PostgreSQL remains server-side.
 
 The Compose service uses its own local DATABASE_URL. Creating a Neon project does not switch local containers to Neon automatically, and normal local testing should retain its isolated databases.
 

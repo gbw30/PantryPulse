@@ -46,7 +46,7 @@ For a WSL-based Docker installation, an administrator may need `wsl --install` o
 
 No Neon, Vercel, Fly.io, Gemini or other API account/key is needed for local setup.
 
-For the presentation, use the separate [external services and laptop demo guide](EXTERNAL-SERVICES.md): your laptop runs the backend, and Neon hosts the database. Vercel plus a tunnel is optional for access from other devices; Fly.io is not required. [Hugging Face / Chronos-2](docs/setup/HUGGING-FACE.md) remains optional. The guide identifies application integration still to be implemented.
+For a future integrated presentation, use the separate [external services and laptop demo guide](EXTERNAL-SERVICES.md): your laptop runs the backend, and Neon hosts the database. A [simulated Vercel UI preview](docs/setup/VERCEL.md) is already live and needs no tunnel; a connected remote demo needs the V5 proxy/auth/backend work first. Fly.io is not required. [Hugging Face / Chronos-2](docs/setup/HUGGING-FACE.md) remains optional.
 
 For the optional model itself, follow [CHRONOS-LOCAL.md](CHRONOS-LOCAL.md). It provides a separate Linux image, a persistent checkpoint cache, real synthetic-data inference commands, performance checks and shutdown steps; it does not implement the application's forecasting API.
 
@@ -106,19 +106,18 @@ npm run check:runtime:docker
 The current health endpoint and static web shell require no .env files. Templates are provided for the future domain services:
 
 ```powershell
-# Run only if these destinations do not already exist.
+# Run only if the destination does not already exist.
 Copy-Item apps/api/.env.example apps/api/.env
-Copy-Item apps/web/.env.example apps/web/.env.local
 ```
 
-Do not overwrite an existing developer configuration. Private env files are Git-ignored; only examples are tracked. The API settings loader, CORS configuration and forecast settings consumption are still pending. These examples document intended configuration rather than implemented behavior.
+Do not overwrite an existing developer configuration. Private env files are Git-ignored. The web scaffold and Vercel preview need no `.env.local`; no `apps/web/.env.example` is tracked. The API settings loader, CORS configuration and forecast settings consumption are still pending. The API example documents intended configuration rather than implemented behavior.
 
 | Setting | Local value / meaning |
 |---|---|
-| NEXT_PUBLIC_API_BASE_URL | http://127.0.0.1:8000/api/v1 |
+| NEXT_PUBLIC_API_BASE_URL | Historical direct-client example; unused by the current scaffold and Vercel preview. V5 selects a future server-side proxy target. |
 | DATABASE_URL (native host) | postgresql+psycopg://pantrypulse:local_dev_only@127.0.0.1:55432/pantrypulse_dev |
 | DATABASE_URL (container) | Provided by Compose, using postgres:5432 |
-| CORS_ALLOWED_ORIGINS | ["http://127.0.0.1:3000"] |
+| CORS_ALLOWED_ORIGINS | Historical direct-client example; not consumed by the current API and not a substitute for the selected proxy. |
 | FORECAST_PROVIDER | seasonal-naive; adapter not implemented yet |
 | FORECAST_MODEL_ID / FORECAST_DEVICE | amazon/chronos-2 / cpu; optional future adapter |
 | SOLVER_TIME_LIMIT_SECONDS | 5; domain solver not implemented yet |

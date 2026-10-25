@@ -47,7 +47,7 @@ node --test scripts/quality/tests/*.test.cjs
 
 These validate the scaffold only. Existing full quality gates still expect future contracts, migrations and domain tests; do not weaken them to claim product validation. Hook enforcement remains disabled.
 
-Tracked examples: apps/api/.env.example and apps/web/.env.example. Copy locally to apps/api/.env and apps/web/.env.local when configured domain services are implemented. Current health/static shell need no environment file. API settings loading and CORS are not implemented yet. Examples describe future configuration. No secrets in NEXT_PUBLIC_ variables.
+Tracked API example: `apps/api/.env.example`. Copy it to `apps/api/.env` only when local API configuration is needed; do not overwrite an existing private file. No web environment example is tracked. The current health/static shell and simulated Vercel preview need no environment file. API settings loading and the selected same-origin Next.js proxy are not implemented yet. No secrets belong in `NEXT_PUBLIC_` variables.
 
 ## Database
 

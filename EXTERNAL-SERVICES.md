@@ -1,8 +1,8 @@
 # PantryPulse external services and laptop demo setup
 
-> **Current authority:** [Project specification V5](docs/pantrypulse/SPEC-V5.md). Setup procedure reference. V5 governs current requirements and status, including the selected same-origin Next.js proxy. Direct API/tunnel examples establish reachability only; model/hosting setup remains paused.
+> **Current authority:** [Project specification V5](docs/pantrypulse/SPEC-V5.md). Setup procedure reference. V5 governs current requirements and status, including the selected same-origin Next.js proxy. Direct API/tunnel examples establish reachability only. Backend/model hosting remains paused; only the simulated [Vercel UI preview](docs/setup/VERCEL.md) was separately authorized and deployed.
 
-Updated October 24, 2026. **The backend runs on your laptop in Docker; Neon provides the hosted PostgreSQL database. Fly.io is not required.** This guide is the primary setup path for the demo and presentation. Local tool installation remains in [INSTALLATION.md](INSTALLATION.md).
+Updated October 24, 2026. **The selected future integrated demo runs the backend on your laptop in Docker, with Neon as the hosted PostgreSQL database. Fly.io is not required.** That backend/model setup remains paused. This guide records its setup path; local tool installation is in [INSTALLATION.md](INSTALLATION.md).
 
 ## 1. What is already done, and what is missing
 
@@ -12,11 +12,12 @@ Updated October 24, 2026. **The backend runs on your laptop in Docker; Neon prov
 | Local backend container configuration | Prepared in [compose.demo.yaml](compose.demo.yaml) | Supply the dedicated demo database connection and start it |
 | Private demo connection file | Developer-specific; excluded from Git | Create `apps/api/.env.demo` from the template if absent and edit privately |
 | Laptop-to-Neon connection | Not verified | Run the container runtime/database smoke check below |
-| Local frontend environment | Developer-specific; excluded from Git | Create `apps/web/.env.local` from its example if absent and use the local API address |
-| Full application integration | Not implemented | Add the frontend API client, backend settings/CORS, domain persistence and migrations |
+| Local frontend environment | No variable needed for current scaffold | Future proxy server-side configuration is still to be designed |
+| Full application integration | Not implemented | Add the frontend API client, same-origin proxy, FastAPI authorization, domain persistence and migrations |
 | Backend primitives | Implemented | Transfer modes, route eligibility, rounding, fixed-point arithmetic, solver outcomes and history alignment are available; integrate them into the complete workflow |
 | Allocation/forecasting demonstration | Not implemented | Complete research validation, both allocation engines, forecasts/fallback and the deterministic comparison fixture |
-| Remote judge access | Optional; not configured | Use Vercel plus an HTTPS tunnel only if other devices need access |
+| Simulated remote UI preview | Deployed from `codex/vercel-prototype-preview` | Open the [branch preview](https://pantrypulse-prototype-preview-git-codex-e82088-gbw30s-projects.vercel.app/); it has no API or database |
+| Integrated remote judge access | Not configured | Implement the V5 proxy/auth/backend/database path before claiming a full demo |
 
 Creating a Neon project establishes the database service. It does not create PantryPulse's tables or connect the application automatically. A successful health response alone does not prove the database or allocation workflow works.
 
@@ -28,7 +29,7 @@ Creating a Neon project establishes the database service. It does not create Pan
 | Neon | Stores the dedicated hosted demo data | Yes for this path; requires internet |
 | GitHub | Stores source and supports team collaboration | Existing project repository; no new repository needed |
 | Local Next.js frontend | Website opened in your laptop's browser | Yes for the simplest presentation |
-| Vercel | Hosts the frontend for access from other devices | Optional |
+| Vercel | Hosts the current simulated frontend preview; could host a later integrated frontend | Preview already configured; integrated use pending |
 | Cloudflare Tunnel (`cloudflared`) | Gives the laptop API a public HTTPS address | Optional, paired with the hosted frontend below |
 | Hugging Face | Optional Chronos-2 model artifacts | Optional; no paid inference endpoint is required |
 | Fly.io / Railway | Alternative hosted backend compute | Not required |
@@ -43,10 +44,10 @@ Your browser → Next.js on your laptop → FastAPI in local Docker → Neon Pos
 For judges using a hosted website on their own devices:
 
 ```text
-Judge's browser → Next.js on Vercel → HTTPS tunnel → FastAPI on your laptop → Neon
+Judge's browser → Next.js on Vercel with thin same-origin proxy → HTTPS tunnel → FastAPI on your laptop → Neon
 ```
 
-The allocation calculations run on your laptop. Increasing Neon compute does not give OR-Tools or Chronos more CPU/RAM.
+The second topology is a future integrated-demo design, not the deployed `/design-lab` preview. The current preview serves synthetic UI content without a tunnel or backend. In an integrated laptop demo, allocation calculations run on your laptop. Increasing Neon compute does not give OR-Tools or Chronos more CPU/RAM.
 
 ## 3. Confirm the existing Neon environment
 
@@ -128,11 +129,7 @@ Do not print the connection string while troubleshooting. See [LOCAL-DEMO.md](do
 
 ## 6. Run the website locally
 
-For the simplest presentation, keep the frontend on the same laptop. Copy `apps/web/.env.example` to `apps/web/.env.local` if the destination is absent. It should contain the public API address:
-
-```dotenv
-NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1
-```
+For the simplest frontend check, keep the website on the same laptop. The current static scaffold needs no `apps/web/.env.local`; earlier `NEXT_PUBLIC_API_BASE_URL` examples are unused and do not implement the V5 proxy.
 
 In another terminal at the repository root:
 
@@ -140,7 +137,7 @@ In another terminal at the repository root:
 npm run dev:web
 ```
 
-Open `http://127.0.0.1:3000` and leave the server running. No Vercel account or tunnel is needed for this arrangement. After integration exists, ports 3000 and 8000 still require CORS or a same-origin proxy because they are different browser origins.
+Open `http://127.0.0.1:3000` and leave the server running. No Vercel account or tunnel is needed for this arrangement. The future integrated frontend must route browser requests through the selected same-origin Next.js proxy.
 
 Before the presentation, rehearse the production frontend build too. Stop the development web server before starting this on port 3000:
 
@@ -149,11 +146,11 @@ npm run build
 npm run start --workspace @pantrypulse/web
 ```
 
-The current frontend is a static scaffold and does not yet read the API variable or call the backend. Running both processes is infrastructure readiness, not a completed demonstration.
+The current frontend does not call the backend. Running both processes is infrastructure readiness, not a completed demonstration.
 
-## 7. Optional remote access: Vercel plus a tunnel
+## 7. Future integrated remote access: Vercel plus a tunnel
 
-Skip this section unless judges must open the website on other devices. Vercel hosts the website; your laptop still runs all backend calculations.
+The current Vercel `/design-lab` preview already works on other devices without this section. Use these tunnel steps only after the V5 proxy, authentication and API/database integration are implemented and reviewed. For that future topology, Vercel hosts the website while your laptop runs backend calculations.
 
 For Windows installation, start/stop commands and teammate access instructions, follow [CLOUDFLARE.md](docs/setup/CLOUDFLARE.md). Verify local and public API health on the current host; this does not verify Neon connectivity or frontend integration.
 
@@ -165,16 +162,10 @@ For Windows installation, start/stop commands and teammate access instructions, 
    ```
 
 3. Record the actual HTTPS `trycloudflare.com` URL printed by the tunnel.
-4. Import the existing GitHub repository into Vercel, with Root Directory `apps/web` and Next.js framework settings. Use the root npm lockfile and the build settings in [VERCEL.md](docs/setup/VERCEL.md).
-5. In the intended Vercel environment, set:
+4. Implement and test the thin same-origin Next.js proxy, FastAPI authorization and server-side API-origin configuration. Do not put the tunnel URL in `NEXT_PUBLIC_API_BASE_URL` on the current preview.
+5. Connect a separately reviewed integrated Preview to the correct synthetic API/database pair. Test the real Vercel page, including authenticated operations and failure states, before claiming judge readiness.
 
-   ```dotenv
-   NEXT_PUBLIC_API_BASE_URL=https://YOUR-ACTUAL-TUNNEL.trycloudflare.com/api/v1
-   ```
-
-6. Rebuild/redeploy the frontend. Once settings/CORS exist, allow the exact Vercel origin in the laptop backend and recreate/restart that API container after configuration changes. Test the request from the real Vercel page.
-
-A hosted frontend must not use `127.0.0.1` as its public API URL: that would point to each visitor's own device. Quick Tunnels require no Cloudflare account/domain, change hostname on restart, have no uptime guarantee, and do not support Server-Sent Events. Keep the tunnel terminal open; if the URL changes, update Vercel and rebuild. [Quick Tunnel reference](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/).
+A server-side proxy running on Vercel cannot use `127.0.0.1` to reach the laptop: that address resolves inside Vercel's runtime. Quick Tunnels require no Cloudflare account/domain, change hostname on restart, have no uptime guarantee, and do not support Server-Sent Events. Keep the tunnel terminal open; if the URL changes, update the future server-side proxy configuration and redeploy. [Quick Tunnel reference](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/).
 
 Only expose the API for the synthetic demo. Verify presenter controls before publishing reset/adjustment endpoints; CORS is not authentication. Do not expose PostgreSQL or configure router port forwarding for this tunnel approach.
 
@@ -187,7 +178,7 @@ These are development tasks, not additional account signups:
 3. Connect application persistence to the injected database URL, with deliberate settings parsing and role permissions.
 4. Implement shared inventory, FEFO, capacity and feasibility rules, plus both allocation engines and independent comparison metrics.
 5. Implement the forecast adapter/fallback and truthful provenance. Chronos remains optional and must be benchmarked on the laptop.
-6. Implement the frontend API client, result charts, pending/error states and CORS/proxy integration.
+6. Implement the frontend API client, result charts, pending/error states and selected same-origin proxy.
 7. Test the full comparison on identical snapshots, protect any exposed mutations, and rehearse the judge journey.
 
 The default image excludes optional Chronos dependencies. Installing the extra in a local Python environment does not modify the Docker image. See [optional model setup](docs/setup/HUGGING-FACE.md) and the [implementation plan](docs/pantrypulse/IMPLEMENTATION-PLAN.md).
@@ -198,7 +189,7 @@ The default image excludes optional Chronos dependencies. Installing the extra i
 - [ ] Exact demo branch/database/role recorded without passwords.
 - [ ] Real pooled connection stored privately in `apps/api/.env.demo`.
 - [ ] Laptop API process health, solver smoke, database connection and scaffold tests pass in the demo environment.
-- [ ] Frontend is running locally, or optional Vercel/tunnel mapping is verified.
+- [ ] Frontend is running locally; if claiming integrated remote access, the Vercel proxy/tunnel/API mapping is verified. The existing static preview alone does not satisfy this item.
 - [ ] Domain features and full paired comparison are implemented and tested.
 - [ ] Laptop remains plugged in, awake and connected; unused applications are closed.
 - [ ] Any model artifacts are already downloaded, with measured memory/latency and a labeled fallback.
