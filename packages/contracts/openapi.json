@@ -4621,26 +4621,26 @@
             "type": "string"
           },
           "demand": {
-            "description": "Nonnegative base units.",
-            "pattern": "^(0|[1-9][0-9]{0,18})$",
+            "description": "Nonnegative base units; no digit cap (eligible_end sums lots).",
+            "pattern": "^(0|[1-9][0-9]*)$",
             "title": "Demand",
             "type": "string"
           },
           "eligible_end": {
             "description": "Eligible physical stock left at day end.",
-            "pattern": "^(0|[1-9][0-9]{0,18})$",
+            "pattern": "^(0|[1-9][0-9]*)$",
             "title": "Eligible End",
             "type": "string"
           },
           "served": {
-            "description": "Nonnegative base units.",
-            "pattern": "^(0|[1-9][0-9]{0,18})$",
+            "description": "Nonnegative base units; no digit cap (eligible_end sums lots).",
+            "pattern": "^(0|[1-9][0-9]*)$",
             "title": "Served",
             "type": "string"
           },
           "unmet": {
-            "description": "Nonnegative base units.",
-            "pattern": "^(0|[1-9][0-9]{0,18})$",
+            "description": "Nonnegative base units; no digit cap (eligible_end sums lots).",
+            "pattern": "^(0|[1-9][0-9]*)$",
             "title": "Unmet",
             "type": "string"
           }
@@ -4709,6 +4709,21 @@
             "title": "Days",
             "type": "array"
           },
+          "fallback_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fallback Reason"
+          },
+          "fallback_used": {
+            "title": "Fallback Used",
+            "type": "boolean"
+          },
           "product_id": {
             "format": "uuid",
             "title": "Product Id",
@@ -4725,6 +4740,8 @@
           "product_id",
           "base_unit",
           "actual_provider",
+          "fallback_used",
+          "fallback_reason",
           "days"
         ],
         "title": "ShortageSeries",

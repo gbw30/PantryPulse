@@ -163,6 +163,8 @@ def shortages(forecast_run_id: UUID, rt=RUNTIME, scope=PRESENTER):
                         product_id=str(key.product_id),
                         base_unit=result.scope.unit,
                         actual_provider=result.actual_provider.name,
+                        fallback_used=result.fallback_used,
+                        fallback_reason=result.fallback_reason,
                         days=[
                             dict(
                                 day=day.day.isoformat(),

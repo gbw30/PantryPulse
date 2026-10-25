@@ -2613,7 +2613,7 @@ export interface components {
             day: string;
             /**
              * Demand
-             * @description Nonnegative base units.
+             * @description Nonnegative base units; no digit cap (eligible_end sums lots).
              */
             demand: string;
             /**
@@ -2623,12 +2623,12 @@ export interface components {
             eligible_end: string;
             /**
              * Served
-             * @description Nonnegative base units.
+             * @description Nonnegative base units; no digit cap (eligible_end sums lots).
              */
             served: string;
             /**
              * Unmet
-             * @description Nonnegative base units.
+             * @description Nonnegative base units; no digit cap (eligible_end sums lots).
              */
             unmet: string;
         };
@@ -2654,6 +2654,10 @@ export interface components {
             base_unit: string;
             /** Days */
             days: components["schemas"]["ShortageDay"][];
+            /** Fallback Reason */
+            fallback_reason: string | null;
+            /** Fallback Used */
+            fallback_used: boolean;
             /**
              * Product Id
              * Format: uuid

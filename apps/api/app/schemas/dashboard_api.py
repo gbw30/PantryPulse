@@ -19,7 +19,11 @@ IsoDatetime = Annotated[
 ]
 UnitString = Annotated[
     str,
-    Field(strict=True, pattern=r"^(0|[1-9][0-9]{0,18})$", description="Nonnegative base units."),
+    Field(
+        strict=True,
+        pattern=r"^(0|[1-9][0-9]*)$",
+        description="Nonnegative base units; no digit cap (eligible_end sums lots).",
+    ),
 ]
 
 
@@ -49,6 +53,8 @@ class ShortageSeries(Contract):
     product_id: UUID
     base_unit: str
     actual_provider: str
+    fallback_used: bool
+    fallback_reason: str | None
     days: tuple[ShortageDay, ...]
 
 

@@ -74,6 +74,8 @@ def test_shortage_projection_serializes_exactly_like_the_untyped_route():
                 "product_id": str(uuid4()),
                 "base_unit": "meal",
                 "actual_provider": "SEASONAL_NAIVE",
+                "fallback_used": False,
+                "fallback_reason": None,
                 "days": [
                     {
                         "day": "2026-10-26",
@@ -102,6 +104,8 @@ def test_shortage_day_quantities_must_be_nonnegative_integer_strings():
                 "product_id": str(uuid4()),
                 "base_unit": "meal",
                 "actual_provider": "SEASONAL_NAIVE",
+                "fallback_used": False,
+                "fallback_reason": None,
                 "days": [bad],
             }
         ],
@@ -112,3 +116,34 @@ def test_shortage_day_quantities_must_be_nonnegative_integer_strings():
     except ValueError:
         return
     raise AssertionError("negative demand must be rejected")
+
+
+def test_shortage_quantities_have_no_digit_cap():
+    """eligible_end sums lots, so it can exceed one BIGINT; the old route returned a string."""
+    huge = "1" + "0" * 19
+    day = {
+        "day": "2026-10-26",
+        "demand": "0",
+        "served": "0",
+        "unmet": "0",
+        "eligible_end": huge,
+    }
+    payload = {
+        "forecast_run_id": str(uuid4()),
+        "observed_at": datetime(2026, 10, 25, tzinfo=UTC),
+        "series": [
+            {
+                "site_id": str(uuid4()),
+                "product_id": str(uuid4()),
+                "base_unit": "meal",
+                "actual_provider": "MOVING_AVERAGE",
+                "fallback_used": True,
+                "fallback_reason": "Seasonal history incomplete; moving average used.",
+                "days": [day],
+            }
+        ],
+        "warnings": [],
+    }
+    typed = ShortageProjection.model_validate(payload)
+    assert typed.model_dump(mode="json")["series"][0]["days"][0]["eligible_end"] == huge
+    assert typed.series[0].fallback_used is True

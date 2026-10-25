@@ -213,6 +213,11 @@ def test_dashboard_summary_and_shortages_match_their_typed_contracts(saved_plan)
     projection = shortages.json()
     assert ShortageProjection.model_validate(projection).model_dump(mode="json") == projection
     assert projection["series"] and all(series["days"] for series in projection["series"])
+    assert all(
+        isinstance(series["fallback_used"], bool)
+        and (series["fallback_reason"] is None) != series["fallback_used"]
+        for series in projection["series"]
+    )
 
 
 def test_shortage_rejects_same_timezone_calendar_version_change(saved_plan):
