@@ -7,7 +7,7 @@ import type { Site } from "./types";
  * x runs 0 (left) to 1 (right), y runs 0 (top) to 1 (bottom). Edit this list to move markers.
  * Entries with an unknown site, a duplicate site, or a coordinate outside 0–1 are ignored and that
  * site falls back to its default position: hubs at the centre, beneficiaries evenly on a ring in
- * fixture order. Sites are never dropped and no geography is inferred.
+ * fixture order (starting top-left, clockwise). Sites are never dropped and no geography is inferred.
  *
  * Example: { siteId: "riverbend", x: 0.5, y: 0.12 }
  */
@@ -17,8 +17,10 @@ export const ATLAS_LAYOUT: readonly AtlasLayoutEntry[] = [];
 
 export type ResolvedPosition = { x: number; y: number; source: "configured" | "default" };
 
-const RING_RADIUS_X = 0.4;
-const RING_RADIUS_Y = 0.4;
+const RING_RADIUS_X = 0.5;
+const RING_RADIUS_Y = 0.5;
+// First beneficiary at the top-left; the rest follow clockwise in fixture order.
+const RING_START = (-2 * Math.PI) / 3;
 
 function isUnit(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1;
@@ -33,7 +35,7 @@ export function defaultPositions(sites: readonly Site[]): Map<string, ResolvedPo
     positions.set(site.id, { x: 0.5 + offset, y: 0.5, source: "default" });
   });
   beneficiaries.forEach((site, index) => {
-    const angle = -Math.PI / 2 + (index * 2 * Math.PI) / Math.max(1, beneficiaries.length);
+    const angle = RING_START + (index * 2 * Math.PI) / Math.max(1, beneficiaries.length);
     positions.set(site.id, {
       x: 0.5 + RING_RADIUS_X * Math.cos(angle),
       y: 0.5 + RING_RADIUS_Y * Math.sin(angle),

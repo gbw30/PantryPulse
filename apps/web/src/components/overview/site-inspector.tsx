@@ -1,4 +1,5 @@
 import { Route } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DemandOutlookChart } from "./demand-outlook-chart";
@@ -89,11 +90,13 @@ function NetworkFacts({ product, projection, dates, dayIndex }: Omit<Props, "ren
 export function SiteInspector(props: Props) {
   const { site, product, projection, dates, dayIndex, renderTitle } = props;
   const hasOutlook = projection?.kind === "projected" || projection?.kind === "hub";
+  // Tab content crossfades on switch (each tab mounts fresh); skipped under reduced motion.
+  const fade = useReducedMotion() ? undefined : { initial: { opacity: 0, y: 4 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.18 } };
 
   return (
-    <div className="grid gap-3">
+    <div className="grid gap-4">
       {/* Sticky so site, product/unit, day and provenance stay visible while the tab content scrolls. */}
-      <div className="sticky -top-4 z-10 -mx-4 -mt-4 grid gap-1 border-b border-border bg-card px-4 pt-4 pb-3">
+      <div className="sticky -top-4 z-10 -mx-4 -mt-4 grid gap-1 border-b border-border bg-card px-4 pt-4 pb-4">
         {renderTitle(site.name)}
         <p className="text-xs text-muted-foreground first-letter:uppercase">{roleLabel(site)}</p>
         <p className="text-xs text-foreground">
@@ -107,17 +110,21 @@ export function SiteInspector(props: Props) {
           <TabsTrigger value="demand" className="text-muted-foreground">Demand</TabsTrigger>
         </TabsList>
         <TabsContent value="network">
+          <motion.div {...fade}>
           <NetworkFacts site={site} product={product} projection={projection} dates={dates} dayIndex={dayIndex} />
+          </motion.div>
         </TabsContent>
         <TabsContent value="demand">
+          <motion.div {...fade}>
           {hasOutlook ? (
             <DemandOutlookChart projection={projection} product={product} dates={dates} />
           ) : (
             <p className="py-2 text-sm">No outlook for {product.name.toLowerCase()} at this site: {projection?.kind === "insufficient_data" ? "insufficient data." : "not evaluated."}</p>
           )}
+          </motion.div>
         </TabsContent>
       </Tabs>
-      <div className="grid gap-1">
+      <div className="grid gap-1 border-t border-border pt-4">
         <Button variant="outline" disabled aria-describedby={`${site.id}-detail-note`}>Go to Site Details</Button>
         <p id={`${site.id}-detail-note`} className="text-center text-xs text-muted-foreground">Site detail not built yet</p>
       </div>

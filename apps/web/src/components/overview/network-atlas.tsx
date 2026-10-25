@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useEffectEvent, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { MotionConfig } from "motion/react";
+import { motion, MotionConfig, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { Button } from "@/components/ui/button";
@@ -80,6 +80,7 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
   const [legend, setLegend] = useState<HTMLDivElement | null>(null);
   const [legendHeight, setLegendHeight] = useState(0);
   const isDesktop = useMediaQuery("(min-width: 1024px)", true);
+  const reduced = useReducedMotion();
   const isWide = useMediaQuery("(min-width: 1400px)", true);
 
   // Load through the adapter. Aborting on change/unmount means a stale response never replaces newer intent.
@@ -215,9 +216,10 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
   }, { shortfall: 0, watch: 0, covered: 0, not_evaluated: 0 });
   const beneficiaryCount = rows.filter((row) => row.site.role !== "HUB").length;
 
+  // Inspector content crossfades when the site or product changes (keyed remount).
   const inspectorBody = selected && snapshot && product ? (
+    <motion.div key={`${selected.site.id}-${product.id}`} initial={reduced ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }}>
     <SiteInspector
-      key={`${selected.site.id}-${product.id}`}
       site={selected.site}
       product={product}
       projection={selected.projection}
@@ -231,6 +233,7 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
         )
       }
     />
+    </motion.div>
   ) : null;
 
   return (
@@ -247,8 +250,8 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
           },
         }}
       >
-        <div className="flex flex-1 flex-col gap-4 px-4 py-4 md:px-6 md:py-5 lg:min-h-[calc(100svh-3.5rem)]">
-          <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div className="flex flex-1 flex-col gap-6 px-4 py-4 md:px-6 md:py-5 lg:min-h-[calc(100svh-3.5rem)]">
+          <header data-atlas-header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="min-w-0">
               <p className="font-condensed text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Network intelligence</p>
               <h1 className="text-[26px] leading-tight font-semibold tracking-tight md:text-[28px]">Network Atlas</h1>
@@ -321,27 +324,27 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
 
           {snapshot && <SiteList items={matches} selectedId={selectedId} query={query} onSelect={select} />}
 
-          <section aria-label="Network map" className="relative flex min-h-0 flex-col gap-3 lg:block lg:min-h-[520px] lg:flex-1">
+          <section aria-label="Network map" className="relative flex min-h-0 flex-col gap-4 lg:block lg:min-h-[540px] lg:flex-1">
             <RiskLegend
               ref={setLegend}
               context={legendContext}
-              className="lg:absolute lg:top-4 lg:left-4 lg:z-10"
-              style={isDesktop ? { right: reserveRight + 16 } : undefined}
+              className="lg:absolute lg:top-4 lg:left-4 lg:z-10 lg:w-max"
+              style={isDesktop ? { maxWidth: `calc(100% - ${reserveRight + 32}px)` } : undefined}
             />
             {load.status === "loading" && (
-              <div role="status" className="relative grid h-[54svh] place-items-center overflow-hidden rounded-2xl border border-border bg-pp-surface-muted lg:h-full">
+              <div role="status" className="relative grid h-[60svh] place-items-center overflow-hidden rounded-2xl border border-border bg-pp-surface-muted lg:h-full">
                 <Skeleton className="absolute inset-6 rounded-xl bg-pp-border/50" />
                 <span className="relative rounded-md bg-card px-3 py-1.5 text-sm text-foreground">Loading network snapshot…</span>
               </div>
             )}
             {load.status === "error" && (
-              <div className="grid h-[54svh] place-items-center rounded-2xl border border-dashed border-border bg-pp-surface-muted p-6 text-center text-sm text-muted-foreground lg:h-full">
+              <div className="grid h-[60svh] place-items-center rounded-2xl border border-dashed border-border bg-pp-surface-muted p-6 text-center text-sm text-muted-foreground lg:h-full">
                 The map stays empty until a snapshot loads.
               </div>
             )}
             {snapshot && product && (
               <SchematicMapRenderer
-                className="h-[54svh] lg:h-full"
+                className="h-[60svh] lg:h-full"
                 compact={!isDesktop}
                 markers={markers}
                 positions={positions}
@@ -362,7 +365,8 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
                       sideOffset={0}
                       avoidCollisions={false}
                       aria-label={selected.site.name}
-                      className="p-3 motion-reduce:animate-none!"
+                      // Enters with a short slide-up and fade, exits with a fade (Radix presence + tw-animate).
+                      className="p-3 data-[side=bottom]:slide-in-from-top-3 data-[side=top]:slide-in-from-bottom-3 data-[state=closed]:duration-150 data-[state=open]:duration-200 motion-reduce:animate-none!"
                       style={{ width: dock.width }}
                       onCloseAutoFocus={(event) => {
                         event.preventDefault();
@@ -384,23 +388,29 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
                 style={{ width: inspectorWidth }}
               >
                 {inspectorBody ?? (
-                  <div className="grid gap-3 text-sm">
+                  <div className="grid gap-4 text-sm">
                     <div className="grid gap-0.5">
                       <h2 className="text-base font-semibold">Site inspector</h2>
                       <p className="text-[13px] text-muted-foreground">Select a site for stock, deficits and outlook.</p>
                     </div>
-                    <div className="grid gap-1.5">
+                    <div className="grid gap-1.5 border-t border-border pt-4">
                       <h3 className="text-xs font-medium text-muted-foreground">Next deficits from {dayLabel}, earliest first</h3>
                       {deficits.length === 0 ? (
                         <p>No projected deficits from {dayLabel} through {formatDay(snapshot.dates[snapshot.dates.length - 1])}.</p>
                       ) : (
                         <ul aria-label="Projected deficits" className="grid gap-1.5">
-                          {deficits.map(({ row, next }) => (
-                            <li key={row.site.id}>
+                          {deficits.map(({ row, next }, index) => (
+                            // Re-keyed per product and day so the list staggers in after a filter change.
+                            <motion.li
+                              key={`${row.site.id}-${product.id}-${dayIndex}`}
+                              initial={reduced ? false : { opacity: 0, y: 6 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.2, delay: index * 0.05 }}
+                            >
                               <button
                                 type="button"
                                 onClick={(event) => selectFromList(row.site.id, event.currentTarget)}
-                                className="flex min-h-10 w-full items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-1 text-left leading-tight outline-none hover:border-foreground/40 focus-visible:ring-2 focus-visible:ring-ring"
+                                className="flex min-h-10 w-full items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-1 text-left leading-tight outline-none transition-[border-color,background-color,box-shadow] duration-150 hover:border-foreground/40 hover:bg-pp-surface-muted/60 focus-visible:ring-2 focus-visible:ring-ring"
                               >
                                 <StatusGlyph status={row.status} />
                                 <span className="min-w-0">
@@ -408,12 +418,12 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
                                   <span className="block text-xs">{formatDay(snapshot.dates[next.dayIndex])} · {formatUnits(next.unmetUnits, product)} unmet</span>
                                 </span>
                               </button>
-                            </li>
+                            </motion.li>
                           ))}
                         </ul>
                       )}
                     </div>
-                    <dl className="grid gap-1 rounded-lg bg-muted px-3 py-2">
+                    <dl className="grid gap-1 rounded-lg bg-muted px-3 py-2.5">
                       <dt className="text-xs text-muted-foreground">{beneficiaryCount} pantries on {dayLabel}</dt>
                       {(Object.keys(counts) as BeneficiaryStatus[]).map((status) => (
                         <dd key={status} className="flex items-center justify-between gap-2">

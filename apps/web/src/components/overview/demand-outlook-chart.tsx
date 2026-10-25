@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { useReducedMotion } from "motion/react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Button } from "@/components/ui/button";
 import { formatDay, formatRange, formatShortDate, formatUnits } from "./status";
@@ -14,6 +15,8 @@ function sum(values: number[]) {
 export function DemandOutlookChart({ projection, product, dates }: Props) {
   const [showTable, setShowTable] = useState(false);
   const tableId = useId();
+  // Lines draw in on mount (the inspector remounts the chart per site and product).
+  const animateLines = !useReducedMotion();
   const isHub = projection.kind === "hub";
   const data = dates.map((date, index) => ({
     day: formatShortDate(date),
@@ -45,8 +48,8 @@ export function DemandOutlookChart({ projection, product, dates }: Props) {
               <CartesianGrid vertical={false} stroke="var(--pp-border)" />
               <XAxis dataKey="day" tickLine={false} axisLine={{ stroke: "var(--pp-border)" }} tick={{ fill: "var(--pp-ink-muted)", fontSize: 11 }} interval="preserveStartEnd" minTickGap={8} />
               <YAxis tickLine={false} axisLine={false} width={44} tick={{ fill: "var(--pp-ink-muted)", fontSize: 11 }} allowDecimals={false} />
-              {!isHub && <Line dataKey="demand" name="Demand outlook" type="linear" stroke="var(--pp-forecast)" strokeWidth={2.5} dot={{ r: 2.5, fill: "var(--pp-forecast)", strokeWidth: 0 }} isAnimationActive={false} />}
-              <Line dataKey="donation" name="Donation outlook" type="linear" stroke="var(--pp-teal)" strokeWidth={2.5} strokeDasharray="5 4" dot={false} isAnimationActive={false} />
+              {!isHub && <Line dataKey="demand" name="Demand outlook" type="linear" stroke="var(--pp-forecast)" strokeWidth={2.5} dot={{ r: 2.5, fill: "var(--pp-forecast)", strokeWidth: 0 }} isAnimationActive={animateLines} animationDuration={600} />}
+              <Line dataKey="donation" name="Donation outlook" type="linear" stroke="var(--pp-teal)" strokeWidth={2.5} strokeDasharray="5 4" dot={false} isAnimationActive={animateLines} animationDuration={600} />
               <Tooltip formatter={(value) => `${Number(value).toLocaleString("en-US")} ${product.unitPlural}`} contentStyle={{ borderRadius: 8, borderColor: "var(--pp-border)", fontSize: 12 }} />
             </LineChart>
           </ResponsiveContainer>
