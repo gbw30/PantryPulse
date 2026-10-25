@@ -21,6 +21,16 @@ export type Site = {
 
 export type ExpiringLots = { count: number; units: number };
 
+/**
+ * The provider that actually produced a live series. A provider name alone never implies a fallback:
+ * `fallbackUsed` says whether the requested method failed and another one filled in.
+ */
+export type ForecastMethod = { provider: string; fallbackUsed: boolean; fallbackReason: string | null };
+export type SeriesMethod = ForecastMethod & { siteId: string; productId: string };
+
+/** A quantity in the product's base unit, or null when unavailable (malformed or beyond the safe integer range). */
+export type Quantity = number | null;
+
 /** Daily series align index-for-index with `OverviewSnapshot.dates`. Units are the product's base unit. */
 export type BeneficiaryProjection = {
   kind: "projected";
@@ -29,19 +39,23 @@ export type BeneficiaryProjection = {
   servedUnits: number[];
   unmetUnits: number[];
   demandOutlook: number[];
-  donationOutlook: number[];
-  eligibleStockNow: number;
-  eligibleStockAtHorizonEnd: number;
-  expiringLots: ExpiringLots;
+  /** null: not in this projection (the live shortage projection has demand and physical stock only). */
+  donationOutlook: number[] | null;
+  eligibleStockNow: Quantity;
+  eligibleStockAtHorizonEnd: Quantity;
+  /** null when a lot quantity is unavailable. */
+  expiringLots: ExpiringLots | null;
+  /** How this series was forecast (live data only). */
+  method?: ForecastMethod;
 };
 
 export type HubProjection = {
   kind: "hub";
-  donationOutlook: number[];
-  eligibleStockNow: number;
-  /** Assumes no transfers: no plan is saved. */
-  eligibleStockAtHorizonEnd: number;
-  expiringLots: ExpiringLots;
+  donationOutlook: number[] | null;
+  eligibleStockNow: Quantity;
+  /** Assumes no transfers: no plan is saved. Undefined: not in this projection (the hub has no series). */
+  eligibleStockAtHorizonEnd?: Quantity;
+  expiringLots: ExpiringLots | null;
 };
 
 export type InsufficientProjection = {
@@ -51,7 +65,8 @@ export type InsufficientProjection = {
   eligibleStockNow: number | null;
 };
 
-export type NotEvaluatedProjection = { kind: "not_evaluated"; reason: string };
+/** No status. Live data may still carry current inventory for the site and product. */
+export type NotEvaluatedProjection = { kind: "not_evaluated"; reason: string; eligibleStockNow?: Quantity; expiringLots?: ExpiringLots | null };
 
 export type SiteProductProjection = BeneficiaryProjection | HubProjection | InsufficientProjection | NotEvaluatedProjection;
 
@@ -63,11 +78,30 @@ export type OverviewProvenance = {
   sourceDataset: string;
 };
 
+export type StaleCode = "FORECAST_HORIZON_ALREADY_STARTED" | "FORECAST_UNIT_OR_CALENDAR_CHANGED" | "FORECAST_NETWORK_SCOPE_CHANGED";
+
+/** Why live statuses are missing even though presenter data loaded. The UI supplies its own copy per kind/code. */
+export type LiveNotice =
+  | { kind: "not_ready"; recordedAt: string | null; code?: "FORECAST_NOT_PLANNING_READY" }
+  | { kind: "stale"; code: StaleCode; recordedAt: string }
+  | { kind: "integrity"; code: "FORECAST_INTEGRITY_FAILED"; recordedAt: string }
+  | { kind: "demand_unavailable"; code: "DEMAND_FORECAST_UNAVAILABLE"; recordedAt: string };
+
+/** Which source the screen is showing. Fixture and live data are never mixed in one snapshot. */
+export type SnapshotSource =
+  | { kind: "fixture" }
+  | { kind: "live"; observedAt: string; forecastRunId: string | null; forecastRecordedAt: string | null; methods: SeriesMethod[]; warnings: string[]; notice: LiveNotice | null };
+
+/** Set when the static fixture is shown because live data was not available. */
+export type FallbackReason = { kind: "visitor"; status: number } | { kind: "unavailable"; code: string; status: number };
+
 export type OverviewSnapshot = {
   snapshotId: string;
+  source: SnapshotSource;
+  fallback?: FallbackReason;
   provenance: OverviewProvenance;
   timezone: string;
-  /** Seven consecutive local dates, ISO yyyy-mm-dd. */
+  /** Consecutive local dates, ISO yyyy-mm-dd (seven for a projection; inventory-only views may have one). */
   dates: string[];
   products: Product[];
   sites: Site[];

@@ -41,7 +41,9 @@ export function statusLine(status: MarkerStatus, projection: SiteProductProjecti
   return next ? `Watch · ${formatShortDate(dates[next.dayIndex])}` : STATUS_LABEL[status];
 }
 
-export function formatUnits(value: number, product: Product) {
+/** Units in the product's base unit; an unavailable quantity is never rounded or guessed. */
+export function formatUnits(value: number | null, product: Product) {
+  if (value === null) return "Unavailable";
   return `${value.toLocaleString("en-US")} ${value === 1 ? product.unit : product.unitPlural}`;
 }
 
@@ -60,6 +62,7 @@ export function formatShortDate(isoDate: string) {
 }
 
 export function formatRange(dates: string[]) {
+  if (dates.length === 1) return `${formatShortDate(dates[0])}, ${toUtcNoon(dates[0]).getUTCFullYear()}`;
   const first = toUtcNoon(dates[0]);
   const last = toUtcNoon(dates[dates.length - 1]);
   const sameMonth = first.getUTCMonth() === last.getUTCMonth();
@@ -75,7 +78,7 @@ export function roleLabel(site: Site) {
 export function statusDetail(projection: SiteProductProjection | undefined, product: Product, dates: string[], dayIndex: number) {
   if (!projection || projection.kind === "not_evaluated") return "no projection";
   if (projection.kind === "insufficient_data") return "insufficient data";
-  if (projection.kind === "hub") return `${formatUnits(projection.eligibleStockNow, product)} eligible now`;
+  if (projection.kind === "hub") return projection.eligibleStockNow === null ? "eligible stock unavailable" : `${formatUnits(projection.eligibleStockNow, product)} eligible now`;
   const next = nextDeficitFrom(projection, dayIndex);
   if (!next) return `no projected deficit from ${formatDay(dates[dayIndex])}`;
   return `next deficit ${formatDay(dates[next.dayIndex])}: ${formatUnits(next.unmetUnits, product)} unmet`;
@@ -88,6 +91,19 @@ export function nextDeficitLine(projection: SiteProductProjection | undefined, p
   return `${formatDay(dates[next.dayIndex])} · ${formatUnits(next.unmetUnits, product)} unmet`;
 }
 
-export function markerAccessibleName(site: Site, status: MarkerStatus, detail: string) {
-  return `${site.name}, ${roleLabel(site)}, ${STATUS_LABEL[status]}, ${detail}`;
+export function markerAccessibleName(site: Site, status: MarkerStatus, detail: string, extra?: string) {
+  return `${site.name}, ${roleLabel(site)}, ${STATUS_LABEL[status]}, ${detail}${extra ? `, ${extra}` : ""}`;
+}
+
+/** An API instant shown in the network's local time zone, e.g. "Nov 2, 9:30 AM EST". */
+export function formatInstant(iso: string | null | undefined, timeZone: string) {
+  if (!iso) return "unknown time";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  const options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" };
+  try {
+    return date.toLocaleString("en-US", { ...options, timeZone });
+  } catch {
+    return date.toLocaleString("en-US", { ...options, timeZone: "UTC" });
+  }
 }

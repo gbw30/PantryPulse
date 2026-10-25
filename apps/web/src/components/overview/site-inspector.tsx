@@ -3,10 +3,11 @@ import { motion, useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DemandOutlookChart } from "./demand-outlook-chart";
+import { FallbackNote } from "./forecast-method";
 import { ProvenancePill } from "./provenance-pill";
 import { StatusGlyph } from "./status-glyph";
 import { formatDay, formatUnits, nextDeficitLine, roleLabel, STATUS_LABEL, statusFor } from "./status";
-import type { Product, Site, SiteProductProjection } from "./types";
+import type { ExpiringLots, ForecastMethod, Product, Site, SiteProductProjection } from "./types";
 
 type Props = {
   site: Site;
@@ -14,9 +15,16 @@ type Props = {
   projection: SiteProductProjection | undefined;
   dates: string[];
   dayIndex: number;
+  /** Which source the numbers come from (the header pill's label), the forecast method line and chart caption. */
+  provenance: { label: string; tone: "live" | "fixture" | "degraded"; detail?: string; chartNote: string; method?: ForecastMethod };
   /** Renders the heading so the desktop card and the mobile sheet can supply their own element. */
   renderTitle: (title: string) => React.ReactNode;
 };
+
+function lotsLine(lots: ExpiringLots | null | undefined, product: Product) {
+  if (lots === null || lots === undefined) return "Unavailable";
+  return lots.count === 0 ? "None" : `${lots.count} ${lots.count === 1 ? "lot" : "lots"} · ${formatUnits(lots.units, product)}`;
+}
 
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -34,7 +42,7 @@ function routesNote(status: ReturnType<typeof statusFor>) {
   return "";
 }
 
-function NetworkFacts({ product, projection, dates, dayIndex }: Omit<Props, "renderTitle">) {
+function NetworkFacts({ product, projection, dates, dayIndex }: Omit<Props, "renderTitle" | "provenance">) {
   const status = statusFor(projection, dayIndex);
   const day = formatDay(dates[dayIndex]);
   const end = formatDay(dates[dates.length - 1]);
@@ -49,6 +57,12 @@ function NetworkFacts({ product, projection, dates, dayIndex }: Omit<Props, "ren
       {(!projection || projection.kind === "not_evaluated") && (
         <Fact label="Projection">Not evaluated: {projection?.reason ?? "no projection for this product."}</Fact>
       )}
+      {projection?.kind === "not_evaluated" && projection.eligibleStockNow !== undefined && (
+        <>
+          <Fact label="Eligible stock now">{formatUnits(projection.eligibleStockNow, product)}</Fact>
+          <Fact label="Eligible lots expiring by horizon end">{lotsLine(projection.expiringLots, product)}</Fact>
+        </>
+      )}
       {projection?.kind === "insufficient_data" && (
         <>
           <Fact label="Projection">Insufficient data. {projection.reason}</Fact>
@@ -57,7 +71,7 @@ function NetworkFacts({ product, projection, dates, dayIndex }: Omit<Props, "ren
       )}
       {(projection?.kind === "projected" || projection?.kind === "hub") && (
         <Fact label={projection.kind === "hub" ? "Eligible stock, no transfers assumed" : "Eligible stock"}>
-          {formatUnits(projection.eligibleStockNow, product)} now → {formatUnits(projection.eligibleStockAtHorizonEnd, product)} by {end}
+          {formatUnits(projection.eligibleStockNow, product)} now → {projection.eligibleStockAtHorizonEnd === undefined ? "Not in this projection" : `${formatUnits(projection.eligibleStockAtHorizonEnd, product)} by ${end}`}
         </Fact>
       )}
       {projection?.kind === "projected" && (() => {
@@ -74,7 +88,7 @@ function NetworkFacts({ product, projection, dates, dayIndex }: Omit<Props, "ren
       {projection?.kind === "hub" && <Fact label="Demand">Not applicable: the hub has no demand forecast.</Fact>}
       {(projection?.kind === "projected" || projection?.kind === "hub") && (
         <Fact label="Eligible lots expiring by horizon end">
-          {projection.expiringLots.count === 0 ? "None" : `${projection.expiringLots.count} ${projection.expiringLots.count === 1 ? "lot" : "lots"} · ${formatUnits(projection.expiringLots.units, product)}`}
+          {lotsLine(projection.expiringLots, product)}
         </Fact>
       )}
     </dl>
@@ -88,8 +102,8 @@ function NetworkFacts({ product, projection, dates, dayIndex }: Omit<Props, "ren
 
 /** SiteInspector: Network and Demand tabs for one site, product and local day. */
 export function SiteInspector(props: Props) {
-  const { site, product, projection, dates, dayIndex, renderTitle } = props;
-  const hasOutlook = projection?.kind === "projected" || projection?.kind === "hub";
+  const { site, product, projection, dates, dayIndex, provenance, renderTitle } = props;
+  const hasOutlook = projection?.kind === "projected" || (projection?.kind === "hub" && projection.donationOutlook !== null);
   // Tab content crossfades on switch (each tab mounts fresh); skipped under reduced motion.
   const fade = useReducedMotion() ? undefined : { initial: { opacity: 0, y: 4 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.18 } };
 
@@ -100,9 +114,11 @@ export function SiteInspector(props: Props) {
         {renderTitle(site.name)}
         <p className="text-xs text-muted-foreground first-letter:uppercase">{roleLabel(site)}</p>
         <p className="text-xs text-foreground">
-          {product.name} · {product.unitPlural} · {formatDay(dates[dayIndex])}
+          {product.name} · {product.unitPlural} <span className="text-muted-foreground">(base unit: {product.unit})</span> · {formatDay(dates[dayIndex])}
         </p>
-        <ProvenancePill className="justify-self-start">Static fixture · simulated</ProvenancePill>
+        <ProvenancePill className="justify-self-start" tone={provenance.tone}>{provenance.label}</ProvenancePill>
+        {provenance.detail && <p className="text-xs text-muted-foreground">{provenance.detail}</p>}
+        {provenance.method?.fallbackUsed && <FallbackNote method={provenance.method} className="mt-1" />}
       </div>
       <Tabs defaultValue="network">
         <TabsList className="w-full">
@@ -117,9 +133,11 @@ export function SiteInspector(props: Props) {
         <TabsContent value="demand">
           <motion.div {...fade}>
           {hasOutlook ? (
-            <DemandOutlookChart projection={projection} product={product} dates={dates} />
+            <DemandOutlookChart projection={projection} product={product} dates={dates} sourceNote={provenance.chartNote} />
+          ) : projection?.kind === "hub" ? (
+            <p className="py-2 text-sm">Donation outlook: Not in this projection. The hub has no demand forecast.</p>
           ) : (
-            <p className="py-2 text-sm">No outlook for {product.name.toLowerCase()} at this site: {projection?.kind === "insufficient_data" ? "insufficient data." : "not evaluated."}</p>
+            <p className="py-2 text-sm">No outlook for {product.name.toLowerCase()} at this site: {projection?.kind === "insufficient_data" ? "insufficient data." : `not evaluated. ${projection?.reason ?? ""}`}</p>
           )}
           </motion.div>
         </TabsContent>
