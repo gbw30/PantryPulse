@@ -88,7 +88,7 @@ export function SevenDayPulse({ snapshot, product }: { snapshot: ExplorerSnapsho
       ) : (
         <>
           <p className="text-xs text-muted-foreground md:hidden">Scroll sideways for all seven days.</p>
-          <div className="overflow-x-auto">
+          <div role="region" aria-label={`Seven-Day Pulse grid, ${product.name}`} tabIndex={0} className="overflow-x-auto rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <table className="w-full min-w-[760px] border-separate border-spacing-1 text-sm">
               <caption className="sr-only">Seven-Day Pulse grid: rows are beneficiaries, columns are local days. Each cell is a button that shows its detail.</caption>
               <thead>

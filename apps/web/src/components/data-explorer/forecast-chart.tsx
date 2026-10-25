@@ -167,7 +167,14 @@ export function NetworkDemandChart({ snapshot, product }: { snapshot: ExplorerSn
               {showTable ? "Hide data table" : "Show data table"}
             </Button>
           </div>
-          <div id={tableId} hidden={!showTable} className="overflow-x-auto">
+          <div
+            id={tableId}
+            hidden={!showTable}
+            role="region"
+            aria-label={`${product.name} daily forecast table`}
+            tabIndex={showTable ? 0 : -1}
+            className="overflow-x-auto rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
             {showTable && (
               <table className="w-full min-w-[520px] text-left text-sm tabular-nums">
                 <caption className="pb-2 text-left text-xs text-muted-foreground">{product.name} ({product.unitPlural}) by local day, {scopeLabel}. Missing means no value in the projection.</caption>

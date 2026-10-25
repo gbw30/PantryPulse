@@ -111,7 +111,7 @@ export function SitePerformanceTable({ snapshot, product }: { snapshot: Explorer
         </div>
       </div>
       <p className="text-xs text-muted-foreground md:hidden">Scroll sideways for more columns.</p>
-      <div className="overflow-x-auto">
+      <div role="region" aria-label={`Site performance table, ${product.name}`} tabIndex={0} className="overflow-x-auto rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
         <table className="w-full min-w-[860px] text-sm text-foreground">
           <caption className="sr-only">Site performance for {product.name} ({product.unitPlural}), {range}</caption>
           <thead className="border-b border-border bg-muted/50">

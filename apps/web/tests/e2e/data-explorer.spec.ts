@@ -205,10 +205,12 @@ async function chooseProduct(page: Page, name: RegExp) {
   await page.getByRole("option", { name }).click();
 }
 
+/** Document-relative box: flip assertions must not be fooled by focus-driven scrolling. */
 async function box(locator: Locator) {
-  const result = await locator.boundingBox();
-  expect(result).not.toBeNull();
-  return result!;
+  return locator.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return { x: rect.x + window.scrollX, y: rect.y + window.scrollY, width: rect.width, height: rect.height };
+  });
 }
 
 async function expectNoMockupContent(page: Page) {
