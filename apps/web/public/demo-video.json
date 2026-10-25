@@ -1,0 +1,178 @@
+{
+  "version": 1,
+  "classification": "SIMULATED",
+  "demo_date": "2026-10-25",
+  "organization_id": "cf7a53e5-7651-5e7d-875f-a38cb55fbe9c",
+  "scenes": [
+    {
+      "number": "01",
+      "slug": "normal-week",
+      "title": "Normal Week",
+      "label": "VIDEO 01 - Normal Week [SIMULATED]",
+      "description": "Spot projected shortages and compare feasible redistribution under normal demand.",
+      "source_id": "fbaa7ea0-67a3-5fb7-978f-4da066c0dbb9",
+      "forecast_id": "e0cbb132-95bc-4b8c-9dd3-ac96490f19a5",
+      "assumptions_id": "aa445124-7d61-4dde-bdbf-ba198f923e99",
+      "scenario_id": "b5c5e79d-01e1-41e8-9de4-5c34f97efca0",
+      "comparison_id": "7015f6c2-1202-4c04-9431-19cd619e2657",
+      "search_seconds": 10,
+      "metrics": [
+        {
+          "method": "CLASSICAL_GP",
+          "native_status": "OPTIMAL",
+          "products": [
+            {
+              "name": "Bottled water",
+              "unit": "bottle",
+              "before": 160,
+              "after": 40
+            },
+            {
+              "name": "Shelf-stable meals",
+              "unit": "meal",
+              "before": 100,
+              "after": 0
+            }
+          ]
+        },
+        {
+          "method": "EGP_PI_INSPIRED",
+          "native_status": "OPTIMAL",
+          "products": [
+            {
+              "name": "Bottled water",
+              "unit": "bottle",
+              "before": 160,
+              "after": 40
+            },
+            {
+              "name": "Shelf-stable meals",
+              "unit": "meal",
+              "before": 100,
+              "after": 0
+            }
+          ]
+        }
+      ],
+      "allocation_differs": true
+    },
+    {
+      "number": "02",
+      "slug": "demand-surge",
+      "title": "Demand Surge +30%",
+      "label": "VIDEO 02 - Demand Surge +30% [SIMULATED]",
+      "description": "The same stock faces 30% greater historical demand; inspect the remaining unmet need.",
+      "source_id": "e2fb474e-eecc-5b2b-a833-2e0246ea69ed",
+      "forecast_id": "4e8716c4-7ae2-4ff3-84df-771d56d93c11",
+      "assumptions_id": "81943eed-da22-43ac-ac70-c18fa55b59d2",
+      "scenario_id": "81b59939-d853-4482-9749-05b245808d39",
+      "comparison_id": "fbccf57c-1158-4d73-9934-ba1b011ddd2d",
+      "search_seconds": 10,
+      "metrics": [
+        {
+          "method": "CLASSICAL_GP",
+          "native_status": "OPTIMAL",
+          "products": [
+            {
+              "name": "Bottled water",
+              "unit": "bottle",
+              "before": 220,
+              "after": 100
+            },
+            {
+              "name": "Shelf-stable meals",
+              "unit": "meal",
+              "before": 145,
+              "after": 25
+            }
+          ]
+        },
+        {
+          "method": "EGP_PI_INSPIRED",
+          "native_status": "OPTIMAL",
+          "products": [
+            {
+              "name": "Bottled water",
+              "unit": "bottle",
+              "before": 220,
+              "after": 100
+            },
+            {
+              "name": "Shelf-stable meals",
+              "unit": "meal",
+              "before": 145,
+              "after": 25
+            }
+          ]
+        }
+      ],
+      "allocation_differs": true
+    },
+    {
+      "number": "03",
+      "slug": "vulnerability-tradeoff",
+      "title": "Vulnerability Trade-off",
+      "label": "VIDEO 03 - Vulnerability Trade-off [SIMULATED]",
+      "description": "Unequal simulated vulnerability and demand expose allocation-priority trade-offs.",
+      "source_id": "162e9b03-16d7-5b95-bdbf-382830f6bc39",
+      "forecast_id": "e5ca17c2-4372-4b3c-9178-1113a85e313c",
+      "assumptions_id": "f9b25c9e-9ccb-4097-9e6d-195adc1cdc4c",
+      "scenario_id": "2f6a3dc3-a618-4e74-a413-f505f0499c80",
+      "comparison_id": "20f04ba5-d226-4f19-9b57-e5c7c2329938",
+      "search_seconds": 10,
+      "metrics": [
+        {
+          "method": "CLASSICAL_GP",
+          "native_status": "OPTIMAL",
+          "products": [
+            {
+              "name": "Bottled water",
+              "unit": "bottle",
+              "before": 226,
+              "after": 106
+            },
+            {
+              "name": "Shelf-stable meals",
+              "unit": "meal",
+              "before": 166,
+              "after": 46
+            }
+          ]
+        },
+        {
+          "method": "EGP_PI_INSPIRED",
+          "native_status": "OPTIMAL",
+          "products": [
+            {
+              "name": "Bottled water",
+              "unit": "bottle",
+              "before": 226,
+              "after": 106
+            },
+            {
+              "name": "Shelf-stable meals",
+              "unit": "meal",
+              "before": 166,
+              "after": 46
+            }
+          ]
+        }
+      ],
+      "allocation_differs": true
+    }
+  ],
+  "labels": {
+    "e5ca17c2-4372-4b3c-9178-1113a85e313c": "VIDEO 03 - Vulnerability Trade-off [SIMULATED]",
+    "f9b25c9e-9ccb-4097-9e6d-195adc1cdc4c": "VIDEO 03 - Vulnerability Trade-off [SIMULATED]",
+    "2f6a3dc3-a618-4e74-a413-f505f0499c80": "VIDEO 03 - Vulnerability Trade-off [SIMULATED]",
+    "20f04ba5-d226-4f19-9b57-e5c7c2329938": "VIDEO 03 - Vulnerability Trade-off [SIMULATED]",
+    "4e8716c4-7ae2-4ff3-84df-771d56d93c11": "VIDEO 02 - Demand Surge +30% [SIMULATED]",
+    "81943eed-da22-43ac-ac70-c18fa55b59d2": "VIDEO 02 - Demand Surge +30% [SIMULATED]",
+    "81b59939-d853-4482-9749-05b245808d39": "VIDEO 02 - Demand Surge +30% [SIMULATED]",
+    "fbccf57c-1158-4d73-9934-ba1b011ddd2d": "VIDEO 02 - Demand Surge +30% [SIMULATED]",
+    "e0cbb132-95bc-4b8c-9dd3-ac96490f19a5": "VIDEO 01 - Normal Week [SIMULATED]",
+    "aa445124-7d61-4dde-bdbf-ba198f923e99": "VIDEO 01 - Normal Week [SIMULATED]",
+    "b5c5e79d-01e1-41e8-9de4-5c34f97efca0": "VIDEO 01 - Normal Week [SIMULATED]",
+    "7015f6c2-1202-4c04-9431-19cd619e2657": "VIDEO 01 - Normal Week [SIMULATED]"
+  }
+}
