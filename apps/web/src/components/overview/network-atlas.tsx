@@ -1,17 +1,20 @@
 "use client";
 
 import { useEffect, useEffectEvent, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { motion, MotionConfig, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, MotionConfig, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { resolveAtlasLayout } from "./atlas-layout";
+import { resolveAtlasLayout, withSavedPositions } from "./atlas-layout";
+import { PRESS, SPRING } from "./atlas-motion";
+import { isCustomized, resetLayout, saveNodePosition, savePanelOffset, useSavedLayout, type PanelId, type PanelOffset } from "./layout-store";
+import { PanelGrip, PanelGripHint } from "./panel-grip";
 import { RiskLegend } from "./risk-legend";
 import { SchematicMapRenderer, type MapMarker } from "./schematic-map";
+import { SelectionCard } from "./selection-card";
 import { SiteInspector } from "./site-inspector";
 import { SiteList } from "./site-list";
 import { StatusGlyph } from "./status-glyph";
@@ -92,7 +95,20 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
   const [inspectorPanel, setInspectorPanel] = useState<HTMLElement | null>(null);
   const [sheetPanel, setSheetPanel] = useState<HTMLElement | null>(null);
   const afterPopoverClose = useRef<"invoker" | "inspector" | "none">("invoker");
-  const inspectorHeadingRef = useRef<HTMLHeadingElement>(null);
+  const inspectorHeadingRef = useRef<HTMLHeadingElement | null>(null);
+  // While the old inspector body exits (AnimatePresence), its heading unmounts after the new one mounts;
+  // only clear the ref if it still points at the heading being removed.
+  const setInspectorHeading = (element: HTMLHeadingElement | null) => {
+    if (element) inspectorHeadingRef.current = element;
+    return () => {
+      if (inspectorHeadingRef.current === element) inspectorHeadingRef.current = null;
+    };
+  };
+  // Per-browser layout (PP-52): dragged nodes and panels. A panel's live drag offset is held here and
+  // saved when the drag or key step ends.
+  const layout = useSavedLayout();
+  const [livePanel, setLivePanel] = useState<{ id: PanelId; offset: PanelOffset } | null>(null);
+  const [liftedPanel, setLiftedPanel] = useState<PanelId | null>(null);
   const [legend, setLegend] = useState<HTMLDivElement | null>(null);
   const [legendHeight, setLegendHeight] = useState(0);
   const isDesktop = useMediaQuery("(min-width: 1024px)", true);
@@ -127,7 +143,30 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
 
   const snapshot = load.status === "ready" ? load.snapshot : null;
   const product = snapshot ? snapshot.products.find((item) => item.id === productId) ?? snapshot.products[0] : null;
-  const positions = useMemo(() => resolveAtlasLayout(snapshot?.sites ?? []), [snapshot]);
+  const positions = useMemo(() => withSavedPositions(resolveAtlasLayout(snapshot?.sites ?? []), layout.nodes), [snapshot, layout.nodes]);
+  // Panels move only on desktop; at narrow widths the legend, sheet and docked card keep their places.
+  const offsetOf = (id: PanelId): PanelOffset => (!isDesktop ? { dx: 0, dy: 0 } : livePanel?.id === id ? livePanel.offset : layout.panels[id] ?? { dx: 0, dy: 0 });
+  const panelGrip = (id: PanelId, label: string, element: () => HTMLElement | null, orientation?: "horizontal") => (
+    <PanelGrip
+      label={label}
+      panel={element}
+      offset={offsetOf(id)}
+      orientation={orientation}
+      onLift={(lifted) => setLiftedPanel(lifted ? id : null)}
+      onChange={(offset, phase) => {
+        if (phase === "move") {
+          setLivePanel({ id, offset });
+          return;
+        }
+        setLivePanel(null);
+        savePanelOffset(id, offset);
+      }}
+    />
+  );
+  const translateOf = (id: PanelId) => {
+    const { dx, dy } = offsetOf(id);
+    return dx === 0 && dy === 0 ? undefined : `${dx}px ${dy}px`;
+  };
 
   const rows = useMemo(() => {
     if (!snapshot || !product) return [];
@@ -257,7 +296,13 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
 
   // Inspector content crossfades when the site or product changes (keyed remount).
   const inspectorBody = selected && snapshot && product ? (
-    <motion.div key={`${selected.site.id}-${product.id}`} initial={reduced ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }}>
+    <motion.div
+      key={`${selected.site.id}-${product.id}`}
+      initial={reduced ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={reduced ? { opacity: 0, transition: { duration: 0 } } : { opacity: 0, transition: { duration: 0.12 } }}
+      transition={SPRING}
+    >
     <SiteInspector
       site={selected.site}
       product={product}
@@ -267,7 +312,7 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
       provenance={provenance}
       renderTitle={(title) =>
         isDesktop ? (
-          <h2 ref={inspectorHeadingRef} tabIndex={-1} className="text-lg font-semibold tracking-tight outline-none focus-visible:ring-2 focus-visible:ring-ring">{title}</h2>
+          <h2 ref={setInspectorHeading} tabIndex={-1} className="text-lg font-semibold tracking-tight outline-none focus-visible:ring-2 focus-visible:ring-ring">{title}</h2>
         ) : (
           <SheetTitle className="text-lg font-semibold tracking-tight">{title}</SheetTitle>
         )
@@ -397,7 +442,9 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
               ref={setLegend}
               context={legendContext}
               className="lg:absolute lg:top-4 lg:left-4 lg:z-10 lg:w-max"
-              style={isDesktop ? { maxWidth: `calc(100% - ${reserveRight + 32}px)` } : undefined}
+              style={isDesktop ? { maxWidth: `calc(100% - ${reserveRight + 32}px)`, translate: translateOf("legend") } : undefined}
+              grip={isDesktop && snapshot ? panelGrip("legend", "Move legend", () => legend) : undefined}
+              lifted={liftedPanel === "legend"}
             />
             {load.status === "loading" && (
               <div role="status" className="relative grid h-[60svh] place-items-center overflow-hidden rounded-2xl border border-border bg-pp-surface-muted lg:h-full">
@@ -420,43 +467,64 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
                 onSelect={select}
                 reserveRight={reserveRight}
                 reserveTop={isDesktop && legendHeight > 0 ? 16 + legendHeight : 0}
+                onMoveNode={saveNodePosition}
+                onResetLayout={resetLayout}
+                layoutCustomized={isCustomized(layout)}
                 renderSelection={(dock) => selected && (
                   // Docked along the bottom of the map so the card never hides other sites (desktop) and
-                  // sits above the zoom row on narrow layouts.
-                  <Popover open={popoverOpen} onOpenChange={(open) => { if (!open) setPopoverOpen(false); }}>
-                    <PopoverAnchor asChild>
-                      <span aria-hidden="true" className="pointer-events-none absolute h-0" style={{ left: dock.left, top: dock.top, width: dock.width }} />
-                    </PopoverAnchor>
-                    <PopoverContent
-                      side={dock.side}
-                      align="start"
-                      sideOffset={0}
-                      avoidCollisions={false}
-                      aria-label={selected.site.name}
-                      // Enters with a short slide-up and fade, exits with a fade (Radix presence + tw-animate).
-                      className="p-3 data-[side=bottom]:slide-in-from-top-3 data-[side=top]:slide-in-from-bottom-3 data-[state=closed]:duration-150 data-[state=open]:duration-200 motion-reduce:animate-none!"
-                      style={{ width: dock.width }}
-                      onCloseAutoFocus={(event) => {
-                        event.preventDefault();
-                        if (afterPopoverClose.current === "invoker") restoreFocus();
-                      }}
-                    >
-                      <PopoverSummary row={selected} product={product} snapshot={snapshot} dayIndex={dayIndex} onInspect={inspect} />
-                    </PopoverContent>
-                  </Popover>
+                  // sits above the zoom row on narrow layouts. Desktop: movable by its grip.
+                  <SelectionCard
+                    open={popoverOpen}
+                    onClose={() => setPopoverOpen(false)}
+                    dock={dock}
+                    offset={offsetOf("card")}
+                    contentKey={selected.site.id}
+                    label={selected.site.name}
+                    lifted={liftedPanel === "card"}
+                    onCloseAutoFocus={(event) => {
+                      event.preventDefault();
+                      if (afterPopoverClose.current === "invoker") restoreFocus();
+                    }}
+                  >
+                    <PopoverSummary
+                      row={selected}
+                      product={product}
+                      snapshot={snapshot}
+                      dayIndex={dayIndex}
+                      onInspect={inspect}
+                      grip={isDesktop ? panelGrip("card", "Move selection card", () => document.querySelector<HTMLElement>("[data-selection-card]")) : undefined}
+                    />
+                  </SelectionCard>
                 )}
               />
             )}
             {snapshot && product && isDesktop && (
+              // The frame moves (grip on its top edge); the aside inside it scrolls.
+              <div
+                data-inspector-frame
+                data-atlas-obstacle
+                className="absolute top-4 right-4 bottom-4 z-10"
+                style={{ width: inspectorWidth, translate: translateOf("inspector") }}
+              >
+              <div className="absolute -top-3 left-1/2 z-30 -translate-x-1/2 rounded-full border border-border bg-card shadow-sm">
+                {panelGrip("inspector", "Move inspector", () => document.querySelector<HTMLElement>("[data-inspector-frame]"), "horizontal")}
+              </div>
               <aside
                 ref={setInspectorPanel}
                 aria-label="Site inspector"
                 data-testid="site-inspector"
-                className="absolute top-4 right-4 bottom-4 z-10 overflow-y-auto rounded-xl border border-border bg-card p-4 shadow-sm"
-                style={{ width: inspectorWidth }}
+                className={`relative h-full overflow-y-auto rounded-xl border border-border bg-card p-4 transition-shadow duration-150 ${liftedPanel === "inspector" ? "shadow-xl ring-1 ring-primary/40" : "shadow-sm"}`}
               >
+                <AnimatePresence initial={false} mode="popLayout">
                 {inspectorBody ?? (
-                  <div className="grid gap-4 text-sm">
+                  <motion.div
+                    key="unselected"
+                    className="grid gap-4 text-sm"
+                    initial={reduced ? false : { opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={reduced ? { opacity: 0, transition: { duration: 0 } } : { opacity: 0, transition: { duration: 0.12 } }}
+                    transition={SPRING}
+                  >
                     <div className="grid gap-0.5">
                       <h2 className="text-base font-semibold">Site inspector</h2>
                       <p className="text-[13px] text-muted-foreground">Select a site for stock, deficits and outlook.</p>
@@ -478,10 +546,11 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
                               key={`${row.site.id}-${product.id}-${dayIndex}`}
                               initial={reduced ? false : { opacity: 0, y: 6 }}
                               animate={{ opacity: 1, y: 0 }}
-                              transition={{ duration: 0.2, delay: index * 0.05 }}
+                              transition={{ ...SPRING, delay: index * 0.05 }}
                             >
-                              <button
+                              <motion.button
                                 type="button"
+                                {...PRESS}
                                 onClick={(event) => selectFromList(row.site.id, event.currentTarget)}
                                 className="flex min-h-10 w-full items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-1 text-left leading-tight outline-none transition-[border-color,background-color,box-shadow] duration-150 hover:border-foreground/40 hover:bg-pp-surface-muted/60 focus-visible:ring-2 focus-visible:ring-ring"
                               >
@@ -490,7 +559,7 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
                                   <span className="block text-[13px] font-semibold">{row.site.shortName}<span className="sr-only"> · </span></span>
                                   <span className="block text-xs">{formatDay(snapshot.dates[next.dayIndex])} · {formatUnits(next.unmetUnits, product)} unmet</span>
                                 </span>
-                              </button>
+                              </motion.button>
                             </motion.li>
                           ))}
                         </ul>
@@ -505,10 +574,12 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
                         </dd>
                       ))}
                     </dl>
-                  </div>
+                  </motion.div>
                 )}
+                </AnimatePresence>
                 {inspectorBelow && <ScrollCue className="-mx-4" />}
               </aside>
+              </div>
             )}
           </section>
 
@@ -531,6 +602,7 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
             </Sheet>
           )}
 
+          {isDesktop && <PanelGripHint />}
           <footer className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <span className="font-medium text-foreground">{snapshot?.provenance.label ?? STATIC_FIXTURE_LABEL}</span>
             {snapshot && live && (
@@ -567,7 +639,7 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
 
 type Row = { site: OverviewSnapshot["sites"][number]; projection: OverviewSnapshot["projections"][string][string] | undefined; status: MarkerStatus; detail: string; method?: ForecastMethod };
 
-function PopoverSummary({ row, product, snapshot, dayIndex, onInspect }: { row: Row; product: OverviewSnapshot["products"][number]; snapshot: OverviewSnapshot; dayIndex: number; onInspect: () => void }) {
+function PopoverSummary({ row, product, snapshot, dayIndex, onInspect, grip }: { row: Row; product: OverviewSnapshot["products"][number]; snapshot: OverviewSnapshot; dayIndex: number; onInspect: () => void; grip?: React.ReactNode }) {
   const day = formatDay(snapshot.dates[dayIndex]);
   let deficitLine: string;
   if (row.status === "hub") deficitLine = "Hub has no demand forecast.";
@@ -586,9 +658,10 @@ function PopoverSummary({ row, product, snapshot, dayIndex, onInspect }: { row: 
           <p className="text-sm leading-snug font-semibold">{row.site.name}</p>
           <p className="text-xs text-muted-foreground first-letter:uppercase">{roleLabel(row.site)}</p>
         </div>
-        <Button onClick={onInspect} size="sm" className="shrink-0 max-md:h-11">
-          Inspect site
+        <Button asChild size="sm" className="shrink-0 max-md:h-11">
+          <motion.button type="button" onClick={onInspect} {...PRESS}>Inspect site</motion.button>
         </Button>
+        {grip && <span className="-mr-1.5 inline-flex self-center">{grip}</span>}
       </div>
       <p className="flex items-center gap-1.5 text-[13px]">
         <StatusGlyph status={row.status} />

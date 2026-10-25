@@ -16,7 +16,8 @@ export type AtlasLayoutEntry = { siteId?: string; siteName?: string; x: number; 
 
 export const ATLAS_LAYOUT: readonly AtlasLayoutEntry[] = [];
 
-export type ResolvedPosition = { x: number; y: number; source: "configured" | "default" };
+/** `saved`: moved by this viewer and stored per browser (layout-store.ts); may sit slightly outside 0–1. */
+export type ResolvedPosition = { x: number; y: number; source: "configured" | "default" | "saved" };
 
 const RING_RADIUS_X = 0.5;
 const RING_RADIUS_Y = 0.5;
@@ -59,4 +60,16 @@ export function resolveAtlasLayout(sites: readonly Site[], entries: readonly Atl
     if (isUnit(entry.x) && isUnit(entry.y)) positions.set(site.id, { x: entry.x, y: entry.y, source: "configured" });
   }
   return positions;
+}
+
+/**
+ * Overlays this browser's saved positions (dragged nodes, layout-store.ts) on the resolved layout.
+ * Only sites in the snapshot are affected; saved entries for unknown ids are ignored, never added.
+ */
+export function withSavedPositions(positions: Map<string, ResolvedPosition>, saved: Readonly<Record<string, { x: number; y: number }>>) {
+  const next = new Map(positions);
+  for (const siteId of positions.keys()) {
+    if (Object.hasOwn(saved, siteId)) next.set(siteId, { x: saved[siteId].x, y: saved[siteId].y, source: "saved" });
+  }
+  return next;
 }

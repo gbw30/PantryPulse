@@ -103,7 +103,13 @@ export function DemandOutlookChart({ projection, product, dates, sourceNote }: P
                 isAnimationActive={animateLines}
                 animationDuration={600}
               />
-              <Tooltip formatter={(value) => `${Number(value).toLocaleString("en-US")} ${product.unitPlural}`} contentStyle={{ borderRadius: 8, borderColor: "var(--pp-border)", fontSize: 12 }} />
+              {/* Token colours so the tooltip follows the light/dark theme (Recharts defaults to white). */}
+              <Tooltip
+                formatter={(value) => `${Number(value).toLocaleString("en-US")} ${product.unitPlural}`}
+                contentStyle={{ borderRadius: 8, borderColor: "var(--pp-border)", backgroundColor: "var(--card)", color: "var(--card-foreground)", fontSize: 12 }}
+                labelStyle={{ color: "var(--card-foreground)" }}
+                cursor={{ stroke: "var(--pp-border)" }}
+              />
             </LineChart>
           </ResponsiveContainer>
         </div>
