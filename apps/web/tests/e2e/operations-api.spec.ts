@@ -15,11 +15,12 @@ async function api(page: Page, path: string, body?: unknown, key = randomUUID())
 test("operational history, audited stock and canonical plan review through the browser proxy", async ({ page }) => {
   test.skip(process.env.PP_RUN_CONNECTED !== "1", "Requires isolated seeded database and Linux worker");
   test.setTimeout(180_000);
-  await page.goto("/optimization");
+  await page.goto("/overview");
+  await page.getByRole("button", { name: "Presenter sign in" }).click();
   await page.getByLabel("Username", { exact: true }).fill(process.env.PP_E2E_USERNAME ?? "presenter");
   await page.getByLabel("Password", { exact: true }).fill(process.env.PP_E2E_PASSWORD ?? "pantry-local-demo");
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "1 · Select a forecast" })).toBeVisible();
+  await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Sign in", exact: true }).click()]);
+  await expect(page.getByText("Presenter session · simulated demo")).toBeVisible();
   const catalog = await api(page, "operational-catalog");
   expect(catalog.status).toBe(200);
   const site = catalog.body.sites.find((s: { role: string }) => s.role === "HUB");
