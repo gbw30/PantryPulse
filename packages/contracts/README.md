@@ -16,3 +16,9 @@ node node_modules/openapi-typescript/bin/cli.js packages/contracts/openapi.json 
 Exporting never connects to a database, loads credentials or runs inference. Never
 edit generated output manually. Regenerate and diff it after public schema changes.
 
+
+VP API convergence retains the connected planning contracts and adds exact-string
+operational quantities, audited writes/imports, dashboard/shortage reads, canonical
+single-method plans and simulation reviews. Original VP raw-package/policy and
+competing scenario/comparison shapes are superseded. Legacy reads explicitly use
+the VP_LEGACY family and cannot submit work. See docs/pantrypulse/VP-API-INTEGRATION.md.

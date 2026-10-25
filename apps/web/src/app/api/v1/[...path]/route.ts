@@ -13,10 +13,19 @@ async function proxy(request: Request) {
   const path = incoming.pathname.slice("/api/v1/".length);
   const uuid = "[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}";
   const allowed = request.method === "GET"
-    ? ["health", "forecast-catalog", "planning-catalog"].includes(path) ||
-      new RegExp(`^(jobs|forecasts|scenarios|comparisons|planning-assumptions)/${uuid}$`).test(path)
-    : request.method === "POST" && (["forecasts", "scenarios", "comparisons", "planning-assumptions", "presenter/login", "presenter/logout"].includes(path) ||
-      new RegExp(`^jobs/${uuid}/(retry|cancel)$`).test(path));
+    ? ["health", "forecast-catalog", "planning-catalog", "operational-catalog", "supplies", "scenarios", "dashboard/summary", "allocation-methodology"].includes(path) ||
+      new RegExp(`^(jobs|forecasts|scenarios|comparisons|planning-assumptions|receipts|supplies|plans|shortages)/${uuid}$`).test(path) ||
+      new RegExp(`^inventory/sites/${uuid}/products/${uuid}$`).test(path) ||
+      new RegExp(`^allocation-jobs/${uuid}/results$`).test(path) ||
+      new RegExp(`^legacy-planning/(scenarios|plans|comparisons)/${uuid}$`).test(path)
+    : request.method === "POST" && (["forecasts", "scenarios", "comparisons", "planning-assumptions", "presenter/login", "presenter/logout", "receipts", "supplies", "imports/demand", "imports/demand/csv", "imports/donation-coverage"].includes(path) ||
+      new RegExp(`^jobs/${uuid}/(retry|cancel)$`).test(path) ||
+      new RegExp(`^receipts/${uuid}/(revisions|post|reconcile)$`).test(path) ||
+      new RegExp(`^inventory/lots/${uuid}/declarations$`).test(path) ||
+      new RegExp(`^supplies/${uuid}/confirmation$`).test(path) ||
+      new RegExp(`^scenarios/${uuid}/(plans|compare-methods)$`).test(path) ||
+      new RegExp(`^plans/${uuid}/review$`).test(path) ||
+      new RegExp(`^inventory/sites/${uuid}/products/${uuid}/adjustments$`).test(path));
   const paging = path === "planning-catalog" && request.method === "GET" &&
     [...incoming.searchParams.keys()].every((key) => ["before", "before_id"].includes(key)) &&
     incoming.searchParams.getAll("before").length <= 1 &&
@@ -50,7 +59,11 @@ async function proxy(request: Request) {
   } catch {
     return failure("BACKEND_NOT_CONFIGURED", 503);
   }
-  const headers = new Headers({ "Content-Type": "application/json",
+  const contentType = path === "imports/demand/csv" ? request.headers.get("content-type") ?? "" : "application/json";
+  if (path === "imports/demand/csv" && !/^multipart\/form-data;\s*boundary=/i.test(contentType)) {
+    return failure("INVALID_UPLOAD_CONTENT_TYPE", 422);
+  }
+  const headers = new Headers({ "Content-Type": contentType,
     "X-Forwarded-Origin": origin ?? browserOrigin, "X-PP-Proxy-Token": proxySecret });
   for (const name of ["x-csrf-token", "idempotency-key"]) {
     const value = request.headers.get(name);

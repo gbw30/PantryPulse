@@ -73,7 +73,7 @@ test("a real failed partner preserves and displays the verified survivor", async
   const docker = process.env.PP_E2E_DOCKER;
   const command = docker ?? path.join(root, "apps/api/.venv/bin/python");
   const args = docker
-    ? ["exec", "pantrypulse-or-worker", "/app/.venv/bin/python", "/workspace/scripts/quality/fail-demo-partner.py", jobId]
+    ? ["exec", process.env.PP_E2E_WORKER_CONTAINER ?? "pantrypulse-or-worker", "/app/.venv/bin/python", "/workspace/scripts/quality/fail-demo-partner.py", jobId]
     : [path.join(root, "scripts/quality/fail-demo-partner.py"), jobId];
   await promisify(execFile)(command, args, { timeout: 70_000 });
   await expect(page.getByRole("heading", { name: "Comparison results · PARTIAL", exact: true })).toBeVisible({ timeout: 30_000 });
