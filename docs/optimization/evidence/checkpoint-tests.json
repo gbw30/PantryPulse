@@ -1,0 +1,74 @@
+{
+  "schema_version": "or-checkpoint-evidence-v1",
+  "date": "2026-10-24 America/New_York",
+  "base_commit": "f3946c726e53fa546be1400d80ab717fcb2c3468",
+  "source_state": "UNCOMMITTED_WORKING_TREE",
+  "input": {
+    "fixture": "six-beneficiary-v1",
+    "source_kind": "SIMULATED",
+    "operational_hash": "8054b987bcfe1a7f1f5ca62e85bfb7c123179afa329fb5f49a28097304fcfb4e",
+    "policy_hash": "e1a5a175fa17d7a7ae81815538e8a6e06048040638458d0a66f00a20d1f414eb",
+    "decision_ids": [
+      "OR-DEC-001",
+      "OR-DEC-002",
+      "OR-DEC-003",
+      "OR-DEC-004",
+      "OR-DEC-005",
+      "OR-DEC-006",
+      "OR-DEC-007",
+      "OR-DEC-008",
+      "OR-DEC-009",
+      "OR-DEC-010",
+      "OR-DEC-011",
+      "OR-DEC-012",
+      "OR-DEC-013",
+      "OR-DEC-014",
+      "OR-DEC-015",
+      "OR-DEC-016",
+      "OR-DEC-017",
+      "OR-DEC-018",
+      "OR-DEC-019",
+      "OR-DEC-020"
+    ]
+  },
+  "checks": [
+    {
+      "command": "npm run check",
+      "postgresql": "dedicated local pantrypulse_or_test; isolated schemas",
+      "status": "PASS",
+      "tests_passed": 870,
+      "note": "Collected before three new numerical regression tests were added; updated optimizer was checked separately."
+    },
+    {
+      "command": "cd apps/api && .venv/bin/python -m pytest tests/optimization -q",
+      "status": "PASS",
+      "tests_passed": 59,
+      "note": "After actual native-domain audit correction; includes three new regression cases."
+    },
+    {
+      "command": "npm run build",
+      "status": "PASS"
+    },
+    {
+      "command": "npm run contracts:check",
+      "status": "PASS"
+    },
+    {
+      "command": "npm run test:config",
+      "status": "PASS",
+      "tests_passed": 17
+    },
+    {
+      "command": "npm run or:decisions",
+      "status": "PASS",
+      "decisions_checked": 20
+    }
+  ],
+  "remaining": [
+    "Rendered browser/proxy and five rehearsals",
+    "Persisted benchmark and complete CLI matrix",
+    "Full independent acceptance audit",
+    "Committed LIVE forecast/inventory/operational read adapters"
+  ],
+  "user_requested_stop": "Commit milestone; do not continue implementation until user resumes."
+}

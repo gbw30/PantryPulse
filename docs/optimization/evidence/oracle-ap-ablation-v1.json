@@ -1,0 +1,73 @@
+{
+  "decision_ids": [
+    "OR-DEC-001",
+    "OR-DEC-004",
+    "OR-DEC-006",
+    "OR-DEC-007",
+    "OR-DEC-008",
+    "OR-DEC-017",
+    "OR-DEC-018",
+    "OR-DEC-019"
+  ],
+  "evidence_kind": "INDEPENDENT_ENUMERATION_NOT_NATIVE_SOLVE",
+  "fingerprint": "93bdaf0e11acc614cf5bd90e3cf4b76e9e203388d735de5e486e45d327677ccc",
+  "fixture": "ap-ablation-v1",
+  "physical_scope": "one hub, two beneficiaries, one positive demand day, expiry day 8",
+  "policy_version": "or-policy-v1",
+  "results": [
+    {
+      "configuration": "full",
+      "method": "EGP_PI_INSPIRED",
+      "objective": {
+        "denominator": 8,
+        "numerator": 19
+      },
+      "optima": [
+        [
+          [
+            1,
+            0
+          ]
+        ]
+      ],
+      "optimum_count": 1,
+      "purpose": "PRIMARY"
+    },
+    {
+      "configuration": "AP_disabled",
+      "method": "EGP_PI_INSPIRED",
+      "objective": {
+        "denominator": 1,
+        "numerator": 2
+      },
+      "optima": [
+        [
+          [
+            0,
+            1
+          ]
+        ]
+      ],
+      "optimum_count": 1,
+      "purpose": "ABLATION"
+    }
+  ],
+  "schema_version": "or-oracle-v1",
+  "source_kind": "SIMULATED",
+  "supply": [
+    1
+  ],
+  "targets": [
+    [
+      2,
+      3
+    ]
+  ],
+  "vectors_per_product": 3,
+  "weights": [
+    [
+      "3/2",
+      "3/2"
+    ]
+  ]
+}

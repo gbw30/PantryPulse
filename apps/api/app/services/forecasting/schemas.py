@@ -110,7 +110,8 @@ class ReceiptRevision(Contract):
     local_day: date
     timezone: str
     source_classification: Classification
-    lines: tuple[ReceiptLine, ...] = Field(min_length=1)
+    lines: tuple[ReceiptLine, ...]
+    is_void: bool = False
     receipt_kind: Literal["DONATION"] = "DONATION"
 
     @field_validator("received_at")
@@ -120,6 +121,8 @@ class ReceiptRevision(Contract):
 
     @model_validator(mode="after")
     def valid_event(self) -> Self:
+        if self.is_void != (len(self.lines) == 0):
+            raise ValueError("A void receipt has no lines; a received event requires lines")
         try:
             zone = ZoneInfo(self.timezone)
         except (ZoneInfoNotFoundError, ValueError) as exc:

@@ -1,0 +1,93 @@
+{
+  "base_commit": "e49e360d23e46b43542b0a2e9b5f6277d5f840d5",
+  "source_state": "WORKING_TREE_AFTER_REVIEW",
+  "source_kind": "SIMULATED",
+  "fixture_revision": "sim-v2-stock-asof",
+  "operational_hash": "60e31e1936082aa707a60d384d201bdc3c79b3f31958e26aa2cfa25204e87428",
+  "policy_hash": "e1a5a175fa17d7a7ae81815538e8a6e06048040638458d0a66f00a20d1f414eb",
+  "settings": {
+    "search_milliseconds": 15000,
+    "seed": 0,
+    "version": "or-solver-settings-v1",
+    "workers": 1
+  },
+  "runs": 5,
+  "methods_per_run": 2,
+  "job_states": [
+    "SUCCEEDED",
+    "SUCCEEDED",
+    "SUCCEEDED",
+    "SUCCEEDED",
+    "SUCCEEDED"
+  ],
+  "median_pair_wall_seconds": 3.130231561997789,
+  "maximum_pair_wall_seconds": 3.3925407380011166,
+  "median_worker_function_seconds": 0.10229211500154634,
+  "maximum_worker_function_seconds": 0.1461271090010996,
+  "worker_function_timing_note": "Starts inside solve_one; excludes interpreter import/startup. Whole paired job wall time includes durable admission/polling/process startup.",
+  "saved_http_reads": {
+    "runs": 5,
+    "median_seconds": 0.057760907999181654,
+    "maximum_seconds": 0.11868162300015683
+  },
+  "resources": {
+    "scope": "whole supervisor plus method trees in shared cgroup slice",
+    "kernel_files": {
+      "cpu.max": "600000 100000",
+      "memory.max": "8589934592",
+      "memory.swap.max": "0",
+      "memory.peak": "182984704"
+    },
+    "memory_peak_bytes": 182984704,
+    "http_saved_read_seconds": [
+      0.11868162300015683,
+      0.05898256900036358,
+      0.05734823599777883,
+      0.057760907999181654,
+      0.05724373199700494
+    ],
+    "median_http_saved_read_seconds": 0.057760907999181654,
+    "max_http_saved_read_seconds": 0.11868162300015683
+  },
+  "platform": "Linux-7.0.0-38-generic-x86_64-with-glibc2.39",
+  "logical_cpu_count": 8,
+  "limits": {
+    "capabilities": {
+      "handler_contracts": [
+        "or-allocation-v1",
+        "or-comparison-v1"
+      ],
+      "process_containment": true
+    },
+    "limits": {
+      "allocation_total_s": 25,
+      "comparison_total_s": 60,
+      "forecast_primary_cutoff_s": 270,
+      "forecast_total_s": 300,
+      "heartbeat_interval_s": 5,
+      "heartbeat_stale_s": 15,
+      "kill_margin_s": 0.25,
+      "max_queued": 2,
+      "method_min_s": 1,
+      "method_search_s": 15,
+      "method_wall_s": 25,
+      "publication_reserve_s": 2,
+      "queue_wait_s": 900,
+      "stop_grace_s": 2,
+      "worker_cpu": 6,
+      "worker_memory_gib": 8
+    },
+    "resource_enforcement": {
+      "aggregate_memory_enforcement": "systemd cgroup v2 MemoryMax with zero swap; parent RSS backstop",
+      "aggregate_memory_hard_kernel_ceiling": true,
+      "aggregate_memory_rss_threshold_bytes": 8589934592,
+      "cpu_affinity_count": 6,
+      "cpu_quota_percent": 600,
+      "descendant_scope": "registered handlers must remain in the owned process group",
+      "per_process_address_space_bytes": 8589934592,
+      "whole_worker_scope": true
+    },
+    "version": 1
+  },
+  "scope_note": "Local Linux PostgreSQL supervised OR only. Does not qualify Chronos, hosted deployments, source integration or universal latency."
+}

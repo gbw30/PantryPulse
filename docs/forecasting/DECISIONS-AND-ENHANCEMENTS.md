@@ -1,5 +1,8 @@
 # Open decisions and work beyond the current core
 
+**Historical October 24 decision/planning notes.** Current implementation and accepted runtime changes are indexed in [CURRENT-STATUS.md](../pantrypulse/CURRENT-STATUS.md) and SPEC-V5. Old implementation-absence statements do not reopen completed API/job/OR/proxy/CI work; genuinely unresolved policy and optional improvements remain subordinate to the current specification.
+
+
 > **Current authority:** [Project specification V5](../pantrypulse/SPEC-V5.md). V5 supersedes conflicting V4-era instructions. BD-41 requires explicit `HUB_ONLY` or `HUB_AND_PANTRY` with no default in the full operational scenario; the forecast-only handoff does not select topology. Experimental policies and live integration gates remain open.
 
 Updated: October 24, 2026 (America/New_York).

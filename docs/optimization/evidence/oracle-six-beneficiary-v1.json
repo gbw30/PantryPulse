@@ -1,0 +1,133 @@
+{
+  "cost_reference": 12,
+  "decision_ids": [
+    "OR-DEC-001",
+    "OR-DEC-004",
+    "OR-DEC-006",
+    "OR-DEC-007",
+    "OR-DEC-008",
+    "OR-DEC-017",
+    "OR-DEC-018",
+    "OR-DEC-019"
+  ],
+  "evidence_kind": "INDEPENDENT_ENUMERATION_NOT_NATIVE_SOLVE",
+  "feasible_pairs": 189225,
+  "fingerprint": "68d4cd6059deb423a6041682d9985c3cf3aa8ca2ca37942a24c1095c0bd7eb24",
+  "fixture": "six-beneficiary-v1",
+  "global_handling": 18,
+  "handling": [
+    2,
+    1
+  ],
+  "physical_scope": "one hub, six beneficiaries, two products, seven dates; H=3; ETA=0; expiry day 8",
+  "policy_version": "or-policy-v1",
+  "results": [
+    {
+      "configuration": "full",
+      "method": "CLASSICAL_GP",
+      "objective": {
+        "denominator": 50,
+        "numerator": 163
+      },
+      "optima": [
+        [
+          [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ]
+        ]
+      ],
+      "optimum_count": 1,
+      "purpose": "PRIMARY"
+    },
+    {
+      "configuration": "full",
+      "method": "EGP_PI_INSPIRED",
+      "objective": {
+        "denominator": 300,
+        "numerator": 1393
+      },
+      "optima": [
+        [
+          [
+            2,
+            2,
+            1,
+            1,
+            0,
+            0
+          ],
+          [
+            2,
+            2,
+            1,
+            1,
+            0,
+            0
+          ]
+        ]
+      ],
+      "optimum_count": 1,
+      "purpose": "PRIMARY"
+    }
+  ],
+  "schema_version": "or-oracle-v1",
+  "source_kind": "SIMULATED",
+  "supply": [
+    6,
+    6
+  ],
+  "targets": [
+    [
+      2,
+      2,
+      2,
+      2,
+      2,
+      2
+    ],
+    [
+      2,
+      2,
+      2,
+      2,
+      2,
+      2
+    ]
+  ],
+  "vectors_per_product": 435,
+  "waste_reference": [
+    6,
+    6
+  ],
+  "weights": [
+    [
+      "2",
+      "9/5",
+      "8/5",
+      "7/5",
+      "6/5",
+      "1"
+    ],
+    [
+      "2",
+      "9/5",
+      "8/5",
+      "7/5",
+      "6/5",
+      "1"
+    ]
+  ]
+}

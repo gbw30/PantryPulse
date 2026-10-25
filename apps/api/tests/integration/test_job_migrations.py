@@ -39,7 +39,7 @@ def _tables(conn):
 
 def test_upgrade_downgrade_upgrade_creates_only_job_tables(fresh):
     with fresh.begin() as conn:
-        command.upgrade(alembic_config(conn), "head")
+        command.upgrade(alembic_config(conn), "0001_jobs_foundation")
         assert _tables(conn) == JOB_TABLES | {"alembic_version"}
         seeded = conn.execute(sa.text("SELECT lane_id, state, generation FROM compute_control"))
         assert seeded.all() == [("default", "OFFLINE", 0)]
@@ -47,7 +47,7 @@ def test_upgrade_downgrade_upgrade_creates_only_job_tables(fresh):
         command.downgrade(alembic_config(conn), "base")
         assert _tables(conn) == {"alembic_version"}
     with fresh.begin() as conn:
-        command.upgrade(alembic_config(conn), "head")
+        command.upgrade(alembic_config(conn), "0001_jobs_foundation")
         assert JOB_TABLES <= _tables(conn)
 
 

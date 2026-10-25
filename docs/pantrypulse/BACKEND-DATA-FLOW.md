@@ -21,7 +21,7 @@ Most inputs are rows in PostgreSQL tables, submitted through JSON requests or CS
 | Organizations, sites, and products | Who operates the network, where supplies are kept, and what is distributed | Relational records with UUID identifiers and foreign keys connecting them |
 | Inventory lots | A particular batch of a product at a location | Integer stock and reservation counts, product/site IDs, expiration date, eligibility status, receipt timestamp |
 | Demand observations | How many units people requested and received each day | Daily time-series rows keyed by site, product, and date; requested/fulfilled/unmet counts |
-| Donation observations | How much donated supply was historically offered or received | A separate daily time series with donation quantities and source information |
+| Donation observations | Actual received donations | Individual receipts aggregated by receiving site/product/site-local day; offered/pledged quantities remain distinct |
 | Expected supplies | Shipments expected to arrive in the future | Dated quantities with source and status enums such as `CONFIRMED` or `CANCELLED` |
 | Operational constraints | What movements are possible | Capacities, reserves, route availability, arrival times, and compatible product units |
 | Beneficiary attributes and policies | How the allocation should prioritize different needs | Numeric attributes, normalized scores, weights, thresholds, and versioned policy settings |
@@ -60,7 +60,7 @@ The backend derives several quantities from that record:
 | Eligible stock | Up to 80, provided the lot meets eligibility and date rules |
 | Transferable stock | Potentially less than 80 after protecting local demand and minimum reserves |
 
-For example, if the hub needs 50 meals for local requests and must retain 10, its transfer budget could be:
+For example, if the hub needs 50 meals for local requests and must retain 10, a simplified arithmetic bound (not proof of dated surplus) could be:
 
 ```text
 100 on hand − 20 reserved − 50 local demand − 10 reserve = 20 meals
@@ -192,6 +192,7 @@ For example:
 {
   "name": "Demand surge",
   "forecast_run_id": "FORECAST_1",
+  "transfer_mode": "HUB_AND_PANTRY",
   "overrides": {
     "demand_multiplier": 1.25
   }
@@ -207,7 +208,7 @@ ceil(53.25) = 54 units for integer planning
 
 The historical observations and saved baseline forecast remain intact. The scenario stores the modification.
 
-For a reproducible plan, the backend also retains the relevant inventory version, lots, supplies, dates, constraints, attributes, and policy version. The design calls for immutable snapshots or immutable version references, plus hashes identifying the input contents.
+For a reproducible plan, the backend also retains the relevant inventory version, lots, supplies, dates, constraints, attributes, and policy version. BD-09/10 require a fully frozen scenario with validated versioned JSONB package, content hash and provenance/source references at creation.
 
 The output is a scenario ID and a retrievable configuration that can feed shortage projection and optimization.
 
@@ -281,7 +282,7 @@ The saved output includes transfers, per-site fulfillment and unmet demand, obje
 
 ## 7. A concrete example shows the final output
 
-Suppose we examine a two-day window with one product, meals:
+Suppose we examine a two-day window with one product, meals, under `HUB_AND_PANTRY`. Under `HUB_ONLY`, the pantry-to-pantry recommendation below is prohibited.
 
 | Input | Pantry A | Pantry B |
 |---|---:|---:|
@@ -314,6 +315,7 @@ An illustrative API result could be:
   "plan_id": "PLAN_1",
   "data_snapshot_id": "SNAPSHOT_1",
   "method": "CLASSICAL_GP",
+  "transfer_mode": "HUB_AND_PANTRY",
   "solver_status": "FEASIBLE",
   "plan_status": "DRAFT",
   "transfers": [
@@ -336,19 +338,21 @@ Under the proposed P1 lifecycle, approval would reserve 20 at B. Completion woul
 
 ## 8. The API exposes these stages as explicit operations
 
-A frontend would typically follow this sequence:
+These route shapes follow existing `/api/v1` conventions but remain proposals under OPEN-29/30, not implemented APIs. A frontend would typically follow this sequence:
 
 | Action | Request | Output |
 |---|---|---|
 | Load current conditions | `GET /api/v1/dashboard/summary` | Saved summaries and provenance |
-| Start prediction | `POST /api/v1/forecast-runs` | `202 Accepted`, run ID, queued status |
+| Start prediction | `POST /api/v1/forecast-runs` | `202 Accepted`, job reference, persisted status |
 | Check prediction | `GET /api/v1/forecast-runs/{id}` | Running, succeeded, or failed status and metadata |
 | Retrieve predictions | `GET /api/v1/forecast-runs/{id}/points` | Dated forecast values |
-| Create a what-if case | `POST /api/v1/scenarios` | Scenario ID and validated assumptions |
+| Create a what-if case | `POST /api/v1/scenarios` | Scenario ID, required explicit frozen `transfer_mode`, frozen inputs/assumptions |
 | Calculate shortages | `GET /api/v1/shortages` | Daily deficits and first shortage date |
-| Compare decisions | `POST /api/v1/scenarios/{id}/compare-methods` | Paired plans, changed assignments, and metric differences |
+| Start allocation | `POST /api/v1/scenarios/{id}/plans` | `202 Accepted`, job reference; selected method uses frozen mode/inputs |
+| Check job (new route proposal) | `GET /api/v1/jobs/{id}` | Persisted status and committed-result reference; exact states remain open |
+| Compare decisions | `POST /api/v1/scenarios/{id}/compare-methods` | `202 Accepted`, job reference; separate reads expose committed paired plans and metric differences |
 | Inspect a recommendation | `GET /api/v1/plans/{id}` | Saved decisions, assumptions, status, and explanations |
 
-The API returns `422` for invalid inputs and `409` when inventory or policy versions conflict with the request. Forecast jobs expose their progress; plan results expose whether the solver proved optimality, found a feasible solution, or failed to produce one.
+Omitted or invalid `transfer_mode` is rejected with `422`; no mode is inferred from method or inventory. Results and methodology carry mode separately from method. The API returns `422` for invalid inputs and `409` when inventory or policy versions conflict with the request. Forecast jobs expose their progress; plan results expose whether the solver proved optimality, found a feasible solution, or failed to produce one.
 
 Supplier replenishment follows a related path: shortages, offers, lead times, minimum quantities, and spending policies produce a **draft order proposal** with quantity, estimated price, and arrival assumptions. In the proposed MVP, that remains a simulation and does not contact a vendor. [Source: API contracts, section 8](SPEC-V4.snapshot.txt).

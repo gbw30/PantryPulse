@@ -1,52 +1,40 @@
-# PantryPulse deployment and recovery
+# Deployment and recovery
 
-Provider-by-provider account/configuration instructions are in [EXTERNAL-SERVICES.md](../../EXTERNAL-SERVICES.md). GitHub and Neon support the demo, with Fly.io and Vercel as hosting options. The guide includes the current scaffold's fixed-port, CORS/settings and migration limitations; this runbook describes the later full release workflow.
+Updated October 25, 2026. [Current status](CURRENT-STATUS.md), [SPEC-V5](SPEC-V5.md), [connected integration](../optimization/CONNECTED-INTEGRATION.md) and [external services](../../EXTERNAL-SERVICES.md) define the implemented scope and target-specific procedures. Source includes baseline forecasts, authenticated scenarios/comparisons, verified methods and `/optimization`; it is no longer a process-only scaffold.
 
-An isolated [frontend-only Vercel preview](../setup/VERCEL.md) now serves simulated `/design-lab` content from `codex/vercel-prototype-preview`. It has no API, database, proxy, model or presenter controls. Its successful build and browser smoke do not satisfy this runbook's integrated Preview or Judge demo gates.
+## Separate source, runtime and deployment evidence
 
-For the demo-only presentation, the preferred compute is now the presenter's laptop; follow [LOCAL-DEMO.md](../setup/LOCAL-DEMO.md) and the separate compose.demo.yaml configuration. Fly.io below is the optional hosted alternative. The scaffold health/runtime checks do not establish readiness of the unimplemented domain workflow.
+Local backend/model preparation and the merge of PR #77 are authorized. No new paid service or public deployment follows automatically. The earlier branch-scoped [Vercel `/design-lab` preview](../setup/VERCEL.md) is a separate synthetic deployment. A source merge does not replace a running image, apply migrations, update that preview or qualify an integrated model provider.
 
-This runbook prepares a deployable candidate. It does not create accounts, buy services, expose a real operational database or deploy without the user's target authorization. Provider menus and limits change; confirm current settings in the named account at setup.
+| Environment | Required boundary |
+|---|---|
+| Local development/review | Dedicated database/schema and ports; disposable tests never reset a running demo |
+| Connected synthetic demo | NEW `ppor_demo_*` schema, explicit seed, presenter controls, matching proxy settings, version-2 worker |
+| Hosted release | Exact authorized app/project/region, API/worker/database pairing, secure cookies/origins, manifest and rollback |
 
-## Environment matrix
+## Controlled release sequence
 
-| Environment | Frontend/API | Database | Forecast mode | Reset |
-|---|---|---|---|---|
-| Local dev | 127.0.0.1:3000 / :8000 | dedicated dev DB | baseline first, optional Chronos | demo org only |
-| Worker | unique ports per lane | worker DB/schema/Neon branch | fixtures/baseline | worker demo only |
-| CI | ephemeral servers | PostgreSQL service | baseline/provider doubles; no model downloads | isolated test seed |
-| UI prototype | Vercel `/design-lab` only; no API | none | simulated values | branch deployment |
-| Preview | Vercel preview + separate API target or explicitly shared demo API | isolated preview/demo DB | cached verified forecast + fallback | presenter protected |
-| Judge demo | frozen web/API release pair | dedicated demo DB | prewarmed verified provider/cache, fallback available | presenter protected |
+1. Freeze the exact source/commit and validate the combined tree. Active `.github/workflows/pantrypulse-ci.yml` runs Linux/PostgreSQL, contracts, web build and the real connected browser path and rejects skipped evidence. An ignored provider build or process health response is not a passed product gate.
+2. Select the dedicated database, runtime and direct migration roles, schema, ports and API/web targets. Preserve TLS settings. Review migrations through `ppor_0005` on a fresh isolated target. Never mutate old applied revisions or run migrations from every replica.
+3. Use the deliberate demo loader for a NEW `ppor_demo_*` schema. It creates fictional history/stock/assumptions and no fake forecast/comparison results. It refuses reuse; reset/retention and production data operations are separate contracts.
+4. Configure API/worker `DATABASE_URL` and `PP_DATABASE_SCHEMA`; private presenter username/password hash/organization, `PP_ALLOWED_ORIGINS`, `PP_TRUSTED_PROXY_TOKEN`, and `PP_COOKIE_SECURE`. `APP_ENV`/`DEMO_MODE` alone do not authorize anything. Configure Next.js `PANTRYPULSE_API_ORIGIN` and the same private proxy token. No secret belongs in a browser-exposed variable.
+5. Inspect existing active/queued jobs and preserve running tasks. A version-1 worker cannot advertise the new contract. Plan a controlled drain and replacement after active work finishes; do not clear ownership rows or automatically retry an interrupted attempt. Local supervisor drain is 720 seconds with 725-second container grace.
+6. Start only the chosen API and production supervisor, keeping one active operation/two waiters in the shared PostgreSQL lane. Validate the actual effective resource limits and fresh version-2 advertisement for `forecast.v1`/`or-comparison.v2`. Core CPU/RAM ceilings are six/eight GiB, separate from API/database needs.
+7. Verify the actual browser URL through its proxy, login/CSRF/logout, baseline forecast publication, explicit-mode frozen scenario, real sequential comparison, independent method verification, partial outcomes, replay/idempotency and saved reads after worker loss. Check stale-selection behavior, mobile/keyboard access and simulated provenance.
+8. Record the release manifest and tested rollback pair before declaring that exact environment ready. Source CI and earlier measured runs remain scoped to their own tree and runtime.
 
-A Vercel preview does not automatically create a matching Python API or database. The current UI prototype intentionally has neither. For a future integrated Preview, implement the selected same-origin Next.js proxy and record the actual web/API/database mapping in the release manifest. Do not broaden CORS to bypass the selected architecture.
+## Fly alternative
 
-## Database and backend
+[Fly configuration](../setup/FLY.md) defines separate API/worker Machines, a four-vCPU/eight-GiB worker and persistent model storage. Login, target selection, platform validation and deployment remain pending. Fly's maximum configured shutdown window is 300 seconds, shorter than a possible 690-second comparison: drain/confirm an idle lane BEFORE deployment; never assume SIGTERM can finish the longest job inside that window. Cross-host takeover is not qualified; do not attach a local and a Fly worker to the same queue.
 
-The internal worker foundation from PR #52 includes a jobs-only migration and Linux supervisor, documented in the [worker runbook](../setup/WORKER-QUEUE.md). Its production registry is empty. Public routes/auth, production forecast/allocation handlers, domain persistence and measured resource enforcement remain release gates; the current Vercel preview needs none of these services.
+## Chronos and release claims
 
-1. Provision a dedicated Neon/PostgreSQL demo database or branch on an authorized account. Use the correct driver URL and TLS mode; store secrets only in server configuration. The template uses postgresql+psycopg with SQLAlchemy; raw tooling may need a plain PostgreSQL URL. Keep migration and runtime URL formats intentional.
-2. Apply Alembic migrations as one controlled release step before serving the new API. Test migration on a fresh isolated DB first. Do not run migrations independently from every app worker or frontend preview.
-3. Seed the fixed demo organization and verify non-demo organizations are untouched by reset. A reset endpoint scoped only by a user-provided organization ID is insufficient; enforce server-side demo flag and presenter authorization.
-4. For the chosen laptop demo, run the supplied Dockerfile through compose.demo.yaml, which explicitly loads the private apps/api/.env.demo Neon connection and publishes only 127.0.0.1:8000. Follow LOCAL-DEMO.md for startup and verification; no Fly service is required. If switching later to Fly.io, use its separate optional guide and match internal_port to 8000. Confirm uv.lock and the installed Python/runtime pair work. The current /api/v1/health is process liveness only; future readiness should check DB connectivity/migration compatibility without forcing a model download.
-5. Configure DATABASE_URL, APP_ENV, DEMO_MODE, CORS_ALLOWED_ORIGINS, FORECAST_MODEL_ID, FORECAST_DEVICE and SOLVER_TIME_LIMIT_SECONDS. FORECAST_PROVIDER and DEMO_FIXED_DATE are proposed app extensions; implement their parsing deliberately. DEMO_ADMIN_TOKEN stays on the server. Never put it in the frontend public environment.
-6. Prefer synchronous bounded baseline inference for six tiny series. If using 202 background jobs, choose a durable or explicitly recoverable execution path: an in-process FastAPI background task can be lost on restart. Persist queued/running/failed status; add restart reconciliation or label the limitation. Do not leave jobs running forever after a host restarts.
-7. Measure Chronos model download/load/inference, memory and startup separately. Load lazily or prewarm an authorized persistent cache. Do not assume GPU availability. If hosting cannot support it within the event, keep verified precomputed outputs with metadata and use the baseline live; disclose that mode.
+Pinned full Chronos-2 CPU inference and synthetic timings have been measured separately. The application forecast policy remains baseline-only; model-handler admission, fallback/deadline/publication integration, representative accuracy and calibration remain separate qualification. A cached checkpoint or fresh heartbeat is not an integrated forecast result. Keep raw quantiles and simulated/donation provenance explicit.
 
-## Frontend and integration
+## Manifest and rollback
 
-The prototype project's root is `apps/web`; it builds with the root lockfile and needs no API variable. For a later connected frontend, implement V5's thin same-origin Next.js proxy and configure its server-side API target for each environment after the open proxy/auth design decisions are settled. Do not put API credentials, database URLs or presenter secrets in browser-visible variables. Confirm framework output settings rather than forcing an unrelated output directory.
+Record web commit/build URL, API image/commit, worker capability/profile, database/schema revision, dataset/input hashes, model/checkpoint if used, solver settings and results, origins and rollback targets without secret values. Preserve the last known-good compatible web/API pair.
 
-Use exact HTTPS URLs for demo origins and API targets. Confirm error envelopes, proxy authorization, background forecast polling and plan POSTs through the deployed frontend. The proxy is not authorization by itself: protect reset and any consequential mutations in FastAPI. The public demo should contain synthetic data, conservative request limits and an admin/presenter boundary around reset/adjustment. If there is no time to build a safe presenter reset flow, disable public reset and use a private server-side seed command on the dedicated demo database; document that tradeoff.
+On failure, classify web/API/configuration/database/worker/model before acting. Roll back application code only to a schema-compatible version; it does not roll back data. Never run an untested destructive downgrade, broad process kill, dirty-worktree reset or volume deletion. Reconcile interruption/cleanup through the [worker runbook](../setup/WORKER-QUEUE.md), and retain manual retry against immutable inputs.
 
-Capture a release manifest containing web commit/build URL, API commit/image/revision/URL, schema revision, demo dataset version/hash, forecast run/provider/checkpoint/cutoff, solver version/settings, allowed origins, feature flags and rollback target. Never put secret values in it. A deployment is verified only after actual URL readback and main workflow smoke test.
-
-## Release and rollback
-
-Run full and E2E gates on one stable combined tree, review screenshots, then deploy the authorized preview. Test cold start, known provider failure, scenario replan and protected reset. Preserve the last working web/API pair. Freeze after five clean reset-to-finish rehearsals.
-
-On failure: classify web/API/config/DB/model, restore the known-good frontend/API pair and compatibility flags, then recheck health and the main path. Prefer forward-compatible additive migrations during the event. Rolling back application code does not roll back data/schema automatically. Never run an untested destructive downgrade against the demo database. Restore/reseed only the dedicated demo dataset after verifying scope.
-
-Keep a local runnable release with dependencies and model/cache already present, a short backup recording and screenshots. Rehearse loss of network. State clearly when demonstrating a recording or cached result. Do not rely on a paid feature, cloud review plugin, dynamic workflow or particular GPU being available on demo day.
-
-Provider references: [Vercel environments](https://vercel.com/docs/deployments/environments), [Fly Dockerfile deployment](https://fly.io/docs/languages-and-frameworks/dockerfile/), [Neon branches](https://neon.com/docs/manage/branches). The environment separation, release manifest and rollback policy above are project recommendations.
+Keep a local rehearsal, dependencies/model cache, screenshots and a labeled backup recording. Verify venue connectivity and any actual hosted URL separately. Supplier planning, broad data-management UI, visitor access, production reset, purchasing/reservation/dispatch and real-world policy efficacy are not established by this bounded simulated release.

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FlaskConical, ListChecks, Map as MapIcon, Settings, Table2, UserRound } from "lucide-react";
+import { FlaskConical, GitCompareArrows, ListChecks, Map as MapIcon, Settings, Table2, UserRound } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -68,6 +68,19 @@ export function AppSidebar({ active }: { active: NavKey }) {
               </SidebarMenu>
             </nav>
             {hasUnbuilt && <p className="mt-3 px-3 text-xs text-muted-foreground">Other views are not built yet.</p>}
+            {/* Utility link to the connected presenter workspace (origin/main); not one of the four blueprint pages. */}
+            <nav aria-label="Workspaces" className="mt-4 border-t border-sidebar-border pt-3">
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild className="h-10 gap-3 px-3 text-[15px]">
+                    <Link href="/optimization">
+                      <GitCompareArrows className="size-[18px]" />
+                      <span>Optimization workspace</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </nav>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

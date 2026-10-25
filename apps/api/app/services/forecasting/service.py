@@ -20,7 +20,11 @@ from .schemas import ForecastInput, ForecastOutput, ForecastSeriesResult, Struct
 
 
 def forecast(
-    inputs: ForecastInput, *, adapter: ForecastAdapter | None = None, run_id: UUID | None = None
+    inputs: ForecastInput,
+    *,
+    adapter: ForecastAdapter | None = None,
+    run_id: UUID | None = None,
+    single_candidate: bool = False,
 ) -> ForecastOutput:
     inputs = validate_input(inputs)
     adapters = {
@@ -39,7 +43,7 @@ def forecast(
         actual = None
         failure = None
         candidates = [primary]
-        if inputs.policy.allow_fallback:
+        if inputs.policy.allow_fallback and not single_candidate:
             if inputs.policy.strategy == "CHRONOS2":
                 candidates.append(SeasonalNaiveAdapter())
             if inputs.policy.strategy != "MOVING_AVERAGE":

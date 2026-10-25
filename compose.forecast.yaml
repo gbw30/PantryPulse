@@ -1,0 +1,23 @@
+# Local baseline forecast API + Linux worker on the explicitly configured Neon schema.
+# Apply reviewed migrations and seed a dedicated demo schema separately before starting.
+name: pantrypulse-forecast
+services:
+  api:
+    build:
+      context: ./apps/api
+    env_file: ./apps/api/.env
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "uv", "run", "--frozen", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  worker:
+    build:
+      context: ./apps/api
+    env_file: ./apps/api/.env
+    command: ["uv", "run", "--frozen", "python", "-m", "app.workers.supervisor", "--registry", "production"]
+    cpus: 6
+    mem_limit: 8g
+    stop_grace_period: 725s

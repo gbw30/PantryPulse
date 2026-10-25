@@ -8,8 +8,8 @@ See [architecture/research gate](../architecture/0001-v4-research-first.md). Thi
 |---|---|---|
 | 0 / foundation | Root apps, npm/uv locks, Windows scripts, health and web shell | Frozen install; lint/typecheck/build; pytest and Playwright smoke; database readiness separately |
 | 1 / hours 0–6 | Read paper 2.1.3/3 and Appendices A/C; policy, group, scale, threshold, FEFO contracts | Equation mapping, independent hand/enumerated oracle, overflow bounds |
-| 2 / hours 6–12 | Six-beneficiary/one-hub/two-category simulated fixture; strict schemas; ledger/FEFO; shared constraints; CLASSICAL_GP | Conservation, expiry/ETA/use, reserves, receiving/handling capacity and baseline objective tests |
-| 3 / hours 12–20 | EGP_PI_INSPIRED with active reified AP/RP, excess shares, W/Z blend and independent metrics | TEST-EGP-01–07, nonzero penalties, paired input hash/feasibility, interpretable distinct seed, AP/RP ablations |
+| 2 / hours 6–12 | Six-beneficiary/one-hub/two-category simulated fixture; required-mode/frozen-scenario schemas; ledger/FEFO; shared constraints for both modes; CLASSICAL_GP | Conservation, expiry/ETA/use, reserves, receiving/handling capacity and baseline objective tests |
+| 3 / hours 12–20 | EGP_PI_INSPIRED with active reified AP/RP, excess shares, W/Z blend and independent metrics | TEST-EGP-01–07, nonzero penalties, paired input hash/mode/feasibility for both modes, interpretable distinct seed, AP/RP ablations |
 | 4 / hours 20–26 | SQLAlchemy/Alembic, snapshots/policies/goals/metrics, deterministic reset, paired API and generated TS | PostgreSQL upgrade/downgrade, paired contracts, stale 409, isolated reset, replay |
 | 5 / hours 26–30 | Requested demand/donation seasonal baseline, CSV import, manual correction audit, seven-day projection | Missingness/leakage/fallback provenance tests; supply counted once; daily unmet arithmetic |
 | 6 / hours 30–40 | Paired comparison, six-beneficiary table, thresholds/attributes/AP-RP chart, donation-cancel replan | Method difference visible within first 30 seconds; accessible controls; stale prior plan |

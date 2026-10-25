@@ -55,6 +55,18 @@ def test_two_events_sum_once_and_whole_receipt_revision_replaces_lines(policy):
     assert not forecast(frozen).ready_for_publication
 
 
+def test_void_receipt_does_not_resurrect_older_revision_and_remains_in_identity(policy):
+    cancelled = receipt("A", 10, revision=2, is_void=True, lines=[])
+    bundle = donation_bundle(receipts=(receipt("A", 10), cancelled))
+    frozen = prepare(bundle, data_cutoff_date=CUTOFF, snapshot_as_of=AS_OF, policy=policy)
+    assert frozen.series[0].observations[-1].value is None
+    assert len(frozen.source_snapshot.receipts) == 1
+    assert frozen.source_snapshot.receipts[0].is_void
+    assert frozen.source_snapshot.receipts[0].source.revision == 2
+    empty = prepare(donation_bundle(), data_cutoff_date=CUTOFF, snapshot_as_of=AS_OF, policy=policy)
+    assert frozen.input_hash != empty.input_hash
+
+
 def test_zero_requires_coverage_and_recorded_receipt_day_uses_site_zone(policy):
     covered = CUTOFF - timedelta(days=1)
     coverage = {

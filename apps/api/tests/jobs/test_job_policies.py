@@ -161,8 +161,8 @@ def test_unavailable_compute_is_distinct_from_full(change):
 
 def test_operation_budgets_are_the_accepted_ceilings():
     assert operation_budget_s(OperationKind.FORECAST, PRODUCTION_PROFILE) == 300
-    assert operation_budget_s(OperationKind.ALLOCATION, PRODUCTION_PROFILE) == 25
-    assert operation_budget_s(OperationKind.COMPARISON, PRODUCTION_PROFILE) == 60
+    assert operation_budget_s(OperationKind.ALLOCATION, PRODUCTION_PROFILE) == 330
+    assert operation_budget_s(OperationKind.COMPARISON, PRODUCTION_PROFILE) == 690
 
 
 def test_forecast_primary_is_signalled_by_268_and_force_stopped_by_270():
@@ -194,21 +194,23 @@ def test_without_fallback_the_primary_may_use_the_whole_budget():
 def test_comparison_methods_are_sequential_capped_and_may_be_not_run():
     first, second = comparison_steps(PRODUCTION_PROFILE)
     assert (first.name, second.name) == ("CLASSICAL_GP", "EGP_PI_INSPIRED")
-    assert first.max_s == second.max_s == 25
-    w1 = plan_step_window(first, elapsed_s=0.5, budget_s=60, profile=PRODUCTION_PROFILE)
-    assert w1.hard_stop_s == 25.5
-    w2 = plan_step_window(second, elapsed_s=26, budget_s=60, profile=PRODUCTION_PROFILE)
-    assert w2.hard_stop_s == 51
-    w_late = plan_step_window(second, elapsed_s=50, budget_s=60, profile=PRODUCTION_PROFILE)
-    assert w_late.hard_stop_s == 58  # parent budget minus publication reserve
-    assert plan_step_window(second, elapsed_s=57.5, budget_s=60, profile=PRODUCTION_PROFILE) is None
+    assert first.max_s == second.max_s == 330
+    w1 = plan_step_window(first, elapsed_s=0.5, budget_s=690, profile=PRODUCTION_PROFILE)
+    assert w1.hard_stop_s == 330.5
+    w2 = plan_step_window(second, elapsed_s=331, budget_s=690, profile=PRODUCTION_PROFILE)
+    assert w2.hard_stop_s == 661
+    w_late = plan_step_window(second, elapsed_s=680, budget_s=690, profile=PRODUCTION_PROFILE)
+    assert w_late.hard_stop_s == 688  # parent budget minus publication reserve
+    assert (
+        plan_step_window(second, elapsed_s=687.5, budget_s=690, profile=PRODUCTION_PROFILE) is None
+    )
 
 
 def test_allocation_has_a_single_method_step():
     (step,) = allocation_steps(PRODUCTION_PROFILE, "CLASSICAL_GP")
     assert step.name == "CLASSICAL_GP"
-    w = plan_step_window(step, elapsed_s=0, budget_s=25, profile=PRODUCTION_PROFILE)
-    assert w.hard_stop_s == 23
+    w = plan_step_window(step, elapsed_s=0, budget_s=330, profile=PRODUCTION_PROFILE)
+    assert w.hard_stop_s == 328
 
 
 def test_step_windows_cannot_be_reset_by_elapsed_time_or_later_steps():
@@ -270,7 +272,7 @@ def test_advertisement_round_trip_and_malformed_documents_fail_closed():
     assert advertised_capability(doc, "c.v1") == (True, False)
     assert advertised_capability({}, "a.v1") == (False, False)
     assert advertised_capability(None, "a.v1") == (False, False)
-    assert advertised_capability({"version": 2, "capabilities": {}}, "a.v1") == (False, False)
+    assert advertised_capability({"version": 1, "capabilities": {}}, "a.v1") == (False, False)
     off = supervisor_advertisement(PRODUCTION_PROFILE, handler_contracts=[], process_containment=0)
     assert advertised_capability(off, "a.v1") == (False, False)
 
@@ -280,5 +282,5 @@ def test_force_stop_lands_before_the_cutoff_to_absorb_termination_latency():  # 
     window = plan_step_window(primary, elapsed_s=0, budget_s=300, profile=PRODUCTION_PROFILE)
     assert (window.soft_stop_s, window.force_stop_s, window.hard_stop_s) == (268, 269.75, 270)
     method, _ = comparison_steps(PRODUCTION_PROFILE)
-    w = plan_step_window(method, elapsed_s=0, budget_s=60, profile=PRODUCTION_PROFILE)
-    assert (w.soft_stop_s, w.force_stop_s, w.hard_stop_s) == (23, 24.75, 25)
+    w = plan_step_window(method, elapsed_s=0, budget_s=690, profile=PRODUCTION_PROFILE)
+    assert (w.soft_stop_s, w.force_stop_s, w.hard_stop_s) == (328, 329.75, 330)

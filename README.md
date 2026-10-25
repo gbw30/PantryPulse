@@ -2,7 +2,7 @@
 
 PantryPulse is a project for Gator Hack V, October 23–25, 2026, exploring how food banks and community organizations can share limited supplies more fairly.
 
-Start with the [consolidated project specification V5](docs/pantrypulse/SPEC-V5.md) for accepted requirements, the current main and forecasting-branch state, unresolved decisions and release acceptance.
+Start with [current source/runtime status](docs/pantrypulse/CURRENT-STATUS.md) and the [consolidated specification V5](docs/pantrypulse/SPEC-V5.md) for implemented scope, accepted requirements, remaining decisions and release acceptance.
 
 When several organizations need food at the same time, there may not be enough to meet every request. Sending the same amount to everyone can overlook differences in need. Sending supplies wherever delivery is easiest can leave vulnerable communities with larger shortages. Meanwhile, food can expire, storage space is limited, and organizations donating supplies still need enough for the people they already serve.
 
@@ -29,9 +29,11 @@ The goal of the reproducible demonstration is to show when these research-derive
 
 ## Current state
 
-**PantryPulse is in early development.** The repository contains the frontend foundation, a backend process-health endpoint, locked dependencies, and a Linux container environment for the optimization libraries. Backend primitives cover transfer modes, route eligibility, demand rounding, fixed-point arithmetic, solver outcomes and forecast-history alignment. The complete allocation engines, application database schema and interactive comparison workflow are not yet implemented. Equation-level research validation remains a prerequisite for complex solver work.
+Main includes the connected simulated application: presenter access, persisted baseline forecasts, frozen scenarios, sequential classical/research-inspired comparisons, independent result verification and the `/optimization` workspace through a same-origin proxy. PR #75 integrated operational storage and baseline forecasting; PR #76 connected the bounded allocation workflow and active Linux/PostgreSQL/browser CI. These are simulated decisions, not operational dispatch or evidence of real-world policy effectiveness.
 
-The [offline forecasting core](docs/pantrypulse/forecasting/IMPLEMENTATION.md), integrated through PR #51, provides preparation, baselines, evaluation and pure projection. PR #52 adds the [durable job foundation](docs/setup/WORKER-QUEUE.md): PostgreSQL admission, Linux supervision, deadlines, cancellation and recovery, with test handlers only. Actual Chronos inference, forecast/domain publication, production job handlers and browser integration remain unfinished. Run the synthetic evaluation with `uv run --frozen --directory apps/api python -m scripts.evaluate_forecasting`. The [forecasting roadmap](docs/forecasting/README.md) preserves the remaining integration gates.
+The [connected integration guide](docs/optimization/CONNECTED-INTEGRATION.md) records the supported domain and explicit demo loader. The current migration head is `ppor_0005`; all predecessor revisions are preserved. [Stock services](docs/pantrypulse/STOCK-SERVICES.md), [inventory projection](docs/pantrypulse/INVENTORY-PROJECTION.md) and [migration instructions](apps/api/migrations/README.md) describe the persistence boundary. Deployment and any update of existing running images remain controlled operations.
+
+The production [worker](docs/setup/WORKER-QUEUE.md) supports `forecast.v1` and `or-comparison.v2`, with one active operation and two waiting jobs. PR #77 supplies [bounded local compute](docs/setup/LOCAL-COMPUTE.md), persistent model storage and prepared [Fly configuration](docs/setup/FLY.md). Full pinned Chronos-2 has passed real standalone CPU inference and synthetic timing checks; the application provider remains baseline-only. Representative forecast accuracy, integrated Chronos, supplier planning, visitor access, general imports and real operational actions remain separate work.
 
 The demo is planned around simulated data and institution-level indicators. It will not purchase supplies or dispatch real deliveries.
 
@@ -39,7 +41,7 @@ The demo is planned around simulated data and institution-level indicators. It w
 
 The planned system uses a Next.js/React interface, a Python/FastAPI backend, OR-Tools for allocation calculations, and PostgreSQL for shared data. Charts will explain the results, while brief animations and clear loading states will help users follow calculations in progress. Chronos-2 is the preferred optional forecasting model, with a seasonal-naive fallback.
 
-For a future integrated presentation, the website and Python API can run on the presenter's computer, with Neon holding the demo database. A completely local database is available for an offline setup. A separate simulated Vercel preview is live; connecting a hosted frontend to the laptop API would require the V5 proxy/auth work and a temporary tunnel. Fly.io remains an optional hosted backend alternative. GitHub holds the source code.
+The website, API and worker can run on the laptop using an isolated local or Neon schema. A separate synthetic Vercel preview remains branch-scoped; a separately selected hosted connected frontend must configure and verify the implemented proxy/auth path against its actual API. Fly remains a prepared alternative; login, platform validation and deployment are pending. See [external services](EXTERNAL-SERVICES.md).
 
 ## Further reading
 
@@ -56,4 +58,4 @@ V5 consolidates V4, later accepted decisions and actual implementation evidence.
 
 The optional `/design-lab` route is an illustrative dashboard experiment, with a default 2D network and a [bounded optional 3D exception](docs/architecture/0004-design-lab-3d-exception.md). It does not connect to allocation APIs or represent committed transfers.
 
-A [frontend-only Vercel preview of `/design-lab`](https://pantrypulse-prototype-preview-git-codex-e82088-gbw30s-projects.vercel.app/design-lab) is available from `codex/vercel-prototype-preview`. The root page remains the scaffold; no API, Neon database, tunnel or presenter workflow is connected. The [Vercel setup record](docs/setup/VERCEL.md) describes its branch-scoped deployment and remaining account checks. This preview is not the V5 release candidate.
+A [frontend-only Vercel preview of `/design-lab`](https://pantrypulse-prototype-preview-git-codex-e82088-gbw30s-projects.vercel.app/design-lab) is available from `codex/vercel-prototype-preview`. That older deployment has no API/database/presenter connection; main now redirects its root to `/optimization`. The [Vercel record](docs/setup/VERCEL.md) explains the branch-specific build policy. Merging main does not refresh that preview or establish a hosted release.

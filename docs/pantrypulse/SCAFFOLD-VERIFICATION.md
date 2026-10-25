@@ -1,5 +1,8 @@
 # Scaffold verification — 2026-10-23
 
+Current connected source, active CI and bounded compute evidence are indexed by [CURRENT-STATUS.md](CURRENT-STATUS.md). The original scaffold checks below remain a dated historical record and do not describe today's implemented API/UI or running image readiness.
+
+
 > **Current authority:** [Project specification V5](SPEC-V5.md). Historical evidence for its recorded date/tree only. V5 records current bounded test counts and capabilities; stale running-service, hook and uncommitted-file statements below are not current state.
 
 ## Finalized UI dependency stack

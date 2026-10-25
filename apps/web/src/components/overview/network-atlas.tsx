@@ -2,6 +2,7 @@
 
 import { useEffect, useEffectEvent, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { MotionConfig } from "motion/react";
+import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
@@ -452,7 +453,9 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
             {snapshot && <span>Fixture {snapshot.provenance.fixtureId}; sites and products from {snapshot.provenance.sourceDataset}</span>}
             {snapshot && <span>Local dates {formatRange(snapshot.dates)} ({snapshot.timezone})</span>}
             <span>
-              Allocation engines are not implemented yet. Planned method: EGP-PI-inspired allocation, after{" "}
+              Method comparisons on frozen simulated scenarios run in the{" "}
+              <Link className="text-foreground underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-ring" href="/optimization">optimization workspace</Link>;
+              this map shows a static fixture, not a saved plan. Method: EGP-PI-inspired allocation, after{" "}
               <a className="text-foreground underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-ring" href={DOI_URL}>Rampazo et al., published Sep 11, 2026</a>.
             </span>
           </footer>

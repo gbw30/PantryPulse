@@ -1,6 +1,8 @@
+> **October 25, 2026 approved integration:** [Connected OR integration](../optimization/CONNECTED-INTEGRATION.md) supersedes conflicting OR-only/no-proxy guidance and earlier solver limits for the connected simulated application. Historical checkpoint evidence remains scoped to its original code and contracts.
+
 # PantryPulse delivery board
 
-Update after each integration. [Project specification V5](SPEC-V5.md) records the current implementation/branch state and acceptance. PP-01–23 retain the historical planning board and require reconciliation; PP-24–29 were merged through PR #7. PR #51 integrated the offline forecasting core and design lab; live domain API/database acceptance remains open. PP-31–36 (worker/job queue foundation, [ADR 0005](../architecture/0005-worker-job-queue.md)) are delivered by PR #52; they use test handlers only. No completed application is claimed.
+Current source includes the baseline API/presenter flow (PR #75), connected OR comparisons/UI and executable Linux/browser CI (PR #76), plus the bounded compute setup reviewed in PR #77. See [CURRENT-STATUS.md](CURRENT-STATUS.md), [SPEC-V5](SPEC-V5.md) and [PR #77 review](PR-77-REVIEW.md). The planning/task rows below retain their recorded historical status and do not override subsequent integrated evidence.
 
 | ID | Outcome | Owner | Depends on | Exit evidence | Status |
 |---|---|---|---|---|---|
@@ -39,7 +41,14 @@ Update after each integration. [Project specification V5](SPEC-V5.md) records th
 | PP-34 | WQ-04 Linux process driver and containment | Lead | PP-31 | Linux real-process tests (WQ-T12, T14, T23) | PR #52 foundation; reviewed and regression-tested (see PP-31 packet) |
 | PP-35 | WQ-05 fenced publication and commit reconciliation | Lead | PP-32 | PostgreSQL tests (WQ-T18–T20) | PR #52 foundation; reviewed and regression-tested (see PP-31 packet) |
 | PP-36 | WQ-06 PostgreSQL + supervisor + test-job vertical slice | Lead | PP-32–35 | Linux slice with real supervisor SIGKILL (WQ-T10–T15, T21, T22) | PR #52 foundation; reviewed and regression-tested (see PP-31 packet) |
+| [PP-45](tasks/PP-45.md) | Persisted baseline forecast API (#29) | VaishnaviPhadtare | Operational history + shared worker foundation | 817 unit / 44 PostgreSQL checks; generated contracts / proxy / real pooled-Neon HTTP smoke | Local VP implementation; Linux live-worker smoke, independent review and OR convergence remain open |
 
 P1 reservations/completion are separate tickets only after all P0 rows are accepted. No worker may claim a shared foundational file without a lead assignment.
 
 Review-fix integration: PR #51 integrated the PR #49 baseline core and PR #50 design lab with V5 corrections. See tasks/PP-30-pr-review-fixes.md for the bounded task and verification evidence.
+
+## Current integration tasks
+
+[PP-46](tasks/PP-46.md) implements the approved connected simulated OR flow. Measured evidence and outstanding gates are tracked in [FINALIZATION](../optimization/FINALIZATION.md); historical TODO rows do not override this bounded scope.
+
+PR #77 reconciles local/Fly compute configuration and current documentation, with a 725-second local stop grace and preserved existing runtimes. Fly account/platform/deployment qualification remains separate.

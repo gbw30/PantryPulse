@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import sqlalchemy as sa
+from sqlalchemy.engine import make_url
 from sqlalchemy.exc import DataError, DBAPIError, InterfaceError, OperationalError
 
 from app.services.jobs.contracts import (
@@ -36,7 +37,6 @@ from app.services.jobs.policies import (
     can_retry,
     final_state_for_stop_reason,
     heartbeat_status,
-    operation_budget_s,
 )
 from app.services.jobs.registry import (
     InputRejected,
@@ -52,14 +52,26 @@ _OCCUPYING = tuple(s.value for s in LANE_OCCUPYING_STATES)
 
 
 def create_queue_engine(url: str, *, schema: str | None = None, pool_size: int = 10) -> sa.Engine:
-    connect_args: dict[str, Any] = {}
+    parsed = make_url(url)
+    if parsed.get_backend_name() not in ("postgres", "postgresql"):
+        raise ValueError("PostgreSQL is required")
+    connect_args: dict[str, Any] = {"connect_timeout": 15}
     if schema is not None:
         if not _SCHEMA_NAME.fullmatch(schema):
             raise ValueError("schema must be a simple lowercase identifier")
-        connect_args["options"] = f"-csearch_path={schema}"
-    return sa.create_engine(
-        url, pool_pre_ping=True, pool_size=pool_size, max_overflow=10, connect_args=connect_args
+    engine = sa.create_engine(
+        parsed.set(drivername="postgresql+psycopg"),
+        pool_pre_ping=True, pool_size=pool_size, max_overflow=10, connect_args=connect_args,
+        hide_parameters=True,
     )
+    if schema is not None:
+        @sa.event.listens_for(engine, "begin")
+        def select_schema(connection):
+            # PgBouncer rejects startup options for search_path. SET LOCAL selects
+            # the validated schema for THIS transaction and cannot leak to the next
+            # borrower of a pooled server connection.
+            connection.exec_driver_sql(f'SET LOCAL search_path TO "{schema}"')
+    return engine
 
 
 # --- errors -------------------------------------------------------------------------------
@@ -546,7 +558,8 @@ class QueueRepository:
     # --- adapter-facing commands ---------------------------------------------------------
 
     def submit(
-        self, scope: TrustedScope, contract: str, payload: Mapping[str, Any], idempotency_key: str
+        self, scope: TrustedScope, contract: str, payload: Mapping[str, Any], idempotency_key: str,
+        *, deduplicate: bool = False,
     ) -> Accepted:
         """Validate, then durably admit. Returns only after COMMIT (202 semantics)."""
         try:
@@ -555,6 +568,7 @@ class QueueRepository:
             raise InputRejected("UNKNOWN_CONTRACT", "handler contract is not registered") from None
         self._check_key(idempotency_key)
         validated = registration.handler.validate_input(payload)
+        registration.execution_budget(validated, self.profile)
         package = {
             "contract": registration.contract,
             "input_schema_version": registration.input_schema_version,
@@ -563,7 +577,10 @@ class QueueRepository:
         encoded = _json(package)
         if len(encoded.encode("utf-8")) > registration.max_input_bytes:
             raise InputRejected("INPUT_TOO_LARGE", "input package exceeds its registered bound")
-        request_sha = sha256_hex({"action": "SUBMIT", "package": package})
+        # Reuse/refresh is a command choice, not part of computational identity.
+        # Keep existing non-deduplicating command hashes backwards-compatible.
+        request_sha = sha256_hex({"action": "SUBMIT", "package": package,
+                                  **({"deduplicate": True} if deduplicate else {})})
         rejection: AdmissionOutcome | None = None
         with self._tx() as conn:
             # Hash and store exactly what JSONB keeps (it rewrites e.g. -0.0 and 1e16), so the
@@ -586,6 +603,32 @@ class QueueRepository:
                     True,
                 )
             self._expire_overdue(conn, now)
+            if deduplicate:
+                # The lane lock serializes lookup+admission with publication. Failed,
+                # stopping and incomplete results never qualify. Reuse is available
+                # during compute outage; GET still performs no queue mutations.
+                duplicate = conn.execute(sa.text(
+                    "SELECT j.job_id, a.attempt_id, a.state FROM compute_jobs j "
+                    "JOIN compute_attempts a ON a.attempt_id = j.current_attempt_id "
+                    "WHERE j.organization_id = :o AND j.lane_id = :l "
+                    "AND j.handler_contract = :c AND j.input_sha256 = :sha "
+                    "AND (a.state IN ('QUEUED', 'RUNNING') OR (a.state = 'SUCCEEDED' "
+                    "AND a.result_manifest->>'planning_ready' = 'true')) "
+                    "ORDER BY j.created_at DESC LIMIT 1"
+                ), {"o": scope.organization_id, "l": self.lane_id,
+                    "c": contract, "sha": input_sha}).mappings().one_or_none()
+                if duplicate is not None:
+                    response = {"job_id": str(duplicate["job_id"]),
+                                "attempt_id": str(duplicate["attempt_id"]),
+                                "state": duplicate["state"]}
+                    self._record_command(conn, scope, CommandAction.SUBMIT, idempotency_key,
+                                         request_sha, duplicate["job_id"], duplicate["attempt_id"],
+                                         response, now)
+                    self._audit(conn, "COMMAND_REUSED", job_id=duplicate["job_id"],
+                                attempt_id=duplicate["attempt_id"],
+                                details={"action": "SUBMIT", "input_sha256": input_sha})
+                    return Accepted(duplicate["job_id"], duplicate["attempt_id"],
+                                    AttemptState(duplicate["state"]), True)
             outcome = self._admission(conn, ctl, now, registration.contract)
             if outcome is not AdmissionOutcome.ACCEPT:
                 rejection = outcome
@@ -1063,14 +1106,14 @@ class QueueRepository:
                         and registration.handler.validate_input(package["input"])
                         == package["input"]
                     )
+                    budget = registration.execution_budget(package["input"], self.profile)
+                    steps = registration.handler.steps(package["input"], self.profile)
                 except (InputRejected, KeyError, TypeError, ValueError, AttributeError):
                     intact = False
                 if not intact:
                     self._fail_unstarted(conn, row, ReasonCode.INPUT_INTEGRITY, now)
                     continue
                 kind = OperationKind(row["operation_kind"])
-                budget = operation_budget_s(kind, self.profile)
-                steps = registration.handler.steps(package["input"], self.profile)
                 cutoffs = [s.cutoff_s for s in steps if s.cutoff_s is not None]
                 deadline = now + timedelta(seconds=budget)
                 primary = now + timedelta(seconds=min(cutoffs)) if cutoffs else None

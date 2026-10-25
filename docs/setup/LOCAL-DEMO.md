@@ -1,130 +1,38 @@
-# Presentation backend on a personal computer
+# Laptop demo: local compute with isolated data
 
-Reviewed October 24, 2026. This is the selected demo-only alternative to Fly.io. The same backend container runs on the presenter's computer. No Fly account or compute is required. The current app is still a scaffold: domain features, CORS and frontend API integration remain pending.
+Updated October 25, 2026. The selected compute host remains the laptop; Fly is optional. Source now includes the connected baseline forecast/OR workflow at `/optimization`, presenter/CSRF controls, same-origin proxy and durable jobs. See [current status](../pantrypulse/CURRENT-STATUS.md). Existing running images and the old Vercel preview are separate from this source state.
 
-For installing, starting, benchmarking and stopping the optional Chronos model itself, use [CHRONOS-LOCAL.md](../../CHRONOS-LOCAL.md). That standalone runner does not require the database or API integration described here.
+## Preserve existing work
 
-## Recommended arrangement
+Inspect Docker/services and loopback ports before choosing an environment. Do not stop a running API/worker, overwrite its private environment, migrate its database or clear a queue merely to follow this guide. A new image needs a later controlled adoption after active work finishes; the opt-in helper uses `--no-recreate`.
 
-For a presentation on one laptop:
+Use [LOCAL-COMPUTE.md](LOCAL-COMPUTE.md) for the bounded local API/worker image, resource checks and standalone Chronos tools. Use `compose.forecast.yaml` with explicitly selected private `apps/api/.env` for the laptop-to-Neon path. `compose.demo.yaml` is an API/database probe and does not start a worker.
 
-```text
-Your browser → Next.js on your laptop → FastAPI in local Docker → Neon demo database
-```
+## Prepare a new isolated connected demo
 
-Use `http://127.0.0.1:3000` for the website. No tunnel or Vercel deployment is necessary when only the presenter accesses it. Neon still requires internet. A fully local PostgreSQL alternative is described below for an offline rehearsal.
+1. Choose the dedicated local or Neon database and direct migration connection. Preserve provider TLS settings. Do not reset an existing schema.
+2. Run the deliberate `load_optimization_demo.py --schema ppor_demo_YOUR_NAME --output PRIVATE_PATH` procedure in [CONNECTED-INTEGRATION.md](../optimization/CONNECTED-INTEGRATION.md). It creates a new migrated schema and fictional history, stock and assumptions; it never fabricates forecast/comparison results.
+3. Configure the exact schema and fictional organization in private API settings. Set presenter username/password hash, allowed origins and a matching trusted proxy token. See [forecast/auth flow](../pantrypulse/FORECAST-API-FLOW.md).
+4. Configure `apps/web/.env.local` using the tracked example: server-only `PANTRYPULSE_API_ORIGIN` and `PP_TRUSTED_PROXY_TOKEN`. No secret or backend URL is needed in `NEXT_PUBLIC_API_BASE_URL`.
+5. Start only that selected API/worker environment. Its production registry contains `forecast.v1` and `or-comparison.v2`; Linux capability version 2 is required. Configure/review ports so existing work stays running.
+6. Open `/optimization`, log in, generate a real baseline forecast, freeze an explicit-mode scenario and submit a paired comparison. Review native statuses, independent verification, partial outcomes and immutable provenance. Editing assumptions requires a new saved version/scenario.
 
-The [deployed Vercel UI preview](VERCEL.md) is already accessible from other devices and needs no tunnel; it contains simulated `/design-lab` content only. An integrated judge demo would need the later HTTPS tunnel and V5 proxy/auth work described below.
+Windows native library restrictions on this computer are handled by Linux containers, not by weakening security policy. Demo-loading scripts read repository fixtures; when running them in Docker, mount the complete checkout and run from `/repo/apps/api`, as in the compute runbook.
 
-## Hardware and prerequisites
+## Resource and shutdown policy
 
-Follow [INSTALLATION.md](../../INSTALLATION.md) first and start Docker Desktop in Linux-container mode. Docker avoids the OR-Tools native Windows Application Control issue already found on this machine.
+The local worker ceiling is six CPU equivalents/eight GiB, separate from API/database needs. Model tools run only when the queue/operator checks allow, and never concurrently with active domain work. Source defaults are 120 seconds native search, 150 seconds per method and 330 seconds per comparison; maxima are 300/330/690. Queue expiry is 1,800 seconds, with one active and two waiting operations.
 
-Check available RAM before enabling Chronos; installed memory alone does not establish usable headroom. Close unused applications and measure the workload on the presentation laptop. Use the separate Chronos guide's resource envelope as an initial experiment, not a measured performance guarantee. Do not treat page-file capacity as equivalent to free RAM.
+SIGTERM drains without claiming another job. Supervisor drain allows up to 720 seconds; local container grace is 725 seconds. Never use broad process kills, delete data volumes or clear ownership rows to force availability. Follow [worker recovery](WORKER-QUEUE.md).
 
-Run the core demo with seasonal-naive forecasting first when that adapter is implemented. For the intended Chronos-enabled demonstration, follow the [local compute evaluation](../pantrypulse/LOCAL-COMPUTE-EVALUATION.md): test the full model first with one resident instance and reuse unchanged forecasts. Chronos supports CPU inference, but its model load time, peak memory and forecast latency need separate testing; see the [model card](https://huggingface.co/amazon/chronos-2). The current default image excludes its dependencies. Keep the laptop plugged in and awake, and benchmark on that same device before presenting.
+## Chronos and public access
 
-## 1. Put the Neon demo connection on the backend computer
+The pinned full Chronos-2 model has passed a separate real CPU smoke and ten warm synthetic runs; see the dated [compute evidence](LOCAL-COMPUTE.md#verification-record). It remains outside the application provider registry. Raw quantiles are not calibrated intervals, synthetic timings are not predictive-accuracy evidence, and donation predictions are not physical stock.
 
-Because this computer replaces Fly, it now needs the database credential that Fly would otherwise hold. This differs from the existing local-development setup, where Compose supplies a local PostgreSQL URL.
-
-Use a dedicated synthetic-demo Neon branch/database. Do not use an unrelated production database. From the repository root, copy the template only if the private destination is absent:
-
-```powershell
-if (-not (Test-Path -LiteralPath apps/api/.env.demo)) {
-    Copy-Item -LiteralPath apps/api/demo.env.example -Destination apps/api/.env.demo
-}
-git check-ignore apps/api/.env.demo
-```
-
-In your editor, replace the placeholder `DATABASE_URL` in `apps/api/.env.demo` with that branch's pooled Neon URL, using the `postgresql+psycopg://` scheme. Preserve encoded credentials and the supplied TLS parameters. Keep this file private and out of screenshots. Nothing in this guide fetches or invents your credentials.
-
-`compose.demo.yaml` explicitly passes this file into the container using `env_file`. This works without an application dotenv loader. `apps/api/.env` remains the local-development template/configuration; the current web scaffold needs no `.env.local`. Source: [Compose environment files](https://docs.docker.com/compose/how-tos/environment-variables/set-environment-variables/).
-
-## 2. Start the API container
-
-Both the development API and demo API use local port 8000. If the development API is running, stop just that API service first:
-
-```powershell
-docker compose --profile api stop api
-```
-
-This does not delete the local database or its volume. Start the separate demo project:
-
-```powershell
-docker compose -f compose.demo.yaml config --quiet
-docker compose -f compose.demo.yaml up -d --build --wait api
-Invoke-RestMethod 'http://127.0.0.1:8000/api/v1/health'
-docker compose -f compose.demo.yaml exec -T api uv run --frozen python scripts/check_runtime.py --database
-docker compose -f compose.demo.yaml exec -T api uv run --frozen pytest
-```
-
-`config --quiet` validates without printing the resolved secrets. Expected health is `{"status":"ok","scope":"process"}`. The runtime command separately checks a trivial CP-SAT solve and the selected database connection. It does not validate allocation behavior or a domain schema. Do not run migrations or seed/reset commands until implemented and tested.
-
-Use the explicit `-f compose.demo.yaml` commands for this project. Existing npm Docker commands target the development Compose project, not this demo container.
-
-## 3. Start the website on the same computer
-
-The current static web scaffold does not need `apps/web/.env.local`. Do not configure a browser-visible API address as a substitute for the V5 same-origin proxy.
-
-In a second PowerShell terminal at the repository root:
-
-```powershell
-npm run dev:web
-```
-
-Open `http://127.0.0.1:3000`. Leave the terminal running. This currently displays the scaffold; the future API client must use the selected same-origin Next.js proxy, which will forward to FastAPI from the server. Running web and API processes does not yet connect them.
-
-For final presentation polish, rehearse a production frontend build rather than relying only on the development server:
-
-```powershell
-npm run build
-npm run start --workspace @pantrypulse/web
-```
-
-Stop the development web server first so port 3000 is free. The current workspace start command binds to loopback, appropriate for a presentation on this computer.
-
-## 4. Future integrated demo: let the Vercel proxy reach your laptop
-
-The current simulated Vercel preview does not use this tunnel. After the V5 proxy, authorization and backend integration are implemented, install `cloudflared` from the official [Windows downloads](https://developers.cloudflare.com/tunnel/downloads/#windows), add the installed executable to PATH if necessary, and verify `cloudflared --version` in a new terminal.
-
-With the API running, keep a separate terminal open:
-
-```powershell
-cloudflared tunnel --url http://127.0.0.1:8000
-```
-
-It prints an HTTPS `trycloudflare.com` address. Use the actual address, not this placeholder. Quick Tunnels need no account/domain, provide no uptime guarantee, and change hostname after restart. They do not support Server-Sent Events, so use a different tunnel arrangement if that later becomes necessary. See [Quick Tunnels](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/).
-
-Configure the future proxy's server-side API origin with the actual tunnel URL after its setting and credential-forwarding contract is designed. Do not set `NEXT_PUBLIC_API_BASE_URL` on the current preview. Rebuild/redeploy the integrated frontend and verify authenticated requests through its real URL; tunnel health alone proves only reachability. A Vercel server-side proxy cannot reach your laptop via `127.0.0.1`.
-
-The tunnel publishes the API to people who know the URL. Use synthetic demo data and implement/verify the intended presenter boundary for reset or other mutations before exposing those routes. Do not tunnel PostgreSQL or port 55432. No router port forwarding is needed for this method. On a tunnel restart, update the future proxy's server-side API origin and redeploy, or use a configured stable tunnel for repeat demonstrations.
-
-## 5. Rehearse and stop
-
-- Close unused applications, keep AC power connected and prevent sleep for the presentation.
-- Verify Docker memory limits allow the measured workload; leave enough for Windows, the browser and the web server.
-- Test API health, database connectivity and the eventual complete comparison workflow separately.
-- Download any optional model in advance; verify provenance/cache and retain a labeled fallback.
-- Keep the backend/tunnel running while remote viewers use the website. Restarting the laptop interrupts access.
-- Keep a backup recording and clearly label it if used. Test venue networking before the presentation.
-
-To stop only the demo API:
-
-```powershell
-docker compose -f compose.demo.yaml stop api
-```
-
-Stop the web server and optional tunnel with Ctrl+C in their terminals. The Neon data is hosted separately; stopping the container does not delete it. No destructive cleanup is needed.
+The existing `/design-lab` Vercel preview needs no API/tunnel. A separately authorized connected release can use the implemented proxy and [Cloudflare tunnel](CLOUDFLARE.md), after actual target/origin/cookie checks. Do not expose PostgreSQL. [Fly](FLY.md) remains configuration-only and requires login/platform validation/deployment.
 
 ## Offline alternative: existing local PostgreSQL
 
-For an offline presentation, use the original development Compose project instead of the Neon demo project. Stop the demo API first to free port 8000, then:
+Use the local database and a newly seeded isolated demo schema while venue network is unavailable. Preparing a local schema does not copy Neon automatically. Keep dependencies and weights cached before the event; an offline model exercise does not make every application operation model-backed.
 
-```powershell
-npm run dev:api:docker
-npm run check:runtime:docker
-npm run dev:web
-```
-
-This selects the original **local** database, not Neon. Its domain schema and synthetic demo seed still need to be prepared before a full offline workflow can work. It does not copy hosted data automatically. No Neon credentials or tunnel are required for this arrangement once dependencies/images are available locally.
+Verify process health, database/schema, fresh worker capability, authenticated browser actions, real forecast publication and sequential comparison on that exact runtime. Preserve a release manifest, backup recording and rollback plan. See [deployment/recovery](../pantrypulse/DEPLOYMENT.md). Supplier planning, broad import UI, visitor access, production reset and real purchasing/dispatch remain outside this demo.

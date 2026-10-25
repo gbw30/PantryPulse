@@ -52,7 +52,7 @@ The root may be named `production` or `main`, depending on how the project was c
 
 A child branch copies its parent's state at creation and then diverges. Parent changes do not automatically update it. Select the child's own endpoint before tests; changing only the database name does not switch branches. Plan allowances and compute/storage usage apply across the project. Source: [branch management](https://neon.com/docs/manage/branches).
 
-Reserve the existing owner/admin role for initial setup and future migrations. For the eventual application, use a dedicated runtime role such as `pantrypulse_app` with only the required database, schema, table and sequence permissions. **Creating a role in the Console/CLI/API does not automatically make it restricted**: Neon documents that these roles inherit `neon_superuser` membership. Restricted roles should be created through reviewed SQL and receive deliberate grants. Domain schemas do not exist yet, so those grants are a later migration/setup task. Source: [database access](https://neon.com/docs/manage/database-access).
+Reserve the existing owner/admin role for initial setup and future migrations. For the eventual application, use a dedicated runtime role such as `pantrypulse_app` with only the required database, schema, table and sequence permissions. **Creating a role in the Console/CLI/API does not automatically make it restricted**: Neon documents that these roles inherit `neon_superuser` membership. Restricted roles should be created through reviewed SQL and receive deliberate grants. Main now includes domain/forecast/planning schemas; grant only the intended migrated demo schema's required privileges after reviewing the selected runtime role. Source: [database access](https://neon.com/docs/manage/database-access).
 
 Neon team-member permissions and PostgreSQL roles are also different: console access lets a person manage the project; the database URL's role controls what a running application can do. Give team members only the project access they need rather than sharing one person's login.
 
@@ -128,9 +128,9 @@ Keep any additional connection-security parameters supplied by Neon. Credentials
 
 ## Connect the backend
 
-For the selected laptop demo, store DATABASE_URL privately in apps/api/.env.demo, loaded by compose.demo.yaml as described in [the external services guide](../../EXTERNAL-SERVICES.md#4-store-the-database-secret-on-the-backend-laptop). Leave apps/api/.env and the original development Compose setup unchanged. DATABASE_URL_UNPOOLED is a proposed release/migration configuration convention; the current app does not consume it yet. Store it only in the controlled environment that will run migrations. For the optional hosted alternative, use a Fly app secret instead.
+For the connected laptop/Neon path, `compose.forecast.yaml` explicitly loads private `apps/api/.env`; choose its actual database/schema and presenter settings deliberately. `compose.demo.yaml` with `.env.demo` is an API/database probe only. `DATABASE_URL_UNPOOLED` is implemented by the deliberate migration/demo loaders and stays in the controlled setup environment. The local compute overlay uses optional `.env.compute` and fixes its database to local development; Fly uses private app secrets. See [external services](../../EXTERNAL-SERVICES.md).
 
-Do not put either URL in Vercel `NEXT_PUBLIC_` variables. The current simulated preview has no database connection. In a future integrated frontend, the browser uses the selected same-origin Next.js proxy, which forwards authorized requests to FastAPI; PostgreSQL remains server-side.
+Do not put either URL in Vercel `NEXT_PUBLIC_` variables. The current simulated preview has no database connection. The connected frontend already uses the same-origin Next.js proxy, forwarding presenter-authorized requests to FastAPI; PostgreSQL remains server-side.
 
 The Compose service uses its own local DATABASE_URL. Creating a Neon project does not switch local containers to Neon automatically, and normal local testing should retain its isolated databases.
 
@@ -152,9 +152,9 @@ It should identify the intended database and complete the trivial CP-SAT smoke c
 
 ## Schema gate
 
-PR #52 provides an Alembic environment and `0001_jobs_foundation`, which creates only the internal queue tables; see the [worker runbook](WORKER-QUEUE.md). No domain revisions or demo seed exist. Review and test migrations against a dedicated target before applying them; a jobs-only upgrade does not create a functioning application database.
+The migration head is `ppor_0005`, after preserved operational/worker histories and forecasts/presenter sessions. Main includes an explicit loader for a NEW `ppor_demo_*` schema, fictional history/stock/assumptions and no fake computed results. Review/test the complete graph against the chosen isolated target; see [connected integration](../optimization/CONNECTED-INTEGRATION.md) and [worker recovery](WORKER-QUEUE.md).
 
-For a later integrated release: test all required migrations against an isolated branch, supply the direct/unpooled URL as `DATABASE_URL` to the migration process, and apply the reviewed revisions once as a release step. The loader reads `DATABASE_URL`; it does not automatically select `DATABASE_URL_UNPOOLED`. Add and verify a dedicated demo seed only when domain persistence is implemented.
+Migration/demo scripts explicitly support direct `DATABASE_URL_UNPOOLED`. Apply reviewed revisions once in a controlled environment; startup never migrates or seeds. The connected loader refuses an existing schema. Do not reset a running queue or infer that merging code applied any revision to an existing Neon environment.
 
 ## Completion checklist
 

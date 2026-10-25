@@ -661,7 +661,11 @@ class Supervisor:
     # --- shutdown --------------------------------------------------------------------------
 
     def _wait_idle(self, timeout_s: float | None) -> None:
-        budget = timeout_s if timeout_s is not None else self.profile.forecast_total_s + 30
+        budget = timeout_s if timeout_s is not None else max(
+            self.profile.forecast_total_s,
+            self.profile.allocation_total_s,
+            self.profile.comparison_total_s,
+        ) + 30
         end = self.clock() + budget
         while self.active is not None and self.clock() < end and not self.ownership_lost:
             self.tick()
@@ -712,7 +716,8 @@ def main(argv: list[str] | None = None) -> int:
 
     parser = argparse.ArgumentParser(description="PantryPulse compute supervisor")
     parser.add_argument("--registry", default="production", choices=["production", "test"])
-    parser.add_argument("--schema", default=None, help="search_path schema (isolated tests)")
+    parser.add_argument("--schema", default=os.environ.get("PP_DATABASE_SCHEMA") or None,
+                        help="search_path schema (defaults to PP_DATABASE_SCHEMA)")
     parser.add_argument("--profile-json", default=None, help="shorter limits only")
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stderr)
