@@ -1,0 +1,111 @@
+{
+  "schema_version": "chronos-adapter-smoke-v1",
+  "generated_at": "2026-10-25T16:10:16.496644+00:00",
+  "scope": "real adapter execution on SIMULATED history; not predictive qualification",
+  "model_id": "amazon/chronos-2",
+  "revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
+  "adapter_version": "chronos2-univariate-cpu-f32-v1",
+  "environment": {
+    "chronos-forecasting": "2.3.2",
+    "torch": "2.14.1+cpu",
+    "transformers": "5.20.2",
+    "huggingface-hub": "2.3.0",
+    "numpy": "2.5.4"
+  },
+  "runtime": {
+    "python": "3.12.13",
+    "platform": "Linux-7.0.0-38-generic-x86_64-with-glibc2.39",
+    "threads": 2,
+    "device": "cpu",
+    "dtype": "float32",
+    "context_length": 366,
+    "cross_learning": false
+  },
+  "input_hash": "ef19d754ed1370e02b36e86757416045c7aaf8187c2b2863f384a4a2021c826e",
+  "code_sha256": "83efe880ed295c6e71b0fce4ad50406acaf597a18f7821b09ce120d3da6773dc",
+  "model_load_seconds": [
+    4.002225887001259
+  ],
+  "wall_seconds": 8.004982789003407,
+  "peak_rss_kib": 910028,
+  "runs": [
+    {
+      "seconds": 5.932391537993681,
+      "ready_for_publication": false,
+      "series_count": 26,
+      "available_series": 12,
+      "forecast_point_count": 84,
+      "target_outcomes": [
+        {
+          "target": "DEMAND",
+          "status": "AVAILABLE",
+          "error_codes": [],
+          "count": 12
+        },
+        {
+          "target": "DONATION",
+          "status": "FAILED",
+          "error_codes": [
+            "INVALID_PROVIDER_OUTPUT"
+          ],
+          "count": 14
+        }
+      ]
+    },
+    {
+      "seconds": 1.9290562429960119,
+      "ready_for_publication": false,
+      "series_count": 26,
+      "available_series": 12,
+      "forecast_point_count": 84,
+      "target_outcomes": [
+        {
+          "target": "DEMAND",
+          "status": "AVAILABLE",
+          "error_codes": [],
+          "count": 12
+        },
+        {
+          "target": "DONATION",
+          "status": "FAILED",
+          "error_codes": [
+            "INVALID_PROVIDER_OUTPUT"
+          ],
+          "count": 14
+        }
+      ]
+    }
+  ],
+  "checkpoint_files_sha256": {
+    "config.json": "ef1143bfdc9c0376d9a056eefca46cb4b1ec3d0ffacd541ff56feb40fb708031",
+    "model.safetensors": "ddcda3c7508bf2528087723e98a20707cc04b7f370ae275a9fd88078ddba4f42"
+  },
+  "native_call_count": 55,
+  "native_negative_quantile_call_count": 30,
+  "native_output_shape": [
+    1,
+    7,
+    3
+  ],
+  "edge_cases": {
+    "gappy": {
+      "status": "CLASSIFIED_FAILURE",
+      "code": "INVALID_PROVIDER_OUTPUT"
+    },
+    "all_zero": {
+      "status": "CLASSIFIED_FAILURE",
+      "code": "INVALID_PROVIDER_OUTPUT"
+    },
+    "one_observation": {
+      "status": "AVAILABLE"
+    },
+    "all_missing": {
+      "status": "CLASSIFIED_FAILURE",
+      "code": "INSUFFICIENT_DATA"
+    }
+  },
+  "raw_evidence_sha256": "bb7624576b564ba59404dfd37a0301c1d40c57142071195fb6bf5eaaf73bca2d",
+  "raw_evidence_bytes": 204046,
+  "raw_evidence_location": "/tmp/pantrypulse-chronos-adapter-smoke.json",
+  "qualification": "REAL_ADAPTER_EXECUTION_VERIFIED; FULL_SCOPE_INVALID_QUANTILES; NOT_MODEL_OR_APPLICATION_QUALIFIED"
+}

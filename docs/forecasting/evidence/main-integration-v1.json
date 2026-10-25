@@ -1,0 +1,139 @@
+{
+  "schema_version": "forecast-main-integration-v1",
+  "recorded_at": "2026-10-25T18:36:32.811645+00:00",
+  "branch": "feat/forecasting-next",
+  "integrated_main": "3251ca62f978762ce12b560a6e2d1e37e5fc78e0",
+  "existing_merge_commit": "a5b0cc2e21c687ff743007fbedc70196dd88ef77",
+  "main_review": [
+    "Live Overview and typed dashboard/shortage contracts",
+    "Shared navigation, light/dark themes and atlas motion",
+    "Opt-in read-only visitor access",
+    "Local demo launcher and hook updates"
+  ],
+  "integration_review": {
+    "forecast_catalog_reader_dependency_preserved": true,
+    "chronos_job_contract_preserved": true,
+    "dashboard_readiness_and_fallback_provenance_verified": true,
+    "generated_contracts_match_combined_application": true,
+    "production_defaults_unchanged": true
+  },
+  "backend": {
+    "tests": 1322,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 290.72,
+    "junit_path": "/tmp/pantrypulse-forecast-main-integration.xml",
+    "junit_sha256": "72f1055225019daa89931ca5d8c94dd3c72328e2caee304ca19aa56a7b14bad6",
+    "skip_rejection_gate": "PASSED"
+  },
+  "frontend": {
+    "node": "v24.16.0",
+    "npm": "11.13.0",
+    "temporary_runtime": true,
+    "node_archive_sha256": "d804845d34eddc21dc1092b519d643ef40b1f58ec5dec5c22b1f4bd8fabde6c9",
+    "locked_install": "npm ci --ignore-scripts",
+    "dependency_manifests_changed": false,
+    "typecheck": "PASSED",
+    "lint": "PASSED",
+    "contracts": "PASSED",
+    "proxy_unit_tests": 6,
+    "production_build": "PASSED",
+    "browser": {
+      "unique_passed": 40,
+      "targeted_ui_passed": 35,
+      "connected_passed": 5,
+      "production_server": true,
+      "widths": [
+        1440,
+        390
+      ],
+      "connected_scope": [
+        "Real baseline forecast, frozen scenario, paired OR and scenario revision",
+        "Real partner failure with verified survivor",
+        "Real cancel and frozen retry",
+        "Delayed saved response cannot replace revised scenario",
+        "Live Overview from real persisted data"
+      ],
+      "rerun_notes": [
+        "Two new partial-result assertions initially matched both the workspace alert and Next route announcer. Scoped them to main; both passed on rerun.",
+        "The initial targeted suite skipped its connected Overview case; that case passed in the separate connected run.",
+        "The private disposable connected runner initially used outdated readiness/proxy settings; corrected the runner before the successful five-test run. No product checks were weakened."
+      ],
+      "reports": [
+        {
+          "path": "/tmp/pantrypulse-forecast-main-browser.json",
+          "sha256": "6bfb7d20ea89cdb5f2776d7ddf50b87dae06649e996734665adfcf463303694b",
+          "stats": {
+            "startTime": "2026-10-25T18:30:42.361Z",
+            "duration": 40727.002,
+            "expected": 33,
+            "skipped": 1,
+            "unexpected": 2,
+            "flaky": 0
+          }
+        },
+        {
+          "path": "/tmp/pantrypulse-forecast-main-browser-rerun.json",
+          "sha256": "6f34214a3c6f02b3da95500b475126d2d902ee6f58c313bd1c833a2bc04e3058",
+          "stats": {
+            "startTime": "2026-10-25T18:31:48.810Z",
+            "duration": 3837.038,
+            "expected": 2,
+            "skipped": 0,
+            "unexpected": 0,
+            "flaky": 0
+          }
+        },
+        {
+          "path": "/tmp/pantrypulse-forecast-main-connected-browser.json",
+          "sha256": "f80fa156d7c210aadfd6c67ed30b0502d044fd511a6f10efce77e60049227bf8",
+          "stats": {
+            "startTime": "2026-10-25T18:34:45.115Z",
+            "duration": 66213.185,
+            "expected": 5,
+            "skipped": 0,
+            "unexpected": 0,
+            "flaky": 0
+          }
+        }
+      ]
+    }
+  },
+  "configuration": {
+    "tests": 20,
+    "failures": 0,
+    "skipped": 0,
+    "portable_powershell": "7.6.6"
+  },
+  "real_chronos_smoke": {
+    "passed": true,
+    "evidence": "chronos-overview-integration-smoke.json",
+    "sha256": "d171642babbf268e6500ef02fc38a44e21a7d126f0f785950043e3e32fa57830",
+    "seconds": 73.1899976870045,
+    "disposable_schema_removed": true,
+    "partial_overview_shortages_status": 409,
+    "fallback_overview_shortages_status": 200,
+    "visitor_cannot_submit_or_read_jobs": true
+  },
+  "source_sha256": {
+    "apps/api/app/routers/forecasts.py": "d0453aebd6fd10d2e7ac5a545e728c2f99c0e084147b69c2fdb5cb1243c47e4c",
+    "apps/api/app/routers/dashboard.py": "0ac4697f8ff4b15d9b7c276794139eb6eb1c172ad2776a278fb0589d3ea59645",
+    "apps/api/app/services/presenter_access.py": "9dbe0ec1c2f4d455eca1b0c364d56ebf774160366b1d3c6134491bd7fcb4da11",
+    "apps/api/app/workers/chronos_forecasting.py": "d3ab54df9d02faa743a249c4f350590c8ddd80925e25cdfca71c7a3ecefd973d",
+    "apps/api/scripts/smoke_chronos_jobs.py": "d57ec53e6630b0a97b8304d537de04b338f87984204a312757aa83b6f6739790",
+    "apps/web/src/app/optimization/workspace.tsx": "7825d8f2114a311eea4a4ed4303bff7b49759fddbf28c9c53c0d77044cf36ad8",
+    "apps/web/tests/e2e/forecasting-integration.spec.ts": "65134b038bfdd0f46217f4fe3d975c7ec0530672f0ee39e4deb8e72721b36124",
+    "apps/web/tests/e2e/optimization.spec.ts": "06c3a25139f5686452a0a3d5e1301e45207232faec020318d63c32f80be0abcc",
+    "packages/contracts/openapi.json": "90c3c361a99a023812611d0b044efc074578239cbe6cb1906b5e0e2f4a941ae1",
+    "packages/contracts/src/schema.d.ts": "7d82f6434cd405ada6bfdc82fefeb21227f67edf696c8bd87d869c35d62d6a7a"
+  },
+  "ruff": "PASSED",
+  "whitespace": "PASSED",
+  "scope_limits": [
+    "No final holdout reopening or model tuning; original qualification evidence is unchanged",
+    "Chronos remains opt-in and experimental; real pantry-demand/donation quality and calibration remain unqualified",
+    "All new API/model/browser runtime work used disposable test schemas and dedicated processes; no shared runtime or production schema changed",
+    "Browser validation is scoped to forecast/OR, live Overview, shared shell, root navigation and themes; this is not a claim that every browser suite was run"
+  ]
+}

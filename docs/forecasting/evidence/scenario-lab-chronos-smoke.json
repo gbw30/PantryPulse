@@ -1,0 +1,84 @@
+{
+  "schema_version": "chronos-jobs-smoke-v1",
+  "scope": "SIMULATED",
+  "generated_at": "2026-10-25T19:08:31.255116+00:00",
+  "capability": {
+    "checkpoint": "amazon/chronos-2",
+    "checkpoint_revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
+    "package_version": "2.3.2",
+    "adapter_version": "chronos2-univariate-cpu-f32-v1"
+  },
+  "schema": "ppfc84_test_c7633d8f6659422197bf6a035fe11c7d",
+  "production_profile": {
+    "version": 2,
+    "limits": {
+      "max_queued": 2,
+      "queue_wait_s": 1800,
+      "heartbeat_interval_s": 5,
+      "heartbeat_stale_s": 15,
+      "forecast_total_s": 300,
+      "forecast_primary_cutoff_s": 270,
+      "allocation_total_s": 330,
+      "method_wall_s": 330,
+      "method_search_s": 300,
+      "comparison_total_s": 690,
+      "stop_grace_s": 2,
+      "publication_reserve_s": 2,
+      "kill_margin_s": 0.25,
+      "method_min_s": 1,
+      "worker_cpu": 6,
+      "worker_memory_gib": 8
+    }
+  },
+  "no_fallback": {
+    "job_id": "daca265c-adeb-4897-85da-6cb872ab48cc",
+    "state": "SUCCEEDED",
+    "planning_ready": false,
+    "actual_providers": [
+      "CHRONOS2"
+    ],
+    "available_series": 12,
+    "forecast_points": 84
+  },
+  "overview_partial": {
+    "forecast_run_id": "daca265c-adeb-4897-85da-6cb872ab48cc",
+    "planning_ready": false,
+    "shortages_status": 409,
+    "visitor_reads_verified": true,
+    "presenter_only_compute_verified": true
+  },
+  "fallback": {
+    "job_id": "000922ce-0cdd-4287-8dc0-1d85956eca9d",
+    "state": "SUCCEEDED",
+    "planning_ready": true,
+    "actual_providers": [
+      "MOVING_AVERAGE"
+    ],
+    "fallback_series": 26,
+    "forecast_points": 182
+  },
+  "overview_fallback": {
+    "forecast_run_id": "000922ce-0cdd-4287-8dc0-1d85956eca9d",
+    "planning_ready": true,
+    "shortages_status": 200,
+    "visitor_reads_verified": true,
+    "presenter_only_compute_verified": true
+  },
+  "cancel_retry": {
+    "cancelled_state": "CANCELLED",
+    "boundary_empty": true,
+    "retry_state": "SUCCEEDED",
+    "same_job_new_attempt": true,
+    "database_credentials_absent_in_child": true
+  },
+  "canonical_scenario": {
+    "id": "638ccf35-770e-470c-ac1a-27959ffa22dc",
+    "frozen": true,
+    "provider": "MOVING_AVERAGE"
+  },
+  "offline_saved_reuse": true,
+  "offline_new_computation": "COMPUTE_UNAVAILABLE",
+  "handler_contract": "forecast.chronos.v1",
+  "wall_seconds": 117.37578389799455,
+  "disposable_schema_removed": true
+}

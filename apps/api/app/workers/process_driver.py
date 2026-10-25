@@ -22,7 +22,18 @@ from pathlib import Path
 from typing import Any
 
 _PROC = Path("/proc")
-_ENV_ALLOWLIST = ("PATH", "HOME", "LANG", "LC_ALL", "TZ", "TMPDIR", "VIRTUAL_ENV")
+_ENV_ALLOWLIST = (
+    "PATH",
+    "HOME",
+    "LANG",
+    "LC_ALL",
+    "TZ",
+    "TMPDIR",
+    "VIRTUAL_ENV",
+    "PP_CHRONOS_ENABLED",
+    "PP_CHRONOS_REVISION",
+    "PP_CHRONOS_MODEL_CACHE",
+)
 _THREAD_VARS = ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS")
 BOUNDARY_ENV = "PP_WQ_BOUNDARY"
 PARENT_ENV = "PP_WQ_PARENT_PID"

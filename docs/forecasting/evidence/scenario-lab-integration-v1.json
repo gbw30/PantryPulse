@@ -1,0 +1,99 @@
+{
+  "schema_version": "forecast-scenario-lab-integration-v1",
+  "recorded_at": "2026-10-25T19:21:04.314470+00:00",
+  "integrated_main": "f7a921a77f85b48b761f7cdb2c7274287f4793a9",
+  "pull_request": "https://github.com/gbw30/PantryPulse/pull/93",
+  "changes": [
+    "Preserve main's removal of the legacy workspace and move model selection/provenance into Scenario Lab",
+    "Resume both current and legacy forecast job links through /optimization redirect",
+    "Allow editing all eight product multipliers within the builder's own scroll region",
+    "Send fixed hub-zero modifiers alongside editable beneficiary choices to satisfy canonical coverage",
+    "Use current presenter sign-in, await mobile wizard readiness, and correlate connected assertions with the new comparison job"
+  ],
+  "backend": {
+    "passed": 1327,
+    "skipped": 0,
+    "seconds": 414.47,
+    "junit_path": "/tmp/pantrypulse-pr93-current-main-backend.xml",
+    "sha256": "bef0eb7585da8d3456c718fe96b126b68529d3382c53c13763340223baf21dfd",
+    "skip_rejection_gate": "PASSED"
+  },
+  "frontend": {
+    "node": "v24.16.0",
+    "npm": "11.13.0",
+    "typecheck": "PASSED",
+    "lint": "PASSED",
+    "production_build": "PASSED",
+    "contract_drift": "PASSED",
+    "proxy_unit_tests_passed": 6,
+    "configuration_tests_passed": 20
+  },
+  "browser": {
+    "affected_unique_passed": 14,
+    "scope": [
+      "Chronos partial and moving-average fallback reporting on desktop/mobile",
+      "Legacy forecast bookmarks and explicit saved-forecast selection",
+      "Eight product multiplier controls on desktop/mobile",
+      "Real operational history, audited stock, freeze, native plan verification and review",
+      "Real comparison creation and Recommendations review",
+      "Scenario Lab mocked freeze/compare on three viewport sizes",
+      "Real Scenario Lab comparison with equal explicit one-second native search budgets"
+    ],
+    "reports": [
+      {
+        "path": "/tmp/pantrypulse-pr93-scenario-targeted.json",
+        "sha256": "47c0e516de6214ff1e10b5a473e3119ae95f863e591d70ad19dba449adeb73b7",
+        "stats": {
+          "startTime": "2026-10-25T19:17:27.689Z",
+          "duration": 112686.653,
+          "expected": 13,
+          "skipped": 0,
+          "unexpected": 1,
+          "flaky": 0
+        }
+      },
+      {
+        "path": "/tmp/pantrypulse-pr93-scenario-rerun.json",
+        "sha256": "eb2c87acc49cc03785eba220366b8e16fb571e06b323e1a5b076ce91e2a343ce",
+        "stats": {
+          "startTime": "2026-10-25T19:19:49.819Z",
+          "duration": 33938.666,
+          "expected": 2,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        }
+      }
+    ],
+    "notes": [
+      "An exploratory whole-browser run exposed upstream coverage/authentication/readiness defects; it was stopped while awaiting the invalid connected flow. It is not counted as a completed full-suite pass.",
+      "The affected run initially passed 13/14; the review test was waiting on the previous forecast's status. Both connected tests passed after correlating the accepted comparison job.",
+      "The entire current browser suite is an additional GitHub merge gate; its authoritative result is attached to PR #93."
+    ]
+  },
+  "real_chronos_smoke": {
+    "passed": true,
+    "evidence": "scenario-lab-chronos-smoke.json",
+    "sha256": "4436d3f8705b3fb7ddae586fcebb4000f43247f84f2ab77ea0925ddbd2ad96c1",
+    "wall_seconds": 117.37578389799455,
+    "scope": "Default two-product simulated seed; eight-product browser controls are a separate test",
+    "disposable_schema_removed": true
+  },
+  "source_sha256": {
+    "apps/web/src/components/scenario-lab/scenario-lab.tsx": "d8d5fa6044ca020c1e9afbedf46a1b5c62528768458223050979e97126efec29",
+    "apps/web/src/components/scenario-lab/wizard.tsx": "620df0111eab43599c5fe085fc601e2491dfd73f4e447e4f6c67385e91196125",
+    "apps/web/src/lib/planning-api.ts": "6613de14e0a6bccd5e553cbdf197fb14b10dd413bfaf8b58d444b9981dc29bd3",
+    "apps/web/tests/e2e/forecasting-integration.spec.ts": "a1d211b10de01aca47fbb53c1dc692e8ca21a146a87b44082f5e3f2aa5f027c0",
+    "apps/web/tests/e2e/operations-api.spec.ts": "791e9a1ad8c6493a6dc8a33ccc7f127c1730f4b2faeb29d9feb2983834cd7e92",
+    "apps/web/tests/e2e/recommendations.spec.ts": "3a85414243573068c775c709821f58f4cb43ef3d7ee28a3683df518cec13b9ac",
+    "apps/web/tests/e2e/scenario-lab.spec.ts": "eb351bfff719cbaf3fa0e56a92c9e4083f5d93a08f6a29c7d5b12ce45beffcf8",
+    "packages/contracts/openapi.json": "81b6e8c6ff4d3f7e1b81fc62ce20ebc6c70a5f800b93f9b1073f432c5663495b",
+    "packages/contracts/src/schema.d.ts": "95301efe94c5eb4f876915cf5ae1f0b32ee876c0a31fae46b9b50ed4904e9ba3"
+  },
+  "scope_limits": [
+    "No model tuning or final-holdout reopening",
+    "Chronos stays opt-in/experimental; baseline, worker and solver defaults unchanged",
+    "Only owned disposable test schemas and processes were created or stopped; shared runtimes and production databases unchanged",
+    "No claim of eight-product model accuracy or domain-calibrated forecasting"
+  ]
+}

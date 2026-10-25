@@ -1,0 +1,2 @@
+# Offline public-dataset conversion only; not API/runtime dependencies.
+pyarrow==22.0.0
