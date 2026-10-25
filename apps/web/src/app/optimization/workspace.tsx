@@ -17,6 +17,7 @@ const rational = (x: { numerator: number; denominator: number } | null | undefin
 
 export default function Workspace() {
   const viewRevision = useRef(0);
+  const catalogRevision = useRef(0);
   const actionPending = useRef(false);
   const [signedIn, setSignedIn] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -42,8 +43,9 @@ export default function Workspace() {
     setError(value instanceof Error ? value.message : "Request failed. Reconnect and try again.");
   }, []);
   const refresh = useCallback(async () => {
+    const revision = ++catalogRevision.current;
     const [list, net] = await Promise.all([api<Catalog>("planning-catalog"), api<Network>("forecast-catalog")]);
-    setCatalog(list); setNetwork(net);
+    if (revision === catalogRevision.current) { setCatalog(list); setNetwork(net); }
     return { list, net };
   }, []);
   async function selectAssumptions(id: string) {
@@ -87,7 +89,6 @@ export default function Workspace() {
       try {
         const status = await api<Job>(`jobs/${active!.id}`);
         if (stopped) return;
-        setJob(status);
         if (status.state === "SUCCEEDED") {
           if (active!.kind === "comparisons") {
             const result = await api<Comparison>(`comparisons/${active!.id}`);
@@ -95,12 +96,20 @@ export default function Workspace() {
             if (!stopped && selectedView === viewRevision.current) { setComparison(result); setScenario(saved); }
           } else {
             const result = await api<Schema["ForecastResult"]>(`forecasts/${active!.id}`);
-            if (!result.planning_ready) throw new Error("Forecast saved but not planning ready. Review history or choose another source.");
+            if (!result.planning_ready) {
+              if (!stopped) {
+                setJob(status);
+                showError(new Error("Forecast saved but not planning ready. Review history or choose another source."));
+              }
+              return;
+            }
             if (!stopped && selectedView === viewRevision.current) setForecastId(active!.id);
           }
           await refresh();
+          if (!stopped) setJob(status);
           return;
         }
+        setJob(status);
         if (terminal.has(status.state)) return;
       } catch (e) { if (!stopped) showError(e); }
       if (!stopped) timer = setTimeout(poll, 2500);
@@ -173,7 +182,7 @@ export default function Workspace() {
           <div className={styles.row}><label>Allocation window<select disabled={busy} value={days} onChange={(e) => setDays(Number(e.target.value))}>{[1, 2, 3].map((d) => <option key={d} value={d}>{d} day{d > 1 ? "s" : ""}</option>)}</select></label>
             <label>Demand multiplier<input type="number" min="0" max="3" step="0.01" value={multiplier} onChange={(e) => setMultiplier(e.target.value)} /></label></div>
           <label>Assumptions version<select disabled={busy} value={assumptions?.id ?? ""} onChange={(e) => void perform(() => selectAssumptions(e.target.value))}><option value="" disabled>Choose assumptions</option>{catalog?.assumptions.map((r) => <option key={r.id} value={r.id}>{r.label} · {r.id.slice(0, 8)}</option>)}</select></label>
-          <button disabled={busy || !forecastId || !mode || !assumptions} onClick={() => void perform(freeze)}>{scenario ? "Save revised scenario" : "Freeze scenario"}</button>
+          <button disabled={busy || (active?.kind === "forecasts" && !!running) || !forecastId || !mode || !assumptions} onClick={() => void perform(freeze)}>{scenario ? "Save revised scenario" : "Freeze scenario"}</button>
           <p>Dispatch on day one. Policy and scenario edits create new immutable versions.</p>
         </section>
         <section className={styles.card}><h2>3 · Compare methods</h2>

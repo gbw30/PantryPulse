@@ -13,6 +13,15 @@ Updated October 25, 2026. This is the current navigation/status summary for the 
 | Compute | Opt-in `compose.compute.yaml`, bounded Windows builder/tools, persistent model cache; separate Fly API/worker configuration | No Fly login/platform validation/deployment or paid resources established |
 | CI | `.github/workflows/pantrypulse-ci.yml` runs Linux/PostgreSQL backend, web/contracts/build and connected browser gates | Skips are rejected; an ignored Vercel build is not application validation |
 
+## VP API integration candidate
+
+[PP-50 review](VP-API-INTEGRATION.md) prepares VP `35615a6` on main `9df7c51`.
+The candidate adds operational inventory/receipt/supply/import/dashboard APIs and
+canonical single-method plans/reviews. Main planning contracts and the connected
+workspace remain authoritative. New migration head `ppvp_0007` preserves both
+planning histories; legacy VP records are read-only and non-executable. This is
+review-branch status until the PR is merged; no live deployment/migration is implied.
+
 ## Execution limits
 
 | Setting | Default | Maximum |

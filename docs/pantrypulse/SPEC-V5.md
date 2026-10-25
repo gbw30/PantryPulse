@@ -14,6 +14,13 @@
 
 **PP-46 integration:** main `aadd2d2` plus OR `465d026` is integrated on `codex/or-connected-review`. [Connected integration](../optimization/CONNECTED-INTEGRATION.md) defines the approved bounded public flow, immutable migrations, simulated preset, explicit expiry and source authority. [Finalization](../optimization/FINALIZATION.md) records current evidence. Previous unimplemented/withdrawn statements about this specific flow are historical. Hosting, Chronos, supplier planning and broader scope remain open.
 
+**VP API convergence candidate (PP-50):** The user approved keeping main planning
+contracts/storage/verifier/budgets canonical while adapting VP's additional APIs.
+[Integration review](VP-API-INTEGRATION.md) records operational APIs, single-method
+plans and append-only simulation reviews, migration compatibility and acceptance.
+This expands the API surface; no general import UI, P1 dispatch or deployment is
+included. Existing legacy VP hashes remain in their original contract family.
+
 ## Contents
 
 1. [Authority and reading rules](#1-authority-and-reading-rules)

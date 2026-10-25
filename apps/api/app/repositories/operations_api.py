@@ -48,13 +48,17 @@ def row_data(row):
 
 
 def journal(session, scope, operation, key, payload, create):
-    session.execute(sa.text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))"), {
+    session.execute(sa.text(
+            "SELECT pg_advisory_xact_lock(hashtextextended(current_schema() || :key, 0))"
+        ), {
         "key": f"vp-operational:{scope.organization_id}",
     })
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False)
     digest = hashlib.sha256(encoded.encode()).hexdigest()
     actor = str(scope.actor_ref)
-    session.execute(sa.text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))"), {
+    session.execute(sa.text(
+            "SELECT pg_advisory_xact_lock(hashtextextended(current_schema() || :key, 0))"
+        ), {
         "key": f"http:{scope.organization_id}:{actor}:{operation}:{key}",
     })
     previous = session.scalar(sa.select(HTTPCommand).where(
@@ -212,7 +216,9 @@ def import_history(session, scope, body, *, coverage=False):
         if item.day > now.astimezone(ZoneInfo(calendar.timezone)).date():
             raise StockError("FUTURE_HISTORY", 422)
         # Serialize both day and external-key membership across concurrent imports.
-        session.execute(sa.text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))"), {
+        session.execute(sa.text(
+            "SELECT pg_advisory_xact_lock(hashtextextended(current_schema() || :key, 0))"
+        ), {
             "key": f"import:{org}:{body.source_id}",
         })
         if coverage:

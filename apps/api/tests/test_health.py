@@ -10,7 +10,8 @@ def test_process_liveness_does_not_claim_domain_readiness():
     assert response.json() == {"status": "ok", "scope": "process"}
 
 
-def test_unimplemented_solver_is_not_exposed():
+def test_allocation_requires_configured_storage_before_submission():
     with TestClient(app) as client:
         response = client.post("/api/v1/scenarios/example/plans", json={})
-    assert response.status_code == 404
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "DATABASE_NOT_CONFIGURED"

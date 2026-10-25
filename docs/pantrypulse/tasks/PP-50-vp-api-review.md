@@ -9,9 +9,8 @@ commands, history imports, dashboard/shortages, and planning additions. Preserve
 main's connected workspace, original migration histories, authoritative stock
 ledger, authentication, CSRF, generated contracts and Linux CI evidence.
 
-The competing VP planning store/API/worker path is an architecture decision pending
-user approval. Operational API review may proceed independently. Do not replace
-main's approved planning implementation or reduce solver budgets while waiting.
+The user approved converging VP planning on main: retain its contracts, storage,
+verifier and budgets, and adapt the additional plan/review APIs.
 
 Acceptance: focused failing regressions for demonstrated issues, isolated
 PostgreSQL migration/transaction/tenant/idempotency checks, real Linux queue and
@@ -20,3 +19,7 @@ tests, contract drift, lint/types/build and the existing browser journey. Record
 source identities, retained changes, findings and remaining limitations in the
 review report. Prepare a reviewable integration branch/PR; final merge requires
 the appropriate authorization and passing final evidence.
+
+Local exit gates completed: 1206 backend tests with no skips; 11 production-browser
+tests; 18 configuration and six proxy tests; static/build/contract checks and
+retained benchmark replay. See the integration report and source manifest.

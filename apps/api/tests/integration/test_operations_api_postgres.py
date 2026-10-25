@@ -268,3 +268,50 @@ def test_journal_conflict_cross_tenant_and_immutability(api):
     )
     with pytest.raises(sa.exc.IntegrityError), runtime.engine.begin() as conn:
         conn.execute(sa.update(HTTPCommand).values(operation="tampered"))
+
+
+def test_same_tenant_in_isolated_schemas_does_not_share_http_write_locks(api):
+    from concurrent.futures import ThreadPoolExecutor, TimeoutError
+
+    from sqlalchemy.orm import Session
+    from test_operational_postgres import migrate
+
+    from app.repositories.jobs import TrustedScope, create_queue_engine
+    from app.repositories.operations_api import journal, transact
+
+    _, _, runtime, demo = api
+    schema = "ppmerge_test_" + uuid4().hex
+    with runtime.engine.begin() as conn:
+        conn.execute(sa.schema.CreateSchema(schema))
+        migrate(conn, schema)
+        conn.execute(sa.text(f'SET LOCAL search_path TO "{schema}"'))
+        conn.execute(
+            sa.insert(m.Organization).values(
+                id=UUID(demo["organization_id"]), name="Independent schema", is_demo=True
+            )
+        )
+    other = create_queue_engine(runtime.engine.url, schema=schema)
+    scope = TrustedScope(UUID(demo["organization_id"]), "same-presenter")
+    blocked = False
+    try:
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            with Session(runtime.engine) as session, session.begin():
+                journal(session, scope, "schema-test", "same-key", {}, lambda: {"schema": "first"})
+                future = pool.submit(
+                    transact,
+                    other,
+                    lambda second: journal(
+                        second, scope, "schema-test", "same-key", {}, lambda: {"schema": "second"}
+                    ),
+                )
+                try:
+                    result = future.result(timeout=2)
+                except TimeoutError:
+                    blocked = True
+            result = future.result(timeout=5)
+        assert not blocked, "An independent schema was blocked by another schema's write lock"
+        assert result["result"] == {"schema": "second"}
+    finally:
+        other.dispose()
+        with runtime.engine.begin() as conn:
+            conn.execute(sa.schema.DropSchema(schema, cascade=True))

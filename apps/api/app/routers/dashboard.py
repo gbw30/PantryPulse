@@ -11,14 +11,14 @@ from fastapi import APIRouter
 
 from app.models import operational as m
 from app.models.forecasts import ForecastRun
-from app.repositories.inventory import build_snapshot
+from app.repositories.forecast_results import read_committed_forecast_connection
+from app.repositories.inventory import build_snapshot, operational_rows
 from app.repositories.operations_api import wire
-from app.repositories.planning_sources import forecast_from_connection, operational_rows
 from app.routers.forecasts import PRESENTER, RUNTIME
 from app.schemas.forecast_api import ErrorEnvelope
 from app.services.demand_targets import round_daily_targets
-from app.services.inventory.or_kernel import KernelLot, project_kernel
 from app.services.inventory.stock import StockError
+from app.services.optimization.kernel import KernelLot, project_kernel
 
 router = APIRouter(
     prefix="/api/v1",
@@ -98,7 +98,9 @@ def shortages(forecast_run_id: UUID, rt=RUNTIME, scope=PRESENTER):
     with rt.engine.connect().execution_options(isolation_level="REPEATABLE READ") as conn:
         with conn.begin():
             conn.execute(sa.text("SET LOCAL statement_timeout = '10000ms'"))
-            inputs, output = forecast_from_connection(conn, scope.organization_id, forecast_run_id)
+            inputs, output = read_committed_forecast_connection(
+                conn, scope.organization_id, forecast_run_id
+            )
             lots = operational_rows(conn, scope.organization_id, m.InventoryLot, 1000)
             products = {
                 row["id"]: row
@@ -126,6 +128,7 @@ def shortages(forecast_run_id: UUID, rt=RUNTIME, scope=PRESENTER):
                 if (
                     calendar is None
                     or calendar["timezone"] != result.scope.timezone
+                    or str(calendar["id"]) != result.scope.calendar_version
                     or product["base_unit"] != result.scope.unit
                 ):
                     raise StockError("FORECAST_UNIT_OR_CALENDAR_CHANGED", 409)

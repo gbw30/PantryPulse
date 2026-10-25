@@ -12,9 +12,15 @@ from starlette.exceptions import HTTPException
 from starlette.responses import JSONResponse
 
 from app.repositories.forecast_history import HistoryRejected
+from app.repositories.inventory import InventoryError
 from app.repositories.jobs import IdempotencyConflict, JobNotFound, JobStateConflict, QueueError
+from app.routers.dashboard import router as dashboard_router
 from app.routers.forecasts import router
+from app.routers.inventory import router as inventory_router
+from app.routers.operations import router as operations_router
 from app.routers.optimization import router as optimization_router
+from app.routers.planning import router as planning_router
+from app.services.inventory.stock import StockError
 from app.services.jobs.registry import InputRejected
 from app.services.presenter_access import AccessError, LoginLimiter
 
@@ -116,7 +122,7 @@ def create_app(runtime=None):
         )
 
     async def domain_error(request: Request, error):
-        if isinstance(error, (AccessError, HistoryRejected)):
+        if isinstance(error, (AccessError, HistoryRejected, InventoryError, StockError)):
             status = error.status
         elif isinstance(error, JobNotFound):
             status = 404
@@ -128,7 +134,14 @@ def create_app(runtime=None):
             status = 503
         return error_response(error.code, status, request.state.request_id)
 
-    for error_type in (AccessError, HistoryRejected, QueueError, InputRejected):
+    for error_type in (
+        AccessError,
+        HistoryRejected,
+        InventoryError,
+        StockError,
+        QueueError,
+        InputRejected,
+    ):
         application.add_exception_handler(error_type, domain_error)
 
     @application.exception_handler(SQLAlchemyError)
@@ -149,6 +162,10 @@ def create_app(runtime=None):
 
     application.include_router(router)
     application.include_router(optimization_router)
+    application.include_router(inventory_router)
+    application.include_router(operations_router)
+    application.include_router(dashboard_router)
+    application.include_router(planning_router)
     application.add_api_route(
         "/api/v1/health", health, response_model=HealthResponse, tags=["health"]
     )

@@ -11,6 +11,15 @@ MAX_LOTS = 500
 REASONS = ("HELD", "INELIGIBLE", "UNKNOWN_ELIGIBILITY", "UNKNOWN_EXPIRY", "EXPIRED")
 
 
+def operational_rows(conn, org, model, maximum=100):
+    rows = conn.execute(sa.select(model.__table__).where(
+        model.organization_id == org,
+    ).order_by(model.id).limit(maximum + 1)).mappings().all()
+    if len(rows) > maximum:
+        raise InventoryError("OPERATIONAL_SCOPE_TOO_LARGE", 422)
+    return rows
+
+
 class InventoryError(ValueError):
     def __init__(self, code, status=422):
         super().__init__(code)

@@ -186,9 +186,10 @@ class ComparisonPublisher:
             )
         )
         for method in result["methods"]:
+            verification_id = uuid4()
             connection.execute(
                 sa.insert(MethodVerification).values(
-                    id=uuid4(),
+                    id=verification_id,
                     organization_id=identity.organization_id,
                     comparison_id=identity.job_id,
                     method=method["method"],
@@ -196,6 +197,18 @@ class ComparisonPublisher:
                     record=method,
                 )
             )
+            if method["outcome"] == "VERIFIED":
+                from app.repositories.plans import put_plan
+
+                put_plan(
+                    connection,
+                    identity,
+                    scenario["id"],
+                    data["settings"],
+                    method,
+                    comparison_id=identity.job_id,
+                    plan_id=verification_id,
+                )
         return {
             "result_ref": str(identity.job_id),
             "planning_ready": result["outcome"] == "SUCCEEDED",
