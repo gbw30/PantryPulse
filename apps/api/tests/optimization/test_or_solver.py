@@ -9,7 +9,7 @@ import pytest
 from app.schemas.or_inputs import ORScenarioPayload
 from app.services.optimization.service import solve_one
 
-FIXTURES = Path(__file__).resolve().parents[4] / "data/demo/or-v1"
+FIXTURES = Path(__file__).resolve().parents[4] / "data/demo/or-v2"
 
 
 @pytest.mark.parametrize("mode", ["HUB_ONLY", "HUB_AND_PANTRY"])
@@ -26,7 +26,7 @@ def test_six_unique_optima_native(mode, method, expected, score):
     from app.services.optimization.scenario import freeze_scenario
 
     original = ORScenarioPayload.model_validate_json(
-        (FIXTURES / "six-beneficiary-v1.snapshot.json").read_text()
+        (FIXTURES / "six-beneficiary-v2.snapshot.json").read_text()
     )
     scenario = freeze_scenario(
         original.package,
@@ -52,8 +52,8 @@ def test_six_unique_optima_native(mode, method, expected, score):
 @pytest.mark.parametrize(
     "fixture,vector,score",
     [
-        ("ap-ablation-v1", (1, 0), Fraction(19, 8)),
-        ("rp-ablation-v1", (0, 1), Fraction(11, 4)),
+        ("ap-ablation-v2", (1, 0), Fraction(19, 8)),
+        ("rp-ablation-v2", (0, 1), Fraction(11, 4)),
     ],
 )
 def test_native_active_poverty_terms(fixture, vector, score):
@@ -72,7 +72,7 @@ def test_both_physical_fingerprints_identical():
     from app.services.optimization.compare import compare
 
     scenario = ORScenarioPayload.model_validate(
-        json.loads((FIXTURES / "six-beneficiary-v1.snapshot.json").read_text())
+        json.loads((FIXTURES / "six-beneficiary-v2.snapshot.json").read_text())
     )
     result = compare(scenario)
     assert result.outcome == "SUCCEEDED"
@@ -86,7 +86,7 @@ def test_comparison_keeps_a_verified_method_when_its_partner_failed():
     from app.services.optimization.compare import assemble
 
     scenario = ORScenarioPayload.model_validate_json(
-        (FIXTURES / "six-beneficiary-v1.snapshot.json").read_text()
+        (FIXTURES / "six-beneficiary-v2.snapshot.json").read_text()
     )
     first = solve_one(scenario, "CLASSICAL_GP")
     failed_data = first.model_dump()

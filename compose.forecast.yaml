@@ -20,4 +20,4 @@ services:
     command: ["uv", "run", "--frozen", "python", "-m", "app.workers.supervisor", "--registry", "production"]
     cpus: 6
     mem_limit: 8g
-    stop_grace_period: 305s
+    stop_grace_period: 725s

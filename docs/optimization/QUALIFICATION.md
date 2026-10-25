@@ -1,4 +1,10 @@
-# OR computational qualification — October 25, 2026
+> **Current approved integration:** [Connected application and v2 contracts](CONNECTED-INTEGRATION.md) supersede historical OR-only/no-proxy scope and 15/25/60-second execution limits below. The old decision manifest and qualification artifacts remain historical evidence; their hashes and semantics are not reinterpreted.
+
+# Current OR-v2 qualification
+
+The [dense budget sweep](BUDGET-QUALIFICATION-V2.md) records both methods at 15/30/60/120/300 seconds under inclusive expiry. All twenty outcomes passed independent replay; none proved optimality.
+
+## Historical OR-v1 qualification — October 25, 2026
 
 This completes the remaining local qualification work under execution revision 1.2.
 All **24 pairs / 48 method outcomes** returned VERIFIED and passed independent

@@ -8,11 +8,11 @@ from app.schemas.or_outputs import MethodOutcome
 from app.services.optimization.candidates import prepare_problem
 from app.services.optimization.canonical import operational_hash
 from app.services.optimization.process import run_child
-from app.services.optimization.service import DEFAULT_SETTINGS
+from app.services.optimization.settings import execution_limits, validate_settings
 from app.services.optimization.verify import verify
 
 
-def bounded_methods(scenario, methods, settings=None):
+def bounded_methods(scenario, methods, settings=None, *, deadline=None):
     # OR-DEC-011 [PROVISIONAL]: offline limits; shared application runtime is external.
     if methods not in (
         ("CLASSICAL_GP",),
@@ -20,8 +20,12 @@ def bounded_methods(scenario, methods, settings=None):
         ("CLASSICAL_GP", "EGP_PI_INSPIRED"),
     ):
         raise ValueError("EXACT_OFFLINE_METHODS_REQUIRED")
-    settings = dict(DEFAULT_SETTINGS if settings is None else settings)
-    pair_end = time.monotonic() + (60 if len(methods) == 2 else 25)
+    settings = validate_settings(settings)
+    method_limit, pair_limit = execution_limits(settings)
+    pair_end = time.monotonic() + (pair_limit if len(methods) == 2 else method_limit)
+    if deadline is not None:
+        pair_end = min(pair_end, deadline)
+    methods_end = pair_end - (30 if len(methods) == 2 else 0)
     outcomes = []
     for method in methods:
         identity = dict(
@@ -33,15 +37,20 @@ def bounded_methods(scenario, methods, settings=None):
             decision_ids=scenario.decision_ids,
             historical=scenario.intent == "HISTORICAL_REPLAY",
         )
-        deadline = min(pair_end, time.monotonic() + 25)
+        deadline = min(methods_end, time.monotonic() + method_limit)
         request = json.dumps(
             {"scenario": scenario.model_dump(mode="json"), "method": method, "settings": settings},
             allow_nan=False,
         ).encode()
-        result = run_child(
-            [sys.executable, "-m", "app.services.optimization._child"], request, deadline=deadline
-        )
-        failure = result.reason or ("CHILD_PROCESS_FAILED" if result.returncode else None)
+        result = None
+        failure = "DEADLINE_EXCEEDED"
+        if time.monotonic() < deadline:
+            result = run_child(
+                [sys.executable, "-m", "app.services.optimization._child"],
+                request,
+                deadline=deadline,
+            )
+            failure = result.reason or ("CHILD_PROCESS_FAILED" if result.returncode else None)
         if not failure:
             try:
                 outcome = MethodOutcome.model_validate_json(result.stdout)
@@ -64,8 +73,10 @@ def bounded_methods(scenario, methods, settings=None):
                         or objective != outcome.objective
                     ):
                         raise ValueError("PARENT_CHECK_FAILED")
-                outcomes.append(outcome)
-                continue
+                if time.monotonic() < deadline:
+                    outcomes.append(outcome)
+                    continue
+                failure = "DEADLINE_EXCEEDED"
             except (ValueError, TypeError, AttributeError):
                 failure = "INVALID_CHILD_OUTPUT"
         outcomes.append(

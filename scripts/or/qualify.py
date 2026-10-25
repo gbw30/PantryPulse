@@ -41,10 +41,10 @@ from app.services.optimization.service import DEFAULT_SETTINGS
 
 METHODS = ("CLASSICAL_GP", "EGP_PI_INSPIRED")
 MODES = ("HUB_ONLY", "HUB_AND_PANTRY")
-DATA = ROOT / "data/demo/or-v1"
+DATA = ROOT / "data/demo/or-v2"
 
 
-def fixture(name="six-beneficiary-v1"):
+def fixture(name="six-beneficiary-v2"):
     return ORScenarioPayload.model_validate_json(
         (DATA / f"{name}.snapshot.json").read_text()
     )
@@ -177,6 +177,7 @@ def upper_scope(*, numeric=False, mode="HUB_ONLY"):
                     "units": 100000 if numeric else 1,
                     "available_on": first + timedelta(days=3),
                     "expires_on": first + timedelta(days=8),
+                    "expiry_kind": "DATED",
                     "eligibility": "ELIGIBLE",
                     "confirmed": True,
                     "already_posted": False,
@@ -247,10 +248,10 @@ def summarize(outcome):
 def check_case(name, outcomes):
     """Independent literal/limiting expectations, beyond production replay."""
     expected = {
-        "ap-ablation-v1-full": ((1, 0), Fraction(19, 8)),
-        "ap-ablation-v1-gamma0": ((0, 1), Fraction(2)),
-        "rp-ablation-v1-full": ((0, 1), Fraction(11, 4)),
-        "rp-ablation-v1-gamma0": ((1, 0), Fraction(21, 8)),
+        "ap-ablation-v2-full": ((1, 0), Fraction(19, 8)),
+        "ap-ablation-v2-gamma0": ((0, 1), Fraction(2)),
+        "rp-ablation-v2-full": ((0, 1), Fraction(11, 4)),
+        "rp-ablation-v2-gamma0": ((1, 0), Fraction(21, 8)),
     }
     if name in expected:
         vector, objective = expected[name]
@@ -424,8 +425,8 @@ def sensitivity_cases():
             freeze(original, package=mixed, policy=ORPolicy.model_validate(policy)),
         )
     for name, field in (
-        ("ap-ablation-v1", "gamma_ap_percent"),
-        ("rp-ablation-v1", "gamma_rp_percent"),
+        ("ap-ablation-v2", "gamma_ap_percent"),
+        ("rp-ablation-v2", "gamma_rp_percent"),
     ):
         base = fixture(name)
         yield name + "-full", base

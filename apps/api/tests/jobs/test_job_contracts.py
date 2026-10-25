@@ -75,13 +75,13 @@ def test_unknown_or_lowercase_state_values_are_rejected():
 def test_production_profile_holds_every_accepted_v5_ceiling():
     p = PRODUCTION_PROFILE
     assert p.max_queued == 2
-    assert p.queue_wait_s == 900
+    assert p.queue_wait_s == 1800
     assert p.forecast_total_s == 300
     assert p.forecast_primary_cutoff_s == 270
-    assert p.method_search_s == 15
-    assert p.method_wall_s == 25
-    assert p.allocation_total_s == 25
-    assert p.comparison_total_s == 60
+    assert p.method_search_s == 300
+    assert p.method_wall_s == 330
+    assert p.allocation_total_s == 330
+    assert p.comparison_total_s == 690
     assert p.heartbeat_interval_s == 5
     assert p.heartbeat_stale_s == 15
     assert p.worker_cpu == 6
@@ -100,11 +100,11 @@ def test_production_profile_holds_every_accepted_v5_ceiling():
         {"max_queued": 2.5},
         {"max_queued": True},
         {"heartbeat_interval_s": 15},
-        {"method_search_s": 26},
+        {"method_search_s": 331},
         {"forecast_primary_cutoff_s": 300},
         {"stop_grace_s": 0},
-        {"publication_reserve_s": 25},
-        {"method_wall_s": 61},
+        {"publication_reserve_s": 300},
+        {"method_wall_s": 691},
     ],
 )
 def test_inconsistent_profiles_are_rejected(change):
@@ -114,8 +114,8 @@ def test_inconsistent_profiles_are_rejected(change):
 
 def test_effective_limits_are_versioned_and_contain_no_secrets():
     limits = PRODUCTION_PROFILE.effective_limits()
-    assert limits["version"] == 1
-    assert limits["limits"]["queue_wait_s"] == 900
+    assert limits["version"] == 2
+    assert limits["limits"]["queue_wait_s"] == 1800
     assert limits["limits"]["worker_memory_gib"] == 8
     assert "database" not in canonical_json(limits).lower()
 
@@ -186,7 +186,7 @@ def test_pure_job_modules_import_no_database_solver_or_model_packages(module):
 def test_a_profile_may_be_shorter_but_never_longer_than_the_ceiling():
     shorter = dataclasses.replace(PRODUCTION_PROFILE, queue_wait_s=60)
     assert shorter.within(PRODUCTION_PROFILE)
-    longer = dataclasses.replace(PRODUCTION_PROFILE, comparison_total_s=61)
+    longer = dataclasses.replace(PRODUCTION_PROFILE, comparison_total_s=691)
     assert not longer.within(PRODUCTION_PROFILE)
     more_waiters = dataclasses.replace(PRODUCTION_PROFILE, max_queued=3)
     assert not more_waiters.within(PRODUCTION_PROFILE)

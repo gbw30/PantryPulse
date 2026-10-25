@@ -1,6 +1,7 @@
 """Method-independent candidate preparation and conservative donor eligibility."""
 
 from dataclasses import dataclass
+from datetime import date
 from uuid import UUID
 
 from app.schemas.or_inputs import ORScenarioPayload
@@ -67,9 +68,9 @@ def prepare_problem(snapshot: ORScenarioPayload) -> PreparedProblem:
                     and lot.product_id == product.id
                     and usable(lot)
                     and lot.dispatchable
-                    and lot.expires_on > arrival
+                    and (lot.expires_on is None or lot.expires_on >= arrival)
                 ),
-                key=lambda lot: (lot.expires_on, lot.available_on, str(lot.id)),
+                key=lambda lot: (lot.expires_on or date.max, lot.available_on, str(lot.id)),
             )
         )
         source_days = [

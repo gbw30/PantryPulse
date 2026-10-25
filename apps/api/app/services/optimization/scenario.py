@@ -19,7 +19,7 @@ from app.services.transfer_modes import check_mode_route
 
 def usable(lot) -> bool:
     # OR-DEC-001 [PROVISIONAL]: unknown expiry excluded only at operational adapter.
-    return lot.eligibility == "ELIGIBLE" and lot.expires_on is not None
+    return lot.eligibility == "ELIGIBLE" and lot.expiry_kind != "UNKNOWN"
 
 
 # OR-DEC-015 [PROVISIONAL]: only supplied revisions/frozen replay; no source-store reads.
@@ -81,7 +81,11 @@ def freeze_scenario(
     # OR-DEC-004 [PROVISIONAL]: operational identity freezes restricted route loading order.
     cost_reference = 0
     for lot in package.inventory:
-        if usable(lot) and lot.dispatchable and lot.expires_on > package.first_planning_date:
+        if (
+            usable(lot)
+            and lot.dispatchable
+            and (lot.expires_on is None or lot.expires_on >= package.first_planning_date)
+        ):
             prices = [
                 c.cost_minor
                 for r in allowed

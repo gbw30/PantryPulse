@@ -16,32 +16,17 @@ from app.services.optimization.constraints import build_physical_model
 from app.services.optimization.egp_pi_inspired import attach_research
 from app.services.optimization.extract import read_candidate
 from app.services.optimization.numerics import audit_model
+from app.services.optimization.settings import solver_settings, validate_settings
 from app.services.optimization.verify import verify
 
-DEFAULT_SETTINGS = {
-    "version": "or-solver-settings-v1",
-    "workers": 1,
-    "seed": 0,
-    "search_milliseconds": 15000,
-}
+DEFAULT_SETTINGS = solver_settings()
 
 
 def solve_one(snapshot, method, settings=None) -> MethodOutcome:
     started = time.monotonic()
     snapshot = ORScenarioPayload.model_validate(snapshot.model_dump())
     method = AllocationMethod(method)
-    settings = dict(DEFAULT_SETTINGS if settings is None else settings)
-    if (
-        set(settings) != set(DEFAULT_SETTINGS)
-        or settings["version"] != DEFAULT_SETTINGS["version"]
-        or type(settings["workers"]) is not int
-        or settings["workers"] != 1
-        or type(settings["seed"]) is not int
-        or not 0 <= settings["seed"] < 2**31
-        or type(settings["search_milliseconds"]) is not int
-        or not 0 < settings["search_milliseconds"] <= 15000
-    ):
-        raise ValueError("UNSUPPORTED_SOLVER_SETTINGS")
+    settings = validate_settings(settings)
     identity = dict(
         method=method,
         transfer_mode=snapshot.transfer_mode,

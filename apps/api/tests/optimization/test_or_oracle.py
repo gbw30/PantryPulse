@@ -32,8 +32,8 @@ def test_oracle_has_no_application_or_native_solver_dependency():
 @pytest.mark.parametrize(
     ("fixture", "expected"),
     [
-        ("ap-ablation-v1", [((1, 0), Fraction(19, 8)), ((0, 1), Fraction(2))]),
-        ("rp-ablation-v1", [((0, 1), Fraction(11, 4)), ((1, 0), Fraction(21, 8))]),
+        ("ap-ablation-v2", [((1, 0), Fraction(19, 8)), ((0, 1), Fraction(2))]),
+        ("rp-ablation-v2", [((0, 1), Fraction(11, 4)), ((1, 0), Fraction(21, 8))]),
     ],
 )
 def test_decision_changing_ablations(fixture, expected):
@@ -46,7 +46,7 @@ def test_decision_changing_ablations(fixture, expected):
 
 
 def test_six_beneficiary_unique_optima():
-    result = enumerate_fixture("six-beneficiary-v1")
+    result = enumerate_fixture("six-beneficiary-v2")
     assert result["vectors_per_product"] == 435
     assert result["feasible_pairs"] == 435**2
     classical, research = result["results"]
@@ -148,7 +148,7 @@ def test_cli_emits_exact_reproducible_json(tmp_path):
             "-m",
             "scripts.or_enumerate",
             "--fixture",
-            "ap-ablation-v1",
+            "ap-ablation-v2",
             "--output",
             str(target),
         ],

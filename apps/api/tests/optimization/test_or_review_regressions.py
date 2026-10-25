@@ -16,11 +16,11 @@ from app.services.optimization.canonical import canonical_bytes, operational_has
 from app.services.optimization.scenario import freeze_scenario, verify_scenario
 from app.services.optimization.verify import verify
 
-DATA = Path(__file__).resolve().parents[4] / "data/demo/or-v1"
+DATA = Path(__file__).resolve().parents[4] / "data/demo/or-v2"
 
 
 def valid_snapshot():
-    raw = json.loads((DATA / "six-beneficiary-v1.snapshot.json").read_text())
+    raw = json.loads((DATA / "six-beneficiary-v2.snapshot.json").read_text())
     package = raw["package"]
     as_of = datetime.fromisoformat(package["snapshot_as_of"])
     snapshot_day = as_of.astimezone(ZoneInfo(package["operational_timezone"])).date()
@@ -128,6 +128,7 @@ def test_future_confirmed_arrival_remains_supported():
             "units": 1,
             "available_on": raw["first_planning_date"],
             "expires_on": stock["expires_on"],
+            "expiry_kind": "DATED",
             "eligibility": "ELIGIBLE",
             "confirmed": True,
             "already_posted": False,

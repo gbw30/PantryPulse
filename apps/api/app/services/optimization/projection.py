@@ -46,7 +46,7 @@ def simulate(scenario, assignments=(), *, include_planned_inbound=True):
                     Exclusion(resource_id=str(lot.id), code="UNUSABLE_OR_UNKNOWN_EXPIRY")
                 )
                 continue
-            if lot.expires_on <= lot.available_on:
+            if lot.expires_on is not None and lot.expires_on < lot.available_on:
                 exclusions.append(
                     Exclusion(resource_id=str(lot.id), code="ARRIVAL_EXPIRED_ON_RECEIPT")
                 )

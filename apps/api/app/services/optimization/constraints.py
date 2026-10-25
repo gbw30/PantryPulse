@@ -3,7 +3,7 @@
 import hashlib
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import date, timedelta
 
 from ortools.sat.python import cp_model
 
@@ -104,7 +104,7 @@ def build_physical_model(problem) -> PhysicalModel:
                     (str(lot.id), lot.units, lot.units, lot.available_on, lot.expires_on, False)
                 )
         resources.extend(inbound)
-        resources.sort(key=lambda r: (r[4], r[3], r[0]))
+        resources.sort(key=lambda r: (r[4] or date.max, r[3], r[0]))
         balances = {r[0]: r[1] for r in resources}
         consumption = defaultdict(list)
         day_served, day_ends, day_waste = [], [], []
@@ -119,7 +119,7 @@ def build_physical_model(problem) -> PhysicalModel:
                     balances[identity] = 0
                     continue
                 balance = balances[identity]
-                if expiry <= point.day:
+                if expiry is not None and expiry < point.day:
                     wastes.append(balance)
                     balances[identity] = 0
                     continue

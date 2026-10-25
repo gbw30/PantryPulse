@@ -8,13 +8,13 @@ from app.schemas.or_inputs import ORScenarioPayload, Rational
 from app.services.optimization.compare import assemble
 from app.services.optimization.service import DEFAULT_SETTINGS, solve_one
 
-DATA = Path(__file__).resolve().parents[4] / "data/demo/or-v1"
+DATA = Path(__file__).resolve().parents[4] / "data/demo/or-v2"
 
 
 @pytest.fixture(scope="module")
 def pair():
     scenario = ORScenarioPayload.model_validate_json(
-        (DATA / "six-beneficiary-v1.snapshot.json").read_text()
+        (DATA / "six-beneficiary-v2.snapshot.json").read_text()
     )
     return scenario, tuple(
         solve_one(scenario, name) for name in ("CLASSICAL_GP", "EGP_PI_INSPIRED")

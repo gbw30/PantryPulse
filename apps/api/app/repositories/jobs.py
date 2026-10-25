@@ -37,7 +37,6 @@ from app.services.jobs.policies import (
     can_retry,
     final_state_for_stop_reason,
     heartbeat_status,
-    operation_budget_s,
 )
 from app.services.jobs.registry import (
     InputRejected,
@@ -569,6 +568,7 @@ class QueueRepository:
             raise InputRejected("UNKNOWN_CONTRACT", "handler contract is not registered") from None
         self._check_key(idempotency_key)
         validated = registration.handler.validate_input(payload)
+        registration.execution_budget(validated, self.profile)
         package = {
             "contract": registration.contract,
             "input_schema_version": registration.input_schema_version,
@@ -1106,14 +1106,14 @@ class QueueRepository:
                         and registration.handler.validate_input(package["input"])
                         == package["input"]
                     )
+                    budget = registration.execution_budget(package["input"], self.profile)
+                    steps = registration.handler.steps(package["input"], self.profile)
                 except (InputRejected, KeyError, TypeError, ValueError, AttributeError):
                     intact = False
                 if not intact:
                     self._fail_unstarted(conn, row, ReasonCode.INPUT_INTEGRITY, now)
                     continue
                 kind = OperationKind(row["operation_kind"])
-                budget = operation_budget_s(kind, self.profile)
-                steps = registration.handler.steps(package["input"], self.profile)
                 cutoffs = [s.cutoff_s for s in steps if s.cutoff_s is not None]
                 deadline = now + timedelta(seconds=budget)
                 primary = now + timedelta(seconds=min(cutoffs)) if cutoffs else None

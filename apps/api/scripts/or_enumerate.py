@@ -204,10 +204,13 @@ def _six():
 
 def enumerate_fixture(name):
     """Complete tiny math feasible sets; never native solver/runtime evidence."""
-    if name == "six-beneficiary-v1":
+    # These oracle cases expire after the seven-day window; both expiry contracts
+    # therefore have exactly the same independently enumerated feasible sets.
+    original = name.removesuffix("-v2") + "-v1" if name.endswith("-v2") else name
+    if original == "six-beneficiary-v1":
         result = _six()
-    elif name in {"ap-ablation-v1", "rp-ablation-v1"}:
-        result = _ablation(name)
+    elif original in {"ap-ablation-v1", "rp-ablation-v1"}:
+        result = _ablation(original)
     else:
         raise ValueError("unknown independent oracle fixture")
     result.update({
@@ -224,6 +227,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fixture", required=True, choices=(
         "six-beneficiary-v1", "ap-ablation-v1", "rp-ablation-v1",
+        "six-beneficiary-v2", "ap-ablation-v2", "rp-ablation-v2",
     ))
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args(argv)

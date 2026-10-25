@@ -58,10 +58,10 @@ def test_mode_is_explicit_and_sensitivity_cannot_overwrite_primary_policy():
     assert cases["no-research-terms"].policy.gamma_ap_percent == 0
     assert cases["no-research-terms"].policy.gamma_rp_percent == 0
     assert len({s.policy_hash for n, s in cases.items() if not n.endswith("-full")}) == 17
-    assert cases["ap-ablation-v1-full"].policy_hash == cases["rp-ablation-v1-full"].policy_hash
+    assert cases["ap-ablation-v2-full"].policy_hash == cases["rp-ablation-v2-full"].policy_hash
     assert (
-        cases["ap-ablation-v1-full"].operational_hash
-        != cases["rp-ablation-v1-full"].operational_hash
+        cases["ap-ablation-v2-full"].operational_hash
+        != cases["rp-ablation-v2-full"].operational_hash
     )
 
 

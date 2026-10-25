@@ -5,7 +5,7 @@ import json
 import os
 import re
 import sys
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import uuid5
 
@@ -18,10 +18,13 @@ from app.models import operational as m  # noqa: E402
 from scripts.forecasting_fixture import SPEC_PATH, build_fixture  # noqa: E402
 
 
-def seed_history(conn):
+def seed_history(conn, *, first_planning_date=None):
     """One transaction: catalog + revisions only. No inventory, supply or fake forecast."""
-    history, policy, _origins, as_of = build_fixture()
     spec = json.loads(SPEC_PATH.read_text(encoding="utf-8"))
+    if first_planning_date is not None:
+        start = first_planning_date - timedelta(days=spec["history_days"])
+        spec["start_date"] = start.isoformat()
+    history, policy, _origins, as_of = build_fixture(spec)
     org, dataset = history.organization_id, history.dataset_id
     if conn.scalar(sa.select(sa.func.count()).select_from(m.Organization)):
         raise ValueError("Demo loader requires an empty schema; existing data is never reset")

@@ -15,7 +15,7 @@ from app.services.optimization.numerics import audit_model
 from app.services.optimization.scenario import freeze_scenario
 from app.services.optimization.service import solve_one
 
-DATA = Path(__file__).resolve().parents[4] / "data/demo/or-v1"
+DATA = Path(__file__).resolve().parents[4] / "data/demo/or-v2"
 
 
 def snapshot(name):
@@ -63,10 +63,10 @@ def native_solver():
 @pytest.mark.parametrize(
     "kind,fixture,score,first_units,expected_q,expected_flag",
     [
-        pytest.param("ap", "ap-ablation-v1", 5000, 1, 7500, False, id="ap-equality"),
-        pytest.param("ap", "ap-ablation-v1", 5002, 1, 7501, True, id="ap-one-quantum-above"),
-        pytest.param("rp", "rp-ablation-v1", 5000, 0, 15000, False, id="rp-equality"),
-        pytest.param("rp", "rp-ablation-v1", 5001, 0, 15001, True, id="rp-one-quantum-above"),
+        pytest.param("ap", "ap-ablation-v2", 5000, 1, 7500, False, id="ap-equality"),
+        pytest.param("ap", "ap-ablation-v2", 5002, 1, 7501, True, id="ap-one-quantum-above"),
+        pytest.param("rp", "rp-ablation-v2", 5000, 0, 15000, False, id="rp-equality"),
+        pytest.param("rp", "rp-ablation-v2", 5001, 0, 15001, True, id="rp-one-quantum-above"),
     ],
 )
 @pytest.mark.parametrize("forced_flag", [False, True], ids=["force-false", "force-true"])
@@ -110,8 +110,8 @@ def test_native_poverty_flags_reify_both_sides_of_strict_boundary(
 @pytest.mark.parametrize(
     "fixture,gamma_field,full_vector,full_score,ablated_vector,ablated_score",
     [
-        ("ap-ablation-v1", "gamma_ap_percent", (1, 0), Fraction(19, 8), (0, 1), Fraction(2)),
-        ("rp-ablation-v1", "gamma_rp_percent", (0, 1), Fraction(11, 4), (1, 0), Fraction(21, 8)),
+        ("ap-ablation-v2", "gamma_ap_percent", (1, 0), Fraction(19, 8), (0, 1), Fraction(2)),
+        ("rp-ablation-v2", "gamma_rp_percent", (0, 1), Fraction(11, 4), (1, 0), Fraction(21, 8)),
     ],
 )
 def test_native_diagnostic_ablations_change_the_actual_research_allocation(
@@ -148,7 +148,7 @@ def test_independent_one_unit_case_has_unique_research_optimum_over_full_feasibl
     # With beta=.5, AP/RP thresholds .75/.25 and caps .25:
     # f=(0,0): 2.5+.75+.25=3.5; f=(1,0): 1+.25+.25=1.5;
     # f=(0,1): 2+.25+.25=2.5. f=(1,1) exceeds original stock.
-    original = snapshot("ap-ablation-v1")
+    original = snapshot("ap-ablation-v2")
     first, second = beneficiaries(original)
     raw = original.package.model_dump()
     for series in raw["forecasts"]:

@@ -46,7 +46,7 @@ def project_kernel(points: tuple[tuple[date, int], ...], lots: tuple[KernelLot, 
         for lot in lots:
             used = lost = 0
             if lot.available_on <= day:
-                if lot.expires_on is not None and lot.expires_on <= day:
+                if lot.expires_on is not None and lot.expires_on < day:
                     lost, balances[lot.id] = balances[lot.id], 0
                 else:
                     used = min(balances[lot.id], remaining)

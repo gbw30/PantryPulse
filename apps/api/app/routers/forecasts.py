@@ -153,9 +153,14 @@ def retry(
     rt=RUNTIME,
     scope=PRESENTER,
 ):
-    if rt.queue.get_job(scope, job_id).handler_contract != "forecast.v1":
+    if rt.queue.get_job(scope, job_id).handler_contract not in {"forecast.v1", "or-comparison.v2"}:
         raise JobNotFound()
     accepted = rt.queue.retry(scope, job_id, idempotency_key)
+    resource = (
+        "comparisons"
+        if rt.queue.get_job(scope, job_id).handler_contract == "or-comparison.v2"
+        else "forecasts"
+    )
     status_url = f"/api/v1/jobs/{job_id}"
     response.headers["Location"] = status_url
     return ForecastAccepted(
@@ -164,7 +169,7 @@ def retry(
         state=accepted.state,
         replayed=accepted.replayed,
         status_url=status_url,
-        result_url=f"/api/v1/forecasts/{job_id}",
+        result_url=f"/api/v1/{resource}/{job_id}",
     )
 
 
@@ -177,7 +182,7 @@ def cancel(
     rt=RUNTIME,
     scope=PRESENTER,
 ):
-    if rt.queue.get_job(scope, job_id).handler_contract != "forecast.v1":
+    if rt.queue.get_job(scope, job_id).handler_contract not in {"forecast.v1", "or-comparison.v2"}:
         raise JobNotFound()
     outcome = rt.queue.cancel(scope, job_id, idempotency_key)
     return ForecastCancelled(
@@ -192,7 +197,7 @@ def cancel(
 @router.get("/jobs/{job_id}", response_model=ForecastJob, tags=["forecasts"])
 def job_status(job_id: UUID, rt=RUNTIME, scope=PRESENTER):
     job = rt.queue.get_job(scope, job_id)
-    if job.handler_contract != "forecast.v1":
+    if job.handler_contract not in {"forecast.v1", "or-comparison.v2"}:
         raise JobNotFound()
     return ForecastJob(
         job_id=job.job_id,
@@ -228,7 +233,7 @@ def result(job_id: UUID, rt=RUNTIME, scope=PRESENTER):
         if row is None:
             # Different organizations get 404; an owned job awaiting publication gets 409.
             job = rt.queue.get_job(scope, job_id)
-            if job.handler_contract != "forecast.v1":
+            if job.handler_contract not in {"forecast.v1", "or-comparison.v2"}:
                 raise JobNotFound()
             raise HistoryRejected("FORECAST_NOT_PUBLISHED", 409)
         return ForecastResult(

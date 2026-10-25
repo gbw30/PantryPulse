@@ -1,3 +1,5 @@
+> **Current approved integration:** [Connected application and v2 contracts](CONNECTED-INTEGRATION.md) supersede historical OR-only/no-proxy scope and 15/25/60-second execution limits below. The old decision manifest and qualification artifacts remain historical evidence; their hashes and semantics are not reinterpreted.
+
 # Provisional OR decision register
 
 Draft 1.1 / policy or-policy-v1 / schema or-input-v1 and or-scenario-v1. Owner: implementation lead; review state: provisional, adopted October 24, 2026. These choices do not resolve accepted backend OPEN records.

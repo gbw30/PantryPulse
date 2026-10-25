@@ -26,10 +26,10 @@ from app.services.optimization.packing import pack
 from app.services.optimization.scenario import freeze_scenario, verify_scenario
 from app.services.optimization.verify import verify
 
-DATA = Path(__file__).resolve().parents[4] / "data/demo/or-v1"
+DATA = Path(__file__).resolve().parents[4] / "data/demo/or-v2"
 
 
-def snapshot(name="six-beneficiary-v1"):
+def snapshot(name="six-beneficiary-v2"):
     return ORScenarioPayload.model_validate_json((DATA / f"{name}.snapshot.json").read_text())
 
 
@@ -254,7 +254,10 @@ def test_expiry_and_unknown_expiry_operational_exclusion():
     p = s.package
     changed = p.model_copy(
         update={
-            "inventory": tuple(lot.model_copy(update={"expires_on": None}) for lot in p.inventory)
+            "inventory": tuple(
+                lot.model_copy(update={"expires_on": None, "expiry_kind": "UNKNOWN"})
+                for lot in p.inventory
+            )
         }
     )
     changed = refreeze(s, package=changed)
@@ -267,7 +270,7 @@ def test_expiry_and_unknown_expiry_operational_exclusion():
 
 def test_singleton_positive_group_rejected():
     # OR-DEC-007 [PROVISIONAL]: behavioral coverage in decision-manifest.json.
-    s = snapshot("ap-ablation-v1")
+    s = snapshot("ap-ablation-v2")
     p = s.package
     fs = tuple(
         f.model_copy(
@@ -308,7 +311,7 @@ def test_shared_handling_capacity_is_joint_across_products():
 def test_pantry_surplus_topology_and_harmful_donor_future_protection():
     # OR-DEC-003 [PROVISIONAL]: own future service cannot depend on proposed inbound.
     # OR-DEC-003 [PROVISIONAL]: behavioral coverage in decision-manifest.json.
-    s = snapshot("pantry-surplus-v1")
+    s = snapshot("pantry-surplus-v2")
     pantry = s.package.sites[1].id
     product = s.package.products[0].id
     p = prepare_problem(s)
@@ -317,7 +320,7 @@ def test_pantry_surplus_topology_and_harmful_donor_future_protection():
     assert verify(p, Candidate(route_quantities=q, assignments=pack(p, q))).passed
     hub_only = prepare_problem(refreeze(s, transfer_mode="HUB_ONLY"))
     assert not any(c.source_id == pantry for c in hub_only.candidates)
-    harmful = prepare_problem(snapshot("harmful-donor-v1"))
+    harmful = prepare_problem(snapshot("harmful-donor-v2"))
     checked = verify(harmful, Candidate(route_quantities=q, assignments=pack(harmful, q)))
     assert not checked.passed and "DONOR_NO_INBOUND_PROTECTION" in checked.violations
 
@@ -325,7 +328,7 @@ def test_pantry_surplus_topology_and_harmful_donor_future_protection():
 def test_long_route_skips_incompatible_early_expiry_then_short_route_uses_it():
     # OR-DEC-004 [PROVISIONAL]: loading order long ETA first; expiry exception is physical.
     # OR-DEC-004 [PROVISIONAL]: behavioral coverage in decision-manifest.json.
-    p = prepare_problem(snapshot("eta-expiry-v1"))
+    p = prepare_problem(snapshot("eta-expiry-v2"))
     assert [c.eta_days for c in p.candidates] == [2, 0]
     q = quantities(p, (2, 2))
     transfers = pack(p, q)
@@ -445,7 +448,7 @@ def test_merged_adapter_and_unknown_expiry_wrapper(value, multiplier, target, sp
 
 
 def test_future_service_cannot_justify_new_transfer_or_repair_lost_demand():
-    s = snapshot("ap-ablation-v1")
+    s = snapshot("ap-ablation-v2")
     package = s.package
     route = package.routes[0]
     late = route.model_copy(update={"eta_days": 1})
@@ -458,7 +461,7 @@ def test_future_service_cannot_justify_new_transfer_or_repair_lost_demand():
 
 
 def test_all_zero_groups_and_zero_stock_stay_feasible():
-    s = snapshot("zero-stock-v1")
+    s = snapshot("zero-stock-v2")
     fs = tuple(
         f.model_copy(
             update={"days": tuple(d.model_copy(update={"central_literal": "0"}) for d in f.days)}

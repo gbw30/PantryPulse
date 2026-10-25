@@ -14,10 +14,10 @@ from app.services.optimization.packing import pack
 from app.services.optimization.service import solve_one
 from app.services.optimization.verify import verify
 
-FIXTURES = Path(__file__).resolve().parents[4] / "data/demo/or-v1"
+FIXTURES = Path(__file__).resolve().parents[4] / "data/demo/or-v2"
 
 
-@pytest.mark.parametrize("fixture", ["ap-ablation-v1", "rp-ablation-v1", "eta-expiry-v1"])
+@pytest.mark.parametrize("fixture", ["ap-ablation-v2", "rp-ablation-v2", "eta-expiry-v2"])
 def test_every_tiny_vector_has_identical_cp_and_replay_feasibility(fixture):
     # OR-DEC-004 [PROVISIONAL]: hard loading + service selects exactly one trajectory per y.
     s = ORScenarioPayload.model_validate_json((FIXTURES / f"{fixture}.snapshot.json").read_text())
@@ -45,11 +45,11 @@ def test_every_tiny_vector_has_identical_cp_and_replay_feasibility(fixture):
 @pytest.mark.parametrize(
     "fixture",
     [
-        "pantry-surplus-v1",
-        "harmful-donor-v1",
-        "shared-capacity-v1",
-        "zero-stock-v1",
-        "eta-expiry-v1",
+        "pantry-surplus-v2",
+        "harmful-donor-v2",
+        "shared-capacity-v2",
+        "zero-stock-v2",
+        "eta-expiry-v2",
     ],
 )
 @pytest.mark.parametrize("method", ["CLASSICAL_GP", "EGP_PI_INSPIRED"])

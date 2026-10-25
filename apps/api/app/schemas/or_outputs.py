@@ -26,7 +26,7 @@ class TransferAssignment(ORContract):
     units: Count
     departure: date
     arrival: date
-    expires_on: date
+    expires_on: date | None
     source_revision: str
     cost_minor: int = Field(strict=True, ge=0)
 
@@ -69,7 +69,7 @@ class Exclusion(ORContract):
 
 
 class ProjectionReport(ORContract):
-    schema_version: Literal["or-projection-v1"] = "or-projection-v1"
+    schema_version: Literal["or-projection-v2"] = "or-projection-v2"
     days: tuple[ProjectionDay, ...]
     lots: tuple[LotTrajectory, ...]
     transit: tuple[TransitDay, ...]
@@ -129,18 +129,18 @@ class Candidate(ORContract):
 
 
 class VerificationReport(ORContract):
-    schema_version: Literal["or-verification-v1"] = "or-verification-v1"
+    schema_version: Literal["or-verification-v2"] = "or-verification-v2"
     passed: bool
     violations: tuple[str, ...]
     projection: ProjectionReport | None
     metrics: Metrics | None
     operational_hash: str
     candidate_hash: str | None
-    verifier_version: Literal["independent-replay-v1"] = "independent-replay-v1"
+    verifier_version: Literal["independent-replay-v2"] = "independent-replay-v2"
 
 
 class MethodOutcome(ORContract):
-    schema_version: Literal["or-method-result-v1"] = "or-method-result-v1"
+    schema_version: Literal["or-method-result-v2"] = "or-method-result-v2"
     method: AllocationMethod
     transfer_mode: TransferMode
     operational_hash: str
@@ -181,7 +181,7 @@ class MethodOutcome(ORContract):
 
 
 class ComparisonResult(ORContract):
-    schema_version: Literal["or-comparison-v1"] = "or-comparison-v1"
+    schema_version: Literal["or-comparison-v2"] = "or-comparison-v2"
     operational_hash: str
     transfer_mode: TransferMode
     outcome: Literal["SUCCEEDED", "PARTIAL", "FAILED"]

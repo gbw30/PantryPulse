@@ -20,7 +20,7 @@ def main(argv=None):
             raise ValueError("OR input must be a JSON object")
         value = (
             snapshot(args.input)
-            if data.get("schema_version") == "or-scenario-v1"
+            if data.get("schema_version") == "or-scenario-v2"
             else ORInputPackage.model_validate(data)
         )
         write(

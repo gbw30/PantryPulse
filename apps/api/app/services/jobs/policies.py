@@ -191,7 +191,7 @@ def advertised_capability(document: object, contract: str) -> tuple[bool, bool]:
     if not isinstance(document, dict):
         return False, False
     capabilities = document.get("capabilities")
-    if document.get("version") != 1 or not isinstance(capabilities, dict):
+    if document.get("version") != 2 or not isinstance(capabilities, dict):
         return False, False
     contracts = capabilities.get("handler_contracts")
     advertised = isinstance(contracts, list) and contract in contracts

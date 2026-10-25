@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 API = Path(__file__).resolve().parents[2]
-SNAPSHOT = API.parents[1] / "data/demo/or-v1/six-beneficiary-v1.snapshot.json"
+SNAPSHOT = API.parents[1] / "data/demo/or-v2/six-beneficiary-v2.snapshot.json"
 
 
 def invoke(module, *args, env=None):
@@ -35,7 +35,7 @@ def test_validator_reports_bad_json_shapes_as_invalid_input(tmp_path, data):
 
 @pytest.mark.parametrize("suffix", ["input", "snapshot"])
 def test_validator_accepts_real_exact_fixture(tmp_path, suffix):
-    source = SNAPSHOT.with_name(f"six-beneficiary-v1.{suffix}.json")
+    source = SNAPSHOT.with_name(f"six-beneficiary-v2.{suffix}.json")
     report = tmp_path / "validation.json"
     result = invoke("or_validate_input", "--input", source, "--report", report)
     assert result.returncode == 0, result.stderr
@@ -47,7 +47,7 @@ def test_single_method_cli_preserves_a_verified_zero_transfer_plan(tmp_path):
     result = invoke(
         "or_solve",
         "--snapshot",
-        SNAPSHOT.with_name("zero-stock-v1.snapshot.json"),
+        SNAPSHOT.with_name("zero-stock-v2.snapshot.json"),
         "--method",
         "CLASSICAL_GP",
         "--output",

@@ -1,4 +1,16 @@
-# OR-only acceptance ledger
+> **Current approved integration:** [Connected application and v2 contracts](CONNECTED-INTEGRATION.md) supersede historical OR-only/no-proxy scope and 15/25/60-second execution limits below. The old decision manifest and qualification artifacts remain historical evidence; their hashes and semantics are not reinterpreted.
+
+# Current connected OR-v2 acceptance
+
+PASS for the approved simulated subset: coherent committed-source capture,
+immutable versions and tenant isolation; both independently verified native methods;
+actual Linux durable execution/cancellation/partial publication; presenter proxy/API
+journey with refresh and revisions; expiry/FEFO/donor/numerical regressions; accessible
+three-viewport rendering. [Finalization](FINALIZATION.md) records 1140 backend tests,
+9 browser tests, static gates and the complete source manifest. The [budget sweep](BUDGET-QUALIFICATION-V2.md)
+records quality limitations. No hosted or real-world policy acceptance is claimed.
+
+## Historical OR-only acceptance ledger
 
 Current authority: [execution revision 1.2](03_OR_Codex_Execution_Spec.md).
 October 25 finalization is based on `1cd0cf7f45cec0df8bdd6ea89fe5568317d6bf3d`

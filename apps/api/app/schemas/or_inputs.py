@@ -158,6 +158,7 @@ class InventoryLot(ORContract):
     held_units: Count
     available_on: date
     expires_on: date | None
+    expiry_kind: Literal["DATED", "NON_EXPIRING", "UNKNOWN"]
     eligibility: Literal["ELIGIBLE", "HELD", "UNKNOWN"]
     source_line_id: UUID
     source_revision: str = Field(min_length=1)
@@ -167,6 +168,8 @@ class InventoryLot(ORContract):
 
     @model_validator(mode="after")
     def reconcile(self) -> Self:
+        if (self.expiry_kind == "DATED") != (self.expires_on is not None):
+            raise ValueError("EXPIRY_DECLARATION_MISMATCH")
         # OR-DEC-005 [PROVISIONAL]: disjoint free and protected components.
         if self.physical_units != (
             self.free_units + self.reserved_units + self.committed_units + self.held_units
@@ -188,6 +191,7 @@ class ConfirmedArrival(ORContract):
     units: Count
     available_on: date
     expires_on: date | None
+    expiry_kind: Literal["DATED", "NON_EXPIRING", "UNKNOWN"]
     eligibility: Literal["ELIGIBLE", "HELD", "UNKNOWN"]
     confirmed: Bool
     already_posted: Bool
@@ -195,6 +199,8 @@ class ConfirmedArrival(ORContract):
 
     @model_validator(mode="after")
     def confirmed_only(self) -> Self:
+        if (self.expiry_kind == "DATED") != (self.expires_on is not None):
+            raise ValueError("EXPIRY_DECLARATION_MISMATCH")
         if not self.confirmed or self.already_posted:
             raise ValueError("Only unposted confirmed supply enters an OR package")
         return self
@@ -286,7 +292,7 @@ class SourceCoverage(ORContract):
 
 # OR-DEC-020 [PROVISIONAL]: structural source coverage, not committed publication.
 class ORInputPackage(ORContract):
-    schema_version: Literal["or-input-v1"] = "or-input-v1"
+    schema_version: Literal["or-input-v2"] = "or-input-v2"
     organization_id: UUID
     dataset_id: UUID
     source_kind: Literal["SIMULATED", "LIVE"]
@@ -502,7 +508,7 @@ class ProductReference(ORContract):
 
 class ORScenarioPayload(ORContract):
     # OR-DEC-002 [PROVISIONAL]: explicit mode and bounded one-batch allocation window.
-    schema_version: Literal["or-scenario-v1"] = "or-scenario-v1"
+    schema_version: Literal["or-scenario-v2"] = "or-scenario-v2"
     package: ORInputPackage
     policy: ORPolicy
     transfer_mode: TransferMode
