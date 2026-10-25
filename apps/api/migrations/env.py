@@ -10,7 +10,9 @@ from sqlalchemy.engine import make_url
 from app.database import database_engine
 from app.models import (
     forecasts,  # noqa: F401 — register additive operational metadata
+    http_commands,  # noqa: F401
     optimization,  # noqa: F401
+    or_records,  # noqa: F401 - retained legacy VP records
 )
 from app.models.jobs import metadata as job_metadata
 from app.models.operational import Base

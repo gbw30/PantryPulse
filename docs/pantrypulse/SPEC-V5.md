@@ -14,6 +14,13 @@
 
 **PP-46 integration:** main `aadd2d2` plus OR `465d026` is integrated on `codex/or-connected-review`. [Connected integration](../optimization/CONNECTED-INTEGRATION.md) defines the approved bounded public flow, immutable migrations, simulated preset, explicit expiry and source authority. [Finalization](../optimization/FINALIZATION.md) records current evidence. Previous unimplemented/withdrawn statements about this specific flow are historical. Hosting, Chronos, supplier planning and broader scope remain open.
 
+**VP API convergence candidate (PP-50):** The user approved keeping main planning
+contracts/storage/verifier/budgets canonical while adapting VP's additional APIs.
+[Integration review](VP-API-INTEGRATION.md) records operational APIs, single-method
+plans and append-only simulation reviews, migration compatibility and acceptance.
+This expands the API surface; no general import UI, P1 dispatch or deployment is
+included. Existing legacy VP hashes remain in their original contract family.
+
 ## Contents
 
 1. [Authority and reading rules](#1-authority-and-reading-rules)
@@ -577,14 +584,14 @@ Pydantic/FastAPI OpenAPI is authoritative for the implemented baseline forecast/
 | Interface family under `/api/v1` | Intended behavior | Status |
 |---|---|---|
 | `GET /health` | Cheap process liveness, exact existing response | IMPLEMENTED — MAIN |
-| Dashboard/sites/site inventory/history | Saved scoped data, units, dates, lot exclusions and provenance | Proposed catalog; not implemented |
-| Demand/donation imports, receipt posting, corrections | Validated history and authorized, audited transactional stock operations | Proposed; transaction/public schemas open |
+| Dashboard/sites/site inventory/history | Saved scoped data, units, dates, lot exclusions and provenance | PP-50 candidate: authenticated inventory/dashboard reads with exact quantities and expiry exclusions |
+| Demand/donation imports, receipt posting, corrections | Validated history and authorized, audited transactional stock operations | PP-50 candidate: bounded atomic JSON/CSV imports with row feedback/counts; audited posting/reconciliation and supply/lot commands |
 | Forecast submission/status/points | Durable 202 acceptance; saved per-series outcomes and committed points | Implemented in PR #75: `/forecasts`, `/jobs/{job_id}`, `/forecasts/{job_id}`; baseline only; Linux live execution unverified in review |
 | Presenter/catalog | Session lifecycle, origin/CSRF checks, authenticated source/site/product IDs | Implemented in PR #75; visitor access remains deferred; OR connected subset implemented in PP-46 |
 | Scenario creation/read | Required mode and fully frozen input package | Implemented scenario-v2 immutable database capture/read; approved bounded source/expiry validation |
 | Plan/comparison submission/read | Durable jobs against the selected scenario; independent method outcomes | Implemented POST /comparisons (202), GET /comparisons/{id}; partial results retained |
 | Shortages/policy/methodology/audit | Saved projections, policy explanation, research attribution, versions and safe diagnostics | Not implemented |
-| Review/reset | Presenter-controlled review with no stock effect; isolated deterministic reset | Not implemented |
+| Review/reset | Presenter-controlled review with no stock effect; isolated deterministic reset | PP-50 candidate: append-only simulation review; general reset API remains separate |
 | Readiness/capabilities/job retry | Cheap readiness/availability and explicit attempt operations | Forecast job retry/cancel implemented; public readiness/capability catalog remains open |
 
 Inherited paths such as `/forecast-runs`, `/scenarios/{id}/compare-methods`, `/allocation-methodology` and `/demo/reset` are candidate names until the complete catalog is finalized. V5 does not pretend that listing them exposes those routes.

@@ -200,6 +200,11 @@ def execute_stock(session, actor, request):
     with session.begin_nested():
         session.execute(sa.text(
             "SELECT pg_advisory_xact_lock(hashtextextended(current_schema() || :key, 0))"
+        ), {
+            "key": f"vp-operational:{actor.organization_id}",
+        })
+        session.execute(sa.text(
+            "SELECT pg_advisory_xact_lock(hashtextextended(current_schema() || :key, 0))"
         ), {"key": f":stock:{actor.organization_id}:{request.idempotency_key}"})
         old = session.scalar(sa.select(m.StockCommand).where(
             m.StockCommand.organization_id == actor.organization_id,
