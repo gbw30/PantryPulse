@@ -118,3 +118,7 @@ the solver is not a complete multi-period/endogenous-weight reproduction of the
 paper. Domain policy approval, broader real-data qualification and API/storage/
 shared-runtime integration remain external work. No social outcome or LIVE readiness
 is claimed. [FINALIZATION.md](FINALIZATION.md) records the tested commit milestone.
+
+Future work: [longer configurable solver budgets](PRODUCT-BACKLOG.md#longer-configurable-solver-budgets)
+is a user-requested refactor. Evaluate longer searches together with the outer
+execution deadlines; the current 15-second search cap is not a permanent requirement.
