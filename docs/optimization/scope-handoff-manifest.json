@@ -1,0 +1,594 @@
+{
+  "base": "f3946c726e53fa546be1400d80ab717fcb2c3468",
+  "head": "46ff0cd8aaf299b1874e7400e42bdc9f6b23d978",
+  "snapshot": "after approved guidance correction, before implementation removal",
+  "external": [
+    {
+      "path": ".claude/quality-gate.json",
+      "action": "RESTORE_BASELINE",
+      "sha256": "f582432ddf02cd262cfe6bfda9ed1ee8ae4b6ecd3ba06d90c4f4ca7edcde10df",
+      "baseline_sha256": "d301294eb0c273a248e0264e5c4a09f540d755065fe3d174004cbc508c7174b1"
+    },
+    {
+      "path": ".github/workflows/pantrypulse-ci.yml",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "56de5389c36855159c5b4a20ca486485406a5995772e970a824c5a9a09fd20e5",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/alembic.ini",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "81d61c0c38b18ef0fef313d91ca8d5bc9520c6965680e8e72093c3ec69f96716",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/main.py",
+      "action": "RESTORE_BASELINE",
+      "sha256": "e507465150a8b4faed954eae08c9b12cda028b6ab693c95746820490f9fff3a4",
+      "baseline_sha256": "47eb9757931f8f4785e3923c3bb15a250d8eaeb88072207aa08951faac3aeb0d"
+    },
+    {
+      "path": "apps/api/app/models/jobs.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "b35ffc113bb91e323ac367a13929f38b844f87afb294df24afbf12a5612436ed",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/models/or_records.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "86062ef0b9c624e298f2c24dfecde259843911cf11fc8194bf447311c4cc8b55",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/repositories/jobs.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "927c8b8a6aabe251310b6e304e614c804c37c5fbf4095cca26a50e03b823d915",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/repositories/or_repository.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "bfef78852deb9fd93010800458031847515ec64242f3baf184b951746b03ed82",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/routers/or_api.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "a103a57961a8309771a322ed46c97446e2fc6269af1d3d6310edc6320be16c1b",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/schemas/or_execution.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "50790639431f7fec35bfea2f0f1de322eab96fbb125855d3c6d5decbcb01c473",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/schemas/or_http.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "2be3154f1aa48df44c330e548ffab9d3390a91cc6f1d6420d31c74f1c026ffcd",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/services/inventory/kernel.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "7435251fb16212465929283b3ea3a071bef248ac2d3dcb4d74c7535b9b4dd92d",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/services/inventory/projection.py",
+      "action": "RESTORE_BASELINE",
+      "sha256": "4356a36e1650983e0cbf942644e94b95a42172f78eee7733428c3d5974773c3b",
+      "baseline_sha256": "54a5149bbf7dd19be523c96553bd69006f00f39a2347e0a23ef79dc08fcb6666"
+    },
+    {
+      "path": "apps/api/app/services/jobs/__init__.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "a0c43a760f2aa46a797abcab61e5648d73461339e396e32d7f50a42ed964b808",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/services/jobs/contracts.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "3a640480cabd63167196d3b8fcbd8fe603b49bd8c2547aff6f9cd814da2b0324",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/services/jobs/policies.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "09e5db06ae376e307c7e4d3c430a1a8799770a1b16864c67a08b28f29cbab012",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/services/jobs/registry.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "1d3b0ea524b067c025dda3e1c1b69b7578c48e7c68b47b45e61fed28707f3da2",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/services/or_access.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "bc71e198c9b6ac0633f2cd8e9474ca54bd8af3a8da8cfd88a35aed016fed2588",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/services/or_http_errors.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "f9f990c917c0c647aaf66883ce7291732ed778baf0e40d717b0e6f8c27fe1332",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/services/or_runtime.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "940134a79c0f2f31a8e51cbabebc419a8ddc487a9db2768f9031f8f149b1f72f",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/workers/__init__.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "dcd2489a0645653e17299d3f16bec2128d12de4385d05c55b8e7dd7834f40ab4",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/workers/admin.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "37a5e21472a633f6e6f6c0238764fd83db5874e9301276cc3bf0e5b9772e6361",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/workers/bootstrap.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "9c2e41e306fb63d398b29a2e771809cea3dd3c9e0340712bfc57673c31b69f9a",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/workers/child.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "7097c3ca6fc0f381526ade428acc5e8462d162b0907df7c14d7e8cdfea882612",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/workers/or_handler.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "b6b37d02a4c7434ea94b7a8e83b48dc4029213776fc23d28c0cddbef1a11a688",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/workers/or_publication.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "3fb297e542c5dbac47c5a42bbd4f4a33449ac1ca43eae94c3bc730ede673a99f",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/workers/process_driver.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "902db5aa93b82508f8fe32a37cc96c056b4a138f956bb15fba93cf4c40391c66",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/workers/publication.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "39610f1734adc467c85ccf2da8edb05cdfcaed1d56dcbc7d63a3220585d39d55",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/workers/recovery.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "e728eb8c3d6c03a776c09a2aea93ead4b5598ee12f65a1c582395d9cab33fd28",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/workers/registries.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "872863f3c0ff73f6eb973967fde8a61c89ddefb50a5aad6e5f762de7c8e6baf2",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/workers/supervisor.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "c30a1903619fd143754aa3a25bc68bbf720ffb3ae6ff6f5861f5b6a91a60bda7",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/app/workers/testing.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "81f113141c99d6bb6fbf831b3ae67d8e608d63400bb22169b2c6cb5d48caae72",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/migrations/README.md",
+      "action": "RESTORE_BASELINE",
+      "sha256": "0b309ab3262d65216609a4f7293ee986e694af22d5f4ac993cf7a86e832969f4",
+      "baseline_sha256": "075cdb9eb8c84623ad11fcf6d0733d12fa0c6c5eae18f922b4a3bbb374a77be4"
+    },
+    {
+      "path": "apps/api/migrations/env.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "cf89b399a97555738bfcb2f206110bbfe3dafec83a188c5ca3aa31569a1d95d4",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/migrations/script.py.mako",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "7d9a44e977b53508f228f492c7649ca46ea54f7ac27a4e3f9680997b3dd3172f",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/migrations/versions/0001_jobs_foundation.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "b1ef0c8ce6e1cdbc5f7086da1b6a69d61d9ed023fe5442529774beb978662fc5",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/migrations/versions/0002_or_snapshots.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "cd8771402b797c9a8d0b5d4ae37ee0c14353a9b59cc21a8aa9a490019c967af5",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/migrations/versions/0003_or_partial.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "7fe5f6c44b0f60c701d15f2dd9d6fb74c930f10ac0163e41939278c1e44aa126",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/migrations/versions/0004_or_retry_links.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "f748eb3933839488fadae2eaf60dcd35baf9405981e87767808093710e4b2769",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/migrations/versions/0005_or_active_dedup.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "3648d6f3812c4a22fb05c07aeb4bc4d194b8c2c4043376e8965c2b1b87fc6b0d",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/scripts/export_openapi.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "56bf589246946b8f9027413bbd651ff638648338f42d1a6cdca03cd21bf521e4",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/scripts/or_benchmark.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "b7c6e7d657e5f1cf86a35db149993d445100ae045a0ccc182dc187e93228c3eb",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/scripts/or_browser_tests.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "b3c633654cd870f31af204ba827f90e894b28996cb31e329800f9445c3a37c56",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/scripts/or_require_test_database.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "7297dcfa03ec186795569fa55b66bd9f7047c66df47c7d50b6b3fb14ef5aafb4",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/scripts/or_seed.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "f834bc991cbc911521ae5625fc72f69c486e84ecb4342b06dc6286245d9c1210",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/scripts/or_supervisor.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "46c1ccf12bc2571e3c00f1ae60216e8eaaf758320a6f00a2299555d87c152999",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/tests/integration/conftest.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "ec23828d855409f4f88f8bb1cdf0dc6d1f8351900d7be80eb9fe35d294a6479d",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/tests/integration/fake_driver.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "62ad3adbc25fb5479cccff57a23b50a8181a213e8ce14e338a0274ecdbb8078e",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/tests/integration/test_job_migrations.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "86c2855f52c62dc115835df38f5110532eeacf2485d50e7dfcbf9644e99ca0fc",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/tests/integration/test_job_queue.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "1dbefee3319538aa6444c926050dd0bfb59818dcb244f5e582fd7b3d0c45c321",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/tests/integration/test_or_http.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "74d37c1ce7ff1225b18e3641451714d25948f9f8827675742cad3279760354eb",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/tests/integration/test_or_jobs.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "037dfcc03ff6973e1e071870d887daff63083ed5e6fac9ff34a9fc3dbc11bd62",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/tests/integration/test_or_persistence.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "c6746b5263ba5dfab87ec3cb9bc36976996541c146148836ec1a87f4d27a2d2a",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/tests/integration/test_supervisor.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "55a2c63a51556fb1b345132616f0b55df2f6cc357a66e642c70236e5a5d84457",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/tests/integration/test_worker_slice.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "fe9dfa5575e42e1f444faf44244f0f90a58e3f1093a1fb33dae26ead4b7a8af2",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/tests/integration/wq_support.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "0249783d900cab4551c6f94c79b81d0948b34458f912e49f8b8174dfe4c092e4",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/tests/jobs/test_job_contracts.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "51f654cdf3ddf8bb75714e4f41d913a57e58a620e957d8e422fd8074b3567120",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/tests/jobs/test_job_policies.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "67f972b820451269096e2165bc9082c2770c104dea4550ea658aa4518470e9da",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/tests/test_health.py",
+      "action": "RESTORE_BASELINE",
+      "sha256": "2fcfe6b7409d770e9862fbf9da5e2da220c223e830c6618eefdddb307a510d3f",
+      "baseline_sha256": "f59b07b223a1f2fa00cda1b8411b37647828526727931ae7e7cfdab2f007bce2"
+    },
+    {
+      "path": "apps/api/tests/workers/test_driver_capability.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "9cb66eb4a404c5278332af8966dac6b1bdc237020e9f0e7611b299a7f49dceb1",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/tests/workers/test_process_driver.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "4a05b9aa9d6e5702edd77e01ab1001f34cb9aa1dc3d8f050e8b005ac882157db",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/tests/workers/test_resource_limits.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "63e6d79086adfb88909d1f16d42f859cf9c02a97ca7b08e7918e3b2a330c2624",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/api/tests/workers/test_step_outcomes.py",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "4227ac7985944c311028e3e9d4b92a8f93a1d1faba7b832f6a1ea47994e75f9d",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/web/playwright.config.ts",
+      "action": "RESTORE_BASELINE",
+      "sha256": "016193fdd76ccebe8e4b15fc9a601dc6f645d8dc57206c4e34c88401ff285204",
+      "baseline_sha256": "115086feba2368ee01c40c860776a4e9ad4d0c52d58cb01c004b4f7b5ed8713e"
+    },
+    {
+      "path": "apps/web/src/app/api/v1/[...path]/route.ts",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "cfd629986e50e79a027974625025197c8c0ad10607bdcd3d1c83741fa70cadfb",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/optimization/optimization-desk.tsx",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "8dbd98e2772d7c58f4d2234b9c4fec11c573c3563be68ea3c94d51a18086fa7a",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/optimization/optimization.css",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "cef5c93ac44776e9009f490fa8cacf6695a8187b430f5dfc6c331839de995315",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/optimization/page.tsx",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "4cf8518ec94af4e7e995ac12f514a4b7c384037d45f90c24cc5d23e28bf7c8f1",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/optimization/product-comparison.tsx",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "4099dfa4234ffbd4495987971e8b61c9bc080d13285a1db79a09be25625b2770",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/optimization/scenario-details.tsx",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "01fd0078ae123bd160e39682b18e944f5adc19e9a60c2e838fbc4b1f127c21a6",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/page.tsx",
+      "action": "RESTORE_BASELINE",
+      "sha256": "44fa7854330206880d92f90be78eb9f3bd2e24a0fac5e55bb8e6674e2e26a7a5",
+      "baseline_sha256": "405c8b1d494ed532882e3129e532e75180e6ae0ea0ab9f7d839c76cf2198c959"
+    },
+    {
+      "path": "apps/web/tests/e2e/optimization.spec.ts",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "42713ca54cca156cdd65483b72541325d540ffbfb0e469aee7bf65f55f453e2e",
+      "baseline_sha256": null
+    },
+    {
+      "path": "apps/web/tests/proxy.test.mjs",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "a9fa3143b4a0e15509211236254f58b3e74519aa1296dd42f9789ed70bc23198",
+      "baseline_sha256": null
+    },
+    {
+      "path": "docs/architecture/0005-worker-job-queue.md",
+      "action": "PRESERVE_IMPORTED_REFERENCE",
+      "sha256": "fa71acd98bf56471f6cdd45fe15accad884c6a6588cfcf45df83e4167c883b6b",
+      "baseline_sha256": null,
+      "reason": "Worker-authored non-executable reference. Restored on ownership re-audit; no worker implementation reintroduced."
+    },
+    {
+      "path": "docs/pantrypulse/WORKER-JOB-QUEUE-SPEC.md",
+      "action": "PRESERVE_IMPORTED_REFERENCE",
+      "sha256": "5e1f25cb558fcb5fe0b79b96150630767fc58f6ddcfc27645c2bb6ddc5be5117",
+      "baseline_sha256": null,
+      "reason": "Worker-authored non-executable reference. Restored on ownership re-audit; no worker implementation reintroduced."
+    },
+    {
+      "path": "package-lock.json",
+      "action": "RESTORE_BASELINE",
+      "sha256": "de5e231c0974022a3a013d4738a1b1c3f173b993d7b324d95a438594298ee7e4",
+      "baseline_sha256": "963f3eff834561f5052ab7908ef15d5a8f94755f248d0dbbeafd8a1f057deffa"
+    },
+    {
+      "path": "package.json",
+      "action": "RESTORE_BASELINE",
+      "sha256": "a0b175b0c9670dc7cccc7861f1079e3050683a13182a86cc84b53fc0385186b4",
+      "baseline_sha256": "b84f3ab66bbc21e73588f6356273b9c383f4c38cfb4ba13b5257df3bbb73e44d"
+    },
+    {
+      "path": "packages/contracts/openapi.json",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "02514920ced05f6a456149431c0105cb3b8bd0a1924125ae2b1e292fb3087bfb",
+      "baseline_sha256": null
+    },
+    {
+      "path": "packages/contracts/schema.d.ts",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "b3feedb497d48ccf2417ed933b9f35a698c4c4f300acc780a1710c897ea52a77",
+      "baseline_sha256": null
+    },
+    {
+      "path": "scripts/contracts/check.mjs",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "bc94ff049424f902f540a25cb9d9b9badaeff8c5b8cd8f867dabe43693a2827e",
+      "baseline_sha256": null
+    },
+    {
+      "path": "scripts/contracts/generate.mjs",
+      "action": "REMOVE_ATTRIBUTABLE_ADDITION",
+      "sha256": "a9bf919f5c3495bae1e571af280ee311e03a2ec95c668c5fd849989d4d4c6d8c",
+      "baseline_sha256": null
+    }
+  ],
+  "document_reconciliation": [
+    "docs/pantrypulse/BACKEND-DESIGN-CHECKPOINT.md",
+    "docs/pantrypulse/BACKEND-SPEC.md",
+    "docs/pantrypulse/BOARD.md",
+    "docs/pantrypulse/SPEC-V5.md"
+  ],
+  "keep": [
+    "apps/api/app/schemas/or_inputs.py",
+    "apps/api/app/schemas/or_outputs.py",
+    "apps/api/app/services/optimization/candidates.py",
+    "apps/api/app/services/optimization/canonical.py",
+    "apps/api/app/services/optimization/classical_gp.py",
+    "apps/api/app/services/optimization/compare.py",
+    "apps/api/app/services/optimization/constraints.py",
+    "apps/api/app/services/optimization/decisions.py",
+    "apps/api/app/services/optimization/egp_pi_inspired.py",
+    "apps/api/app/services/optimization/extract.py",
+    "apps/api/app/services/optimization/forecast_adapter.py",
+    "apps/api/app/services/optimization/metrics.py",
+    "apps/api/app/services/optimization/numerics.py",
+    "apps/api/app/services/optimization/objective.py",
+    "apps/api/app/services/optimization/offline.py",
+    "apps/api/app/services/optimization/packing.py",
+    "apps/api/app/services/optimization/scenario.py",
+    "apps/api/app/services/optimization/service.py",
+    "apps/api/app/services/optimization/verify.py",
+    "apps/api/scripts/or_common.py",
+    "apps/api/scripts/or_compare.py",
+    "apps/api/scripts/or_enumerate.py",
+    "apps/api/scripts/or_solve.py",
+    "apps/api/scripts/or_validate_input.py",
+    "apps/api/scripts/or_verify.py",
+    "apps/api/tests/optimization/test_or_cli.py",
+    "apps/api/tests/optimization/test_or_model_equivalence.py",
+    "apps/api/tests/optimization/test_or_native_boundaries.py",
+    "apps/api/tests/optimization/test_or_numerics.py",
+    "apps/api/tests/optimization/test_or_oracle.py",
+    "apps/api/tests/optimization/test_or_pure.py",
+    "apps/api/tests/optimization/test_or_review_regressions.py",
+    "apps/api/tests/optimization/test_or_solver.py",
+    "data/demo/or-v1/README.md",
+    "data/demo/or-v1/ap-ablation-v1.input.json",
+    "data/demo/or-v1/ap-ablation-v1.snapshot.json",
+    "data/demo/or-v1/eta-expiry-v1.input.json",
+    "data/demo/or-v1/eta-expiry-v1.snapshot.json",
+    "data/demo/or-v1/harmful-donor-v1.input.json",
+    "data/demo/or-v1/harmful-donor-v1.snapshot.json",
+    "data/demo/or-v1/pantry-surplus-v1.input.json",
+    "data/demo/or-v1/pantry-surplus-v1.snapshot.json",
+    "data/demo/or-v1/rp-ablation-v1.input.json",
+    "data/demo/or-v1/rp-ablation-v1.snapshot.json",
+    "data/demo/or-v1/shared-capacity-v1.input.json",
+    "data/demo/or-v1/shared-capacity-v1.snapshot.json",
+    "data/demo/or-v1/six-beneficiary-v1.input.json",
+    "data/demo/or-v1/six-beneficiary-v1.snapshot.json",
+    "data/demo/or-v1/zero-stock-v1.input.json",
+    "data/demo/or-v1/zero-stock-v1.snapshot.json",
+    "docs/optimization/01_OR_Mathematical_Specification.md",
+    "docs/optimization/02_OR_Implementation_Design.md",
+    "docs/optimization/03_OR_Codex_Execution_Spec.md",
+    "docs/optimization/ACCEPTANCE.md",
+    "docs/optimization/BASELINE-RECONCILIATION.md",
+    "docs/optimization/CHECKPOINT-2026-10-24.md",
+    "docs/optimization/CHECKPOINT-EXPLANATIONS-2026-10-24.md",
+    "docs/optimization/CHECKPOINT-REVIEW-2026-10-24.md",
+    "docs/optimization/DECISION-REGISTER.md",
+    "docs/optimization/NUMERICAL-PROOF.md",
+    "docs/optimization/PRODUCT-BACKLOG.md",
+    "docs/optimization/README.md",
+    "docs/optimization/RESEARCH-MAPPING.md",
+    "docs/optimization/SCOPE.md",
+    "docs/optimization/decision-manifest.json",
+    "docs/optimization/evidence/acceptance-initial-checkpoint.md",
+    "docs/optimization/evidence/browser-explanations.json",
+    "docs/optimization/evidence/browser-rehearsals-reviewed.json",
+    "docs/optimization/evidence/checkpoint-tests.json",
+    "docs/optimization/evidence/model-bounds-six-beneficiary-stock-asof.json",
+    "docs/optimization/evidence/model-bounds-six-beneficiary-v1.json",
+    "docs/optimization/evidence/oracle-ap-ablation-v1.json",
+    "docs/optimization/evidence/oracle-rp-ablation-v1.json",
+    "docs/optimization/evidence/oracle-six-beneficiary-v1.json",
+    "docs/optimization/evidence/persisted-benchmark-reviewed.json",
+    "docs/optimization/evidence/quality-explanations.json",
+    "docs/optimization/evidence/quality-full-reviewed.json",
+    "docs/pantrypulse/tasks/OR-API.md",
+    "docs/pantrypulse/tasks/OR-EXPLANATIONS.md",
+    "docs/pantrypulse/tasks/OR-PURE.md",
+    "docs/pantrypulse/tasks/OR-RESEARCH.md",
+    "docs/pantrypulse/tasks/OR-REVIEW-FIXES.md",
+    "docs/pantrypulse/tasks/OR-RUNTIME.md",
+    "docs/pantrypulse/tasks/OR-STORAGE.md",
+    "docs/pantrypulse/tasks/OR-WEB.md",
+    "scripts/or/check-decision-markers.py"
+  ],
+  "artifacts": {
+    "integration.patch": "8f868c6254fb473341d2bb6d20c31288bfc8beab7b32807193a0533511b65465",
+    "source-snapshot.tar.gz": "be461e6b1ef8c068537dec5ad30a6e0c650fc328f25bec47184faeb6c44ff72c"
+  },
+  "ownership_reaudit": "2026-10-25; two imported reference documents retained; original preservation artifact remains unchanged"
+}

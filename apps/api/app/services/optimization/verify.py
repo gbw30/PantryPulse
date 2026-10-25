@@ -3,11 +3,11 @@
 from collections import defaultdict
 
 from app.schemas.or_outputs import Candidate, VerificationReport
-from app.services.inventory.projection import simulate
 from app.services.optimization.candidates import prepare_problem
 from app.services.optimization.canonical import operational_hash
 from app.services.optimization.metrics import evaluate
 from app.services.optimization.packing import pack
+from app.services.optimization.projection import simulate
 
 
 def verify(problem, candidate: Candidate, method=None) -> VerificationReport:

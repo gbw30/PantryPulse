@@ -22,6 +22,7 @@ def usable(lot) -> bool:
     return lot.eligibility == "ELIGIBLE" and lot.expires_on is not None
 
 
+# OR-DEC-015 [PROVISIONAL]: only supplied revisions/frozen replay; no source-store reads.
 def freeze_scenario(
     package: ORInputPackage,
     policy: ORPolicy,

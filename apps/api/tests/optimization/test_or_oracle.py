@@ -105,9 +105,7 @@ def test_hand_lost_sales_expiry_and_arrival():
     # OR-DEC-001/004 [PROVISIONAL]: an arrival cannot repair prior lost demand.
     assert oracle_daily((50, 40), ((40, 0, 8, "a"),)) == ((40, 10, 0, 0), (0, 40, 0, 0))
     assert oracle_daily((5, 5), ((5, 1, 8, "a"),)) == ((0, 5, 0, 0), (5, 0, 0, 0))
-    assert oracle_daily((2, 2), ((3, 0, 1, "a"), (3, 0, 8, "b"))) == (
-        (2, 0, 0, 4), (2, 0, 1, 1)
-    )
+    assert oracle_daily((2, 2), ((3, 0, 1, "a"), (3, 0, 8, "b"))) == ((2, 0, 0, 4), (2, 0, 1, 1))
 
 
 def test_loading_fefo_skips_expiry_exception_and_never_reuses_source():
@@ -146,8 +144,13 @@ def test_cli_emits_exact_reproducible_json(tmp_path):
     target = tmp_path / "oracle.json"
     completed = subprocess.run(
         [
-            sys.executable, "-m", "scripts.or_enumerate", "--fixture", "ap-ablation-v1",
-            "--output", str(target),
+            sys.executable,
+            "-m",
+            "scripts.or_enumerate",
+            "--fixture",
+            "ap-ablation-v1",
+            "--output",
+            str(target),
         ],
         cwd=Path(__file__).resolve().parents[2],
         check=False,

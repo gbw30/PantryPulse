@@ -31,8 +31,20 @@ def main():
     manifest = json.loads((ROOT / "docs/optimization/decision-manifest.json").read_text())
     if set(manifest["decisions"]) != IDS:
         raise ValueError("Manifest must cover exactly OR-DEC-001 through OR-DEC-020")
+    external = []
     for decision, entry in manifest["decisions"].items():
         section = registry.split(f"## {decision}\n", 1)[1].split("\n## ", 1)[0]
+        if entry.get("ownership") in {"EXTERNAL_OWNER", "WITHDRAWN"}:
+            expected = {"OR-DEC-012": "DEFERRED_EXTERNAL_OWNER",
+                        "OR-DEC-014": "WITHDRAWN_BY_USER_SCOPE_CORRECTION"}
+            if entry.get("status") != expected.get(decision) or entry["status"] not in section:
+                raise ValueError(f"Unverified external/withdrawn status: {decision}")
+            if not entry.get("reason") or not (ROOT / entry["handoff"]).is_file():
+                raise ValueError(f"Missing external handoff: {decision}")
+            if "behavior" in entry or "tests" in entry:
+                raise ValueError(f"External ownership cannot claim core implementation: {decision}")
+            external.append(decision)
+            continue
         if "SELECTED_FOR_DRAFT_1" not in section:
             raise ValueError(f"Decision status missing: {decision}")
         source, _ = symbol(entry["behavior"]["path"], entry["behavior"]["symbol"])
@@ -58,7 +70,8 @@ def main():
             raise ValueError(f"Incomplete scenario/policy decision metadata: {name}")
         if not data["transfer_mode"] or data["package"]["source_kind"] != "SIMULATED":
             raise ValueError(f"Fixture mode/provenance missing: {name}")
-    print("20 provisional decisions match behavior symbols, behavioral tests and fixture metadata.")
+    print(f"{len(IDS)-len(external)} core decisions checked; "
+          f"{len(external)} external/withdrawn decisions explicitly reported. All fixture IDs retained.")
     return 0
 
 

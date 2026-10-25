@@ -1,5 +1,5 @@
 {
-  "schema_version": "or-decision-manifest-v1",
+  "schema_version": "or-decision-manifest-v2",
   "policy_version": "or-draft-1.1",
   "decisions": {
     "OR-DEC-001": {
@@ -123,28 +123,24 @@
       ]
     },
     "OR-DEC-011": {
+      "ownership": "CORE_WITH_EXTERNAL_HANDOFF",
+      "boundary": "Offline method containment only; durable queue, global limits and publication belong to runtime owner.",
       "behavior": {
-        "path": "apps/api/app/repositories/jobs.py",
-        "symbol": "QueueRepository"
+        "path": "apps/api/app/services/optimization/offline.py",
+        "symbol": "bounded_methods"
       },
       "tests": [
         {
-          "path": "apps/api/tests/integration/test_or_jobs.py",
-          "symbol": "test_checked_first_step_is_durable_before_partner_and_survives_cancel"
+          "path": "apps/api/tests/optimization/test_or_process.py",
+          "symbol": "test_hung_boundary_stops_descendant_and_reaps_direct_child"
         }
       ]
     },
     "OR-DEC-012": {
-      "behavior": {
-        "path": "apps/api/app/models/or_records.py",
-        "symbol": "InputPackageRecord"
-      },
-      "tests": [
-        {
-          "path": "apps/api/tests/integration/test_or_persistence.py",
-          "symbol": "test_historical_records_immutable_in_database"
-        }
-      ]
+      "ownership": "EXTERNAL_OWNER",
+      "status": "DEFERRED_EXTERNAL_OWNER",
+      "reason": "Persistence is outside the approved OR assignment. Historical implementation is preserved in the handoff.",
+      "handoff": "docs/optimization/SCOPE-CORRECTION.md"
     },
     "OR-DEC-013": {
       "behavior": {
@@ -159,26 +155,22 @@
       ]
     },
     "OR-DEC-014": {
-      "behavior": {
-        "path": "apps/api/app/services/or_access.py",
-        "symbol": "authenticate"
-      },
-      "tests": [
-        {
-          "path": "apps/api/tests/integration/test_or_http.py",
-          "symbol": "test_presenter_origin_csrf_body_limit_and_safe_errors"
-        }
-      ]
+      "ownership": "WITHDRAWN",
+      "status": "WITHDRAWN_BY_USER_SCOPE_CORRECTION",
+      "reason": "Next.js API routes/proxies are prohibited. API/auth contracts belong to the FastAPI owner.",
+      "handoff": "docs/optimization/SCOPE-CORRECTION.md"
     },
     "OR-DEC-015": {
+      "ownership": "CORE_WITH_EXTERNAL_HANDOFF",
+      "boundary": "Freeze/replay checks supplied revision expectations; authoritative current-source reads remain external.",
       "behavior": {
-        "path": "apps/api/app/repositories/or_repository.py",
-        "symbol": "assert_current"
+        "path": "apps/api/app/services/optimization/scenario.py",
+        "symbol": "freeze_scenario"
       },
       "tests": [
         {
-          "path": "apps/api/tests/integration/test_or_persistence.py",
-          "symbol": "test_revision_change_stales_current_but_historical_stays_readable"
+          "path": "apps/api/tests/optimization/test_or_pure.py",
+          "symbol": "test_mode_required_and_immutable_replay_identity"
         }
       ]
     },
@@ -189,10 +181,12 @@
       },
       "tests": [
         {
-          "path": "apps/api/tests/integration/test_or_jobs.py",
-          "symbol": "test_one_readable_method_finishes_partial_without_substitution"
+          "path": "apps/api/tests/optimization/test_or_solver.py",
+          "symbol": "test_comparison_keeps_a_verified_method_when_its_partner_failed"
         }
-      ]
+      ],
+      "ownership": "CORE_WITH_EXTERNAL_HANDOFF",
+      "boundary": "Return independent complete/partial/failed outcomes; external owner persists them."
     },
     "OR-DEC-017": {
       "behavior": {
@@ -235,14 +229,16 @@
       ]
     },
     "OR-DEC-020": {
+      "ownership": "CORE_WITH_EXTERNAL_HANDOFF",
+      "boundary": "Structural source provenance/coverage only. OR does not publish/query committed sources.",
       "behavior": {
-        "path": "apps/api/app/repositories/or_repository.py",
-        "symbol": "put_package"
+        "path": "apps/api/app/schemas/or_inputs.py",
+        "symbol": "ORInputPackage"
       },
       "tests": [
         {
-          "path": "apps/api/tests/integration/test_or_persistence.py",
-          "symbol": "test_live_assertion_and_bad_manifest_cannot_be_published"
+          "path": "apps/api/tests/optimization/test_or_pure.py",
+          "symbol": "test_duplicate_source_unit_organization_and_quantity_rejections"
         }
       ]
     }
@@ -256,5 +252,6 @@
     "data/demo/or-v1/shared-capacity-v1.snapshot.json",
     "data/demo/or-v1/six-beneficiary-v1.snapshot.json",
     "data/demo/or-v1/zero-stock-v1.snapshot.json"
-  ]
+  ],
+  "scope": "OR_ONLY_USER_CORRECTION_2026_10_24"
 }

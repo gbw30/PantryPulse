@@ -1,3 +1,5 @@
+> Historical pre-correction scope/evidence. Adjacent implementation is archived, not active on this OR branch. [Current scope and handoff](SCOPE-CORRECTION.md) supersede its implementation instructions/status.
+
 # OR implementation commit checkpoint — October 24, 2026
 
 User requested a pause at substantial milestones so they can commit before continuing.

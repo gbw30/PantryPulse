@@ -284,6 +284,7 @@ class SourceCoverage(ORContract):
         return self
 
 
+# OR-DEC-020 [PROVISIONAL]: structural source coverage, not committed publication.
 class ORInputPackage(ORContract):
     schema_version: Literal["or-input-v1"] = "or-input-v1"
     organization_id: UUID

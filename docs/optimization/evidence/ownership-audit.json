@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-25",
+  "base_before_OR": "f3946c726e53fa546be1400d80ab717fcb2c3468",
+  "pre_OR_tracked_files_checked": 194,
+  "pre_OR_files_missing": [],
+  "pre_OR_code_and_config_changes": [],
+  "approved_document_notices": [
+    "docs/pantrypulse/BACKEND-DESIGN-CHECKPOINT.md",
+    "docs/pantrypulse/BACKEND-SPEC.md",
+    "docs/pantrypulse/BOARD.md",
+    "docs/pantrypulse/SPEC-V5.md"
+  ],
+  "original_document_bodies_intact": true,
+  "remaining_tracked_removals": 67,
+  "remaining_removals_existed_before_OR": [],
+  "restored_imported_reference_documents": [
+    {
+      "path": "docs/pantrypulse/WORKER-JOB-QUEUE-SPEC.md",
+      "source_ref": "d7e44eddc9da51ba7886a6e317e90ace894b7847",
+      "source_path": "docs/pantrypulse/WORKER-JOB-QUEUE-SPEC.md",
+      "sha256": "5e1f25cb558fcb5fe0b79b96150630767fc58f6ddcfc27645c2bb6ddc5be5117"
+    },
+    {
+      "path": "docs/architecture/0005-worker-job-queue.md",
+      "source_ref": "d7e44eddc9da51ba7886a6e317e90ace894b7847",
+      "source_path": "docs/architecture/0004-worker-job-queue.md",
+      "sha256": "fa71acd98bf56471f6cdd45fe15accad884c6a6588cfcf45df83e4167c883b6b"
+    }
+  ],
+  "original_worker_branch": "d7e44eddc9da51ba7886a6e317e90ace894b7847",
+  "original_worker_branch_unchanged": true,
+  "preserved_archive_checksums_verified": true,
+  "provenance": "Original OR session tool record explicitly imported the worker files from origin/be/worker-queue, skipping existing paths. The starting status/listing contains no dirty entries before the directory listing. Authoring on another branch is distinguished from our import of copies.",
+  "limits": "This audit verifies original tracked files and retained source refs. Imported worker code is not claimed as authored by the OR agent; executable copies remain outside the OR deliverable."
+}

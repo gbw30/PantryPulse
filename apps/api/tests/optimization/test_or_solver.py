@@ -78,3 +78,34 @@ def test_both_physical_fingerprints_identical():
     assert result.outcome == "SUCCEEDED"
     assert len({m.physical_fingerprint for m in result.methods}) == 1
     assert len({m.settings_hash for m in result.methods}) == 1
+
+
+def test_comparison_keeps_a_verified_method_when_its_partner_failed():
+    # OR-DEC-016 [PROVISIONAL]: paired failures cannot substitute or erase a valid method.
+    from app.schemas.or_outputs import MethodOutcome
+    from app.services.optimization.compare import assemble
+
+    scenario = ORScenarioPayload.model_validate_json(
+        (FIXTURES / "six-beneficiary-v1.snapshot.json").read_text()
+    )
+    first = solve_one(scenario, "CLASSICAL_GP")
+    failed_data = first.model_dump()
+    failed_data.update(
+        method="EGP_PI_INSPIRED",
+        native_status="UNKNOWN",
+        outcome="FAILED",
+        candidate=None,
+        verification=None,
+        objective=None,
+        error_code="MODEL_UNKNOWN",
+    )
+    failed = MethodOutcome.model_validate(failed_data)
+    partial = assemble(scenario, (first, failed))
+    assert partial.outcome == "PARTIAL"
+    assert partial.methods[0] == first
+    assert partial.methods[1].candidate is None
+    assert partial.methods[1].error_code == "MODEL_UNKNOWN"
+    failed_data.update(method="CLASSICAL_GP")
+    neither = assemble(scenario, (MethodOutcome.model_validate(failed_data), failed))
+    assert neither.outcome == "FAILED"
+    assert all(method.candidate is None for method in neither.methods)

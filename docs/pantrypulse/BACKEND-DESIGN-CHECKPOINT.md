@@ -1,7 +1,6 @@
+> OR ownership correction (October 24, 2026, explicit user direction): the OR assignment owns only the research-centered computation and necessary Python schemas. Next.js is frontend only; no Next API routes/proxies. Frontend, FastAPI routes/auth, data persistence and shared runtime belong to their developers. [Current scope and reversible handoff](../optimization/SCOPE-CORRECTION.md) supersede earlier broad OR task assignments; historical project requirements below do not transfer their ownership.
+
 # PantryPulse Backend Specification — Working Draft
-
-> OR implementation checkpoint (October 24, 2026): the current working tree adds a bounded SIMULATED OR service; see [checkpoint](../optimization/CHECKPOINT-2026-10-24.md) and [evidence](../optimization/ACCEPTANCE.md). Baseline implementation-status descriptions below remain historical. Draft OR-DEC choices remain provisional; LIVE publication/adapters, browser/release acceptance, and paused supplier/model work are not complete.
-
 
 > **Current authority:** [Project specification V5](SPEC-V5.md). This checkpoint preserves accepted decision history and pauses. V5 adds BD-41 reconciliation, current code/branch evidence and the consolidated OPEN register; historical resume/status text below does not override it.
 

@@ -1,3 +1,5 @@
+> OR ownership correction (October 24, 2026, explicit user direction): the OR assignment owns only the research-centered computation and necessary Python schemas. Next.js is frontend only; no Next API routes/proxies. Frontend, FastAPI routes/auth, data persistence and shared runtime belong to their developers. [Current scope and reversible handoff](../optimization/SCOPE-CORRECTION.md) supersede earlier broad OR task assignments; historical project requirements below do not transfer their ownership.
+
 # PantryPulse delivery board
 
 Update after each integration. [Project specification V5](SPEC-V5.md) records the current implementation/branch state and acceptance. PP-01–23 retain the historical planning board and require reconciliation; PP-24–29 were merged through PR #7. This review-fix branch integrates the offline forecasting core from PR #49 for review; live API, database and worker acceptance remains open. No completed application is claimed.
@@ -37,7 +39,3 @@ Update after each integration. [Project specification V5](SPEC-V5.md) records th
 P1 reservations/completion are separate tickets only after all P0 rows are accepted. No worker may claim a shared foundational file without a lead assignment.
 
 Review-fix integration: PR #49 baseline core and PR #50 design lab are being reconciled with V5. See tasks/PP-30-pr-review-fixes.md for the bounded task and verification evidence.
-
-## OR commit checkpoint — October 24, 2026
-
-Tracker [#54](https://github.com/gbw30/PantryPulse/issues/54); implementation issues assigned to GestebanFalcon. Real paired solvers, independent verification, PostgreSQL/jobs and synthetic HTTP journey are implemented. User requested a pause for a commit at this milestone. [Checkpoint and next steps](../optimization/CHECKPOINT-2026-10-24.md); [acceptance evidence](../optimization/ACCEPTANCE.md). Browser rehearsals/benchmark/final acceptance and LIVE upstream integration remain open; no issue closure or deployment.

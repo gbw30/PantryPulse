@@ -5,7 +5,7 @@ from uuid import UUID
 
 from app.schemas.or_inputs import ORScenarioPayload
 from app.schemas.or_outputs import Exclusion, ProjectionReport
-from app.services.inventory.projection import simulate
+from app.services.optimization.projection import simulate
 from app.services.optimization.scenario import usable, verify_scenario
 from app.services.transfer_modes import check_mode_route
 

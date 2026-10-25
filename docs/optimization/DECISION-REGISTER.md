@@ -2,6 +2,14 @@
 
 Draft 1.1 / policy or-policy-v1 / schema or-input-v1 and or-scenario-v1. Owner: implementation lead; review state: provisional, adopted October 24, 2026. These choices do not resolve accepted backend OPEN records.
 
+The user narrowed ownership through execution revision 1.2. Mathematical choices
+remain unchanged. Decision IDs are retained in historical fixture/hash contracts;
+they do not imply implementation/acceptance of every external workflow choice.
+OR-DEC-012 is deferred to the persistence owner; OR-DEC-014's Next proxy choice is
+withdrawn. OR-DEC-011/015/016/020 have explicitly bounded core coverage only.
+The v2 manifest checks those ownership/status distinctions without inventing tests
+for removed external systems. Historical broad proposals remain visible below.
+
 ## OR-DEC-001
 
 Status: `SELECTED_FOR_DRAFT_1`. Related OPEN IDs: 06/21.
@@ -136,9 +144,11 @@ Affected behavior, files and tests: see the machine-checked [marker manifest](de
 
 ## OR-DEC-012
 
-Status: `SELECTED_FOR_DRAFT_1`. Related OPEN IDs: 04/19/25/29.
+Status: `DEFERRED_EXTERNAL_OWNER`. Related OPEN IDs: 04/19/25/29.
 
-Choice: PostgreSQL immutable OR input packages, policies, scenarios, jobs/attempts, per-method results, transfer rows, check reports and reviews; upstream ledger remains authoritative
+Current boundary: Persistence is an external handoff, not an OR deliverable. The choice below is historical proposal context; no ORM or migrations are owned here.
+
+Historical choice: PostgreSQL immutable OR input packages, policies, scenarios, jobs/attempts, per-method results, transfer rows, check reports and reviews; upstream ledger remains authoritative
 
 Rationale and revisit trigger: Full OR persistence without inventing a second stock ledger; reconcile table ownership if upstream lands first
 
@@ -160,9 +170,11 @@ Affected behavior, files and tests: see the machine-checked [marker manifest](de
 
 ## OR-DEC-014
 
-Status: `SELECTED_FOR_DRAFT_1`. Related OPEN IDs: 31.
+Status: `WITHDRAWN_BY_USER_SCOPE_CORRECTION`. Related OPEN IDs: 31.
 
-Choice: Presenter session with server-side hashed opaque token; same-origin proxy; backend checks session and mutation CSRF/origin; saved synthetic reads public
+Current boundary: The user prohibits Next.js API routes/proxies. The historical choice below is withdrawn. Authentication and frontend-to-FastAPI access contracts belong to their respective owners.
+
+Historical choice: Presenter session with server-side hashed opaque token; same-origin proxy; backend checks session and mutation CSRF/origin; saved synthetic reads public
 
 Rationale and revisit trigger: Concrete local demo security design; reuse equivalent existing auth rather than replace it
 
@@ -241,4 +253,3 @@ Rationale and revisit trigger: The OR service can be complete and testable befor
 Alternative: retain the related OPEN topic for a later version with a different validated policy. Limitation: the selected behavior is bounded to this draft and requires explicit new policy/scenario identity when changed.
 
 Affected behavior, files and tests: see the machine-checked [marker manifest](decision-manifest.json); runtime metadata retains `OR-DEC-020`. Verification is recorded separately in [acceptance evidence](ACCEPTANCE.md).
-

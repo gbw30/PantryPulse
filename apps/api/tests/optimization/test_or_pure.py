@@ -18,10 +18,10 @@ from app.schemas.or_inputs import (
     ResidualCapacity,
 )
 from app.schemas.or_outputs import Candidate, RouteQuantity
-from app.services.inventory.kernel import KernelLot, project_kernel
 from app.services.optimization.candidates import prepare_problem
 from app.services.optimization.canonical import canonical_bytes, operational_hash
 from app.services.optimization.forecast_adapter import adapt_series
+from app.services.optimization.kernel import KernelLot, project_kernel
 from app.services.optimization.packing import pack
 from app.services.optimization.scenario import freeze_scenario, verify_scenario
 from app.services.optimization.verify import verify
@@ -206,6 +206,7 @@ def test_canonical_collections_sorted_dates_preserved_no_floats():
 
 
 def test_duplicate_source_unit_organization_and_quantity_rejections():
+    # OR-DEC-020 [PROVISIONAL]: supplied source structure/coverage only.
     # OR-DEC-005 [PROVISIONAL]: behavioral coverage in decision-manifest.json.
     p = snapshot().package
     raw = p.model_dump()

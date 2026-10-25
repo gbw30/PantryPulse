@@ -1,3 +1,5 @@
+> Ownership correction: this proof applies to OR-local simulation/model code. The inventory service is restored unchanged; persistence/publication/shared-runtime obligations are external handoffs. [Current execution scope](03_OR_Codex_Execution_Spec.md) controls implementation ownership; equations are unchanged.
+
 # Draft 1.1 local physical and numerical proofs
 
 OR-DEC-001–008/017–019 [PROVISIONAL], policy `or-policy-v1`, S=10000. Base `f3946c726e53fa546be1400d80ab717fcb2c3468`. These are proofs of the selected **local** formulation, independent of the paper. [Research mapping and checked gate evidence](RESEARCH-MAPPING.md).

@@ -1,3 +1,5 @@
+> Historical task packet. The user withdrew its adjacent-layer ownership; read [current OR scope](../../optimization/SCOPE.md) and [execution revision 1.2](../../optimization/03_OR_Codex_Execution_Spec.md). Do not use this packet to reintroduce frontend, routes, DB or shared-worker work.
+
 # OR-STORAGE
 
 Issues: 19, 30. Owner: persistence lane; lead integrates/reviews.

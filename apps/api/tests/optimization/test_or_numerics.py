@@ -1,4 +1,5 @@
 """Audit the domains actually emitted by the pinned OR-Tools API."""
+
 import pytest
 from ortools.sat.python import cp_model
 

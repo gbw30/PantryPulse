@@ -1,3 +1,5 @@
+> Historical pre-correction scope/evidence. Adjacent implementation is archived, not active on this OR branch. [Current scope and handoff](SCOPE-CORRECTION.md) supersede its implementation instructions/status.
+
 # OR reviewed testing milestone — October 24, 2026
 
 Base: `e49e360d23e46b43542b0a2e9b5f6277d5f840d5`, plus the working tree.

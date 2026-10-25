@@ -60,40 +60,6 @@ def test_single_method_cli_preserves_a_verified_zero_transfer_plan(tmp_path):
     assert saved["result"]["candidate"]["assignments"] == []
 
 
-def test_seed_refuses_an_unconfirmed_scope_before_opening_any_database():
-    env = os.environ.copy()
-    env.pop("PP_DEMO_ORGANIZATION_ID", None)
-    env.pop("PP_DEMO_DATASET_ID", None)
-    env["DATABASE_URL"] = "not-a-database"
-    result = invoke(
-        "or_seed",
-        "--organization-id",
-        "00000000-0000-0000-0000-000000000001",
-        "--dataset-id",
-        "00000000-0000-0000-0000-000000000002",
-        "--fixture",
-        "six-beneficiary-v1",
-        env=env,
-    )
-    assert result.returncode == 2, result.stderr
-    assert "dedicated scope" in result.stderr
-    assert "Traceback" not in result.stderr
-
-
-@pytest.mark.parametrize(
-    "url",
-    [None, "not-a-url", "sqlite:///pantrypulse_test", "postgresql+psycopg://localhost/production"],
-)
-def test_integration_guard_rejects_missing_or_unsafe_urls(url):
-    env = os.environ.copy()
-    env.pop("PP_TEST_DATABASE_URL", None)
-    if url is not None:
-        env["PP_TEST_DATABASE_URL"] = url
-    result = invoke("or_require_test_database", env=env)
-    assert result.returncode == 2, result.stderr
-    assert "Traceback" not in result.stderr
-
-
 @pytest.fixture(scope="module")
 def pair(tmp_path_factory):
     folder = tmp_path_factory.mktemp("bounded-or-cli")

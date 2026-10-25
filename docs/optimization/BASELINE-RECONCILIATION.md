@@ -1,3 +1,5 @@
+> Historical broad-implementation reconciliation, superseded by the approved [OR-only correction](SCOPE-CORRECTION.md). Imported worker/API/UI ownership below was withdrawn; it is not current build guidance.
+
 # Baseline reconciliation
 
 Reviewed October 24, 2026 America/New_York. Local and refreshed remote main: `f3946c726e53fa546be1400d80ab717fcb2c3468`. The three source specs remain verbatim Draft 1.1; this record carries factual updates.
