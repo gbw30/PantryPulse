@@ -12,7 +12,7 @@ export type TopBarSearch = {
   onSubmit: (invoker: HTMLElement) => void;
 };
 
-const SEARCH_LABEL = "Search sites, regions, or products";
+const SEARCH_LABEL = "Search sites or products";
 
 /** Shared top bar (blueprint §2): search left; simulated-network pill and horizon right. No identity here. */
 export function TopBar({ search, horizonLabel }: { search?: TopBarSearch; horizonLabel?: string }) {

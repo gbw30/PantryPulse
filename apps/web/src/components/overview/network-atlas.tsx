@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { MotionConfig } from "motion/react";
 import { AppShell } from "@/components/shell/app-shell";
 import { Button } from "@/components/ui/button";
@@ -119,6 +119,8 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
   const needle = query.trim().toLowerCase();
   const matches = needle ? rows.filter(({ site }) => `${site.name} ${roleLabel(site)}`.toLowerCase().includes(needle)) : rows;
   const selected = rows.find((row) => row.site.id === selectedId) ?? null;
+  // Products match by name or unit ("water", "bottle", "meal"); there is no region data to search.
+  const productMatches = needle && snapshot ? snapshot.products.filter((item) => [item.name, item.unit, item.unitPlural].some((text) => text.toLowerCase().includes(needle))) : [];
   const inspectorWidth = isWide ? 340 : 300;
   const reserveRight = isDesktop ? inspectorWidth + 32 : 0;
   const dayLabel = snapshot ? formatDay(snapshot.dates[dayIndex]) : null;
@@ -162,6 +164,27 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
       setPopoverOpen(false);
       setSheetOpen(true);
     }
+  }
+
+  // While a site is selected and no popover/sheet is open (those handle Escape themselves), Escape
+  // anywhere clears the selection. The inspector's own onKeyDown only worked while focus was inside
+  // it, so a remounted or blurred control left Escape unhandled.
+  const onDocumentEscape = useEffectEvent((event: KeyboardEvent) => {
+    if (event.key !== "Escape" || event.defaultPrevented) return;
+    const target = event.target instanceof Element ? event.target : null;
+    if (target?.closest('[role="listbox"], [role="menu"], [data-radix-popper-content-wrapper]')) return;
+    event.preventDefault();
+    clearSelection();
+  });
+  useEffect(() => {
+    if (!selectedId || popoverOpen || sheetOpen) return;
+    document.addEventListener("keydown", onDocumentEscape);
+    return () => document.removeEventListener("keydown", onDocumentEscape);
+  }, [selectedId, popoverOpen, sheetOpen]);
+
+  function chooseProductFromSearch(productIdToShow: string) {
+    setProductId(productIdToShow);
+    setQuery("");
   }
 
   function retry() {
@@ -217,7 +240,10 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
         search={{
           value: query,
           onChange: setQuery,
-          onSubmit: (invoker) => { if (matches[0]) select(matches[0].site.id, invoker); },
+          onSubmit: (invoker) => {
+            if (matches[0]) select(matches[0].site.id, invoker);
+            else if (productMatches[0]) chooseProductFromSearch(productMatches[0].id);
+          },
         }}
       >
         <div className="flex flex-1 flex-col gap-4 px-4 py-4 md:px-6 md:py-5 lg:min-h-[calc(100svh-3.5rem)]">
@@ -271,6 +297,25 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
               <StatusGlyph status="not_evaluated" />
               {snapshot.emptyReason}
             </p>
+          )}
+
+          {productMatches.length > 0 && (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="text-xs font-medium text-muted-foreground">Products</span>
+              <ul aria-label="Matching products" className="flex flex-wrap gap-2">
+                {productMatches.map((item) => (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      onClick={() => chooseProductFromSearch(item.id)}
+                      className="min-h-10 rounded-lg border border-border bg-card px-3 text-left text-sm text-foreground outline-none hover:border-foreground/40 focus-visible:ring-2 focus-visible:ring-ring max-md:min-h-11"
+                    >
+                      Show {item.name} ({item.unitPlural}){item.id === product?.id ? <span className="text-muted-foreground"> · selected</span> : null}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
 
           {snapshot && <SiteList items={matches} selectedId={selectedId} query={query} onSelect={select} />}
@@ -336,12 +381,6 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
                 data-testid="site-inspector"
                 className="absolute top-4 right-4 bottom-4 z-10 overflow-y-auto rounded-xl border border-border bg-card p-4 shadow-sm"
                 style={{ width: inspectorWidth }}
-                onKeyDown={(event) => {
-                  if (event.key === "Escape" && selected) {
-                    event.preventDefault();
-                    clearSelection();
-                  }
-                }}
               >
                 {inspectorBody ?? (
                   <div className="grid gap-3 text-sm">
