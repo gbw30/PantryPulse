@@ -189,7 +189,7 @@ def main():
         "--spec",
         type=Path,
         default=None,
-        help="Fixture spec (default: data/demo/forecasting-v1.json; see forecasting-v1-extended.json)",
+        help="Fixture spec (default data/demo/forecasting-v1.json; 4 products: *-extended.json)",
     )
     args = parser.parse_args()
     if not re.fullmatch(r"ppor_demo_[a-z0-9_]{1,40}", args.schema):
