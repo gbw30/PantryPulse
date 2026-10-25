@@ -758,6 +758,39 @@
         "title": "CoverageRow",
         "type": "object"
       },
+      "DashboardSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "inventory": {
+            "items": {
+              "$ref": "#/components/schemas/InventorySnapshot"
+            },
+            "title": "Inventory",
+            "type": "array"
+          },
+          "latest_forecast": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LatestForecast"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "observed_at": {
+            "title": "Observed At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "observed_at",
+          "inventory",
+          "latest_forecast"
+        ],
+        "title": "DashboardSummary",
+        "type": "object"
+      },
       "DemandDay": {
         "additionalProperties": false,
         "properties": {
@@ -2481,6 +2514,37 @@
           "lots"
         ],
         "title": "InventorySnapshot",
+        "type": "object"
+      },
+      "LatestForecast": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "job_id": {
+            "format": "uuid",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "planning_ready": {
+            "title": "Planning Ready",
+            "type": "boolean"
+          },
+          "recorded_at": {
+            "title": "Recorded At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "job_id",
+          "planning_ready",
+          "recorded_at"
+        ],
+        "title": "LatestForecast",
         "type": "object"
       },
       "LoginRequest": {
@@ -4553,6 +4617,141 @@
         "title": "SeriesScope",
         "type": "object"
       },
+      "ShortageDay": {
+        "additionalProperties": false,
+        "properties": {
+          "day": {
+            "format": "date",
+            "title": "Day",
+            "type": "string"
+          },
+          "demand": {
+            "description": "Nonnegative base units; no digit cap (eligible_end sums lots).",
+            "pattern": "^(0|[1-9][0-9]*)$",
+            "title": "Demand",
+            "type": "string"
+          },
+          "eligible_end": {
+            "description": "Eligible physical stock left at day end.",
+            "pattern": "^(0|[1-9][0-9]*)$",
+            "title": "Eligible End",
+            "type": "string"
+          },
+          "served": {
+            "description": "Nonnegative base units; no digit cap (eligible_end sums lots).",
+            "pattern": "^(0|[1-9][0-9]*)$",
+            "title": "Served",
+            "type": "string"
+          },
+          "unmet": {
+            "description": "Nonnegative base units; no digit cap (eligible_end sums lots).",
+            "pattern": "^(0|[1-9][0-9]*)$",
+            "title": "Unmet",
+            "type": "string"
+          }
+        },
+        "required": [
+          "day",
+          "demand",
+          "served",
+          "unmet",
+          "eligible_end"
+        ],
+        "title": "ShortageDay",
+        "type": "object"
+      },
+      "ShortageProjection": {
+        "additionalProperties": false,
+        "properties": {
+          "forecast_run_id": {
+            "format": "uuid",
+            "title": "Forecast Run Id",
+            "type": "string"
+          },
+          "observed_at": {
+            "title": "Observed At",
+            "type": "string"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/ShortageSeries"
+            },
+            "title": "Series",
+            "type": "array"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "forecast_run_id",
+          "observed_at",
+          "series",
+          "warnings"
+        ],
+        "title": "ShortageProjection",
+        "type": "object"
+      },
+      "ShortageSeries": {
+        "additionalProperties": false,
+        "properties": {
+          "actual_provider": {
+            "title": "Actual Provider",
+            "type": "string"
+          },
+          "base_unit": {
+            "title": "Base Unit",
+            "type": "string"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/ShortageDay"
+            },
+            "title": "Days",
+            "type": "array"
+          },
+          "fallback_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fallback Reason"
+          },
+          "fallback_used": {
+            "title": "Fallback Used",
+            "type": "boolean"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "site_id": {
+            "format": "uuid",
+            "title": "Site Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "product_id",
+          "base_unit",
+          "actual_provider",
+          "fallback_used",
+          "fallback_reason",
+          "days"
+        ],
+        "title": "ShortageSeries",
+        "type": "object"
+      },
       "Site": {
         "additionalProperties": false,
         "properties": {
@@ -5648,7 +5847,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardSummary"
+                }
               }
             },
             "description": "Successful Response"
@@ -9169,7 +9370,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/ShortageProjection"
+                }
               }
             },
             "description": "Successful Response"

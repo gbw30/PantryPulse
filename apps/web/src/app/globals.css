@@ -2,44 +2,95 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+@custom-variant dark (&:is(.dark *));
+
 :root {
   color-scheme: light;
-  --background: #f4f7f7;
-  --foreground: #162c3c;
-  --card: #ffffff;
-  --card-foreground: #162c3c;
-  --popover: #ffffff;
-  --popover-foreground: #162c3c;
-  --primary: #146858;
+  /* Blueprint v1.3 §9 palette (user-adopted 2026-10-25). Warning and neutral are below 4.5:1
+     on white/canvas: use them for icons, markers and borders only; status text stays in ink. */
+  --pp-canvas: #F5F4F0;
+  --pp-surface: #FFFFFF;
+  --pp-surface-muted: #ECEFEB;
+  --pp-ink: #26343A;
+  --pp-ink-muted: #52636A;
+  --pp-border: #D9DFD9;
+  --pp-teal: #416F68;
+  --pp-teal-soft: #DCEAE4;
+  --pp-forecast: #567A91;
+  --pp-warning: #A7773B;
+  --pp-danger: #A65B50;
+  --pp-neutral: #7A898C;
+  --background: var(--pp-canvas);
+  --foreground: var(--pp-ink);
+  --card: var(--pp-surface);
+  --card-foreground: var(--pp-ink);
+  --popover: var(--pp-surface);
+  --popover-foreground: var(--pp-ink);
+  --primary: var(--pp-teal);
   --primary-foreground: #ffffff;
-  --secondary: #e7efed;
-  --secondary-foreground: #162c3c;
-  --muted: #e7efed;
-  --muted-foreground: #4c626d;
-  --accent: #e7efed;
-  --accent-foreground: #162c3c;
-  --destructive: #a52f3a;
+  --secondary: var(--pp-surface-muted);
+  --secondary-foreground: var(--pp-ink);
+  --muted: var(--pp-surface-muted);
+  --muted-foreground: var(--pp-ink-muted);
+  --accent: var(--pp-teal-soft);
+  --accent-foreground: var(--pp-ink);
+  --destructive: var(--pp-danger);
   --destructive-foreground: #ffffff;
-  --border: #ced9dd;
-  --input: #ced9dd;
-  --ring: #146858;
+  --border: var(--pp-border);
+  --input: var(--pp-border);
+  --ring: var(--pp-teal);
   --radius: 0.75rem;
-  --chart-1: #146858;
-  --chart-2: #315c92;
-  --chart-3: #8a5c00;
-  --chart-4: #a52f3a;
-  --chart-5: #4c626d;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #162c3c;
-  --sidebar-primary: #146858;
+  --chart-1: var(--pp-teal);
+  --chart-2: var(--pp-forecast);
+  --chart-3: var(--pp-warning);
+  --chart-4: var(--pp-danger);
+  --chart-5: var(--pp-neutral);
+  --sidebar: var(--pp-surface);
+  --sidebar-foreground: var(--pp-ink);
+  --sidebar-primary: var(--pp-teal);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e7efed;
-  --sidebar-accent-foreground: #162c3c;
-  --sidebar-border: #ced9dd;
-  --sidebar-ring: #146858;
+  --sidebar-accent: var(--pp-teal-soft);
+  --sidebar-accent-foreground: var(--pp-ink);
+  --sidebar-border: var(--pp-border);
+  --sidebar-ring: var(--pp-teal);
+}
+
+/* Dark theme (user decision 2026-10-25), from the design lab's dark palette. Text pairs measured on
+   --pp-surface: ink 14.8:1, ink-muted 7.5:1, teal 10.8:1, forecast 7.7:1, warning 8.3:1, danger 6.5:1. */
+.dark {
+  color-scheme: dark;
+  --pp-canvas: #071721;
+  --pp-surface: #0d222e;
+  --pp-surface-muted: #12303d;
+  --pp-ink: #edf6f1;
+  --pp-ink-muted: #9ab4b9;
+  --pp-border: #2d5262;
+  --pp-teal: #77e5ce;
+  --pp-teal-soft: #123a34;
+  --pp-forecast: #8db4ea;
+  --pp-warning: #e9ae65;
+  --pp-danger: #f0857a;
+  --pp-neutral: #8ca8ae;
+  --primary-foreground: #071721;
+  --destructive-foreground: #071721;
+  --sidebar-primary-foreground: #071721;
 }
 
 @theme inline {
+  --color-pp-canvas: var(--pp-canvas);
+  --color-pp-surface: var(--pp-surface);
+  --color-pp-surface-muted: var(--pp-surface-muted);
+  --color-pp-ink: var(--pp-ink);
+  --color-pp-ink-muted: var(--pp-ink-muted);
+  --color-pp-border: var(--pp-border);
+  --color-pp-teal: var(--pp-teal);
+  --color-pp-teal-soft: var(--pp-teal-soft);
+  --color-pp-forecast: var(--pp-forecast);
+  --color-pp-warning: var(--pp-warning);
+  --color-pp-danger: var(--pp-danger);
+  --color-pp-neutral: var(--pp-neutral);
+  --font-sans: var(--font-plex), "IBM Plex Sans", system-ui, sans-serif;
+  --font-condensed: var(--font-plex-condensed), "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -78,5 +129,6 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-body { background: var(--background); color: var(--foreground); font-family: Arial, Helvetica, sans-serif; }
+body { background: var(--background); color: var(--foreground); font-family: var(--font-plex), "IBM Plex Sans", system-ui, sans-serif; font-variant-numeric: tabular-nums; }
+
 

@@ -25,7 +25,7 @@ from app.schemas.forecast_api import (
 )
 from app.services.chronos_runtime import CHRONOS_CONTRACT, bind_policy
 from app.services.forecast_runtime import configured_runtime
-from app.services.presenter_access import AccessError, authenticate, login, logout
+from app.services.presenter_access import AccessError, authenticate, login, logout, read_scope
 
 router = APIRouter(
     prefix="/api/v1",
@@ -55,6 +55,13 @@ def presenter(request: Request, rt=RUNTIME):
 PRESENTER = Depends(presenter)
 
 
+def reader(request: Request, rt=RUNTIME):
+    return read_scope(request, rt)
+
+
+READER = Depends(reader)
+
+
 @router.post("/presenter/login", response_model=LoginResponse, tags=["presenter"])
 def presenter_login(body: LoginRequest, request: Request, response: Response, rt=RUNTIME):
     return login(request, response, rt, body)
@@ -66,7 +73,7 @@ def presenter_logout(request: Request, response: Response, rt=RUNTIME):
 
 
 @router.get("/forecast-catalog", response_model=ForecastCatalog, tags=["forecasts"])
-def catalog(rt=RUNTIME, scope=PRESENTER):
+def catalog(rt=RUNTIME, scope=READER):
     with rt.engine.connect() as conn:
 
         def rows(model, *conditions):
