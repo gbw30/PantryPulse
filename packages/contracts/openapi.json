@@ -3103,8 +3103,15 @@
         "additionalProperties": false,
         "properties": {
           "candidate_hash": {
-            "title": "Candidate Hash",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Candidate Hash"
           },
           "metrics": {
             "anyOf": [

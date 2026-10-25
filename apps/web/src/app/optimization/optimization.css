@@ -21,7 +21,7 @@
 .or-desk button:disabled { opacity: .45; cursor: not-allowed; }
 .or-desk button.or-secondary { background: white; border-color: var(--border); color: var(--foreground); }
 .or-desk button.or-link-button { background: transparent; padding: 5px 0; color: var(--primary); border-color: transparent; text-decoration: underline; text-underline-offset: 3px; }
-.or-desk :is(button,input,select,a,summary):focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; }
+.or-desk :is(button,input,select,a,summary,[tabindex]):focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; }
 .or-form { display: flex; flex-direction: column; gap: 12px; }
 .or-form label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 650; }
 .or-form input, .or-form select { width: 100%; min-width: 0; padding: 10px 11px; min-height: 42px; border: 1px solid var(--border); border-radius: 6px; background: #fff; color: var(--foreground); font-size: 13px; font-weight: 400; }
@@ -68,3 +68,6 @@
 .or-reset { text-align: right; }
 @media (max-width: 1000px) { .or-desk { padding: 0 20px 30px; } .or-workspace { grid-template-columns: 250px minmax(0,1fr); gap: 16px; } .or-methods { grid-template-columns: 1fr; } .or-scenario { flex-direction: column; align-items: flex-start; gap: 12px; } .or-header nav { gap: 14px; } }
 @media (max-width: 700px) { .or-desk { padding: 0 14px 28px; } .or-header { padding: 16px 0; min-height: auto; flex-wrap: wrap; gap: 12px; } .or-brand { font-size: 22px; } .or-header nav { order: 3; width: 100%; margin-left: 0; font-size: 12px; } .or-pill { margin-left: auto; font-size: 11px; } .or-title { padding-top: 24px; } .or-title h1 { font-size: 29px; } .or-workspace { grid-template-columns: 1fr; } .or-controls { gap: 14px; } .or-card { padding: 18px; } .or-disclosure { font-size: 11px; } .or-job { flex-wrap: wrap; } .or-empty { min-height: 200px; padding: 24px; } }
+
+.or-table-scroll tbody th { position: sticky; left: 0; z-index: 1; background: var(--card); box-shadow: 1px 0 0 var(--border); }
+.or-table-scroll thead th:first-child { position: sticky; left: 0; z-index: 2; }

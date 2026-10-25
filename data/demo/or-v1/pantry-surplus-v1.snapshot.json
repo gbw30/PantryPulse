@@ -5,13 +5,13 @@
     "organization_id": "00000000-0000-0000-0000-000000000001",
     "dataset_id": "00000000-0000-0000-0000-000000000002",
     "source_kind": "SIMULATED",
-    "source_revision_token": "sim-v1",
+    "source_revision_token": "sim-v2-stock-asof",
     "source_refs": [
       {
         "id": "00000000-0000-0000-0000-0000000001f5",
         "kind": "SIMULATED_FIXTURE",
-        "revision": "sim-v1",
-        "content_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+        "revision": "sim-v2-stock-asof",
+        "content_hash": "2ebaa728352ac1bd4e749a8e735b9a0f238b09562d6d674e92d6b6e7d349df70"
       }
     ],
     "snapshot_as_of": "2026-10-24T12:00:00Z",
@@ -1124,11 +1124,11 @@
         "reserved_units": 0,
         "committed_units": 0,
         "held_units": 0,
-        "available_on": "2026-10-25",
+        "available_on": "2026-10-24",
         "expires_on": "2026-11-01",
         "eligibility": "ELIGIBLE",
         "source_line_id": "00000000-0000-0000-0000-00000000012c",
-        "source_revision": "sim-v1",
+        "source_revision": "sim-v2-stock-asof",
         "dispatchable": true,
         "commitment_scope_refs": [],
         "commitment_overlaps_demand": false
@@ -1143,11 +1143,11 @@
         "reserved_units": 0,
         "committed_units": 0,
         "held_units": 0,
-        "available_on": "2026-10-25",
+        "available_on": "2026-10-24",
         "expires_on": "2026-11-01",
         "eligibility": "ELIGIBLE",
         "source_line_id": "00000000-0000-0000-0000-00000000012d",
-        "source_revision": "sim-v1",
+        "source_revision": "sim-v2-stock-asof",
         "dispatchable": true,
         "commitment_scope_refs": [],
         "commitment_overlaps_demand": false
@@ -2428,7 +2428,7 @@
       "partial_scope": false,
       "forecast_handoff_hash": null
     },
-    "source_manifest_hash": "1e758ae3623b3c49eab90a8563ea558d3555c96db43be761bf1b9cf1bd7ff416",
+    "source_manifest_hash": "4eb26877abb125c739343229a168e0c5a01c543afa1e19631a2ef598193259a9",
     "provenance_warnings": [
       "SIMULATED; no observed fairness or physical movement claim"
     ],
@@ -3585,5 +3585,5 @@
     "OR-DEC-020"
   ],
   "policy_hash": "e1a5a175fa17d7a7ae81815538e8a6e06048040638458d0a66f00a20d1f414eb",
-  "operational_hash": "0d3aa29e1ad083ec11d09ad7c7b553833044f368257de31e1e2e4fad71d9dbca"
+  "operational_hash": "d84c4b941bbfff7bca85f8cbc085885d2566da0e5749e804aa12e9a34d4eec30"
 }

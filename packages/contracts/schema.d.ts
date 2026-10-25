@@ -1715,7 +1715,7 @@ export interface components {
         /** VerificationReport */
         VerificationReport: {
             /** Candidate Hash */
-            candidate_hash: string;
+            candidate_hash: string | null;
             metrics: components["schemas"]["Metrics"] | null;
             /** Operational Hash */
             operational_hash: string;

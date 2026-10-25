@@ -3,13 +3,13 @@
   "organization_id": "00000000-0000-0000-0000-000000000001",
   "dataset_id": "00000000-0000-0000-0000-000000000002",
   "source_kind": "SIMULATED",
-  "source_revision_token": "sim-v1",
+  "source_revision_token": "sim-v2-stock-asof",
   "source_refs": [
     {
       "id": "00000000-0000-0000-0000-0000000001f5",
       "kind": "SIMULATED_FIXTURE",
-      "revision": "sim-v1",
-      "content_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+      "revision": "sim-v2-stock-asof",
+      "content_hash": "3f64629214164249b229f8ffe1381b5fe1372c22aab1911f1db2636de1f1d368"
     }
   ],
   "snapshot_as_of": "2026-10-24T12:00:00Z",
@@ -2122,7 +2122,7 @@
     "partial_scope": false,
     "forecast_handoff_hash": null
   },
-  "source_manifest_hash": "1e758ae3623b3c49eab90a8563ea558d3555c96db43be761bf1b9cf1bd7ff416",
+  "source_manifest_hash": "869d48038795a5a6949163edf05ee8bc9527ad0aae8cee56c75fa5f23e68d1f4",
   "provenance_warnings": [
     "SIMULATED; no observed fairness or physical movement claim"
   ],

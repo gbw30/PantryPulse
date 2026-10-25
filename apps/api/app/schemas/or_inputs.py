@@ -348,6 +348,7 @@ class ORInputPackage(ORContract):
             if len(rows) != len(keys) or {(r.site_id, r.product_id) for r in rows} != keys:
                 raise ValueError("INCOMPLETE_SITE_PRODUCT_COVERAGE")
         dates = tuple(self.first_planning_date + timedelta(days=i) for i in range(7))
+        snapshot_day = self.snapshot_as_of.astimezone(ZoneInfo(self.operational_timezone)).date()
         for f in self.forecasts:
             if (
                 f.organization_id != self.organization_id
@@ -366,7 +367,10 @@ class ORInputPackage(ORContract):
                 raise ValueError("UNKNOWN_RESOURCE_REFERENCE")
             if resource.unit != products[resource.product_id].unit:
                 raise ValueError("UNIT_MISMATCH")
-            if isinstance(resource, InventoryLot) and resource.available_on > dates[0]:
+            # OR-DEC-005 [PROVISIONAL]: original physical stock already exists at snapshot.
+            if isinstance(resource, InventoryLot) and resource.available_on > min(
+                dates[0], snapshot_day
+            ):
                 raise ValueError("FUTURE_ON_HAND_STOCK")
         if len({r.id for r in self.routes}) != len(self.routes) or len(
             {(r.source_id, r.destination_id) for r in self.routes}

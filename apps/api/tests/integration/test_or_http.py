@@ -240,6 +240,78 @@ def test_login_rate_limit_and_logout_revokes_session(http):
     )
 
 
+@pytest.mark.parametrize("username", ["é", "协调员"])
+def test_unicode_invalid_username_returns_401_without_creating_a_session(http, username):
+    # OR-DEC-014 [PROVISIONAL]: every invalid identity follows the credential boundary.
+    client, engine, _ = http
+    response = client.post(
+        "/api/v1/presenter/login",
+        json={"username": username, "password": PASSWORD},
+        headers={"Origin": ORIGIN},
+    )
+    assert response.status_code == 401, response.text
+    assert response.json()["error"]["code"] == "INVALID_CREDENTIALS"
+    with engine.connect() as conn:
+        assert conn.scalar(sa.text("SELECT count(*) FROM presenter_sessions")) == 0
+
+
+def test_configured_unicode_presenter_can_login_and_logout(http, monkeypatch):
+    client, _, _ = http
+    username = "présentateur🍐"
+    monkeypatch.setenv("PP_PRESENTER_USERNAME", username)
+    response = client.post(
+        "/api/v1/presenter/login",
+        json={"username": username, "password": PASSWORD},
+        headers={"Origin": ORIGIN},
+    )
+    assert response.status_code == 200, response.text
+    assert client.get("/api/v1/presenter/session").json()["authenticated"] is True
+    headers = {"Origin": ORIGIN, "X-CSRF-Token": response.json()["csrf_token"]}
+    assert client.post("/api/v1/presenter/logout", headers=headers).status_code == 200
+    assert client.get("/api/v1/presenter/session").json()["authenticated"] is False
+
+
+@pytest.mark.parametrize("seconds,available", [(60, False), (-15, False), (-16, False), (0, True)])
+def test_readiness_rejects_future_and_stale_heartbeats_without_compute(http, seconds, available):
+    # OR-DEC-011 [PROVISIONAL]: reuse the queue's exact freshness boundary.
+    client, engine, _ = http
+    with engine.begin() as conn:
+        conn.execute(
+            sa.text(
+                "UPDATE compute_control SET state='READY', supervisor_id=:owner,"
+                " heartbeat_at=clock_timestamp() + :seconds * interval '1 second'"
+            ),
+            {"owner": uuid4(), "seconds": seconds},
+        )
+    response = client.get("/api/v1/readiness")
+    assert response.status_code == 200, response.text
+    assert response.json()["compute_available"] is available
+    with engine.connect() as conn:
+        assert conn.scalar(sa.text("SELECT count(*) FROM compute_jobs")) == 0
+
+
+def test_readiness_observes_database_time_after_a_concurrent_heartbeat_refresh(http, monkeypatch):
+    client, engine, _ = http
+    queue = app.state.or_runtime.queue
+    original_control = queue.control
+    with engine.begin() as conn:
+        conn.execute(
+            sa.text("UPDATE compute_control SET state='READY', supervisor_id=:owner"),
+            {"owner": uuid4()},
+        )
+
+    def refreshed_control():
+        with engine.begin() as conn:
+            conn.execute(sa.text("UPDATE compute_control SET heartbeat_at=clock_timestamp()"))
+        return original_control()
+
+    monkeypatch.setattr(queue, "control", refreshed_control)
+    response = client.get("/api/v1/readiness")
+    assert response.status_code == 200, response.text
+    assert response.json()["heartbeat_age_seconds"] >= 0
+    assert response.json()["compute_available"] is True
+
+
 def test_explicit_mode_idempotency_saved_reads_and_unavailable_source(http):
     client, engine, _ = http
     headers = _login(client)

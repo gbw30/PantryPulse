@@ -14,7 +14,7 @@ export default defineConfig({
   webServer: {
     command: `npm run dev -- --port ${port}`,
     url: baseURL,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: !process.env.CI && !process.env.OR_E2E_PASSWORD,
     timeout: 120_000,
   },
 });

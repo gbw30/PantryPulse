@@ -219,7 +219,7 @@ export default function OptimizationDesk({ initialJobId }: { initialJobId: strin
               const cGoals = classical?.verification?.metrics?.goals.filter((goal) => goal.product_id === product) ?? [];
               const rGoals = research?.verification?.metrics?.goals.filter((goal) => goal.product_id === product) ?? [];
               const goals = cGoals.length ? cGoals : rGoals;
-              return <div className="or-product" key={product}><h3>{unitName(product)}</h3><p className="or-small">Scroll horizontally to compare all columns.</p><div className="or-table-scroll"><table><caption className="sr-only">Dated allocation-window service in {unitName(product)}</caption><thead><tr><th>Beneficiary</th><th>Target</th><th>Baseline served</th><th>Classical served / unmet</th><th>Research served / unmet</th><th>Research deficit</th></tr></thead><tbody>{goals.map((goal) => {
+              return <div className="or-product" key={product}><h3>{unitName(product)}</h3><p className="or-small">Scroll horizontally to compare all columns.</p><div className="or-table-scroll" tabIndex={0} role="region" aria-label={`${unitName(product)} service comparison`}><table><caption className="sr-only">Dated allocation-window service in {unitName(product)}</caption><thead><tr><th>Beneficiary</th><th>Target</th><th>Baseline served</th><th>Classical served / unmet</th><th>Research served / unmet</th><th>Research deficit</th></tr></thead><tbody>{goals.map((goal) => {
                 const c = cGoals.find((item) => item.site_id === goal.site_id);
                 const r = rGoals.find((item) => item.site_id === goal.site_id);
                 const before = baseline?.goals.find((item) => item.product_id === product && item.site_id === goal.site_id);

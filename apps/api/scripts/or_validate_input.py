@@ -16,6 +16,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         data = json.loads(Path(args.input).read_text())
+        if not isinstance(data, dict):
+            raise ValueError("OR input must be a JSON object")
         value = (
             snapshot(args.input)
             if data.get("schema_version") == "or-scenario-v1"

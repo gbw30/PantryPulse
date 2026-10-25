@@ -742,6 +742,54 @@ class QueueRepository:
             )
             if admit_hook is not None:
                 admit_hook(conn, scope, job["input_package"]["input"])
+            if job["handler_contract"] in ("or-allocation-v1", "or-comparison-v1"):
+                # OR-DEC-011 [PROVISIONAL]: another request key reuses active retry work.
+                active = (
+                    conn.execute(
+                        sa.text(
+                            "SELECT job_id,current_attempt_id,state FROM compute_jobs "
+                            "WHERE organization_id=:o AND handler_contract=:c AND input_sha256=:h "
+                            "AND state IN ('QUEUED','RUNNING','STOPPING')"
+                        ),
+                        {
+                            "o": scope.organization_id,
+                            "c": job["handler_contract"],
+                            "h": job["input_sha256"],
+                        },
+                    )
+                    .mappings()
+                    .first()
+                )
+                if active is not None:
+                    response = {
+                        "job_id": str(active["job_id"]),
+                        "attempt_id": str(active["current_attempt_id"]),
+                        "state": active["state"],
+                    }
+                    self._record_command(
+                        conn,
+                        scope,
+                        CommandAction.RETRY,
+                        idempotency_key,
+                        request_sha,
+                        active["job_id"],
+                        active["current_attempt_id"],
+                        response,
+                        now,
+                    )
+                    self._audit(
+                        conn,
+                        "RETRY_REUSED_ACTIVE",
+                        job_id=active["job_id"],
+                        attempt_id=active["current_attempt_id"],
+                        details={"previous_job_id": str(job_id)},
+                    )
+                    return Accepted(
+                        active["job_id"],
+                        active["current_attempt_id"],
+                        AttemptState(active["state"]),
+                        True,
+                    )
             outcome = self._admission(conn, ctl, now, job["handler_contract"])
             if outcome is not AdmissionOutcome.ACCEPT:
                 rejection = outcome

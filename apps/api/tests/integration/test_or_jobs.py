@@ -169,6 +169,9 @@ def test_or_manual_retry_creates_linked_new_job_and_preserves_old_terminal(incre
     assert fresh.retry_of_attempt_id == original.attempt_id
     assert fresh.attempts[0].attempt_number == 1
     assert queue.retry(scope, original.job_id, key).job_id == retried.job_id
+    another_key = queue.retry(scope, original.job_id, str(uuid.uuid4()))
+    assert another_key.job_id == retried.job_id
+    assert another_key.replayed
     queue.cancel(scope, retried.job_id, str(uuid.uuid4()))
 
 

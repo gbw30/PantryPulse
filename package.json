@@ -31,7 +31,9 @@
     "contracts:generate": "node scripts/contracts/generate.mjs",
     "contracts:check": "node scripts/contracts/check.mjs",
     "or:decisions": "python3 scripts/or/check-decision-markers.py",
-    "test:integration": "uv run --frozen --directory apps/api python -m scripts.or_require_test_database && uv run --frozen --directory apps/api pytest tests/integration -q"
+    "test:integration": "uv run --frozen --directory apps/api python -m scripts.or_require_test_database && uv run --frozen --directory apps/api pytest tests/integration -q",
+    "test:web": "node --experimental-strip-types --test apps/web/tests/*.test.mjs",
+    "test:e2e:or": "uv run --frozen --directory apps/api python -m scripts.or_browser_tests"
   },
   "devDependencies": {
     "openapi-typescript": "7.10.1"

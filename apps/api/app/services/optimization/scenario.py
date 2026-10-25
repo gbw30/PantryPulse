@@ -11,7 +11,7 @@ from app.schemas.or_inputs import (
     ProductReference,
 )
 from app.schemas.planning_primitives import TransferMode
-from app.services.optimization.canonical import operational_hash
+from app.services.optimization.canonical import canonical_bytes, operational_hash
 from app.services.optimization.decisions import DECISION_IDS
 from app.services.optimization.forecast_adapter import adapt_series
 from app.services.transfer_modes import check_mode_route
@@ -142,5 +142,7 @@ def verify_scenario(scenario: ORScenarioPayload) -> None:
         intent=scenario.intent,
         expected_source_revision=scenario.package.source_revision_token,
     )
-    if rebuilt != scenario:
+    # OR-DEC-009 [PROVISIONAL]: derivation uses the same unordered-collection semantics
+    # as the canonical content identity; serialization must not invalidate replay.
+    if canonical_bytes(rebuilt) != canonical_bytes(scenario):
         raise ValueError("SCENARIO_DERIVATION_MISMATCH")

@@ -21,11 +21,11 @@ test.describe("persisted simulated OR journey", () => {
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
     await expect(page.getByText("Session active. Visitors can open saved simulated results.")).toBeVisible();
     const originRejection = await page.request.post(`${baseURL}/api/v1/demo/seed`, {
-      headers: { Origin: "https://example.invalid" }, data: { fixture: "six-beneficiary-v1" },
+      headers: { Origin: "https://example.invalid", "Idempotency-Key": "origin-check" }, data: { fixture: "six-beneficiary-v1" },
     });
     expect(originRejection.status()).toBe(403);
     const csrfRejection = await page.request.post(`${baseURL}/api/v1/demo/seed`, {
-      headers: { Origin: baseURL }, data: { fixture: "six-beneficiary-v1" },
+      headers: { Origin: baseURL, "Idempotency-Key": "csrf-check" }, data: { fixture: "six-beneficiary-v1" },
     });
     expect(csrfRejection.status()).toBe(403);
     const evidence: { cycle: number; mode: string; multiplier: string; scenario_hash: string; job_id: string; duration_ms: number }[] = [];
@@ -65,12 +65,36 @@ test.describe("persisted simulated OR journey", () => {
         await expect(saved.locator(".or-method-card").getByText("OPTIMAL", { exact: true })).toHaveCount(2);
         await expect(saved.getByRole("button", { name: "Compare methods", exact: true })).toBeDisabled();
         await expect(saved.getByRole("button", { name: "Mark reviewed", exact: true })).toHaveCount(0);
+        const savedPage = await saved.request.get(`${baseURL}/api/v1/scenarios?limit=1`);
+        expect(savedPage.status()).toBe(200);
+        expect(savedPage.headers()["x-next-cursor"]).toBeTruthy();
+        await saved.emulateMedia({ reducedMotion: "reduce" });
+        await saved.keyboard.press("Tab");
+        await expect(saved.getByRole("link", { name: "PantryPulse", exact: true })).toBeFocused();
+        const methodology = saved.locator(".or-methodology summary");
+        await methodology.focus();
+        await saved.keyboard.press("Enter");
+        await expect(saved.getByText(/CLASSICAL_GP uses equal ordinary goal weights/)).toBeVisible();
+        await saved.keyboard.press("Enter");
+        await expect(methodology).toBeFocused();
         for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 720 }, { width: 390, height: 844 }]) {
           await saved.setViewportSize(viewport);
           await expect(saved.getByText("Simulated network", { exact: true })).toBeVisible();
           const overflow = await saved.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
           expect(overflow).toBe(false);
           await saved.screenshot({ path: path.join(output, `saved-${viewport.width}x${viewport.height}.png`), fullPage: true });
+          if (viewport.width === 390) {
+            const scroll = saved.locator(".or-table-scroll").first();
+            await scroll.focus();
+            await expect(scroll).toBeFocused();
+            await saved.keyboard.press("ArrowRight");
+            await expect.poll(() => scroll.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+            const aligned = await scroll.evaluate((element) => {
+              element.scrollLeft = element.scrollWidth;
+              return Math.abs(element.querySelector("tbody th")!.getBoundingClientRect().left - element.getBoundingClientRect().left);
+            });
+            expect(aligned).toBeLessThan(2);
+          }
         }
         await visitor.close();
       }

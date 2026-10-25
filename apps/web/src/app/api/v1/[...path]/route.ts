@@ -5,6 +5,22 @@ export const dynamic = "force-dynamic";
 const maximumBody = 4 * 1024 * 1024;
 type Context = { params: Promise<{ path: string[] }> };
 
+function applicationOrigin(request: Request, current: URL) {
+  if (process.env.PP_PUBLIC_ORIGIN) return new URL(process.env.PP_PUBLIC_ORIGIN).origin;
+  // NextURL normalizes loopback addresses to "localhost". Preserve the actual
+  // local Host authority without trusting forwarded-origin/protocol headers.
+  const host = request.headers.get("host");
+  if (current.hostname === "localhost" && host) {
+    try {
+      const local = new URL(`${current.protocol}//${host}`);
+      if (local.host === host && ["localhost", "127.0.0.1", "[::1]"].includes(local.hostname)) {
+        return local.origin;
+      }
+    } catch { /* Invalid Host never expands the accepted origin. */ }
+  }
+  return current.origin;
+}
+
 function failure(status: number, code: string, message: string) {
   return Response.json({ error: { code, message, details: {} }, request_id: crypto.randomUUID() }, {
     status, headers: { "Cache-Control": "no-store" },
@@ -18,7 +34,7 @@ async function forward(request: Request, context: Context) {
   }
   const current = new URL(request.url);
   // OR-DEC-014 [PROVISIONAL]: enforce same origin before forwarding any mutation.
-  if (request.method !== "GET" && request.headers.get("origin") !== current.origin) {
+  if (request.method !== "GET" && request.headers.get("origin") !== applicationOrigin(request, current)) {
     return failure(403, "ORIGIN_FORBIDDEN", "Mutation requires the application origin.");
   }
   const headers = new Headers({ Accept: "application/json", "X-Request-ID": crypto.randomUUID() });
@@ -52,7 +68,7 @@ async function forward(request: Request, context: Context) {
       signal: AbortSignal.timeout(10_000),
     });
     const responseHeaders = new Headers({ "Cache-Control": "no-store" });
-    for (const name of ["content-type", "retry-after", "x-request-id"]) {
+    for (const name of ["content-type", "retry-after", "x-request-id", "x-next-cursor"]) {
       const value = result.headers.get(name);
       if (value) responseHeaders.set(name, value);
     }

@@ -2,8 +2,11 @@
 
 import json
 import os
+import signal
 import sys
 import time
+from pathlib import Path
+from uuid import uuid4
 
 import pytest
 
@@ -123,48 +126,58 @@ def test_actual_cgroup_cpu_and_memory_limits_cover_descendants():
         driver.dispose(handle)
 
 
-def test_actual_cgroup_oom_bounds_aggregate_descendant_memory_without_parent_polling():
+def test_actual_cgroup_oom_bounds_aggregate_descendant_memory_without_parent_polling(monkeypatch):
     from app.workers.process_driver import systemd_scope_available
 
     if not systemd_scope_available():
         pytest.skip("NOT RUN: user systemd cgroup manager inaccessible")
+    # Keep a unique parent slice alive outside the bounded workload's scope. The
+    # kernel may kill any workload process and systemd may collect that scope;
+    # hierarchical kernel counters remain readable from this independent observer.
+    slice_name = f"pantrypulse_oom_test_{uuid4().hex}.slice"
+    monkeypatch.setenv("PP_WQ_WORKER_SLICE", slice_name)
     driver = PosixProcessDriver(
-        cwd=os.getcwd(),
-        memory_limit_bytes=256 * 1024**2,
-        systemd_scope=True,
+        cwd=os.getcwd(), memory_limit_bytes=256 * 1024**2, systemd_scope=True
     )
-    child = (
+    holder_script = (
         "import pathlib,time;"
-        "pathlib.Path('/proc/self/oom_score_adj').write_text('1000');"
-        "x=bytearray(176*1024**2);time.sleep(60)"
+        "relative=pathlib.Path('/proc/self/cgroup').read_text().strip().split('::')[1];"
+        "print(str(pathlib.Path(relative).parent),flush=True);time.sleep(60)"
     )
-    script = f"""
-import json, pathlib, signal, subprocess, sys
-relative = pathlib.Path('/proc/self/cgroup').read_text().strip().split('::')[1]
-group = pathlib.Path('/sys/fs/cgroup') / relative.lstrip('/')
-def report(signaled=False, child_exit=None):
-    print(json.dumps({{'signaled': signaled, 'child_exit': child_exit,
-                      'events': (group / 'memory.events').read_text()}}), flush=True)
-def stopped(signum, frame):
-    report(signaled=True)
-    sys.exit(0)
-signal.signal(signal.SIGTERM, stopped)
-p = subprocess.Popen([sys.executable, '-c', {child!r}])
-x = bytearray(96 * 1024**2)
-report(child_exit=p.wait())
-"""
-    handle = driver.start([sys.executable, "-c", script], b"", max_stdout_bytes=4096)
+    holder = driver.start([sys.executable, "-c", holder_script], b"", max_stdout_bytes=4096)
+    workload = None
     try:
-        # Each allocation fits RLIMIT_AS separately. systemd may stop the whole scope
-        # after the child OOM; its SIGTERM handler records the kernel counter first.
-        until(lambda: driver.poll(handle) is not None)
-        until(lambda: driver.confirm_empty(handle.identity))
-        output = driver.collect(handle)
-        assert output.returncode == 0, output.stderr.decode()
-        result = json.loads(output.stdout)
-        assert result["signaled"] or result["child_exit"] == -9
-        counters = dict(line.split() for line in result["events"].splitlines())
-        assert int(counters["oom_kill"]) >= 1
+        until(lambda: b"\n" in holder.stdout.data())
+        relative = holder.stdout.data().decode().strip()
+        group = Path("/sys/fs/cgroup") / relative.lstrip("/")
+        assert group.name == slice_name
+
+        def oom_kills():
+            return int(
+                dict(line.split() for line in (group / "memory.events").read_text().splitlines())[
+                    "oom_kill"
+                ]
+            )
+
+        before = oom_kills()
+        child = "import time;x=bytearray(176*1024**2);time.sleep(60)"
+        script = (
+            "import subprocess,sys;"
+            "x=bytearray(96*1024**2);"
+            f"p=subprocess.Popen([sys.executable,'-c',{child!r}]);p.wait()"
+        )
+        workload = driver.start([sys.executable, "-c", script], b"", max_stdout_bytes=4096)
+        # No RSS backstop or parent termination is invoked. Each process fits its
+        # RLIMIT_AS separately; only aggregate scope memory triggers kernel OOM.
+        until(lambda: driver.poll(workload) is not None)
+        until(lambda: driver.confirm_empty(workload.identity))
+        output = driver.collect(workload)
+        assert not output.overflow
+        assert output.returncode in (0, -signal.SIGTERM, -signal.SIGKILL), output.stderr.decode()
+        assert oom_kills() > before, "Require actual kernel OOM kill, not Python MemoryError"
     finally:
-        driver.force_stop(handle)
-        driver.dispose(handle)
+        if workload is not None:
+            driver.force_stop(workload)
+            driver.dispose(workload)
+        driver.force_stop(holder)
+        driver.dispose(holder)

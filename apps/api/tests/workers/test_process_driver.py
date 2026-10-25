@@ -99,14 +99,24 @@ def test_child_runs_in_its_own_group_and_returns_bounded_json(driver):
 def test_child_environment_carries_no_database_secrets(driver, monkeypatch):
     monkeypatch.setenv("DATABASE_URL", "postgresql://secret")
     monkeypatch.setenv("PP_TEST_DATABASE_URL", "postgresql://secret")
-    handle = driver.start(child_argv(), envelope({"sleep_s": 2}), max_stdout_bytes=4096)
-    wait_members(driver, handle.identity, 1)
-    with open(f"/proc/{handle.identity.leader_pid}/environ", "rb") as f:
-        environ = f.read()
-    assert b"DATABASE_URL" not in environ and b"secret" not in environ
-    assert f"PP_WQ_BOUNDARY={handle.identity.nonce}".encode() in environ
-    driver.force_stop(handle)
-    wait_exit(driver, handle)
+    # Inspect the executed application, rather than racing systemd/exec's transient
+    # empty /proc environ. A launched wrapper alone does not establish child state.
+    handle = driver.start(
+        [sys.executable, "-c", "import json,os;print(json.dumps(dict(os.environ)))"],
+        b"",
+        max_stdout_bytes=16384,
+    )
+    try:
+        wait_exit(driver, handle)
+        output = driver.collect(handle)
+        assert output.returncode == 0, output.stderr.decode()
+        environ = json.loads(output.stdout)
+        assert not any("DATABASE_URL" in key for key in environ)
+        assert not any("secret" in value for value in environ.values())
+        assert environ["PP_WQ_BOUNDARY"] == handle.identity.nonce
+    finally:
+        driver.force_stop(handle)
+        driver.dispose(handle)
 
 
 def test_stop_kills_descendants_in_the_group(driver):  # WQ-T12

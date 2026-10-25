@@ -248,11 +248,15 @@ def test_revision_change_stales_current_but_historical_stays_readable(pg, snapsh
     # OR-DEC-015 [PROVISIONAL]: behavioral coverage in decision-manifest.json.
     with pg.begin() as conn:
         actor, _, _, scenario = _seed(conn, snapshot)
-        package2 = snapshot.package.model_copy(update={"source_revision_token": "sim-v2"})
+        package2 = snapshot.package.model_copy(
+            update={"source_revision_token": snapshot.package.source_revision_token + "-next"}
+        )
         repo = ORRepository(conn)
         with pytest.raises(ORStorageError, match="SOURCE_REVISION_MISMATCH"):
             repo.put_package(package2, actor)
-        repo.put_package(package2, actor, expected_revision="sim-v1")
+        repo.put_package(
+            package2, actor, expected_revision=snapshot.package.source_revision_token
+        )
         old = repo.get(ScenarioRecord, snapshot.package.organization_id, scenario["id"])
         with pytest.raises(ORStorageError, match="SOURCE_REVISION_MISMATCH"):
             repo.assert_current(old)

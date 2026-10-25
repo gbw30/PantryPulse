@@ -5,13 +5,13 @@
     "organization_id": "00000000-0000-0000-0000-000000000001",
     "dataset_id": "00000000-0000-0000-0000-000000000002",
     "source_kind": "SIMULATED",
-    "source_revision_token": "sim-v1",
+    "source_revision_token": "sim-v2-stock-asof",
     "source_refs": [
       {
         "id": "00000000-0000-0000-0000-0000000001f5",
         "kind": "SIMULATED_FIXTURE",
-        "revision": "sim-v1",
-        "content_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+        "revision": "sim-v2-stock-asof",
+        "content_hash": "85b210cf8af0041fa0bb49782d44709dcef7f04abcf5fba25dfbd88b6f237a5e"
       }
     ],
     "snapshot_as_of": "2026-10-24T12:00:00Z",
@@ -283,11 +283,11 @@
         "reserved_units": 0,
         "committed_units": 0,
         "held_units": 0,
-        "available_on": "2026-10-25",
+        "available_on": "2026-10-24",
         "expires_on": "2026-11-01",
         "eligibility": "ELIGIBLE",
         "source_line_id": "00000000-0000-0000-0000-00000000012c",
-        "source_revision": "sim-v1",
+        "source_revision": "sim-v2-stock-asof",
         "dispatchable": true,
         "commitment_scope_refs": [],
         "commitment_overlaps_demand": false
@@ -729,7 +729,7 @@
       "partial_scope": false,
       "forecast_handoff_hash": null
     },
-    "source_manifest_hash": "1e758ae3623b3c49eab90a8563ea558d3555c96db43be761bf1b9cf1bd7ff416",
+    "source_manifest_hash": "23ae88110a61ec4123c705b98e26450c006f597dc2286d2066f377c2375f56cd",
     "provenance_warnings": [
       "SIMULATED; no observed fairness or physical movement claim"
     ],
@@ -1054,5 +1054,5 @@
     "OR-DEC-020"
   ],
   "policy_hash": "a4247cb8cfb92b1b1da6bc5cea04d6b020b70b42f78d85dcccdfc7c96adf734b",
-  "operational_hash": "86061cf739646c91e652ae950afcaac322cc13c7301b29d4e8a258712f657a0a"
+  "operational_hash": "9379ddfc0f3690e8c2aa49bbdfe88b79a6ffa6dbb0e9c1cc0aee362829009fa8"
 }

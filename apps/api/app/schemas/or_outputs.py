@@ -135,7 +135,7 @@ class VerificationReport(ORContract):
     projection: ProjectionReport | None
     metrics: Metrics | None
     operational_hash: str
-    candidate_hash: str
+    candidate_hash: str | None
     verifier_version: Literal["independent-replay-v1"] = "independent-replay-v1"
 
 

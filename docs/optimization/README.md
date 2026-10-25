@@ -9,3 +9,5 @@ Entry point: [GitHub #54](https://github.com/gbw30/PantryPulse/issues/54).
 The supplied Draft 1.1 files are retained verbatim. [Baseline reconciliation](BASELINE-RECONCILIATION.md), [provisional decisions](DECISION-REGISTER.md), [research mapping](RESEARCH-MAPPING.md), [numerical proof](NUMERICAL-PROOF.md), and [acceptance evidence](ACCEPTANCE.md) record implementation facts separately.
 
 Explicit SIMULATED packages support OR testing. LIVE input requires committed authoritative forecast, stock and operational read adapters; pure forecast readiness is insufficient. Supplier and model/hosting work remain paused.
+
+The latest [reviewed checkpoint](CHECKPOINT-REVIEW-2026-10-24.md) records regression fixes, reproducible verification commands and the remaining UI/source work. The initial checkpoint remains historical.

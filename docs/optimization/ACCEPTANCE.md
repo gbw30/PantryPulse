@@ -1,64 +1,80 @@
-# OR acceptance evidence — implementation checkpoint
+# OR acceptance evidence — reviewed checkpoint
 
-Date: October 24, 2026, America/New_York. Code: base
-`f3946c726e53fa546be1400d80ab717fcb2c3468` plus the uncommitted working tree.
-This checkpoint stops for the user to commit. Full OR/V5 release acceptance is
-incomplete; no GitHub implementation issue has been closed.
+October 24, 2026. Base commit `e49e360d23e46b43542b0a2e9b5f6277d5f840d5`
+plus the reviewed working tree. The initial checkpoint is retained in
+[evidence](evidence/acceptance-initial-checkpoint.md). This is a commit milestone;
+issue #54 and whole-product V5 acceptance remain incomplete.
 
-Inputs are `data/demo/or-v1/*.snapshot.json`, with explicit SIMULATED provenance,
-policy/settings identities and OR-DEC metadata. The six-beneficiary/two-product
-window is H=3 with seven forecast dates. See
-[native model-bound evidence](evidence/model-bounds-six-beneficiary-v1.json) for
-exact operational/policy hashes and common physical fingerprints, and
-[independent enumeration](RESEARCH-MAPPING.md) for unique optimum evidence.
+All sources are explicitly SIMULATED. The corrected fixture revision is
+`sim-v2-stock-asof`; see [fixture provenance](../../data/demo/or-v1/README.md).
+The six-beneficiary scenario operational hash is
+`60e31e1936082aa707a60d384d201bdc3c79b3f31958e26aa2cfa25204e87428`.
+Policy hash is
+`e1a5a175fa17d7a7ae81815538e8a6e06048040638458d0a66f00a20d1f414eb`.
+Actual model bounds and identical physical fingerprints are in
+[reviewed native evidence](evidence/model-bounds-six-beneficiary-stock-asof.json).
+Solver settings: one search worker, seed 0, 15,000 ms search limit per method.
+Environment: Linux, Python 3.12.13, OR-Tools 9.15.6755, PostgreSQL 16.15,
+Node 24.16.0/npm 11.13.0. Tests use dedicated local `pantrypulse_or_test`
+and disposable schemas. Local uv is 0.13.5; CI pins 0.11.15.
 
-## Executed checks
+## Executed review evidence
 
-Environment: Linux; Python 3.12.13; locked dependencies including OR-Tools 9.15.6755;
-PostgreSQL 16.15 on dedicated local `pantrypulse_or_test` with isolated schemas;
-Node 24.16.0/npm 11.13.0. Native tests use one search worker and seed 0.
-Prefix npm commands locally with the tooling directories recorded in the checkpoint.
+- Independent API/model review reproduced failures before fixes for Unicode login,
+  future heartbeat, canonical snapshot roundtrip, future original stock,
+  malformed candidate reports, and repeated retry requests with distinct keys.
+- Real browser execution reproduced loopback-origin rejection and missing
+  pagination headers in the thin Next proxy. Three direct proxy regression tests
+  now cover legitimate login forwarding, hostile origin/Host rejection, cursor
+  forwarding and session-cookie filtering.
+- Native tests force both AP/RP Boolean branches at equality and one integer quantum
+  above; gamma-zero diagnostic ablations change actual native allocations. A new
+  independently enumerated small case agrees with the native research optimum.
+- CLI tests invoke actual module entry points, exact paired native solving,
+  independent verification/tamper rejection, invalid JSON shapes, dedicated-DB
+  guardrails, safe seed refusal and verified zero-transfer output.
+- All seven Chromium browser tests pass, including five real reset-to-finish OR
+  rehearsals, both transfer modes, changed demand, review, saved visitor reads,
+  CSRF/origin rejection, pagination, keyboard controls, reduced motion and three
+  viewports. The mobile beneficiary column stays visible while keyboard scrolling.
+  [Rehearsal evidence](evidence/browser-rehearsals-reviewed.json) records durations
+  and identities; local screenshots/logs are under `artifacts/or/browser` and
+  `artifacts/or/verification/browser-reviewed.log`.
+- Five separate durable paired benchmark jobs succeeded. Median whole-job wall
+  time was 3.13 s; maximum saved HTTP read was 0.119 s. The actual shared worker
+  cgroup reported six CPUs, 8 GiB memory maximum, zero swap and 182,984,704 bytes
+  peak memory. The smaller function timing excludes interpreter startup.
+  [Benchmark evidence](evidence/persisted-benchmark-reviewed.json) preserves this
+  distinction. These measurements qualify this local OR fixture/environment only.
 
-| Command | Evidence/status |
-|---|---|
-| `npm run check` with `PP_TEST_DATABASE_URL` naming the dedicated test DB | PASS: types/lint and 870 tests, including real PostgreSQL. Three new bound-audit regression cases were added during review; the updated OR suite separately passes 59 tests. Log: `artifacts/or/milestone-check.log` |
-| From `apps/api`: `.venv/bin/python -m pytest tests/optimization -q` | PASS: 59 tests after the bound-audit fix |
-| From `apps/api`: `.venv/bin/python -m pytest tests/workers/test_resource_limits.py -q` | PASS: 5 tests, including actual kernel cgroup OOM counter |
-| `npm run build` | PASS: root, design lab, allocation UI and API proxy compile |
-| `npm run contracts:generate` and `npm run contracts:check` | PASS: actual OpenAPI/TypeScript generation and no drift |
-| `npm run test:config` | PASS: 17 tests |
-| `npm run or:decisions` | PASS: 20 decisions, real behavior/test symbols and fixture metadata |
-| `git diff --check` | PASS |
-| Original supplied specs compared byte-for-byte | PASS: all three copies remain verbatim |
+Final combined gate results are recorded in
+[the reviewed checkpoint](CHECKPOINT-REVIEW-2026-10-24.md). A failed intermediate
+combined run found one stale test expecting `sim-v1`; the test now uses its actual
+snapshot revision when checking source fencing. The first quality-gate run also exposed transient `/proc` inspection and systemd
+scope-stop ordering assumptions in two resource tests; those tests now inspect the
+executed application and retain an independent observer slice for actual kernel OOM
+evidence even when the workload is killed, respectively. Ten consecutive cycles
+pass. Failed
+runs are not pass evidence.
+Starlette/httpx deprecation and the intentionally exercised WebGL fallback emit
+warnings; browser tests report no OR page errors.
 
-The combined run collected its 870 cases before the three numerical regression tests were added. The 59-case updated OR run includes those new tests and reruns the actual solvers with the corrected audit. No skipped test is included in these pass counts.
+## Acceptance ledger
 
-The earlier full test run exposed a resource-test assumption about systemd's OOM
-stop and was corrected; that failed run is not counted as passing. The numerical
-review also reproduced three failing upper-bound/overflow tests before fixing the
-native-container indexing bug. Fresh focused mathematical checks pass. A Starlette/
-httpx deprecation warning remains; it does not represent provider qualification.
-
-## Full acceptance ledger
-
-PASS below is bounded to the stated evidence. UNVERIFIED preserves additional
-required evidence; a written test, skipped test or compiled UI is not a browser pass.
-
-| ID | Status | Evidence and remaining boundary |
+| ID | Status | Evidence and boundary |
 |---|---|---|
-| OR-A01 | PASS | Verbatim adoption, current-ref/worker reconciliation, preserved forecasting/helper regressions; [baseline](BASELINE-RECONCILIATION.md) |
-| OR-A02 | PASS | Strict simulated inputs/scenarios, adapter, precision, hashes, tamper/replay and scope tests in `test_or_pure.py` and persistence tests; LIVE remains A12 |
-| OR-A03 | PASS | Independent packing/projection/checker, both modes, donor/expiry/handling cases and tiny CP feasible-set equivalence in `test_or_model_equivalence.py` |
-| OR-A04 | UNVERIFIED | Checked mapping, exact independent oracles, native optimum agreement and corrected emitted bounds pass; complete native boundary/sensitivity acceptance audit remains |
-| OR-A05 | PASS | Both real methods/modes, unique full-fixture optima, identical physical/settings identities and saved common metrics; `test_or_solver.py`, `test_or_http.py` |
-| OR-A06 | UNVERIFIED | Status gate/checker, atomic checked publication and partial failures implemented/tested; finish complete independent failure/status matrix |
-| OR-A07 | PASS | Actual PostgreSQL migration/integrity/immutability/rollback/race/review/reset checks in `test_or_persistence.py` and inherited queue tests |
-| OR-A08 | UNVERIFIED | Queue/lease/termination/fencing and real cgroup tests pass locally; finish full worker-profile resource/benchmark evidence and independent review |
-| OR-A09 | UNVERIFIED | Backend security, saved reads and generated contracts pass; rendered same-origin proxy/browser journey remains |
-| OR-A10 | UNVERIFIED | Offline bounded pair and marker/contracts checks work; full CLI/benchmark/CI execution evidence remains |
-| OR-A11 | UNVERIFIED | Real persisted synthetic HTTP journey passes; browser rehearsal, visual/accessibility and measured timings remain |
-| OR-A12 | UNVERIFIED | Missing committed forecast publication plus authoritative stock/operational read adapters; explicit unavailable boundary is not a LIVE integration pass |
+| OR-A01 | PASS | Verbatim specs, reconciled worker/current baseline; original forecasting/helper regressions retained |
+| OR-A02 | PASS | Strict scopes, rounding/hash/replay/tamper checks, snapshot-local stock cutoff, canonical serialization; LIVE remains A12 |
+| OR-A03 | PASS | Independent packing/projection/checker, conservation/expiry/FEFO/donor/capacities, both modes and tiny native feasible-set equivalence |
+| OR-A04 | PASS | Research mapping/proof, independent optima, native strict threshold branches and decision-changing AP/RP ablations; emitted activities below `2**60` |
+| OR-A05 | PASS | Exact full-fixture native optima in both modes, common physical/settings identities and saved common metrics |
+| OR-A06 | PASS | Status extraction sentinels, malformed candidates, independent verification, atomic publication and method failure/partial retention checks |
+| OR-A07 | PASS | Real PostgreSQL migration/integrity/immutability/rollback/race/review/reset tests, corrected linked-retry deduplication |
+| OR-A08 | PASS | Local real lease/cancel/timeout/loss/kill/reap/retry/partial checks and actual cgroup OOM/limits. Hosted-worker qualification remains separate |
+| OR-A09 | PASS | Real auth/session/CSRF/origin HTTP and browser checks; proxy/pagination regressions, generated contracts, saved reads during outage. UI comprehension remains A11 |
+| OR-A10 | PASS | Actual module-mode CLI matrix, contracts, decision markers, local quality gates, five-run persisted benchmark and reproducible browser harness. Hosted GitHub Actions has not been executed |
+| OR-A11 | UNVERIFIED | Five full persisted browser rehearsals and measured timings pass; remaining saved-assumption/metric explanations, mobile hierarchy and human visual acceptance are listed in the reviewed checkpoint |
+| OR-A12 | UNVERIFIED | Committed authoritative forecast publication, inventory and operational read adapters are still missing. Explicit unavailable behavior is not a LIVE integration pass |
 
-The CLI benchmark has not established saved-read/solve latency targets or a measured
-hardware/resource report. No actual Chronos inference, supplier work, deployment,
-whole-product completion or final independent sign-off is claimed.
+No actual Chronos inference, supplier work, deployment, production source journey,
+GitHub issue closure, or whole-product completion is claimed.

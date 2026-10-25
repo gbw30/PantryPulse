@@ -109,7 +109,10 @@ def login(request: Request, response: Response, runtime, username: str, password
     if not expected_user or not encoded or not organization:
         raise AccessError("PRESENTER_UNAVAILABLE", 503)
     correct_password = verify_password(password, encoded)
-    if not hmac.compare_digest(username, expected_user) or not correct_password:
+    if (
+        not hmac.compare_digest(username.encode("utf-8"), expected_user.encode("utf-8"))
+        or not correct_password
+    ):
         raise AccessError("INVALID_CREDENTIALS", 401)
     org = UUID(organization)
     actor = uuid5(org, username)

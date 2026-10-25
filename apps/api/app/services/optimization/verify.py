@@ -14,8 +14,14 @@ def verify(problem, candidate: Candidate, method=None) -> VerificationReport:
     scenario = problem.scenario
     violations = []
     projection = metrics = None
+    candidate_hash = None
     try:
-        candidate = Candidate.model_validate(candidate.model_dump())
+        raw = (
+            candidate.model_dump(warnings=False) if isinstance(candidate, Candidate) else candidate
+        )
+        candidate = Candidate.model_validate(raw)
+        # OR-DEC-009 [PROVISIONAL]: invalid/unvalidated input has no candidate identity.
+        candidate_hash = operational_hash(candidate)
         problem = prepare_problem(scenario)
         expected = pack(problem, candidate.route_quantities)
         if expected != candidate.assignments:
@@ -100,5 +106,5 @@ def verify(problem, candidate: Candidate, method=None) -> VerificationReport:
         projection=projection,
         metrics=metrics,
         operational_hash=scenario.operational_hash,
-        candidate_hash=operational_hash(candidate),
+        candidate_hash=candidate_hash,
     )

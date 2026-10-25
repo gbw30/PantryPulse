@@ -1,7 +1,9 @@
 """A full integration gate must not silently pass when all PostgreSQL tests skip."""
+
 import os
 
 from sqlalchemy.engine import make_url
+from sqlalchemy.exc import ArgumentError
 
 
 def main():
@@ -9,7 +11,7 @@ def main():
     try:
         url = make_url(value)
         valid = url.drivername.startswith("postgresql") and url.database.endswith("_test")
-    except (ValueError, AttributeError):
+    except (ArgumentError, ValueError, AttributeError):
         valid = False
     if not valid:
         print("Set PP_TEST_DATABASE_URL to a dedicated PostgreSQL database ending in _test")

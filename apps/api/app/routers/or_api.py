@@ -49,7 +49,8 @@ from app.schemas.or_http import (
 )
 from app.schemas.or_inputs import ORInputPackage, ORPolicy, ORScenarioPayload
 from app.schemas.or_outputs import ComparisonResult, MethodOutcome
-from app.services.jobs.contracts import sha256_hex
+from app.services.jobs.contracts import HeartbeatStatus, sha256_hex
+from app.services.jobs.policies import heartbeat_status
 from app.services.optimization.canonical import operational_hash
 from app.services.optimization.decisions import DECISION_IDS, DECISION_STATUS, POLICY_VERSION
 from app.services.optimization.scenario import freeze_scenario
@@ -568,14 +569,15 @@ def methodology():
 def readiness(request: Request):
     active = runtime(request)
     try:
+        # Observe the heartbeat before DB time so a refresh between reads cannot
+        # appear to come from the future. Future stored timestamps still fail closed.
+        control = active.queue.control()
         with active.engine.connect() as conn:
             installed = conn.scalar(sa.text("SELECT to_regclass('or_scenarios') IS NOT NULL"))
             now = conn.scalar(sa.text("SELECT clock_timestamp()"))
-        control = active.queue.control()
         age = (now - control.heartbeat_at).total_seconds() if control.heartbeat_at else None
         compute = bool(
-            age is not None
-            and age < 15
+            heartbeat_status(age, active.queue.profile) is HeartbeatStatus.FRESH
             and control.state.value == "READY"
             and not control.recovery_required
         )
