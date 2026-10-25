@@ -155,3 +155,5 @@ Suggested message: `feat(or): finalize verified comparisons and qualification`.
 
 GitHub #54/#55/#57 now carry this current OR-only status and evidence pointers,
 preserving their prior bodies and open state. Assignment remains GestebanFalcon.
+
+Integration PR: [#76](https://github.com/gbw30/PantryPulse/pull/76). Its checks and merge record bind the final reviewed head.

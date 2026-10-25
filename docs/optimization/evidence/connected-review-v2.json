@@ -118,7 +118,7 @@
     "apps/api/migrations/versions/pp45_0004_forecasts.py": "fb192910648c5560d6bdf000374fe6700d3de730f5a4e8319f85a6398ddeda18",
     "apps/api/migrations/versions/pp_merge_0003.py": "33829a08440cf3ef6b4f5e2419709b10d9b6e2e139bae8a11860331b987737dc",
     "apps/api/migrations/versions/ppor_0005_planning.py": "94808ed5009e5a440d09c578eef44549831296bd52818fa725ed83cf33d4e7e1",
-    "apps/api/migrations/versions/ppor_0005_tables.sql": "beebbbb49a7c95dcd3be2c3a830760eedc29cd940d8c49bade320973fe8ec0bd",
+    "apps/api/migrations/versions/ppor_0005_tables.sql": "9b17a6605a7a64664c42e2417af977c4e7ad819bcb2379b33ef6b2ca87fe9f1e",
     "apps/api/pyproject.toml": "9dc01723369e5dfd7705c2c901866784facb032b3700ffe4045ce8e8830bf566",
     "apps/api/scripts/check_runtime.py": "f71c165601dcb015f1d761d442b571a6f419cb635c242e6b9ad0f2cb3960aa7e",
     "apps/api/scripts/chronos_local.py": "965adf34d96cf48f5737725b70b2c4839223dedaa737842ef867b958c25f2ab2",
@@ -272,5 +272,8 @@
     "All 20 dense benchmark outcomes FEASIBLE, none OPTIMAL",
     "Simulated editable policy only",
     "Hosting, Chronos, supplier planning, visitor access and broader scenario support excluded"
+  ],
+  "review_notes": [
+    "Migration SQL trailing whitespace normalized after local tests; no statement changes. Remote CI validates the final PR tree."
   ]
 }
