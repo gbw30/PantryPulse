@@ -7,9 +7,31 @@ permissions:
   contents: read
 concurrency:
   group: pantrypulse-${{ github.ref }}
-  cancel-in-progress: true
+  # Superseded PR runs cancel; main runs always finish so post-merge verification completes.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
+  # Merge gate, capped at 2 minutes: static checks only (user decision 2026-10-25).
+  # Backend tests, build and browser journeys run in the parallel `full` job.
   verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.16.0'
+          cache: npm
+      - uses: astral-sh/setup-uv@v6
+      - run: npm ci --no-audit --no-fund
+      - run: npm run test:config
+      - run: npm run typecheck && npm run lint && npm run test:unit --workspace @pantrypulse/web
+      # Locked ruff version from apps/api/uv.lock, without syncing the full API environment.
+      - run: uvx ruff@0.17.2 check .
+        working-directory: apps/api
+
+  # Full gates (backend, PostgreSQL, build, browser journey). Runs on every PR and main push in
+  # parallel with verify, but no longer gates merges (user decision 2026-10-25: verify capped at 2 min).
+  full:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     services:
@@ -39,9 +61,6 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - run: npm ci
       - run: uv sync --frozen --project apps/api
-      - run: npm run test:config
-      - run: npm run typecheck && npm run lint && npm run test:unit --workspace @pantrypulse/web
-      - run: uv run --frozen --directory apps/api ruff check .
       - name: All backend tests including actual Linux processes and PostgreSQL
         run: uv run --frozen --directory apps/api pytest -q --junitxml=../../artifacts/backend.xml
       - name: Reject skipped backend gates
@@ -49,7 +68,20 @@ jobs:
       - run: apps/api/.venv/bin/python scripts/or/verify_budget_evidence.py docs/optimization/evidence/budget-sweep-v2.json
       - run: npm run contracts:check --workspace @pantrypulse/web
       - run: npm run build
-      - run: npx playwright install --with-deps chromium
+      - name: Resolve Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/@playwright/test'].version")" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
+      - if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+        working-directory: apps/web
+      - if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
         working-directory: apps/web
       - name: Seed and start isolated connected demo
         run: |
