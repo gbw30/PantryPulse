@@ -5,8 +5,8 @@ const os = require('node:os');
 const path = require('node:path');
 const cp = require('node:child_process');
 const overlay = path.resolve(__dirname,'..','..','..');
-function hook(name,input) {
-  return cp.spawnSync(process.execPath,[path.join(overlay,'.claude','hooks',name+'.cjs')],{input:typeof input==='string'?input:JSON.stringify(input),encoding:'utf8',windowsHide:true});
+function hook(name,input,options={}) {
+  return cp.spawnSync(process.execPath,[path.join(overlay,'.claude','hooks',name+'.cjs')],{input:typeof input==='string'?input:JSON.stringify(input),encoding:'utf8',windowsHide:true,...options});
 }
 function temporary(t) {
   const parent = fs.realpathSync(process.env.PANTRYPULSE_TEST_TMP || os.tmpdir());
@@ -14,7 +14,7 @@ function temporary(t) {
   t.after(()=>{const resolved=fs.realpathSync(dir); assert.equal(path.dirname(resolved),parent); assert.ok(path.basename(resolved).startsWith('pp kit hooks ')); fs.rmSync(resolved,{recursive:true});});
   return dir;
 }
-function repository(t,enabled,exit) {
+function repository(t,enabled,exit,timeoutSeconds=2) {
   const root=temporary(t);
   assert.equal(cp.spawnSync('git',['init','--quiet'],{cwd:root,windowsHide:true}).status,0);
   fs.mkdirSync(path.join(root,'.claude'),{recursive:true});
@@ -22,7 +22,7 @@ function repository(t,enabled,exit) {
   fs.copyFileSync(path.join(overlay,'scripts','quality','run.cjs'),path.join(root,'scripts','quality','run.cjs'));
   fs.writeFileSync(path.join(root,'.gitignore'),'.claude/state/\n');
   fs.writeFileSync(path.join(root,'README.md'),'fixture\n');
-  const config={enabled,timeoutSeconds:2,gates:{quick:[{name:'fixture',command:process.execPath,args:['-e','process.exit('+exit+')']}]}};
+  const config={enabled,timeoutSeconds,gates:{quick:[{name:'fixture',command:process.execPath,args:['-e','process.exit('+exit+')']}]}};
   fs.writeFileSync(path.join(root,'.claude','quality-gate.json'),JSON.stringify(config));
   assert.equal(cp.spawnSync('git',['add','.'],{cwd:root,windowsHide:true}).status,0);
   assert.equal(cp.spawnSync('git',['-c','user.name=Toolkit Test','-c','user.email=toolkit@example.invalid','commit','--quiet','-m','fixture'],{cwd:root,windowsHide:true}).status,0);
@@ -60,4 +60,16 @@ test('enabled passing Stop gate succeeds in a path with spaces',t=>{
 test('enabled failing Stop gate blocks, repeat avoids loop without claiming pass',t=>{
   const root=repository(t,true,1); const fail=hook('stop-gate',{cwd:root,stop_hook_active:false}); assert.equal(fail.status,2); assert.match(fail.stderr,/FAIL fixture/);
   const repeat=hook('stop-gate',{cwd:root,stop_hook_active:true}); assert.equal(repeat.status,0); assert.match(repeat.stderr,/unresolved/);
+});
+test('Stop gate falls back to the project directory when the given cwd no longer exists',t=>{
+  // Generous budget: this test checks the cwd fallback, not gate timing on a loaded machine.
+  const root=repository(t,true,0,30); const missing=path.join(temporary(t),'deleted start folder');
+  const r=hook('stop-gate',{cwd:missing,stop_hook_active:false},{env:{...process.env,CLAUDE_PROJECT_DIR:root}});
+  assert.equal(r.status,0,r.stderr);
+});
+test('Stop gate still fails closed when no usable worktree can be found',t=>{
+  const outside=temporary(t); const missing=path.join(outside,'deleted start folder');
+  const env={...process.env}; delete env.CLAUDE_PROJECT_DIR;
+  const r=hook('stop-gate',{cwd:missing,stop_hook_active:false},{env,cwd:outside});
+  assert.equal(r.status,2); assert.match(r.stderr,/Cannot identify the active Git worktree/);
 });
