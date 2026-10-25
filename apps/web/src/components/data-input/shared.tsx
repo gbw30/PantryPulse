@@ -38,7 +38,8 @@ export function ErrorAlert({ message, onRetry, retryLabel = "Retry" }: { message
       <AlertTriangle aria-hidden="true" />
       <AlertTitle>Not saved</AlertTitle>
       <AlertDescription className="text-foreground">
-        <p>{message}</p>
+        {/* The destructive variant tints the description; keep the message at body contrast. */}
+        <p className="text-foreground">{message}</p>
         {onRetry && <Button type="button" variant="outline" size="sm" className="mt-2" onClick={onRetry}>{retryLabel}</Button>}
       </AlertDescription>
     </Alert>

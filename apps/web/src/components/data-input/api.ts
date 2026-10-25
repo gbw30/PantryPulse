@@ -30,10 +30,13 @@ export type ReceiptRead = {
 };
 
 export type CommandResult = Schema["CommandResult"];
+/** Mirrors MAX_ACTIVE_PRODUCTS in apps/api/app/repositories/operations_api.py. */
+export const MAX_ACTIVE_PRODUCTS = 8;
 export type ImportFeedback = { atomic?: boolean; accepted_count?: string; rejected_count?: string; errors?: { row_index: number | null; field: string; code: string }[] };
 
 export const dataInputApi = {
   catalog: () => api<OperationalCatalog>("operational-catalog"),
+  createProduct: (body: Schema["ProductCreate"], key: string) => api<CommandResult>("products", body, key),
   inventory: (siteId: string, productId: string) => api<Schema["InventorySnapshot"]>(`inventory/sites/${siteId}/products/${productId}`),
   declareLot: (lotId: string, body: Schema["LotDeclarationWrite"], key: string) => api<CommandResult>(`inventory/lots/${lotId}/declarations`, body, key),
   adjust: (siteId: string, productId: string, body: Schema["StockAdjustmentRequest"], key: string) =>
@@ -87,6 +90,8 @@ const COPY: Record<string, string> = {
   INPUT_TOO_LARGE: "The request is too large.",
   IDEMPOTENCY_CONFLICT: "This request id was already used for different content. Edit and submit again.",
   OPERATIONAL_CONFLICT: "The record conflicts with existing data.",
+  PRODUCT_EXISTS: "A product with this name already exists.",
+  PRODUCT_LIMIT_REACHED: "The demo network already has the maximum of 8 active products.",
   NOT_FOUND: "Record not found.",
   NEW_RECEIPT_HAS_NO_REVISION: "A new receipt cannot have an expected revision.",
   RECEIPT_SOURCE_MISMATCH: "A revision must keep the receipt's source and record key.",
