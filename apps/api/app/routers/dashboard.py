@@ -15,6 +15,7 @@ from app.repositories.forecast_results import read_committed_forecast_connection
 from app.repositories.inventory import build_snapshot, operational_rows
 from app.repositories.operations_api import wire
 from app.routers.forecasts import PRESENTER, RUNTIME
+from app.schemas.dashboard_api import DashboardSummary, ShortageProjection
 from app.schemas.forecast_api import ErrorEnvelope
 from app.services.demand_targets import round_daily_targets
 from app.services.inventory.stock import StockError
@@ -27,7 +28,7 @@ router = APIRouter(
 )
 
 
-@router.get("/dashboard/summary")
+@router.get("/dashboard/summary", response_model=DashboardSummary)
 def summary(rt=RUNTIME, scope=PRESENTER):
     with rt.engine.connect().execution_options(isolation_level="REPEATABLE READ") as conn:
         with conn.begin():
@@ -69,7 +70,7 @@ def summary(rt=RUNTIME, scope=PRESENTER):
                             version=versions.get(key),
                             lots=lots[key],
                             now=now,
-                        ).model_dump(mode="json")
+                        )
                     )
             run = (
                 conn.execute(
@@ -93,7 +94,7 @@ def summary(rt=RUNTIME, scope=PRESENTER):
             )
 
 
-@router.get("/shortages/{forecast_run_id}")
+@router.get("/shortages/{forecast_run_id}", response_model=ShortageProjection)
 def shortages(forecast_run_id: UUID, rt=RUNTIME, scope=PRESENTER):
     with rt.engine.connect().execution_options(isolation_level="REPEATABLE READ") as conn:
         with conn.begin():

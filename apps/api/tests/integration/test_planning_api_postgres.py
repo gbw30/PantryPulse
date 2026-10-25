@@ -11,6 +11,7 @@ from test_planning_postgres import saved_plan as saved_plan
 
 from app.models import operational as m
 from app.models.optimization import PlanningPlan, PlanningReview
+from app.schemas.dashboard_api import DashboardSummary, ShortageProjection
 from app.services.jobs.contracts import PRODUCTION_PROFILE, SupervisorState
 from app.services.jobs.policies import supervisor_advertisement
 from app.workers.registries import load_registry
@@ -179,6 +180,39 @@ def test_real_linux_single_plan_cancel_retry_and_fenced_publication(saved_plan):
         supervisor.shutdown_drain()
     finally:
         supervisor.close()
+
+
+def test_dashboard_summary_and_shortages_match_their_typed_contracts(saved_plan):
+    """PP-51: the typed response models describe the routes' JSON exactly.
+
+    Runs before the calendar-version test, which mutates the shared fixture.
+    """
+    client, _, rt, _ = saved_plan
+    summary = client.get("/api/v1/dashboard/summary")
+    assert summary.status_code == 200, summary.text
+    body = summary.json()
+    # InventorySnapshot counts are output-only strings (strict ints in, decimal strings out), so
+    # check the JSON against the contract's fields instead of re-validating it.
+    assert set(body) == set(DashboardSummary.model_fields)
+    snapshot_fields = set(
+        DashboardSummary.model_fields["inventory"].annotation.__args__[0].model_fields
+    )
+    assert all(set(row) == snapshot_fields for row in body["inventory"])
+    with rt.engine.connect() as conn:
+        sites = conn.scalar(sa.select(sa.func.count()).select_from(m.Site).where(m.Site.active))
+        products = conn.scalar(
+            sa.select(sa.func.count()).select_from(m.Product).where(m.Product.active)
+        )
+    assert len(body["inventory"]) == sites * products
+    assert all(row["on_hand_quantity"].isdigit() for row in body["inventory"])
+    assert body["latest_forecast"] is not None
+    assert set(body["latest_forecast"]) == {"id", "job_id", "planning_ready", "recorded_at"}
+    forecast_id = body["latest_forecast"]["id"]
+    shortages = client.get(f"/api/v1/shortages/{forecast_id}")
+    assert shortages.status_code == 200, shortages.text
+    projection = shortages.json()
+    assert ShortageProjection.model_validate(projection).model_dump(mode="json") == projection
+    assert projection["series"] and all(series["days"] for series in projection["series"])
 
 
 def test_shortage_rejects_same_timezone_calendar_version_change(saved_plan):
