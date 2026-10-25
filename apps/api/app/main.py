@@ -34,8 +34,9 @@ def error_response(code, status, request_id):
             "error": {
                 "code": code,
                 "message": code.replace("_", " ").lower(),
-                "request_id": str(request_id),
-            }
+                "details": {},
+            },
+            "request_id": str(request_id),
         },
         status_code=status,
         headers={"X-Request-ID": str(request_id), "Cache-Control": "no-store"},
@@ -106,8 +107,11 @@ def create_app(runtime=None):
         application.state.forecast_runtime = runtime
 
     @application.exception_handler(RequestValidationError)
-    async def invalid(request: Request, _error):
-        return error_response("INVALID_REQUEST", 422, request.state.request_id)
+    async def invalid(request: Request, error):
+        malformed = any(item["type"] == "json_invalid" for item in error.errors())
+        return error_response(
+            "INVALID_REQUEST", 400 if malformed else 422, request.state.request_id
+        )
 
     async def domain_error(request: Request, error):
         if isinstance(error, (AccessError, HistoryRejected)):

@@ -131,12 +131,18 @@ cross-branch convergence; this change does not claim an integrated allocation AP
 Mutations require an allowed origin, session and CSRF token; login has bounded
 local rate limiting. All mutation commands require `Idempotency-Key` except session
 login/logout. Error envelopes include a server-generated request ID and redact
-request bodies, passwords, database URLs and SQL errors. HTTP bodies are ≤64 KiB.
+request bodies, passwords, database URLs and SQL errors. The envelope is
+`{error:{code,message,details:{}},request_id}`; `X-Request-ID` matches the top-level ID.
+Malformed JSON returns 400; schema/business validation returns 422. HTTP bodies are ≤64 KiB.
 The Next route allowlists these paths, checks same origin on mutations, forwards
 only presenter/CSRF cookies and command headers, adds its server-only proxy secret,
 and preserves backend cookies/status/Location/request ID. No browser secret uses
 `NEXT_PUBLIC_`. Authentication follows the OR branch's provisional cookie/config
 conventions; merging its migrations still requires #67 reconciliation.
+The proxy compares Origin with the request Host and protocol, preserving the
+browser authority despite NextRequest's loopback normalization. It ignores
+client-supplied X-Forwarded-Host; deployment ingress must preserve external Host
+and protocol. FastAPI independently checks its configured allowed origins.
 
 ## Running the bounded demo
 
@@ -194,7 +200,7 @@ truthful worker-unavailable submission response; it does not impersonate a worke
 
 ## Evidence and limits
 
-Final implementation checks (October 25, local VP working tree):
+Historical implementation checks (October 25, VP at `8a4d069`; superseded for current review evidence by [PR-75-REVIEW.md](PR-75-REVIEW.md)):
 
 | Check | Observed result |
 |---|---|
@@ -213,8 +219,10 @@ they do not count the test heartbeat as a live production supervisor. Existing
 Starlette/httpx deprecation and Node module-format notices do not hide test failures.
 Independent verifier review has not been established in this turn.
 
-Native Windows has no supported process-containment driver. WSL reports not installed
-and Docker is unavailable on PATH. Direct handler + HTTP + PostgreSQL tests are
+Native Windows has no supported process-containment driver. In the author's original
+environment, WSL reported not installed and Docker was unavailable on PATH. During
+PR #75 review, Docker Desktop was installed but failed to start its secrets engine;
+the WSL Docker image had no Python runtime. Direct handler + HTTP + PostgreSQL tests are
 **not evidence of a running Linux supervisor**. Keep the job's live-worker gate;
 do not fabricate a heartbeat or run synchronous inference to make POST appear ready.
 Full Linux worker smoke, actual Chronos inference, CSV ingestion, dashboard binding,

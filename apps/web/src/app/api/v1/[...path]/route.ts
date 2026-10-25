@@ -3,7 +3,7 @@
 function failure(code: string, status: number) {
   const requestId = crypto.randomUUID();
   return Response.json({ error: { code, message: code.toLowerCase().replaceAll("_", " "),
-    request_id: requestId } }, { status, headers: {
+    details: {} }, request_id: requestId }, { status, headers: {
     "Cache-Control": "no-store", "X-Request-ID": requestId,
   } });
 }
@@ -19,7 +19,18 @@ async function proxy(request: Request) {
       new RegExp(`^jobs/${uuid}/(retry|cancel)$`).test(path));
   if (!allowed || incoming.search) return failure("NOT_FOUND", 404);
   const origin = request.headers.get("origin");
-  if (request.method === "POST" && origin !== incoming.origin) {
+  // NextRequest normalizes loopback URLs to localhost and may use the server's
+  // bind hostname. Host retains the browser-facing authority. Never trust a
+  // client-supplied X-Forwarded-Host to change this CSRF boundary.
+  let browserOrigin: string;
+  try {
+    // Parse a new authority so a default external port cannot retain an internal
+    // server port (setting URL.host alone would preserve that port).
+    browserOrigin = new URL(`${incoming.protocol}//${request.headers.get("host") ?? incoming.host}`).origin;
+  } catch {
+    return failure("ORIGIN_FORBIDDEN", 403);
+  }
+  if (request.method === "POST" && origin !== browserOrigin) {
     return failure("ORIGIN_FORBIDDEN", 403);
   }
   const base = process.env.PANTRYPULSE_API_ORIGIN;
@@ -36,7 +47,7 @@ async function proxy(request: Request) {
     return failure("BACKEND_NOT_CONFIGURED", 503);
   }
   const headers = new Headers({ "Content-Type": "application/json",
-    "X-Forwarded-Origin": origin ?? incoming.origin, "X-PP-Proxy-Token": proxySecret });
+    "X-Forwarded-Origin": origin ?? browserOrigin, "X-PP-Proxy-Token": proxySecret });
   for (const name of ["x-csrf-token", "idempotency-key"]) {
     const value = request.headers.get(name);
     if (value) headers.set(name, value);

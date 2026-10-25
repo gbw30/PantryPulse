@@ -226,7 +226,14 @@ def test_auth_scope_csrf_limits_and_error_redaction(api):
     )
     assert bad.status_code == 422
     assert "organization_id" not in bad.text
-    assert bad.json()["error"]["request_id"] == bad.headers["x-request-id"]
+    assert bad.json()["request_id"] == bad.headers["x-request-id"]
+    assert bad.json()["error"]["details"] == {}
+    malformed = client.post(
+        "/api/v1/forecasts", content=b'{"source_id":',
+        headers=headers | {"Content-Type": "application/json", "Idempotency-Key": "malformed"},
+    )
+    assert malformed.status_code == 400
+    assert malformed.json()["request_id"] == malformed.headers["x-request-id"]
     assert client.post("/api/v1/forecasts", content=b"x" * 65_537).status_code == 413
     with pytest.raises(IntegrityError), runtime.engine.begin() as conn:
         conn.execute(sa.update(PresenterSession).values(organization_id=uuid4()))
