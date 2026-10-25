@@ -1,5 +1,6 @@
-// Illustrative meals-on-hand projections for the design lab only. Simulated data: no inventory,
+// Illustrative cumulative meals balances for the design lab only. Simulated data: no inventory,
 // forecast model output or allocation result is read from the API here.
+// Negative balances represent cumulative shortfall, never physical stock.
 
 export type OutlookPoint = {
   day: string;
@@ -80,7 +81,7 @@ export function buildOutlook(siteId: string, siteName: string): Outlook | null {
       const step = index - FORECAST_FROM;
       const value = step === 0 ? p.start : withoutRoute[step - 1];
       point.withoutRoute = value;
-      // The range is a raw quantile spread that widens with the horizon; it is not a calibrated interval.
+      // This hand-authored spread illustrates a band; it is not model quantiles or a calibrated interval.
       const spread = step === 0 ? 0 : Math.round(3 + step * 2.6);
       point.range = [value - spread, value + spread];
       if (p.transfer) point.withRoute = step === 0 ? p.start : withRoute[step - 1];

@@ -174,7 +174,7 @@ export default function DesignLabPage() {
     <main className={`lab lab-${theme} ${animate ? "lab-animated" : ""}`}>
       <div className="lab-shell">
         <aside className="lab-rail" aria-label="Main navigation">
-          <div className="lab-mark" aria-label="PantryPulse"><svg viewBox="0 0 26 26" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2 14h5l3-8 5 15 3-7h6" /></svg></div>
+          <div className="lab-mark" role="img" aria-label="PantryPulse"><svg viewBox="0 0 26 26" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2 14h5l3-8 5 15 3-7h6" /></svg></div>
           <div className="lab-rail-links">
             <button className="lab-rail-link is-active" aria-label="Network" title="Network"><Compass size={21} /></button>
             <button className="lab-rail-link" aria-label="Scenarios" title="Scenarios"><Layers2 size={21} /></button>
@@ -291,7 +291,7 @@ export default function DesignLabPage() {
               <div className="lab-outlook-head">
                 <div>
                   <h2 id="lab-outlook-title">Seven-day outlook{outlook ? <> for {selected.name}</> : null}</h2>
-                  <p>Meals on hand at the end of each day, Oct 15 to Oct 25</p>
+                  <p>Cumulative meals balance at end of day, Oct 15 to Oct 25. Negative balances show shortfall, not physical stock.</p>
                 </div>
                 <span className="lab-provenance">Illustrative forecast on simulated data</span>
               </div>
@@ -300,7 +300,7 @@ export default function DesignLabPage() {
                   <ForecastChart outlook={outlook} animate={animate} />
                   <dl className="lab-outlook-facts">
                     <div><dt>First shortage</dt><dd className={outlook.firstShortageDay ? "risk" : ""}>{outlook.firstShortageDay ?? "None this week"}</dd></div>
-                    <div><dt>{outlook.endWith !== null ? "Sun 25 without route" : "On hand Sun 25"}</dt><dd className={outlook.endWithout < 0 ? "risk" : ""}>{formatMeals(outlook.endWithout)} <small>meals</small></dd></div>
+                    <div><dt>{outlook.endWith !== null ? "Sun 25 without route" : "Balance Sun 25"}</dt><dd className={outlook.endWithout < 0 ? "risk" : ""}>{formatMeals(outlook.endWithout)} <small>meals</small></dd></div>
                     {outlook.endWith !== null && <div><dt>Sun 25 with {outlook.transferQty}-meal route</dt><dd className={outlook.endWith < 0 ? "risk" : ""}>{formatMeals(outlook.endWith)} <small>meals</small></dd></div>}
                   </dl>
                 </div>
@@ -308,16 +308,16 @@ export default function DesignLabPage() {
                   <span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="var(--lab-fg)" strokeWidth="2.4" /></svg> Observed</span>
                   <span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="var(--lab-forecast)" strokeWidth="2.2" strokeDasharray="7 5" /></svg> Forecast without route</span>
                   {outlook.endWith !== null && <span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="var(--lab-accent)" strokeWidth="2.8" strokeDasharray="2 4" strokeLinecap="round" /></svg> Forecast with route</span>}
-                  <span><i className="lab-swatch-band" /> Raw quantile range, not a calibrated interval</span>
-                  <span><i className="lab-swatch-unmet" /> Below zero is unmet demand</span>
+                  <span><i className="lab-swatch-band" /> Illustrative range, not model quantiles or a calibrated interval</span>
+                  <span><i className="lab-swatch-unmet" /> Below zero is cumulative shortfall</span>
                 </div>
                 <p className="lab-outlook-summary">{outlook.summary}</p>
                 <details className="lab-outlook-table">
                   <summary>View data table</summary>
                   <div className="lab-outlook-table-scroll" tabIndex={0} role="region" aria-label="Outlook data table">
                     <table>
-                      <caption>Meals on hand at end of day for {selected.name}. Negative values are unmet demand.</caption>
-                      <thead><tr><th scope="col">Day</th><th scope="col">Observed</th><th scope="col">Forecast without route</th>{outlook.endWith !== null && <th scope="col">Forecast with route</th>}<th scope="col">Raw quantile range</th></tr></thead>
+                      <caption>Cumulative meals balance at end of day for {selected.name}. Negative values show shortfall, not physical stock. Range values are illustrative.</caption>
+                      <thead><tr><th scope="col">Day</th><th scope="col">Observed</th><th scope="col">Forecast without route</th>{outlook.endWith !== null && <th scope="col">Forecast with route</th>}<th scope="col">Illustrative range</th></tr></thead>
                       <tbody>{outlook.points.map((point) => <tr key={point.day}><th scope="row">{point.day}</th><td>{point.observed !== undefined ? formatMeals(point.observed) : "n/a"}</td><td>{point.withoutRoute !== undefined ? formatMeals(point.withoutRoute) : "n/a"}</td>{outlook.endWith !== null && <td>{point.withRoute !== undefined ? formatMeals(point.withRoute) : "n/a"}</td>}<td>{point.range && point.range[0] !== point.range[1] ? `${formatMeals(point.range[0])} to ${formatMeals(point.range[1])}` : "n/a"}</td></tr>)}</tbody>
                     </table>
                   </div>
@@ -337,7 +337,7 @@ export default function DesignLabPage() {
               <div className="lab-inspector-rule" />
               {selected.id === "riverbend" ? <>
                 <p className="lab-inspector-question">Can we cover this location’s need?</p>
-                <p className="lab-inspector-answer">Partially. The hub can provide 80 of the 120 meals needed by Tuesday.</p>
+                <p className="lab-inspector-answer">Partially. The hub can provide 80 meals on Tuesday toward this week’s 120-meal shortfall.</p>
                 <div className="lab-coverage-visual"><div><span style={{ width: "66.67%" }} /></div><small>67% covered by proposed route</small></div>
                 <div className="lab-figures"><div><strong>120</strong><span>meals needed</span></div><div><strong>80</strong><span>can be sent</span></div><div className="gap"><strong>40</strong><span>still needed</span></div></div>
                 <div className="lab-route-card"><span className="lab-route-icon"><Package size={17} /></span><div><small>Suggested route</small><strong>Gator Hub <ArrowRight size={15} /> Riverbend</strong></div><span>80</span></div>
