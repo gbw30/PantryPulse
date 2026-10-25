@@ -32,6 +32,11 @@ SOURCE_MODELS = (
 )
 
 
+# More than two products (user decision 2026-10-25). The solver loops over products generically; the
+# cap bounds model size for the 120-300 s native budgets.
+MAX_PLANNING_PRODUCTS = 8
+
+
 def owned_row(conn, model, org, identity):
     row = (
         conn.execute(
@@ -149,7 +154,7 @@ def capture_package(conn, org, forecast_id, assumptions, state, revision):
     if (
         not 2 <= sum(row["role"] == "BENEFICIARY" for row in sites) <= 12
         or not 1 <= sum(row["role"] == "HUB" for row in sites) <= 2
-        or not 1 <= len(products) <= 2
+        or not 1 <= len(products) <= MAX_PLANNING_PRODUCTS
     ):
         raise HistoryRejected("UNSUPPORTED_PLANNING_SCOPE")
     calendars = {row["id"]: row for row in state["site_calendars"]}

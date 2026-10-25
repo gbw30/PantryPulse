@@ -13,6 +13,7 @@
 .EXAMPLE
   pwsh -File scripts/demo-local.ps1
   pwsh -File scripts/demo-local.ps1 -Reset -WebPort 3100
+  pwsh -File scripts/demo-local.ps1 -Products 4   # meals, water, canned vegetables, hygiene kits
 #>
 param(
   [int]$WebPort = 3000,
@@ -20,14 +21,16 @@ param(
   [int]$DbPort = 55433,
   [switch]$Reset,
   [switch]$NoForecast,
-  [switch]$NoWeb
+  [switch]$NoWeb,
+  # 2 = the standard meals + water demo; 4 = data/demo/forecasting-v1-extended.json (more than two items).
+  [ValidateSet(2, 4)][int]$Products = 2
 )
 # Continue: Windows PowerShell 5.1 turns redirected native stderr into terminating errors under Stop.
 # Failures are checked explicitly (Invoke-Docker throws; web calls use -ErrorAction Stop).
 $ErrorActionPreference = "Continue"
 $root = Resolve-Path (Join-Path $PSScriptRoot "..")
 $state = Join-Path $root "artifacts/local-demo"
-$schema = "ppor_demo_local"
+$schema = if ($Products -eq 4) { "ppor_demo_local4" } else { "ppor_demo_local" }
 $net = "pp-local-net"
 $image = "pp-local-api"
 $dbInside = "postgresql+psycopg://pp:pp_local_only@pp-local-pg:5432/pp_local"
@@ -47,7 +50,7 @@ if ($Reset) {
   Step "Resetting the local demo (containers, volume, generated credentials)"
   foreach ($name in "pp-local-worker", "pp-local-api", "pp-local-pg") { docker rm -f $name *> $null }
   docker volume rm pp-local-pgdata *> $null
-  Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $state "demo.json"), (Join-Path $state "presenter.env")
+  Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $state "demo-*.json"), (Join-Path $state "demo.json"), (Join-Path $state "presenter.env")
 }
 
 Step "Network and database"
@@ -63,11 +66,12 @@ for ($i = 0; $i -lt 60; $i++) { docker exec pp-local-pg pg_isready -U pp -d pp_l
 Step "API image (apps/api)"
 Invoke-Docker build -q -t $image (Join-Path $root "apps/api") | Out-Null
 
-$demoFile = Join-Path $state "demo.json"
+$demoFile = Join-Path $state "demo-$Products.json"
 if (-not (Test-Path $demoFile)) {
-  Step "Seeding the fictional demo schema $schema (first run only)"
+  Step "Seeding the fictional demo schema $schema with $Products products (first run only)"
+  $specArgs = if ($Products -eq 4) { @("--spec", "/repo/data/demo/forecasting-v1-extended.json") } else { @() }
   Invoke-Docker run --rm --network $net @repoMount -v "${state}:/out" -e DATABASE_URL_UNPOOLED=$dbInside $image `
-    uv run --frozen python scripts/load_optimization_demo.py --schema $schema --output /out/demo.json | Out-Null
+    uv run --frozen python scripts/load_optimization_demo.py --schema $schema --output "/out/demo-$Products.json" @specArgs | Out-Null
 }
 $demo = Get-Content $demoFile -Raw | ConvertFrom-Json
 $org = $demo.organization_id

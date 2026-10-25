@@ -74,6 +74,14 @@ class LotDeclarationWrite(Contract):
     expiry: ExpiryDeclaration
 
 
+class ProductCreate(Contract):
+    """A new product/resource category with its base unit (quantities stay per product)."""
+
+    name: Text
+    base_unit: Annotated[str, Field(min_length=1, max_length=32, pattern=r"\S")]
+    category_name: Text | None = None
+
+
 class SupplyCreate(Contract):
     site_id: UUID
     product_id: UUID
@@ -122,6 +130,7 @@ class CoverageImport(Contract):
 
 class CommandResult(Contract):
     """Operation-specific saved details; integer quantities serialize as strings."""
+
     command_id: UUID
     operation: str
     result: dict[str, Any]

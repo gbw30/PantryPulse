@@ -302,7 +302,7 @@ class ORInputPackage(ORContract):
     operational_timezone: str
     first_planning_date: date
     sites: tuple[Site, ...] = Field(min_length=2, max_length=14)
-    products: tuple[Product, ...] = Field(min_length=1, max_length=2)
+    products: tuple[Product, ...] = Field(min_length=1, max_length=8)  # MAX_PLANNING_PRODUCTS
     forecasts: tuple[ForecastSeries, ...]
     inventory: tuple[InventoryLot, ...]
     confirmed_arrivals: tuple[ConfirmedArrival, ...]

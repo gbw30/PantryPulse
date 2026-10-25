@@ -20,6 +20,7 @@ from app.schemas.operations_api import (
     CoverageImport,
     DemandImport,
     LotDeclarationWrite,
+    ProductCreate,
     ReceiptStockWrite,
     ReceiptWrite,
     SupplyConfirmation,
@@ -190,6 +191,20 @@ def declare_lot(
             body,
             lot_id,
         ),
+    )
+
+
+@router.post("/products", response_model=CommandResult, status_code=201)
+def create_product(
+    body: ProductCreate, idempotency_key: Key, csrf: CSRF, rt=RUNTIME, scope=PRESENTER
+):
+    return saved_write(
+        rt,
+        scope,
+        "product-create",
+        idempotency_key,
+        body,
+        lambda session: service.product_create(session, scope, body),
     )
 
 

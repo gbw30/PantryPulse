@@ -1,12 +1,18 @@
 import { expect, test } from "@playwright/test";
 import type { components } from "../../../../packages/contracts/src/schema";
 import { expectNoSeriousA11yViolations } from "./a11y";
+import type { Methodology } from "../../src/lib/planning-api";
 
 type Schema = components["schemas"];
-const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+const id = (n: number) => `${String(n).padStart(8, "0")}-0000-4000-8000-000000000000`;
 const recorded = "2026-10-25T12:00:00Z";
 const saved = { id: id(1), recorded_at: recorded, label: "Existing baseline" };
 const jobId = id(2);
+const methodology: Methodology = {
+  methods: ["CLASSICAL_GP", "EGP_PI_INSPIRED"], transfer_modes: ["HUB_ONLY", "HUB_AND_PANTRY"], default_transfer_mode: null,
+  decision_ids: [], expiry: "FEFO", search_seconds: { default: 120, maximum: 300 }, donor_protection_days: 3,
+  planning_window_days: [1, 2, 3], stock_effect: "NONE_SIMULATION_ONLY", limitations: [],
+};
 
 function result(fallback: boolean): Schema["ForecastResult"] {
   const provider: Schema["ProviderIdentity"] = {
@@ -44,19 +50,22 @@ function result(fallback: boolean): Schema["ForecastResult"] {
   };
 }
 
-// Browser contract tests; real inference, publication and visitor reads are covered by smoke_chronos_jobs.
+// Scenario Lab contract tests; real inference/publication/visitor reads are covered by smoke_chronos_jobs.
 for (const fallback of [false, true]) {
   for (const [width, height] of [[1440, 900], [390, 844]]) {
-    test(`shared workspace displays ${fallback ? "baseline fallback" : "partial Chronos"} at ${width}px`, async ({ page }, testInfo) => {
+    test(`Scenario Lab displays ${fallback ? "baseline fallback" : "partial Chronos"} at ${width}px`, async ({ page }, testInfo) => {
       let generated = false;
       const errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
+      await page.context().addCookies([{ name: "pp_csrf", value: "token", url: `http://127.0.0.1:${process.env.PLAYWRIGHT_PORT ?? "3000"}` }]);
       await page.route("**/api/v1/**", async (route) => {
         const request = route.request();
         const pathname = new URL(request.url()).pathname;
         let body: unknown;
         let status = 200;
-        if (pathname.endsWith("/planning-catalog")) {
+        if (pathname.endsWith("/allocation-methodology")) {
+          body = methodology;
+        } else if (pathname.endsWith("/planning-catalog")) {
           body = { source_revision: "a".repeat(64), assumptions: [],
             forecasts: generated && fallback ? [{ ...saved, id: jobId }, saved] : [saved],
             scenarios: [], comparisons: [], next_before: null, next_before_id: null } satisfies Schema["PlanningCatalog"];
@@ -83,23 +92,61 @@ for (const fallback of [false, true]) {
       });
       await page.setViewportSize({ width, height });
       await page.emulateMedia({ reducedMotion: "reduce" });
-      await page.goto("/optimization");
-      await expect(page.getByLabel("Forecast method")).toHaveValue("SEASONAL_NAIVE");
-      await page.getByLabel("Forecast method").selectOption("CHRONOS2");
+      await page.goto("/scenarios");
+      await expect(page.getByRole("combobox", { name: "Forecast method" })).toHaveText("Seasonal naive");
+      await page.getByRole("combobox", { name: "Forecast method" }).click();
+      await page.getByRole("option", { name: "Chronos-2 · experimental" }).click();
       await page.getByRole("button", { name: "Generate forecast", exact: true }).click();
-      await expect(page.getByRole("region", { name: "Computation progress" }).getByRole("status")).toContainText("SUCCEEDED");
-      const provenance = page.getByRole("status").filter({ hasText: "Last generated forecast" });
+      await expect(page.locator("[data-job-state]")).toHaveAttribute("data-job-state", "SUCCEEDED");
+      const provenance = page.getByRole("status", { name: "Last generated forecast" });
       await expect(provenance).toContainText(fallback ? "planning ready. Actual providers: MOVING_AVERAGE. Baseline fallback was used." : "incomplete; unavailable for planning. Actual providers: CHRONOS2.");
-      await expect(page.getByLabel("Saved planning-ready forecast")).toHaveValue(fallback ? jobId : saved.id);
-      if (!fallback) await expect(page.getByRole("main").getByRole("alert")).toContainText("Forecast saved but not planning ready");
+      await expect(page.getByRole("combobox", { name: "Planning-ready forecast" })).toContainText((fallback ? jobId : saved.id).slice(0, 8));
+      if (!fallback) await expect(page.getByRole("main").getByRole("alert")).toContainText("The forecast was saved but is not planning ready");
       await expect(page.getByRole("banner")).toBeVisible();
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await expectNoSeriousA11yViolations(page, testInfo, `forecast result ${fallback} ${width}`);
+      // Old workspace bookmarks use the plural kind; the redirect must restore forecast reads.
+      await page.goto(`/optimization?job=${jobId}&kind=forecasts`);
+      await expect(page).toHaveURL(/\/scenarios\?/);
+      await expect(provenance).toContainText(fallback ? "MOVING_AVERAGE" : "CHRONOS2");
       if (fallback) {
-        await page.getByLabel("Saved planning-ready forecast").selectOption(saved.id);
+        await page.getByRole("combobox", { name: "Planning-ready forecast" }).click();
+        await page.getByRole("option").filter({ hasText: saved.id.slice(0, 8) }).click();
         await expect(provenance).toHaveCount(0);
       }
       expect(errors).toEqual([]);
     });
   }
+}
+
+for (const width of [1440, 390]) {
+  test(`Scenario Lab exposes all eight product multipliers at ${width}px`, async ({ page }, testInfo) => {
+    await page.context().addCookies([{ name: "pp_csrf", value: "token", url: `http://127.0.0.1:${process.env.PLAYWRIGHT_PORT ?? "3000"}` }]);
+    const network: Schema["ForecastCatalog"] = {
+      sources: [], sites: [{ id: id(40), name: "Demo pantry", role: "BENEFICIARY", timezone: "America/New_York" }],
+      products: Array.from({ length: 8 }, (_, n) => ({ id: id(50 + n), name: `Product ${n + 1}`, base_unit: `unit${n + 1}` })),
+    };
+    await page.route("**/api/v1/**", async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      const body = path.endsWith("/allocation-methodology") ? methodology : path.endsWith("/forecast-catalog") ? network : {
+        source_revision: "a".repeat(64), assumptions: [], forecasts: [], scenarios: [], comparisons: [], next_before: null, next_before_id: null,
+      } satisfies Schema["PlanningCatalog"];
+      await route.fulfill({ json: body });
+    });
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/scenarios");
+    await expect(page.getByText("Scope (fixed):", { exact: false })).toContainText("8 products");
+    if (width < 768) {
+      await page.getByRole("button", { name: "Next step" }).click();
+      await page.getByRole("button", { name: "Next step" }).click();
+    }
+    const multipliers = page.getByRole("textbox", { name: /demand multiplier/ });
+    await expect(multipliers).toHaveCount(8);
+    const last = page.getByRole("textbox", { name: "Demo pantry · Product 8 demand multiplier" });
+    await last.fill("1.5");
+    await expect(last).toHaveValue("1.5");
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await expectNoSeriousA11yViolations(page, testInfo, `eight products ${width}`);
+  });
 }

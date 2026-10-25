@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FlaskConical, GitCompareArrows, ListChecks, Map as MapIcon, Settings, Table2, UserRound } from "lucide-react";
+import { BookOpenText, FlaskConical, ListChecks, Map as MapIcon, Settings, Table2 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -11,17 +11,19 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { PresenterFooter } from "./presenter-footer";
 
-// "optimization" is the connected presenter workspace (a utility destination, not a blueprint page).
-export type NavKey = "overview" | "data" | "recommendations" | "scenarios" | "optimization";
+// "methodology" (research and audit, blueprint §7) is a utility destination, not one of the four
+// blueprint pages. "optimization" is kept for compatibility while /optimization redirects to /scenarios.
+export type NavKey = "overview" | "data" | "recommendations" | "scenarios" | "optimization" | "methodology";
 
 // Proposed routes from the blueprint (§2). Only built destinations are links; the rest stay visible
 // but disabled so the shell geometry is identical on every page without linking to missing screens.
 const NAV: { key: NavKey; label: string; href: string; built: boolean; icon: React.ComponentType<{ className?: string }> }[] = [
   { key: "overview", label: "Overview", href: "/overview", built: true, icon: MapIcon },
-  { key: "data", label: "Data Explorer", href: "/data", built: false, icon: Table2 },
-  { key: "recommendations", label: "Recommendations", href: "/recommendations", built: false, icon: ListChecks },
-  { key: "scenarios", label: "Scenario Lab", href: "/scenarios", built: false, icon: FlaskConical },
+  { key: "data", label: "Data Explorer", href: "/data", built: true, icon: Table2 },
+  { key: "recommendations", label: "Recommendations", href: "/recommendations", built: true, icon: ListChecks },
+  { key: "scenarios", label: "Scenario Lab", href: "/scenarios", built: true, icon: FlaskConical },
 ];
 
 function BrandMark() {
@@ -69,14 +71,13 @@ export function AppSidebar({ active }: { active: NavKey }) {
               </SidebarMenu>
             </nav>
             {hasUnbuilt && <p className="mt-3 px-3 text-xs text-muted-foreground">Other views are not built yet.</p>}
-            {/* Utility link to the connected presenter workspace (origin/main); not one of the four blueprint pages. */}
-            <nav aria-label="Workspaces" className="mt-4 border-t border-sidebar-border pt-3">
+            <nav aria-label="Reference" className="mt-2">
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={active === "optimization"} className="h-10 gap-3 px-3 text-[15px]">
-                    <Link href="/optimization" aria-current={active === "optimization" ? "page" : undefined}>
-                      <GitCompareArrows className="size-[18px]" />
-                      <span>Optimization workspace</span>
+                  <SidebarMenuButton asChild isActive={active === "methodology"} className="h-10 gap-3 px-3 text-[15px]">
+                    <Link href="/methodology" aria-current={active === "methodology" ? "page" : undefined}>
+                      <BookOpenText className="size-[18px]" />
+                      <span>Methodology &amp; audit</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -94,10 +95,7 @@ export function AppSidebar({ active }: { active: NavKey }) {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        <div className="flex items-center gap-2.5 rounded-lg border border-dashed border-sidebar-border px-3 py-2.5 text-xs text-muted-foreground">
-          <UserRound className="size-4 shrink-0" aria-hidden="true" />
-          <span>No account · read-only demo</span>
-        </div>
+        <PresenterFooter />
       </SidebarFooter>
     </Sidebar>
   );

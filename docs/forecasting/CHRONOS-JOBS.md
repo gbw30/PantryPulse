@@ -53,10 +53,13 @@ choose `allow_fallback`. Browser attempts to choose Chronos checkpoint/package/
 revision/profile metadata fail validation. The server supplies the approved pin
 before freezing inputs. No request accepts an arbitrary local path or device.
 
-The workspace now offers seasonal naive, moving average and experimental Chronos.
+Scenario Lab (`/scenarios`) now offers seasonal naive, moving average and experimental Chronos.
 It identifies the last generated job, actual providers, fallback and incomplete
 planning readiness rather than assuming the selected strategy actually ran.
 Raw model intervals are uncalibrated.
+Main retired the legacy workspace; `/optimization` redirects to Scenario Lab.
+Saved forecast links using either `kind=forecast` or the legacy `kind=forecasts`
+resume the same durable job. The builder supports the current eight-product cap.
 
 Main's live Overview consumes the same committed forecast records. An incomplete
 result keeps physical inventory visible while marking forecast statuses as not

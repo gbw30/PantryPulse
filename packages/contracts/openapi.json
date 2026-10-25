@@ -85,7 +85,7 @@
             "items": {
               "$ref": "#/components/schemas/HandlingCoefficient"
             },
-            "maxItems": 2,
+            "maxItems": 8,
             "minItems": 1,
             "title": "Handling",
             "type": "array"
@@ -97,7 +97,7 @@
             "items": {
               "$ref": "#/components/schemas/Reserve"
             },
-            "maxItems": 28,
+            "maxItems": 112,
             "title": "Reserves",
             "type": "array"
           },
@@ -3146,7 +3146,7 @@
             "items": {
               "$ref": "#/components/schemas/Product"
             },
-            "maxItems": 2,
+            "maxItems": 8,
             "minItems": 1,
             "title": "Products",
             "type": "array"
@@ -3717,6 +3717,46 @@
           "source_revision"
         ],
         "title": "Product",
+        "type": "object"
+      },
+      "ProductCreate": {
+        "additionalProperties": false,
+        "description": "A new product/resource category with its base unit (quantities stay per product).",
+        "properties": {
+          "base_unit": {
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Base Unit",
+            "type": "string"
+          },
+          "category_name": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Name"
+          },
+          "name": {
+            "maxLength": 256,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "base_unit"
+        ],
+        "title": "ProductCreate",
         "type": "object"
       },
       "ProductReference": {
@@ -4444,7 +4484,7 @@
             "items": {
               "$ref": "#/components/schemas/DemandModifier"
             },
-            "maxItems": 28,
+            "maxItems": 112,
             "title": "Modifiers",
             "type": "array"
           },
@@ -8349,6 +8389,132 @@
         "summary": "Presenter Logout",
         "tags": [
           "presenter"
+        ]
+      }
+    },
+    "/api/v1/products": {
+      "post": {
+        "operationId": "create_product_api_v1_products_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "\\S",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "X-Csrf-Token",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Create Product",
+        "tags": [
+          "operations"
         ]
       }
     },

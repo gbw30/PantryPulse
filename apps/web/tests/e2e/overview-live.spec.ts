@@ -484,11 +484,12 @@ test("a quantity beyond Number.MAX_SAFE_INTEGER is shown as unavailable, never r
 
 test("connected: a signed-in presenter sees live data from the seeded backend", async ({ page }) => {
   test.skip(process.env.PP_RUN_CONNECTED !== "1", "Requires isolated seeded PostgreSQL, API and Linux worker");
-  await page.goto("/optimization");
+  await page.goto("/overview");
+  await page.getByRole("button", { name: "Presenter sign in" }).click();
   await page.getByLabel("Username", { exact: true }).fill(process.env.PP_E2E_USERNAME ?? "presenter");
   await page.getByLabel("Password", { exact: true }).fill(process.env.PP_E2E_PASSWORD ?? "pantry-local-demo");
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "1 · Select a forecast" })).toBeVisible();
+  await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Sign in", exact: true }).click()]);
+  await expect(page.getByText("Presenter session · simulated demo")).toBeVisible();
   await page.goto("/overview");
   await expect(page.locator("[data-overview-source]")).toHaveAttribute("data-overview-source", "live");
   await expect(page.getByText(FIXTURE_LABEL)).toHaveCount(0);

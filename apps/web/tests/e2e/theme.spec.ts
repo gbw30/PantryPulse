@@ -125,22 +125,23 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
   });
 }
 
-test("the toggle works on /optimization, and the workspace has no serious a11y violations in dark at 1440", async ({ page }, testInfo) => {
+// /optimization now redirects to the Scenario Lab (PP-55 decision 1), so the toggle is exercised there.
+test("the toggle works on /scenarios (via the /optimization redirect), with no serious a11y violations in dark at 1440", async ({ page }, testInfo) => {
   const pageErrors: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "reduce", colorScheme: "light" });
   await page.goto("/optimization");
-  await expect(page.getByRole("heading", { level: 1, name: "Optimization workspace" })).toBeVisible();
+  await expect(page).toHaveURL(/\/scenarios$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Scenario Lab" })).toBeVisible();
   const html = page.locator("html");
   await expect(html).not.toHaveClass(DARK);
   await page.getByRole("banner").getByRole("button", { name: "Switch to dark theme" }).click();
   await expect(html).toHaveClass(DARK);
   await page.reload();
-  await expect(page.getByRole("heading", { level: 1, name: "Optimization workspace" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Scenario Lab" })).toBeVisible();
   await expect(html).toHaveClass(DARK);
-  await expect(page.getByRole("heading", { name: "Presenter sign in" })).toBeVisible();
-  await page.screenshot({ path: testInfo.outputPath("optimization-dark-1440.png"), fullPage: true });
-  await expectNoSeriousA11yViolations(page, testInfo, "optimization dark 1440x900");
+  await page.screenshot({ path: testInfo.outputPath("scenario-lab-dark-1440.png"), fullPage: true });
+  await expectNoSeriousA11yViolations(page, testInfo, "scenario lab dark 1440x900");
   expect(pageErrors).toEqual([]);
 });

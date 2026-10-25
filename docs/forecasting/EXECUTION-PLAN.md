@@ -2,7 +2,8 @@
 
 Updated October 25, 2026. Owner: **@GestebanFalcon**. Inspected baseline:
 `main` at `5add76008faddae08a969514c2e827299bc84d50` (through PR #78).
-The implementation branch subsequently merged main `3251ca6` (through PR #90);
+The implementation branch subsequently merged main `3251ca6` (through PR #90)
+and `f7a921a` (PRs #91–#92, Scenario Lab and multi-product support);
 the original experimental freeze and qualification evidence retain their identities.
 Status: **local implementation and qualification decision complete** on
 `feat/forecasting-next`, pending review/publication. The user

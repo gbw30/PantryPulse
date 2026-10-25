@@ -1,7 +1,7 @@
 # Forecasting implementation and qualification decision
 
 October 25, 2026. Workstream #80–#86, branch `feat/forecasting-next`, originally based on
-main `5add760` and now integrated with main `3251ca6` (PRs #87–#90).
+main `5add760` and now integrated with main `f7a921a` (through PRs #91–#92).
 Implementation through the qualification decision is complete
 locally; review/publication and deployment are separate. Chronos stays
 **experimental / insufficient evidence**, with no provider-default change.
@@ -140,8 +140,13 @@ typecheck/lint, contract drift and six proxy unit tests all passed. Browser chec
 include actual forecast-to-OR, failure/cancellation/retry and live Overview journeys;
 the added result-display checks cover desktop/mobile readiness, provenance and
 accessibility. This is scoped integration verification, not every browser suite.
-The model experiment
-was not rerun and its one-time final holdout was not reopened.
+PRs #91–#92 merged while PR #93 was being checked, replacing the legacy workspace
+with Scenario Lab and expanding product support. Chronos selection and truthful
+provider/readiness reporting were moved into `/scenarios`; the retired workspace
+stays removed, legacy forecast links still resume, and the multiplier controls
+support all eight products. Updated combined verification is recorded in
+[scenario-lab-integration-v1.json](evidence/scenario-lab-integration-v1.json).
+The model experiment was not rerun and its one-time final holdout was not reopened.
 
 Keep Chronos opt-in/experimental and preserve existing defaults. Follow-up under
 existing #9/#46/#70 must explicitly qualify a nonnegative-output policy for

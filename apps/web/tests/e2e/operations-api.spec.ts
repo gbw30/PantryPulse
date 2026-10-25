@@ -15,11 +15,12 @@ async function api(page: Page, path: string, body?: unknown, key = randomUUID())
 test("operational history, audited stock and canonical plan review through the browser proxy", async ({ page }) => {
   test.skip(process.env.PP_RUN_CONNECTED !== "1", "Requires isolated seeded database and Linux worker");
   test.setTimeout(180_000);
-  await page.goto("/optimization");
+  await page.goto("/overview");
+  await page.getByRole("button", { name: "Presenter sign in" }).click();
   await page.getByLabel("Username", { exact: true }).fill(process.env.PP_E2E_USERNAME ?? "presenter");
   await page.getByLabel("Password", { exact: true }).fill(process.env.PP_E2E_PASSWORD ?? "pantry-local-demo");
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "1 · Select a forecast" })).toBeVisible();
+  await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Sign in", exact: true }).click()]);
+  await expect(page.getByText("Presenter session · simulated demo")).toBeVisible();
   const catalog = await api(page, "operational-catalog");
   expect(catalog.status).toBe(200);
   const site = catalog.body.sites.find((s: { role: string }) => s.role === "HUB");
@@ -65,12 +66,16 @@ test("operational history, audited stock and canonical plan review through the b
     return response.status;
   }, { sourceId: catalog.body.data_sources[0].id, siteId: site.id, productId: product.id, recordKey: `vp-e2e-csv-v1-${site.id}-${product.id}` });
   expect(csv).toBe(201);
+  await page.goto("/scenarios");
   await page.getByRole("button", { name: "Generate forecast", exact: true }).click();
-  await expect(page.getByRole("region", { name: "Computation progress" }).getByRole("status")).toContainText("SUCCEEDED", { timeout: 90_000 });
-  await page.getByLabel("Transfer mode (required)").selectOption("HUB_ONLY");
-  await page.getByRole("button", { name: "Freeze scenario", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Compare frozen scenario", exact: true })).toBeEnabled();
-  const scenarioId = await page.getByLabel("Read a saved scenario").inputValue();
+  await expect(page.locator("[data-job-state]")).toHaveAttribute("data-job-state", "SUCCEEDED", { timeout: 90_000 });
+  await page.getByRole("radio", { name: "Hub to pantry only" }).check();
+  const freezing = page.waitForResponse((response) => new URL(response.url()).pathname === "/api/v1/scenarios" && response.request().method() === "POST");
+  await page.getByRole("button", { name: "Create frozen scenario", exact: true }).click();
+  const frozen = await freezing;
+  expect(frozen.status()).toBe(201);
+  const scenarioId = (await frozen.json()).id;
+  await expect(page.getByRole("button", { name: "Compare methods", exact: true })).toBeEnabled();
   const scenario = await api(page, `scenarios/${scenarioId}`);
   const accepted = await api(page, `scenarios/${scenarioId}/plans`, {
     expected_scenario_hash: scenario.body.payload.operational_hash, method: "CLASSICAL_GP", search_seconds: 1,
