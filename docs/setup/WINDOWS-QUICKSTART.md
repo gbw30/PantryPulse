@@ -114,25 +114,16 @@ Copy the examples only when your private files do not already exist:
 if (-not (Test-Path -LiteralPath apps/api/.env)) {
     Copy-Item apps/api/.env.example apps/api/.env
 }
-if (-not (Test-Path -LiteralPath apps/web/.env.local)) {
-    Copy-Item apps/web/.env.example apps/web/.env.local
-}
 ```
 
 In `apps/api/.env`, replace `YOUR_USERNAME` and `YOUR_PASSWORD` in `DATABASE_URL` with the local values from `compose.yaml`. Keep the host address `127.0.0.1:55432` and database name `pantrypulse_dev`. Retain the `postgresql+psycopg://` scheme. Other settings can stay at the example defaults.
 
 The API does **not** load this `.env` file yet. The Docker route works because Compose supplies its own environment, including a database URL using `postgres:5432` inside the Docker network. Do not replace that container hostname with `127.0.0.1`.
 
-For the website on the host computer, `apps/web/.env.local` should contain:
-
-```dotenv
-NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1
-```
-
-This is the intended API client configuration for future integration. Keep database passwords out of frontend files; `NEXT_PUBLIC_` values are public. Confirm private files are ignored:
+The current static website needs no `.env.local` or public API base URL. V5 selects a future thin same-origin Next.js proxy, whose server-side API target and credential forwarding remain to be designed. Keep database passwords out of frontend files. Confirm the private backend file is ignored:
 
 ```powershell
-git check-ignore apps/api/.env apps/web/.env.local
+git check-ignore apps/api/.env
 ```
 
 If you deliberately want Neon instead of the local database, use the separate [personal-computer demo guide](LOCAL-DEMO.md). Its private `.env.demo` and `compose.demo.yaml` form a different configuration; do not combine both API containers on port 8000.
@@ -204,19 +195,10 @@ You can also check from PowerShell:
 Invoke-RestMethod 'https://YOUR-ACTUAL-TUNNEL.trycloudflare.com/api/v1/health'
 ```
 
-To develop the frontend against that API, install the Git/Node/npm tools from step 1, clone/open the repository, then:
+To inspect the current frontend on another computer, install the Git/Node/npm tools from step 1, clone/open the repository, then:
 
 ```powershell
 npm ci --no-audit --no-fund
-if (-not (Test-Path -LiteralPath apps/web/.env.local)) {
-    Copy-Item apps/web/.env.example apps/web/.env.local
-}
-```
-
-Edit `apps/web/.env.local` with the host's actual address:
-
-```dotenv
-NEXT_PUBLIC_API_BASE_URL=https://YOUR-ACTUAL-TUNNEL.trycloudflare.com/api/v1
 ```
 
 Start your own frontend:
@@ -225,11 +207,11 @@ Start your own frontend:
 npm run dev:web
 ```
 
-Open `http://127.0.0.1:3000` on your computer. In this file, use the tunnel URL for the remote API: `127.0.0.1:8000` would point to your own computer.
+Open `http://127.0.0.1:3000` on your computer. The current page remains a static scaffold; the tunnel address can be checked separately through `/api/v1/health` and `/docs`.
 
-**Current integration limit:** this still shows the static scaffold. Before frontend API requests can work, the application needs an API client that reads this variable and backend CORS middleware that allows the exact frontend origin, such as `http://127.0.0.1:3000`. The `CORS_ALLOWED_ORIGINS` setting is not consumed yet. A successful PowerShell or `/docs` request does not verify cross-origin browser requests. Do not disable browser security to work around this.
+**Current integration limit:** this still shows the static scaffold. Before frontend API requests can work, implement the V5 same-origin Next.js proxy, FastAPI authorization and server-side API target. A successful PowerShell or `/docs` request does not verify browser integration.
 
-For an existing Vercel frontend, set the same public API base in the intended Vercel environment and rebuild/redeploy. It has the same integration/CORS requirements; see [VERCEL.md](VERCEL.md).
+The existing [Vercel preview](VERCEL.md) is simulated and needs no tunnel or API variable. Do not attach this tunnel to it as a shortcut around the proxy/auth work.
 
 ## 7. Everyday restart and shutdown
 
@@ -240,7 +222,7 @@ npm run dev:api:docker
 Invoke-RestMethod 'http://127.0.0.1:8000/api/v1/health'
 ```
 
-Start cloudflared again using step 5 and share the newly printed URL. Update each frontend's environment and restart its dev server after a URL change; rebuild deployed frontends. Quick Tunnel addresses are temporary.
+Start cloudflared again using step 5 and share the newly printed URL for direct API reachability checks. A future integrated proxy will need its server-side API origin updated after a tunnel URL change. Quick Tunnel addresses are temporary.
 
 To finish:
 

@@ -651,7 +651,7 @@ The eventual deployed browser still uses the selected Next.js proxy. Old direct 
 
 ### 15.3 Configuration and secrets
 
-Tracked examples include `apps/api/.env.example`, `apps/api/demo.env.example` and `apps/web/.env.example`. Private local paths such as `apps/api/.env`, `apps/api/.env.demo` and `apps/web/.env.local` remain ignored. No database password, model token or presenter credential may enter Git, screenshots/logs or a `NEXT_PUBLIC_` value.
+Tracked examples include `apps/api/.env.example` and `apps/api/demo.env.example`; no web environment example is currently tracked. Private local paths such as `apps/api/.env`, `apps/api/.env.demo` and `apps/web/.env.local` remain ignored. The static web scaffold and Vercel preview need no environment file. No database password, model token or presenter credential may enter Git, screenshots/logs or a `NEXT_PUBLIC_` value.
 
 Demo Compose explicitly injects `.env.demo`; merely placing a URL in another dotenv file does not switch the API's database. The current API has no settings/dotenv loader, CORS middleware or auth implementation. `APP_ENV`/`DEMO_MODE` in configuration are not access controls by themselves. Retain provider-supplied TLS/security parameters on hosted database URLs and use deliberate migration/runtime connection roles.
 
@@ -661,7 +661,9 @@ The standalone model cache is a persistent Docker volume, while outputs under `a
 
 Hosting/model setup remains paused after the user's reported step 2. No specific later guide step is inferred complete. Do not start containers, build heavy images, download checkpoints or benchmark models until the user resumes that work. Documentation review and offline baseline/helper tests do not resume it.
 
-Before any later release, select the exact target, apply reviewed migrations as one controlled step, seed only the isolated demo, verify proxy/auth/DB/compute behavior, record a release manifest and test rollback/local fallback. No hosted deployment, operational order/payment or dispatch is established by this spec. Provider account menus/limits in older guides must be rechecked when actually used.
+**Subsequent user decision (October 24, 2026):** Resume only a Vercel-hosted frontend prototype preview from an isolated feature branch. The [live `/design-lab` preview](https://pantrypulse-prototype-preview-git-codex-e82088-gbw30s-projects.vercel.app/design-lab) is simulated and has no API, database, tunnel or presenter controls. This does not resume backend/model hosting or satisfy V5 release acceptance. [Preview setup](../setup/VERCEL.md) records the deployment boundary and account checks.
+
+Before any later release, select the exact target, apply reviewed migrations as one controlled step, seed only the isolated demo, verify proxy/auth/DB/compute behavior, record a release manifest and test rollback/local fallback. The static preview is not a hosted product release; no operational order/payment or dispatch is established by this spec. Provider account menus/limits in older guides must be rechecked when actually used.
 
 ## 16. Validation and release acceptance
 

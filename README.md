@@ -39,7 +39,7 @@ The demo is planned around simulated data and institution-level indicators. It w
 
 The planned system uses a Next.js/React interface, a Python/FastAPI backend, OR-Tools for allocation calculations, and PostgreSQL for shared data. Charts will explain the results, while brief animations and clear loading states will help users follow calculations in progress. Chronos-2 is the preferred optional forecasting model, with a seasonal-naive fallback.
 
-For the presentation, the website and Python API can run on the presenter's computer, with Neon holding the demo database. A completely local database is also available for an offline setup. Vercel with a temporary tunnel supports access from other devices; Fly.io remains an optional hosted backend alternative. GitHub holds the source code.
+For a future integrated presentation, the website and Python API can run on the presenter's computer, with Neon holding the demo database. A completely local database is available for an offline setup. A separate simulated Vercel preview is live; connecting a hosted frontend to the laptop API would require the V5 proxy/auth work and a temporary tunnel. Fly.io remains an optional hosted backend alternative. GitHub holds the source code.
 
 ## Further reading
 
@@ -55,3 +55,5 @@ For the presentation, the website and Python API can run on the presenter's comp
 V5 consolidates V4, later accepted decisions and actual implementation evidence. Older documents remain historical or detailed references where compatible.
 
 The optional `/design-lab` route is an illustrative dashboard experiment, with a default 2D network and a [bounded optional 3D exception](docs/architecture/0004-design-lab-3d-exception.md). It does not connect to allocation APIs or represent committed transfers.
+
+A [frontend-only Vercel preview of `/design-lab`](https://pantrypulse-prototype-preview-git-codex-e82088-gbw30s-projects.vercel.app/design-lab) is available from `codex/vercel-prototype-preview`. The root page remains the scaffold; no API, Neon database, tunnel or presenter workflow is connected. The [Vercel setup record](docs/setup/VERCEL.md) describes its branch-scoped deployment and remaining account checks. This preview is not the V5 release candidate.
