@@ -10,6 +10,25 @@
 
 ## Purpose and authority
 
+October 24 issue #11 update: the user explicitly selected **BD-49** (protect each
+donating pantry's service across the seven-day horizon plus configured reserves),
+**BD-50** (one batch on the first day of an explicit 1–3-day allocation window,
+shared frozen timezone, whole-day route delays), and **BD-51** (every transferred
+unit contributes to additional service inside that window). The
+[scenario-v1 contract](SCENARIO-CONTRACT.md) supplies the operational field layout,
+identity, staleness/replay, FEFO, reserves, routes and capacity semantics. Concrete
+parameter values remain explicit inputs. See [PP-33](tasks/PP-33.md) for local
+checks and boundaries; upstream semantic qualification, #24/#25 enforcement,
+#30 persistence and public APIs are not completed by this contract work.
+
+October 24 issue #23 update: **BD-48**, explicitly selected by the user, fixes
+daily projection order to confirmed arrivals → expiry/eligibility exclusions →
+explicit outbound commitments → FEFO local service. Unmet remains on its original
+day. See [V5 §9](SPEC-V5.md#9-inventory-projection-and-common-feasibility) and
+[projection-v1](INVENTORY-PROJECTION.md). This resolves only that portion of
+OPEN-21; donor protection, routes/capacities and the complete #11 scenario contract
+remain open. The implementation is an internal pure service, not a new HTTP API.
+
 Preserve the backend and API planning progress so the discussion can continue after a restart without losing selections, reopening settled questions, or mistaking recommendations for accepted defaults. The companion [backend specification](BACKEND-SPEC.md) explains the covered architecture, logical data model, contracts, processing rules, operations, and verification requirements. This checkpoint retains the decision history, remaining topics, explicit alternatives, and resume instructions (BD-40).
 
 The accepted decisions below record the human user's selections. Earlier assistant recommendations that were not selected do not override them. In particular, scenarios are fully frozen, and draft supplier proposals are included. The temporary selection to omit supplier proposals was explicitly superseded by the user.
@@ -30,7 +49,13 @@ Forecasts and recommendations remain projections. Current stock, confirmed futur
 
 ## Accepted decisions
 
+Issue #8 follow-up, October 24, 2026: the user selected **audited adjustments only** for first-release stock corrections (V5 BD-42), and **allow explicitly declared non-expiring stock** (V5 BD-43). These resolve OPEN-11's scope and part of OPEN-06. Unknown expiry differs from declared non-expiring; the latter does not establish eligibility or food safety. See [V5 §5](SPEC-V5.md#5-domain-data-history-and-stock-integrity) and the [operational draft](OPERATIONAL-CONTRACT.md). Older OPEN-06/11 tracker wording below is historical where superseded by these selections; remaining transaction/calendar details still need review.
+
 All rows below are accepted directions. Their exact fields, algorithms, and edge cases may still require specification under the remaining-topic tracker. The recorded-choice column retains the selected option's letter and a shortened label; original “Recommended” annotations are omitted because recommendation status is not evidence of selection. Option letters are local to each question.
+
+Further issue #8 selections on October 24: **usable through expiry day** (V5 BD-44), and **save corrected history, reject negative stock adjustment and flag mismatch** (V5 BD-45). The physical lot remains unchanged on that failed adjustment. Exact calendar/reconciliation representation remains to be reviewed under OPEN-06/08/09; these selections do not close all remaining contract details.
+
+Final issue #8 user selections, October 24: **posted cancellation follows the same rule** (V5 BD-46), and **future supply requires explicit reconfirmation after a downward receipt correction** (V5 BD-47). [Operational contract v1](OPERATIONAL-CONTRACT.md) now supplies the technical implementation baseline for #19; database and transaction verification remain pending. Earlier OPEN-04–11 prose below is historical where superseded by that contract and V5's updated register. No GitHub issue was closed or remote schema changed by this update.
 
 | ID | Topic | Recorded user choice | Agreed specification |
 |---|---|---|---|

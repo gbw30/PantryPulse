@@ -1,5 +1,22 @@
 # PantryPulse Backend Specification and Build Readiness
 
+October 24 local #11 update: [scenario-v1](SCENARIO-CONTRACT.md) now defines the
+internal operational snapshot/identity, replay/current freshness and transfer
+feasibility contract. Explicit selections BD-49/50/51 protect donor service over
+seven days, select one batch/shared timezone/whole-day delays, and require useful
+additional service within the 1–3-day allocation window. [PP-33](tasks/PP-33.md)
+records implementation/evidence. Older OPEN-19–22 prose below is historical where
+superseded by this contract. Upstream forecast/research-policy qualification,
+database capture, public APIs and allocation enforcement remain separate tasks.
+
+October 24 local #23 update: the user accepted **BD-48**, daily confirmed arrivals
+→ expiry/eligibility exclusions → explicit outbound commitments → FEFO local
+service. Unmet stays on its original day. The internal pure
+[projection-v1 contract](INVENTORY-PROJECTION.md) and
+[PP-39 evidence](tasks/PP-39.md) record the implementation, tests and integration
+boundary. This resolves only the projection-order portion of OPEN-21; full #11
+scenario/donor/route contracts and public API integration remain separate.
+
 > **Current authority:** [Project specification V5](SPEC-V5.md) consolidates these requirements, later accepted decisions, main/forecasting-branch implementation status and acceptance. This document retains detailed internal helper contracts and planning history; conflicting historical status/proposals below yield to V5.
 
 **Date:** October 24, 2026 (America/New_York)
