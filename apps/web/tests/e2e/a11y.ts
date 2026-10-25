@@ -17,6 +17,9 @@ export async function expectNoSeriousA11yViolations(page: Page, testInfo: TestIn
   const { enforce = true, reason } = options;
   if (!enforce && !reason) throw new Error("Report-only a11y scans need a reason.");
   // Exclusions and disabled rules must name the rule and reason inline; none are used yet.
+  // Let running CSS transitions finish first: a button fading from disabled to enabled is briefly
+  // semi-transparent, and scanning mid-fade reports a contrast failure that no settled state has.
+  await page.evaluate(() => Promise.all(document.getAnimations().map((animation) => animation.finished.catch(() => undefined))));
   const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
   const blocking = results.violations.filter((v) => BLOCKING.has(v.impact ?? ""));
   const advisory = results.violations.filter((v) => !BLOCKING.has(v.impact ?? ""));
