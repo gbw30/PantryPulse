@@ -1,0 +1,260 @@
+{
+  "schema_version": "or-decision-manifest-v1",
+  "policy_version": "or-draft-1.1",
+  "decisions": {
+    "OR-DEC-001": {
+      "behavior": {
+        "path": "apps/api/app/schemas/or_inputs.py",
+        "symbol": "ORInputPackage"
+      },
+      "tests": [
+        {
+          "path": "apps/api/tests/optimization/test_or_pure.py",
+          "symbol": "test_lost_sales_not_overlapping_cumulative_need"
+        }
+      ]
+    },
+    "OR-DEC-002": {
+      "behavior": {
+        "path": "apps/api/app/schemas/or_inputs.py",
+        "symbol": "ORScenarioPayload"
+      },
+      "tests": [
+        {
+          "path": "apps/api/tests/optimization/test_or_pure.py",
+          "symbol": "test_mode_required_and_immutable_replay_identity"
+        }
+      ]
+    },
+    "OR-DEC-003": {
+      "behavior": {
+        "path": "apps/api/app/services/optimization/candidates.py",
+        "symbol": "prepare_problem"
+      },
+      "tests": [
+        {
+          "path": "apps/api/tests/optimization/test_or_pure.py",
+          "symbol": "test_pantry_surplus_topology_and_harmful_donor_future_protection"
+        }
+      ]
+    },
+    "OR-DEC-004": {
+      "behavior": {
+        "path": "apps/api/app/services/optimization/packing.py",
+        "symbol": "pack"
+      },
+      "tests": [
+        {
+          "path": "apps/api/tests/optimization/test_or_pure.py",
+          "symbol": "test_long_route_skips_incompatible_early_expiry_then_short_route_uses_it"
+        }
+      ]
+    },
+    "OR-DEC-005": {
+      "behavior": {
+        "path": "apps/api/app/schemas/or_inputs.py",
+        "symbol": "InventoryLot"
+      },
+      "tests": [
+        {
+          "path": "apps/api/tests/optimization/test_or_pure.py",
+          "symbol": "test_duplicate_source_unit_organization_and_quantity_rejections"
+        }
+      ]
+    },
+    "OR-DEC-006": {
+      "behavior": {
+        "path": "apps/api/app/schemas/or_inputs.py",
+        "symbol": "ORPolicy"
+      },
+      "tests": [
+        {
+          "path": "apps/api/tests/optimization/test_or_pure.py",
+          "symbol": "test_full_fixture_exact_metrics_and_independent_checker"
+        }
+      ]
+    },
+    "OR-DEC-007": {
+      "behavior": {
+        "path": "apps/api/app/services/optimization/metrics.py",
+        "symbol": "evaluate"
+      },
+      "tests": [
+        {
+          "path": "apps/api/tests/optimization/test_or_pure.py",
+          "symbol": "test_singleton_positive_group_rejected"
+        }
+      ]
+    },
+    "OR-DEC-008": {
+      "behavior": {
+        "path": "apps/api/app/services/optimization/objective.py",
+        "symbol": "attach"
+      },
+      "tests": [
+        {
+          "path": "apps/api/tests/optimization/test_or_solver.py",
+          "symbol": "test_six_unique_optima_native"
+        }
+      ]
+    },
+    "OR-DEC-009": {
+      "behavior": {
+        "path": "apps/api/app/services/optimization/canonical.py",
+        "symbol": "canonical_bytes"
+      },
+      "tests": [
+        {
+          "path": "apps/api/tests/optimization/test_or_pure.py",
+          "symbol": "test_canonical_collections_sorted_dates_preserved_no_floats"
+        }
+      ]
+    },
+    "OR-DEC-010": {
+      "behavior": {
+        "path": "apps/api/app/services/optimization/forecast_adapter.py",
+        "symbol": "adapt_series"
+      },
+      "tests": [
+        {
+          "path": "apps/api/tests/optimization/test_or_pure.py",
+          "symbol": "test_modifier_applied_before_single_daily_ceiling"
+        }
+      ]
+    },
+    "OR-DEC-011": {
+      "behavior": {
+        "path": "apps/api/app/repositories/jobs.py",
+        "symbol": "QueueRepository"
+      },
+      "tests": [
+        {
+          "path": "apps/api/tests/integration/test_or_jobs.py",
+          "symbol": "test_checked_first_step_is_durable_before_partner_and_survives_cancel"
+        }
+      ]
+    },
+    "OR-DEC-012": {
+      "behavior": {
+        "path": "apps/api/app/models/or_records.py",
+        "symbol": "InputPackageRecord"
+      },
+      "tests": [
+        {
+          "path": "apps/api/tests/integration/test_or_persistence.py",
+          "symbol": "test_historical_records_immutable_in_database"
+        }
+      ]
+    },
+    "OR-DEC-013": {
+      "behavior": {
+        "path": "apps/api/app/services/optimization/compare.py",
+        "symbol": "assemble"
+      },
+      "tests": [
+        {
+          "path": "apps/api/tests/optimization/test_or_solver.py",
+          "symbol": "test_both_physical_fingerprints_identical"
+        }
+      ]
+    },
+    "OR-DEC-014": {
+      "behavior": {
+        "path": "apps/api/app/services/or_access.py",
+        "symbol": "authenticate"
+      },
+      "tests": [
+        {
+          "path": "apps/api/tests/integration/test_or_http.py",
+          "symbol": "test_presenter_origin_csrf_body_limit_and_safe_errors"
+        }
+      ]
+    },
+    "OR-DEC-015": {
+      "behavior": {
+        "path": "apps/api/app/repositories/or_repository.py",
+        "symbol": "assert_current"
+      },
+      "tests": [
+        {
+          "path": "apps/api/tests/integration/test_or_persistence.py",
+          "symbol": "test_revision_change_stales_current_but_historical_stays_readable"
+        }
+      ]
+    },
+    "OR-DEC-016": {
+      "behavior": {
+        "path": "apps/api/app/services/optimization/compare.py",
+        "symbol": "assemble"
+      },
+      "tests": [
+        {
+          "path": "apps/api/tests/integration/test_or_jobs.py",
+          "symbol": "test_one_readable_method_finishes_partial_without_substitution"
+        }
+      ]
+    },
+    "OR-DEC-017": {
+      "behavior": {
+        "path": "apps/api/app/services/optimization/constraints.py",
+        "symbol": "build_physical_model"
+      },
+      "tests": [
+        {
+          "path": "apps/api/tests/optimization/test_or_pure.py",
+          "symbol": "test_shared_handling_capacity_is_joint_across_products"
+        }
+      ]
+    },
+    "OR-DEC-018": {
+      "behavior": {
+        "path": "apps/api/app/services/optimization/numerics.py",
+        "symbol": "audit_model"
+      },
+      "tests": [
+        {
+          "path": "apps/api/tests/optimization/test_or_oracle.py",
+          "symbol": "test_integer_coefficient_compiler_preserves_objective_and_rejects_overflow"
+        },
+        {
+          "path": "apps/api/tests/optimization/test_or_numerics.py",
+          "symbol": "test_audit_reads_actual_upper_domain_from_native_repeated_container"
+        }
+      ]
+    },
+    "OR-DEC-019": {
+      "behavior": {
+        "path": "apps/api/app/services/optimization/constraints.py",
+        "symbol": "build_physical_model"
+      },
+      "tests": [
+        {
+          "path": "apps/api/tests/optimization/test_or_oracle.py",
+          "symbol": "test_oracle_has_no_application_or_native_solver_dependency"
+        }
+      ]
+    },
+    "OR-DEC-020": {
+      "behavior": {
+        "path": "apps/api/app/repositories/or_repository.py",
+        "symbol": "put_package"
+      },
+      "tests": [
+        {
+          "path": "apps/api/tests/integration/test_or_persistence.py",
+          "symbol": "test_live_assertion_and_bad_manifest_cannot_be_published"
+        }
+      ]
+    }
+  },
+  "fixtures": [
+    "data/demo/or-v1/ap-ablation-v1.snapshot.json",
+    "data/demo/or-v1/eta-expiry-v1.snapshot.json",
+    "data/demo/or-v1/harmful-donor-v1.snapshot.json",
+    "data/demo/or-v1/pantry-surplus-v1.snapshot.json",
+    "data/demo/or-v1/rp-ablation-v1.snapshot.json",
+    "data/demo/or-v1/shared-capacity-v1.snapshot.json",
+    "data/demo/or-v1/six-beneficiary-v1.snapshot.json",
+    "data/demo/or-v1/zero-stock-v1.snapshot.json"
+  ]
+}

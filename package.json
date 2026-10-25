@@ -27,6 +27,13 @@
     "check": "npm run typecheck && npm run lint && uv run --frozen --directory apps/api ruff check . && npm run test:api",
     "dev:api:docker": "docker compose --profile api up -d --build --wait api",
     "test:api:docker": "docker compose exec -T api uv run --frozen pytest",
-    "check:runtime:docker": "docker compose exec -T api uv run --frozen python scripts/check_runtime.py --database"
+    "check:runtime:docker": "docker compose exec -T api uv run --frozen python scripts/check_runtime.py --database",
+    "contracts:generate": "node scripts/contracts/generate.mjs",
+    "contracts:check": "node scripts/contracts/check.mjs",
+    "or:decisions": "python3 scripts/or/check-decision-markers.py",
+    "test:integration": "uv run --frozen --directory apps/api python -m scripts.or_require_test_database && uv run --frozen --directory apps/api pytest tests/integration -q"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.10.1"
   }
 }

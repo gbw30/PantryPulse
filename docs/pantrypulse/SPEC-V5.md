@@ -1,5 +1,8 @@
 # PantryPulse — Project Specification V5
 
+> OR implementation checkpoint (October 24, 2026): the current working tree adds a bounded SIMULATED OR service; see [checkpoint](../optimization/CHECKPOINT-2026-10-24.md) and [evidence](../optimization/ACCEPTANCE.md). Baseline implementation-status descriptions below remain historical. Draft OR-DEC choices remain provisional; LIVE publication/adapters, browser/release acceptance, and paused supplier/model work are not complete.
+
+
 **Version:** 5.0 · **Consolidated:** October 24, 2026, America/New_York  
 **Purpose:** the project source of truth for product scope, accepted decisions, implementation status, contracts, unresolved work and acceptance.  
 **Status:** consolidated specification with explicit implementation gates. The complete product is not implemented or release-ready.

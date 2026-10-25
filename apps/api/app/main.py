@@ -1,4 +1,4 @@
-"""Application scaffold. Domain endpoints are intentionally not implemented."""
+"""PantryPulse process health and durable OR API. No startup computation."""
 
 from typing import Literal
 
@@ -17,3 +17,11 @@ class HealthResponse(BaseModel):
 def health() -> HealthResponse:
     """Process liveness only; does not assert database or solver readiness."""
     return HealthResponse(status="ok", scope="process")
+
+
+# OR-DEC-014/020 [PROVISIONAL]: explicit presenter/simulated publication boundary.
+from app.routers.or_api import router as or_router  # noqa: E402
+from app.services.or_http_errors import install_or_http  # noqa: E402
+
+install_or_http(app)
+app.include_router(or_router)

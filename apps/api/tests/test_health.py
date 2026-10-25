@@ -10,7 +10,8 @@ def test_process_liveness_does_not_claim_domain_readiness():
     assert response.json() == {"status": "ok", "scope": "process"}
 
 
-def test_unimplemented_solver_is_not_exposed():
+def test_invalid_scenario_request_is_rejected_without_computation():
     with TestClient(app) as client:
         response = client.post("/api/v1/scenarios/example/plans", json={})
-    assert response.status_code == 404
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "INVALID_INPUT"

@@ -1,0 +1,3589 @@
+{
+  "schema_version": "or-scenario-v1",
+  "package": {
+    "schema_version": "or-input-v1",
+    "organization_id": "00000000-0000-0000-0000-000000000001",
+    "dataset_id": "00000000-0000-0000-0000-000000000002",
+    "source_kind": "SIMULATED",
+    "source_revision_token": "sim-v1",
+    "source_refs": [
+      {
+        "id": "00000000-0000-0000-0000-0000000001f5",
+        "kind": "SIMULATED_FIXTURE",
+        "revision": "sim-v1",
+        "content_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    ],
+    "snapshot_as_of": "2026-10-24T12:00:00Z",
+    "operational_timezone": "America/New_York",
+    "first_planning_date": "2026-10-25",
+    "sites": [
+      {
+        "id": "00000000-0000-0000-0000-00000000000a",
+        "organization_id": "00000000-0000-0000-0000-000000000001",
+        "role": "HUB",
+        "name": "Gator hub",
+        "timezone": "America/New_York",
+        "source_revision": "sim-v1"
+      },
+      {
+        "id": "00000000-0000-0000-0000-00000000000b",
+        "organization_id": "00000000-0000-0000-0000-000000000001",
+        "role": "BENEFICIARY",
+        "name": "Simulated pantry 1",
+        "timezone": "America/New_York",
+        "source_revision": "sim-v1"
+      },
+      {
+        "id": "00000000-0000-0000-0000-00000000000c",
+        "organization_id": "00000000-0000-0000-0000-000000000001",
+        "role": "BENEFICIARY",
+        "name": "Simulated pantry 2",
+        "timezone": "America/New_York",
+        "source_revision": "sim-v1"
+      },
+      {
+        "id": "00000000-0000-0000-0000-00000000000d",
+        "organization_id": "00000000-0000-0000-0000-000000000001",
+        "role": "BENEFICIARY",
+        "name": "Simulated pantry 3",
+        "timezone": "America/New_York",
+        "source_revision": "sim-v1"
+      },
+      {
+        "id": "00000000-0000-0000-0000-00000000000e",
+        "organization_id": "00000000-0000-0000-0000-000000000001",
+        "role": "BENEFICIARY",
+        "name": "Simulated pantry 4",
+        "timezone": "America/New_York",
+        "source_revision": "sim-v1"
+      },
+      {
+        "id": "00000000-0000-0000-0000-00000000000f",
+        "organization_id": "00000000-0000-0000-0000-000000000001",
+        "role": "BENEFICIARY",
+        "name": "Simulated pantry 5",
+        "timezone": "America/New_York",
+        "source_revision": "sim-v1"
+      },
+      {
+        "id": "00000000-0000-0000-0000-000000000010",
+        "organization_id": "00000000-0000-0000-0000-000000000001",
+        "role": "BENEFICIARY",
+        "name": "Simulated pantry 6",
+        "timezone": "America/New_York",
+        "source_revision": "sim-v1"
+      }
+    ],
+    "products": [
+      {
+        "id": "00000000-0000-0000-0000-000000000064",
+        "unit": "MEAL",
+        "handling_coefficient": 2,
+        "source_revision": "sim-v1"
+      },
+      {
+        "id": "00000000-0000-0000-0000-000000000065",
+        "unit": "BOTTLE",
+        "handling_coefficient": 1,
+        "source_revision": "sim-v1"
+      }
+    ],
+    "forecasts": [
+      {
+        "id": "00000000-0000-0000-0000-0000000003e8",
+        "run_id": "00000000-0000-0000-0000-0000000001f4",
+        "source_id": "00000000-0000-0000-0000-0000000001f5",
+        "organization_id": "00000000-0000-0000-0000-000000000001",
+        "site_id": "00000000-0000-0000-0000-00000000000a",
+        "product_id": "00000000-0000-0000-0000-000000000064",
+        "unit": "MEAL",
+        "timezone": "America/New_York",
+        "source_revision": "sim-v1",
+        "actual_provider": "SIMULATED_EXACT_FIXTURE",
+        "basis": "REQUESTED",
+        "source_classification": "SIMULATED",
+        "estimate_kind": "POINT",
+        "interval_method": "NONE",
+        "cutoff": "2026-10-24",
+        "generated_at": "2026-10-24T12:00:00Z",
+        "committed": true,
+        "planning_ready": true,
+        "numeric_conversion": "EXACT_LITERAL",
+        "upstream_metadata_json": null,
+        "days": [
+          {
+            "day": "2026-10-25",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-26",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-27",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-28",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-29",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-30",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-31",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          }
+        ]
+      },
+      {
+        "id": "00000000-0000-0000-0000-0000000003e9",
+        "run_id": "00000000-0000-0000-0000-0000000001f4",
+        "source_id": "00000000-0000-0000-0000-0000000001f5",
+        "organization_id": "00000000-0000-0000-0000-000000000001",
+        "site_id": "00000000-0000-0000-0000-00000000000a",
+        "product_id": "00000000-0000-0000-0000-000000000065",
+        "unit": "BOTTLE",
+        "timezone": "America/New_York",
+        "source_revision": "sim-v1",
+        "actual_provider": "SIMULATED_EXACT_FIXTURE",
+        "basis": "REQUESTED",
+        "source_classification": "SIMULATED",
+        "estimate_kind": "POINT",
+        "interval_method": "NONE",
+        "cutoff": "2026-10-24",
+        "generated_at": "2026-10-24T12:00:00Z",
+        "committed": true,
+        "planning_ready": true,
+        "numeric_conversion": "EXACT_LITERAL",
+        "upstream_metadata_json": null,
+        "days": [
+          {
+            "day": "2026-10-25",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-26",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-27",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-28",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-29",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-30",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-31",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          }
+        ]
+      },
+      {
+        "id": "00000000-0000-0000-0000-0000000003f2",
+        "run_id": "00000000-0000-0000-0000-0000000001f4",
+        "source_id": "00000000-0000-0000-0000-0000000001f5",
+        "organization_id": "00000000-0000-0000-0000-000000000001",
+        "site_id": "00000000-0000-0000-0000-00000000000b",
+        "product_id": "00000000-0000-0000-0000-000000000064",
+        "unit": "MEAL",
+        "timezone": "America/New_York",
+        "source_revision": "sim-v1",
+        "actual_provider": "SIMULATED_EXACT_FIXTURE",
+        "basis": "REQUESTED",
+        "source_classification": "SIMULATED",
+        "estimate_kind": "POINT",
+        "interval_method": "NONE",
+        "cutoff": "2026-10-24",
+        "generated_at": "2026-10-24T12:00:00Z",
+        "committed": true,
+        "planning_ready": true,
+        "numeric_conversion": "EXACT_LITERAL",
+        "upstream_metadata_json": null,
+        "days": [
+          {
+            "day": "2026-10-25",
+            "central_literal": "2",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-26",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-27",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-28",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-29",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-30",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-31",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          }
+        ]
+      },
+      {
+        "id": "00000000-0000-0000-0000-0000000003f3",
+        "run_id": "00000000-0000-0000-0000-0000000001f4",
+        "source_id": "00000000-0000-0000-0000-0000000001f5",
+        "organization_id": "00000000-0000-0000-0000-000000000001",
+        "site_id": "00000000-0000-0000-0000-00000000000b",
+        "product_id": "00000000-0000-0000-0000-000000000065",
+        "unit": "BOTTLE",
+        "timezone": "America/New_York",
+        "source_revision": "sim-v1",
+        "actual_provider": "SIMULATED_EXACT_FIXTURE",
+        "basis": "REQUESTED",
+        "source_classification": "SIMULATED",
+        "estimate_kind": "POINT",
+        "interval_method": "NONE",
+        "cutoff": "2026-10-24",
+        "generated_at": "2026-10-24T12:00:00Z",
+        "committed": true,
+        "planning_ready": true,
+        "numeric_conversion": "EXACT_LITERAL",
+        "upstream_metadata_json": null,
+        "days": [
+          {
+            "day": "2026-10-25",
+            "central_literal": "2",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-26",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-27",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-28",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-29",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-30",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-31",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          }
+        ]
+      },
+      {
+        "id": "00000000-0000-0000-0000-0000000003fc",
+        "run_id": "00000000-0000-0000-0000-0000000001f4",
+        "source_id": "00000000-0000-0000-0000-0000000001f5",
+        "organization_id": "00000000-0000-0000-0000-000000000001",
+        "site_id": "00000000-0000-0000-0000-00000000000c",
+        "product_id": "00000000-0000-0000-0000-000000000064",
+        "unit": "MEAL",
+        "timezone": "America/New_York",
+        "source_revision": "sim-v1",
+        "actual_provider": "SIMULATED_EXACT_FIXTURE",
+        "basis": "REQUESTED",
+        "source_classification": "SIMULATED",
+        "estimate_kind": "POINT",
+        "interval_method": "NONE",
+        "cutoff": "2026-10-24",
+        "generated_at": "2026-10-24T12:00:00Z",
+        "committed": true,
+        "planning_ready": true,
+        "numeric_conversion": "EXACT_LITERAL",
+        "upstream_metadata_json": null,
+        "days": [
+          {
+            "day": "2026-10-25",
+            "central_literal": "2",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-26",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-27",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-28",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-29",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-30",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-31",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          }
+        ]
+      },
+      {
+        "id": "00000000-0000-0000-0000-0000000003fd",
+        "run_id": "00000000-0000-0000-0000-0000000001f4",
+        "source_id": "00000000-0000-0000-0000-0000000001f5",
+        "organization_id": "00000000-0000-0000-0000-000000000001",
+        "site_id": "00000000-0000-0000-0000-00000000000c",
+        "product_id": "00000000-0000-0000-0000-000000000065",
+        "unit": "BOTTLE",
+        "timezone": "America/New_York",
+        "source_revision": "sim-v1",
+        "actual_provider": "SIMULATED_EXACT_FIXTURE",
+        "basis": "REQUESTED",
+        "source_classification": "SIMULATED",
+        "estimate_kind": "POINT",
+        "interval_method": "NONE",
+        "cutoff": "2026-10-24",
+        "generated_at": "2026-10-24T12:00:00Z",
+        "committed": true,
+        "planning_ready": true,
+        "numeric_conversion": "EXACT_LITERAL",
+        "upstream_metadata_json": null,
+        "days": [
+          {
+            "day": "2026-10-25",
+            "central_literal": "2",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-26",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-27",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-28",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-29",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-30",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-31",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          }
+        ]
+      },
+      {
+        "id": "00000000-0000-0000-0000-000000000406",
+        "run_id": "00000000-0000-0000-0000-0000000001f4",
+        "source_id": "00000000-0000-0000-0000-0000000001f5",
+        "organization_id": "00000000-0000-0000-0000-000000000001",
+        "site_id": "00000000-0000-0000-0000-00000000000d",
+        "product_id": "00000000-0000-0000-0000-000000000064",
+        "unit": "MEAL",
+        "timezone": "America/New_York",
+        "source_revision": "sim-v1",
+        "actual_provider": "SIMULATED_EXACT_FIXTURE",
+        "basis": "REQUESTED",
+        "source_classification": "SIMULATED",
+        "estimate_kind": "POINT",
+        "interval_method": "NONE",
+        "cutoff": "2026-10-24",
+        "generated_at": "2026-10-24T12:00:00Z",
+        "committed": true,
+        "planning_ready": true,
+        "numeric_conversion": "EXACT_LITERAL",
+        "upstream_metadata_json": null,
+        "days": [
+          {
+            "day": "2026-10-25",
+            "central_literal": "2",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-26",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-27",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-28",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-29",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-30",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-31",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          }
+        ]
+      },
+      {
+        "id": "00000000-0000-0000-0000-000000000407",
+        "run_id": "00000000-0000-0000-0000-0000000001f4",
+        "source_id": "00000000-0000-0000-0000-0000000001f5",
+        "organization_id": "00000000-0000-0000-0000-000000000001",
+        "site_id": "00000000-0000-0000-0000-00000000000d",
+        "product_id": "00000000-0000-0000-0000-000000000065",
+        "unit": "BOTTLE",
+        "timezone": "America/New_York",
+        "source_revision": "sim-v1",
+        "actual_provider": "SIMULATED_EXACT_FIXTURE",
+        "basis": "REQUESTED",
+        "source_classification": "SIMULATED",
+        "estimate_kind": "POINT",
+        "interval_method": "NONE",
+        "cutoff": "2026-10-24",
+        "generated_at": "2026-10-24T12:00:00Z",
+        "committed": true,
+        "planning_ready": true,
+        "numeric_conversion": "EXACT_LITERAL",
+        "upstream_metadata_json": null,
+        "days": [
+          {
+            "day": "2026-10-25",
+            "central_literal": "2",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-26",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-27",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-28",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-29",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-30",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-31",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          }
+        ]
+      },
+      {
+        "id": "00000000-0000-0000-0000-000000000410",
+        "run_id": "00000000-0000-0000-0000-0000000001f4",
+        "source_id": "00000000-0000-0000-0000-0000000001f5",
+        "organization_id": "00000000-0000-0000-0000-000000000001",
+        "site_id": "00000000-0000-0000-0000-00000000000e",
+        "product_id": "00000000-0000-0000-0000-000000000064",
+        "unit": "MEAL",
+        "timezone": "America/New_York",
+        "source_revision": "sim-v1",
+        "actual_provider": "SIMULATED_EXACT_FIXTURE",
+        "basis": "REQUESTED",
+        "source_classification": "SIMULATED",
+        "estimate_kind": "POINT",
+        "interval_method": "NONE",
+        "cutoff": "2026-10-24",
+        "generated_at": "2026-10-24T12:00:00Z",
+        "committed": true,
+        "planning_ready": true,
+        "numeric_conversion": "EXACT_LITERAL",
+        "upstream_metadata_json": null,
+        "days": [
+          {
+            "day": "2026-10-25",
+            "central_literal": "2",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-26",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-27",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-28",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-29",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-30",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-31",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          }
+        ]
+      },
+      {
+        "id": "00000000-0000-0000-0000-000000000411",
+        "run_id": "00000000-0000-0000-0000-0000000001f4",
+        "source_id": "00000000-0000-0000-0000-0000000001f5",
+        "organization_id": "00000000-0000-0000-0000-000000000001",
+        "site_id": "00000000-0000-0000-0000-00000000000e",
+        "product_id": "00000000-0000-0000-0000-000000000065",
+        "unit": "BOTTLE",
+        "timezone": "America/New_York",
+        "source_revision": "sim-v1",
+        "actual_provider": "SIMULATED_EXACT_FIXTURE",
+        "basis": "REQUESTED",
+        "source_classification": "SIMULATED",
+        "estimate_kind": "POINT",
+        "interval_method": "NONE",
+        "cutoff": "2026-10-24",
+        "generated_at": "2026-10-24T12:00:00Z",
+        "committed": true,
+        "planning_ready": true,
+        "numeric_conversion": "EXACT_LITERAL",
+        "upstream_metadata_json": null,
+        "days": [
+          {
+            "day": "2026-10-25",
+            "central_literal": "2",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-26",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-27",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-28",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-29",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-30",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-31",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          }
+        ]
+      },
+      {
+        "id": "00000000-0000-0000-0000-00000000041a",
+        "run_id": "00000000-0000-0000-0000-0000000001f4",
+        "source_id": "00000000-0000-0000-0000-0000000001f5",
+        "organization_id": "00000000-0000-0000-0000-000000000001",
+        "site_id": "00000000-0000-0000-0000-00000000000f",
+        "product_id": "00000000-0000-0000-0000-000000000064",
+        "unit": "MEAL",
+        "timezone": "America/New_York",
+        "source_revision": "sim-v1",
+        "actual_provider": "SIMULATED_EXACT_FIXTURE",
+        "basis": "REQUESTED",
+        "source_classification": "SIMULATED",
+        "estimate_kind": "POINT",
+        "interval_method": "NONE",
+        "cutoff": "2026-10-24",
+        "generated_at": "2026-10-24T12:00:00Z",
+        "committed": true,
+        "planning_ready": true,
+        "numeric_conversion": "EXACT_LITERAL",
+        "upstream_metadata_json": null,
+        "days": [
+          {
+            "day": "2026-10-25",
+            "central_literal": "2",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-26",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-27",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-28",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-29",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-30",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-31",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          }
+        ]
+      },
+      {
+        "id": "00000000-0000-0000-0000-00000000041b",
+        "run_id": "00000000-0000-0000-0000-0000000001f4",
+        "source_id": "00000000-0000-0000-0000-0000000001f5",
+        "organization_id": "00000000-0000-0000-0000-000000000001",
+        "site_id": "00000000-0000-0000-0000-00000000000f",
+        "product_id": "00000000-0000-0000-0000-000000000065",
+        "unit": "BOTTLE",
+        "timezone": "America/New_York",
+        "source_revision": "sim-v1",
+        "actual_provider": "SIMULATED_EXACT_FIXTURE",
+        "basis": "REQUESTED",
+        "source_classification": "SIMULATED",
+        "estimate_kind": "POINT",
+        "interval_method": "NONE",
+        "cutoff": "2026-10-24",
+        "generated_at": "2026-10-24T12:00:00Z",
+        "committed": true,
+        "planning_ready": true,
+        "numeric_conversion": "EXACT_LITERAL",
+        "upstream_metadata_json": null,
+        "days": [
+          {
+            "day": "2026-10-25",
+            "central_literal": "2",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-26",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-27",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-28",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-29",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-30",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-31",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          }
+        ]
+      },
+      {
+        "id": "00000000-0000-0000-0000-000000000424",
+        "run_id": "00000000-0000-0000-0000-0000000001f4",
+        "source_id": "00000000-0000-0000-0000-0000000001f5",
+        "organization_id": "00000000-0000-0000-0000-000000000001",
+        "site_id": "00000000-0000-0000-0000-000000000010",
+        "product_id": "00000000-0000-0000-0000-000000000064",
+        "unit": "MEAL",
+        "timezone": "America/New_York",
+        "source_revision": "sim-v1",
+        "actual_provider": "SIMULATED_EXACT_FIXTURE",
+        "basis": "REQUESTED",
+        "source_classification": "SIMULATED",
+        "estimate_kind": "POINT",
+        "interval_method": "NONE",
+        "cutoff": "2026-10-24",
+        "generated_at": "2026-10-24T12:00:00Z",
+        "committed": true,
+        "planning_ready": true,
+        "numeric_conversion": "EXACT_LITERAL",
+        "upstream_metadata_json": null,
+        "days": [
+          {
+            "day": "2026-10-25",
+            "central_literal": "2",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-26",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-27",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-28",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-29",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-30",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-31",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          }
+        ]
+      },
+      {
+        "id": "00000000-0000-0000-0000-000000000425",
+        "run_id": "00000000-0000-0000-0000-0000000001f4",
+        "source_id": "00000000-0000-0000-0000-0000000001f5",
+        "organization_id": "00000000-0000-0000-0000-000000000001",
+        "site_id": "00000000-0000-0000-0000-000000000010",
+        "product_id": "00000000-0000-0000-0000-000000000065",
+        "unit": "BOTTLE",
+        "timezone": "America/New_York",
+        "source_revision": "sim-v1",
+        "actual_provider": "SIMULATED_EXACT_FIXTURE",
+        "basis": "REQUESTED",
+        "source_classification": "SIMULATED",
+        "estimate_kind": "POINT",
+        "interval_method": "NONE",
+        "cutoff": "2026-10-24",
+        "generated_at": "2026-10-24T12:00:00Z",
+        "committed": true,
+        "planning_ready": true,
+        "numeric_conversion": "EXACT_LITERAL",
+        "upstream_metadata_json": null,
+        "days": [
+          {
+            "day": "2026-10-25",
+            "central_literal": "2",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-26",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-27",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-28",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-29",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-30",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          },
+          {
+            "day": "2026-10-31",
+            "central_literal": "0",
+            "p10_literal": null,
+            "p50_literal": null,
+            "p90_literal": null
+          }
+        ]
+      }
+    ],
+    "inventory": [
+      {
+        "id": "00000000-0000-0000-0000-0000000000c8",
+        "site_id": "00000000-0000-0000-0000-00000000000b",
+        "product_id": "00000000-0000-0000-0000-000000000064",
+        "unit": "MEAL",
+        "physical_units": 8,
+        "free_units": 8,
+        "reserved_units": 0,
+        "committed_units": 0,
+        "held_units": 0,
+        "available_on": "2026-10-25",
+        "expires_on": "2026-11-01",
+        "eligibility": "ELIGIBLE",
+        "source_line_id": "00000000-0000-0000-0000-00000000012c",
+        "source_revision": "sim-v1",
+        "dispatchable": true,
+        "commitment_scope_refs": [],
+        "commitment_overlaps_demand": false
+      },
+      {
+        "id": "00000000-0000-0000-0000-0000000000c9",
+        "site_id": "00000000-0000-0000-0000-00000000000a",
+        "product_id": "00000000-0000-0000-0000-000000000065",
+        "unit": "BOTTLE",
+        "physical_units": 6,
+        "free_units": 6,
+        "reserved_units": 0,
+        "committed_units": 0,
+        "held_units": 0,
+        "available_on": "2026-10-25",
+        "expires_on": "2026-11-01",
+        "eligibility": "ELIGIBLE",
+        "source_line_id": "00000000-0000-0000-0000-00000000012d",
+        "source_revision": "sim-v1",
+        "dispatchable": true,
+        "commitment_scope_refs": [],
+        "commitment_overlaps_demand": false
+      }
+    ],
+    "confirmed_arrivals": [],
+    "routes": [
+      {
+        "id": "00000000-0000-0000-0000-000000000190",
+        "source_id": "00000000-0000-0000-0000-00000000000a",
+        "destination_id": "00000000-0000-0000-0000-00000000000b",
+        "enabled": true,
+        "eta_days": 0,
+        "capacity": {
+          "original": 100,
+          "fixed_used": 0,
+          "residual": 100,
+          "source_revision": "sim-v1"
+        },
+        "costs": [
+          {
+            "product_id": "00000000-0000-0000-0000-000000000064",
+            "cost_minor": 1
+          },
+          {
+            "product_id": "00000000-0000-0000-0000-000000000065",
+            "cost_minor": 1
+          }
+        ],
+        "cost_unit": "SIM_CREDIT"
+      },
+      {
+        "id": "00000000-0000-0000-0000-000000000191",
+        "source_id": "00000000-0000-0000-0000-00000000000a",
+        "destination_id": "00000000-0000-0000-0000-00000000000c",
+        "enabled": true,
+        "eta_days": 0,
+        "capacity": {
+          "original": 100,
+          "fixed_used": 0,
+          "residual": 100,
+          "source_revision": "sim-v1"
+        },
+        "costs": [
+          {
+            "product_id": "00000000-0000-0000-0000-000000000064",
+            "cost_minor": 1
+          },
+          {
+            "product_id": "00000000-0000-0000-0000-000000000065",
+            "cost_minor": 1
+          }
+        ],
+        "cost_unit": "SIM_CREDIT"
+      },
+      {
+        "id": "00000000-0000-0000-0000-000000000192",
+        "source_id": "00000000-0000-0000-0000-00000000000a",
+        "destination_id": "00000000-0000-0000-0000-00000000000d",
+        "enabled": true,
+        "eta_days": 0,
+        "capacity": {
+          "original": 100,
+          "fixed_used": 0,
+          "residual": 100,
+          "source_revision": "sim-v1"
+        },
+        "costs": [
+          {
+            "product_id": "00000000-0000-0000-0000-000000000064",
+            "cost_minor": 1
+          },
+          {
+            "product_id": "00000000-0000-0000-0000-000000000065",
+            "cost_minor": 1
+          }
+        ],
+        "cost_unit": "SIM_CREDIT"
+      },
+      {
+        "id": "00000000-0000-0000-0000-000000000193",
+        "source_id": "00000000-0000-0000-0000-00000000000a",
+        "destination_id": "00000000-0000-0000-0000-00000000000e",
+        "enabled": true,
+        "eta_days": 0,
+        "capacity": {
+          "original": 100,
+          "fixed_used": 0,
+          "residual": 100,
+          "source_revision": "sim-v1"
+        },
+        "costs": [
+          {
+            "product_id": "00000000-0000-0000-0000-000000000064",
+            "cost_minor": 1
+          },
+          {
+            "product_id": "00000000-0000-0000-0000-000000000065",
+            "cost_minor": 1
+          }
+        ],
+        "cost_unit": "SIM_CREDIT"
+      },
+      {
+        "id": "00000000-0000-0000-0000-000000000194",
+        "source_id": "00000000-0000-0000-0000-00000000000a",
+        "destination_id": "00000000-0000-0000-0000-00000000000f",
+        "enabled": true,
+        "eta_days": 0,
+        "capacity": {
+          "original": 100,
+          "fixed_used": 0,
+          "residual": 100,
+          "source_revision": "sim-v1"
+        },
+        "costs": [
+          {
+            "product_id": "00000000-0000-0000-0000-000000000064",
+            "cost_minor": 1
+          },
+          {
+            "product_id": "00000000-0000-0000-0000-000000000065",
+            "cost_minor": 1
+          }
+        ],
+        "cost_unit": "SIM_CREDIT"
+      },
+      {
+        "id": "00000000-0000-0000-0000-000000000195",
+        "source_id": "00000000-0000-0000-0000-00000000000a",
+        "destination_id": "00000000-0000-0000-0000-000000000010",
+        "enabled": true,
+        "eta_days": 0,
+        "capacity": {
+          "original": 100,
+          "fixed_used": 0,
+          "residual": 100,
+          "source_revision": "sim-v1"
+        },
+        "costs": [
+          {
+            "product_id": "00000000-0000-0000-0000-000000000064",
+            "cost_minor": 1
+          },
+          {
+            "product_id": "00000000-0000-0000-0000-000000000065",
+            "cost_minor": 1
+          }
+        ],
+        "cost_unit": "SIM_CREDIT"
+      },
+      {
+        "id": "00000000-0000-0000-0000-0000000002bc",
+        "source_id": "00000000-0000-0000-0000-00000000000b",
+        "destination_id": "00000000-0000-0000-0000-00000000000c",
+        "enabled": true,
+        "eta_days": 0,
+        "capacity": {
+          "original": 100,
+          "fixed_used": 0,
+          "residual": 100,
+          "source_revision": "sim-v1"
+        },
+        "costs": [
+          {
+            "product_id": "00000000-0000-0000-0000-000000000064",
+            "cost_minor": 1
+          },
+          {
+            "product_id": "00000000-0000-0000-0000-000000000065",
+            "cost_minor": 1
+          }
+        ],
+        "cost_unit": "SIM_CREDIT"
+      },
+      {
+        "id": "00000000-0000-0000-0000-0000000002bd",
+        "source_id": "00000000-0000-0000-0000-00000000000b",
+        "destination_id": "00000000-0000-0000-0000-00000000000d",
+        "enabled": true,
+        "eta_days": 0,
+        "capacity": {
+          "original": 100,
+          "fixed_used": 0,
+          "residual": 100,
+          "source_revision": "sim-v1"
+        },
+        "costs": [
+          {
+            "product_id": "00000000-0000-0000-0000-000000000064",
+            "cost_minor": 1
+          },
+          {
+            "product_id": "00000000-0000-0000-0000-000000000065",
+            "cost_minor": 1
+          }
+        ],
+        "cost_unit": "SIM_CREDIT"
+      },
+      {
+        "id": "00000000-0000-0000-0000-0000000002be",
+        "source_id": "00000000-0000-0000-0000-00000000000b",
+        "destination_id": "00000000-0000-0000-0000-00000000000e",
+        "enabled": true,
+        "eta_days": 0,
+        "capacity": {
+          "original": 100,
+          "fixed_used": 0,
+          "residual": 100,
+          "source_revision": "sim-v1"
+        },
+        "costs": [
+          {
+            "product_id": "00000000-0000-0000-0000-000000000064",
+            "cost_minor": 1
+          },
+          {
+            "product_id": "00000000-0000-0000-0000-000000000065",
+            "cost_minor": 1
+          }
+        ],
+        "cost_unit": "SIM_CREDIT"
+      },
+      {
+        "id": "00000000-0000-0000-0000-0000000002bf",
+        "source_id": "00000000-0000-0000-0000-00000000000b",
+        "destination_id": "00000000-0000-0000-0000-00000000000f",
+        "enabled": true,
+        "eta_days": 0,
+        "capacity": {
+          "original": 100,
+          "fixed_used": 0,
+          "residual": 100,
+          "source_revision": "sim-v1"
+        },
+        "costs": [
+          {
+            "product_id": "00000000-0000-0000-0000-000000000064",
+            "cost_minor": 1
+          },
+          {
+            "product_id": "00000000-0000-0000-0000-000000000065",
+            "cost_minor": 1
+          }
+        ],
+        "cost_unit": "SIM_CREDIT"
+      },
+      {
+        "id": "00000000-0000-0000-0000-0000000002c0",
+        "source_id": "00000000-0000-0000-0000-00000000000b",
+        "destination_id": "00000000-0000-0000-0000-000000000010",
+        "enabled": true,
+        "eta_days": 0,
+        "capacity": {
+          "original": 100,
+          "fixed_used": 0,
+          "residual": 100,
+          "source_revision": "sim-v1"
+        },
+        "costs": [
+          {
+            "product_id": "00000000-0000-0000-0000-000000000064",
+            "cost_minor": 1
+          },
+          {
+            "product_id": "00000000-0000-0000-0000-000000000065",
+            "cost_minor": 1
+          }
+        ],
+        "cost_unit": "SIM_CREDIT"
+      }
+    ],
+    "capacities": {
+      "sites": [
+        {
+          "site_id": "00000000-0000-0000-0000-00000000000a",
+          "source": {
+            "original": 100,
+            "fixed_used": 0,
+            "residual": 100,
+            "source_revision": "sim-v1"
+          },
+          "receiving": [
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            }
+          ],
+          "storage": [
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            }
+          ]
+        },
+        {
+          "site_id": "00000000-0000-0000-0000-00000000000b",
+          "source": {
+            "original": 100,
+            "fixed_used": 0,
+            "residual": 100,
+            "source_revision": "sim-v1"
+          },
+          "receiving": [
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            }
+          ],
+          "storage": [
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            }
+          ]
+        },
+        {
+          "site_id": "00000000-0000-0000-0000-00000000000c",
+          "source": {
+            "original": 100,
+            "fixed_used": 0,
+            "residual": 100,
+            "source_revision": "sim-v1"
+          },
+          "receiving": [
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            }
+          ],
+          "storage": [
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            }
+          ]
+        },
+        {
+          "site_id": "00000000-0000-0000-0000-00000000000d",
+          "source": {
+            "original": 100,
+            "fixed_used": 0,
+            "residual": 100,
+            "source_revision": "sim-v1"
+          },
+          "receiving": [
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            }
+          ],
+          "storage": [
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            }
+          ]
+        },
+        {
+          "site_id": "00000000-0000-0000-0000-00000000000e",
+          "source": {
+            "original": 100,
+            "fixed_used": 0,
+            "residual": 100,
+            "source_revision": "sim-v1"
+          },
+          "receiving": [
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            }
+          ],
+          "storage": [
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            }
+          ]
+        },
+        {
+          "site_id": "00000000-0000-0000-0000-00000000000f",
+          "source": {
+            "original": 100,
+            "fixed_used": 0,
+            "residual": 100,
+            "source_revision": "sim-v1"
+          },
+          "receiving": [
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            }
+          ],
+          "storage": [
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            }
+          ]
+        },
+        {
+          "site_id": "00000000-0000-0000-0000-000000000010",
+          "source": {
+            "original": 100,
+            "fixed_used": 0,
+            "residual": 100,
+            "source_revision": "sim-v1"
+          },
+          "receiving": [
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            }
+          ],
+          "storage": [
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            },
+            {
+              "original": 100,
+              "fixed_used": 0,
+              "residual": 100,
+              "source_revision": "sim-v1"
+            }
+          ]
+        }
+      ],
+      "global_handling": {
+        "original": 18,
+        "fixed_used": 0,
+        "residual": 18,
+        "source_revision": "sim-v1"
+      },
+      "cost_budget_minor": null
+    },
+    "reserves": [
+      {
+        "site_id": "00000000-0000-0000-0000-00000000000a",
+        "product_id": "00000000-0000-0000-0000-000000000064",
+        "floors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "site_id": "00000000-0000-0000-0000-00000000000a",
+        "product_id": "00000000-0000-0000-0000-000000000065",
+        "floors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "site_id": "00000000-0000-0000-0000-00000000000b",
+        "product_id": "00000000-0000-0000-0000-000000000064",
+        "floors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "site_id": "00000000-0000-0000-0000-00000000000b",
+        "product_id": "00000000-0000-0000-0000-000000000065",
+        "floors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "site_id": "00000000-0000-0000-0000-00000000000c",
+        "product_id": "00000000-0000-0000-0000-000000000064",
+        "floors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "site_id": "00000000-0000-0000-0000-00000000000c",
+        "product_id": "00000000-0000-0000-0000-000000000065",
+        "floors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "site_id": "00000000-0000-0000-0000-00000000000d",
+        "product_id": "00000000-0000-0000-0000-000000000064",
+        "floors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "site_id": "00000000-0000-0000-0000-00000000000d",
+        "product_id": "00000000-0000-0000-0000-000000000065",
+        "floors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "site_id": "00000000-0000-0000-0000-00000000000e",
+        "product_id": "00000000-0000-0000-0000-000000000064",
+        "floors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "site_id": "00000000-0000-0000-0000-00000000000e",
+        "product_id": "00000000-0000-0000-0000-000000000065",
+        "floors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "site_id": "00000000-0000-0000-0000-00000000000f",
+        "product_id": "00000000-0000-0000-0000-000000000064",
+        "floors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "site_id": "00000000-0000-0000-0000-00000000000f",
+        "product_id": "00000000-0000-0000-0000-000000000065",
+        "floors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "site_id": "00000000-0000-0000-0000-000000000010",
+        "product_id": "00000000-0000-0000-0000-000000000064",
+        "floors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "site_id": "00000000-0000-0000-0000-000000000010",
+        "product_id": "00000000-0000-0000-0000-000000000065",
+        "floors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "vulnerability_attributes": [
+      {
+        "site_id": "00000000-0000-0000-0000-00000000000b",
+        "scores": [
+          {
+            "attribute_id": "need",
+            "score_bp": 10000,
+            "raw_note": "Fictional institutional score",
+            "transformation": "Explicit simulated grid",
+            "transformation_version": "sim-v1",
+            "classification": "SIMULATED"
+          },
+          {
+            "attribute_id": "access",
+            "score_bp": 10000,
+            "raw_note": "Fictional institutional score",
+            "transformation": "Explicit simulated grid",
+            "transformation_version": "sim-v1",
+            "classification": "SIMULATED"
+          }
+        ]
+      },
+      {
+        "site_id": "00000000-0000-0000-0000-00000000000c",
+        "scores": [
+          {
+            "attribute_id": "need",
+            "score_bp": 8000,
+            "raw_note": "Fictional institutional score",
+            "transformation": "Explicit simulated grid",
+            "transformation_version": "sim-v1",
+            "classification": "SIMULATED"
+          },
+          {
+            "attribute_id": "access",
+            "score_bp": 8000,
+            "raw_note": "Fictional institutional score",
+            "transformation": "Explicit simulated grid",
+            "transformation_version": "sim-v1",
+            "classification": "SIMULATED"
+          }
+        ]
+      },
+      {
+        "site_id": "00000000-0000-0000-0000-00000000000d",
+        "scores": [
+          {
+            "attribute_id": "need",
+            "score_bp": 6000,
+            "raw_note": "Fictional institutional score",
+            "transformation": "Explicit simulated grid",
+            "transformation_version": "sim-v1",
+            "classification": "SIMULATED"
+          },
+          {
+            "attribute_id": "access",
+            "score_bp": 6000,
+            "raw_note": "Fictional institutional score",
+            "transformation": "Explicit simulated grid",
+            "transformation_version": "sim-v1",
+            "classification": "SIMULATED"
+          }
+        ]
+      },
+      {
+        "site_id": "00000000-0000-0000-0000-00000000000e",
+        "scores": [
+          {
+            "attribute_id": "need",
+            "score_bp": 4000,
+            "raw_note": "Fictional institutional score",
+            "transformation": "Explicit simulated grid",
+            "transformation_version": "sim-v1",
+            "classification": "SIMULATED"
+          },
+          {
+            "attribute_id": "access",
+            "score_bp": 4000,
+            "raw_note": "Fictional institutional score",
+            "transformation": "Explicit simulated grid",
+            "transformation_version": "sim-v1",
+            "classification": "SIMULATED"
+          }
+        ]
+      },
+      {
+        "site_id": "00000000-0000-0000-0000-00000000000f",
+        "scores": [
+          {
+            "attribute_id": "need",
+            "score_bp": 2000,
+            "raw_note": "Fictional institutional score",
+            "transformation": "Explicit simulated grid",
+            "transformation_version": "sim-v1",
+            "classification": "SIMULATED"
+          },
+          {
+            "attribute_id": "access",
+            "score_bp": 2000,
+            "raw_note": "Fictional institutional score",
+            "transformation": "Explicit simulated grid",
+            "transformation_version": "sim-v1",
+            "classification": "SIMULATED"
+          }
+        ]
+      },
+      {
+        "site_id": "00000000-0000-0000-0000-000000000010",
+        "scores": [
+          {
+            "attribute_id": "need",
+            "score_bp": 0,
+            "raw_note": "Fictional institutional score",
+            "transformation": "Explicit simulated grid",
+            "transformation_version": "sim-v1",
+            "classification": "SIMULATED"
+          },
+          {
+            "attribute_id": "access",
+            "score_bp": 0,
+            "raw_note": "Fictional institutional score",
+            "transformation": "Explicit simulated grid",
+            "transformation_version": "sim-v1",
+            "classification": "SIMULATED"
+          }
+        ]
+      }
+    ],
+    "source_coverage": {
+      "required_complete": true,
+      "excluded_series": [],
+      "partial_scope": false,
+      "forecast_handoff_hash": null
+    },
+    "source_manifest_hash": "1e758ae3623b3c49eab90a8563ea558d3555c96db43be761bf1b9cf1bd7ff416",
+    "provenance_warnings": [
+      "SIMULATED; no observed fairness or physical movement claim"
+    ],
+    "decision_ids": [
+      "OR-DEC-001",
+      "OR-DEC-002",
+      "OR-DEC-003",
+      "OR-DEC-004",
+      "OR-DEC-005",
+      "OR-DEC-006",
+      "OR-DEC-007",
+      "OR-DEC-008",
+      "OR-DEC-009",
+      "OR-DEC-010",
+      "OR-DEC-011",
+      "OR-DEC-012",
+      "OR-DEC-013",
+      "OR-DEC-014",
+      "OR-DEC-015",
+      "OR-DEC-016",
+      "OR-DEC-017",
+      "OR-DEC-018",
+      "OR-DEC-019",
+      "OR-DEC-020"
+    ]
+  },
+  "policy": {
+    "schema_version": "or-policy-v1",
+    "version": "or-draft-1.1",
+    "purpose": "PRIMARY",
+    "lambda_percent": 100,
+    "beta_percent": 50,
+    "coefficients": [
+      {
+        "attribute_id": "need",
+        "percent": 50
+      },
+      {
+        "attribute_id": "access",
+        "percent": 50
+      }
+    ],
+    "ap_threshold": 7500,
+    "rp_threshold": 2500,
+    "ap_cap_bp": 2500,
+    "rp_cap_bp": 2500,
+    "gamma_ap_percent": 100,
+    "gamma_rp_percent": 100,
+    "epsilon_cost_bp": 100,
+    "epsilon_waste_bp": 100,
+    "decision_ids": [
+      "OR-DEC-001",
+      "OR-DEC-002",
+      "OR-DEC-003",
+      "OR-DEC-004",
+      "OR-DEC-005",
+      "OR-DEC-006",
+      "OR-DEC-007",
+      "OR-DEC-008",
+      "OR-DEC-009",
+      "OR-DEC-010",
+      "OR-DEC-011",
+      "OR-DEC-012",
+      "OR-DEC-013",
+      "OR-DEC-014",
+      "OR-DEC-015",
+      "OR-DEC-016",
+      "OR-DEC-017",
+      "OR-DEC-018",
+      "OR-DEC-019",
+      "OR-DEC-020"
+    ]
+  },
+  "transfer_mode": "HUB_AND_PANTRY",
+  "planning_days": 3,
+  "intent": "CURRENT",
+  "modifiers": [
+    {
+      "site_id": "00000000-0000-0000-0000-00000000000a",
+      "product_id": "00000000-0000-0000-0000-000000000064",
+      "mode": "CENTRAL",
+      "multiplier": "1",
+      "buffer_fraction": null
+    },
+    {
+      "site_id": "00000000-0000-0000-0000-00000000000a",
+      "product_id": "00000000-0000-0000-0000-000000000065",
+      "mode": "CENTRAL",
+      "multiplier": "1",
+      "buffer_fraction": null
+    },
+    {
+      "site_id": "00000000-0000-0000-0000-00000000000b",
+      "product_id": "00000000-0000-0000-0000-000000000064",
+      "mode": "CENTRAL",
+      "multiplier": "1",
+      "buffer_fraction": null
+    },
+    {
+      "site_id": "00000000-0000-0000-0000-00000000000b",
+      "product_id": "00000000-0000-0000-0000-000000000065",
+      "mode": "CENTRAL",
+      "multiplier": "1",
+      "buffer_fraction": null
+    },
+    {
+      "site_id": "00000000-0000-0000-0000-00000000000c",
+      "product_id": "00000000-0000-0000-0000-000000000064",
+      "mode": "CENTRAL",
+      "multiplier": "1",
+      "buffer_fraction": null
+    },
+    {
+      "site_id": "00000000-0000-0000-0000-00000000000c",
+      "product_id": "00000000-0000-0000-0000-000000000065",
+      "mode": "CENTRAL",
+      "multiplier": "1",
+      "buffer_fraction": null
+    },
+    {
+      "site_id": "00000000-0000-0000-0000-00000000000d",
+      "product_id": "00000000-0000-0000-0000-000000000064",
+      "mode": "CENTRAL",
+      "multiplier": "1",
+      "buffer_fraction": null
+    },
+    {
+      "site_id": "00000000-0000-0000-0000-00000000000d",
+      "product_id": "00000000-0000-0000-0000-000000000065",
+      "mode": "CENTRAL",
+      "multiplier": "1",
+      "buffer_fraction": null
+    },
+    {
+      "site_id": "00000000-0000-0000-0000-00000000000e",
+      "product_id": "00000000-0000-0000-0000-000000000064",
+      "mode": "CENTRAL",
+      "multiplier": "1",
+      "buffer_fraction": null
+    },
+    {
+      "site_id": "00000000-0000-0000-0000-00000000000e",
+      "product_id": "00000000-0000-0000-0000-000000000065",
+      "mode": "CENTRAL",
+      "multiplier": "1",
+      "buffer_fraction": null
+    },
+    {
+      "site_id": "00000000-0000-0000-0000-00000000000f",
+      "product_id": "00000000-0000-0000-0000-000000000064",
+      "mode": "CENTRAL",
+      "multiplier": "1",
+      "buffer_fraction": null
+    },
+    {
+      "site_id": "00000000-0000-0000-0000-00000000000f",
+      "product_id": "00000000-0000-0000-0000-000000000065",
+      "mode": "CENTRAL",
+      "multiplier": "1",
+      "buffer_fraction": null
+    },
+    {
+      "site_id": "00000000-0000-0000-0000-000000000010",
+      "product_id": "00000000-0000-0000-0000-000000000064",
+      "mode": "CENTRAL",
+      "multiplier": "1",
+      "buffer_fraction": null
+    },
+    {
+      "site_id": "00000000-0000-0000-0000-000000000010",
+      "product_id": "00000000-0000-0000-0000-000000000065",
+      "mode": "CENTRAL",
+      "multiplier": "1",
+      "buffer_fraction": null
+    }
+  ],
+  "demand": [
+    {
+      "site_id": "00000000-0000-0000-0000-00000000000a",
+      "product_id": "00000000-0000-0000-0000-000000000064",
+      "unit": "MEAL",
+      "days": [
+        {
+          "day": "2026-10-25",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-26",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-27",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-28",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-29",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-30",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-31",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        }
+      ],
+      "forecast_result_id": "00000000-0000-0000-0000-0000000003e8",
+      "actual_provider": "SIMULATED_EXACT_FIXTURE",
+      "basis": "REQUESTED",
+      "numeric_conversion": "EXACT_LITERAL",
+      "upstream_metadata_json": null
+    },
+    {
+      "site_id": "00000000-0000-0000-0000-00000000000a",
+      "product_id": "00000000-0000-0000-0000-000000000065",
+      "unit": "BOTTLE",
+      "days": [
+        {
+          "day": "2026-10-25",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-26",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-27",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-28",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-29",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-30",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-31",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        }
+      ],
+      "forecast_result_id": "00000000-0000-0000-0000-0000000003e9",
+      "actual_provider": "SIMULATED_EXACT_FIXTURE",
+      "basis": "REQUESTED",
+      "numeric_conversion": "EXACT_LITERAL",
+      "upstream_metadata_json": null
+    },
+    {
+      "site_id": "00000000-0000-0000-0000-00000000000b",
+      "product_id": "00000000-0000-0000-0000-000000000064",
+      "unit": "MEAL",
+      "days": [
+        {
+          "day": "2026-10-25",
+          "source_literal": "2",
+          "unrounded_literal": "2",
+          "units": 2,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-26",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-27",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-28",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-29",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-30",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-31",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        }
+      ],
+      "forecast_result_id": "00000000-0000-0000-0000-0000000003f2",
+      "actual_provider": "SIMULATED_EXACT_FIXTURE",
+      "basis": "REQUESTED",
+      "numeric_conversion": "EXACT_LITERAL",
+      "upstream_metadata_json": null
+    },
+    {
+      "site_id": "00000000-0000-0000-0000-00000000000b",
+      "product_id": "00000000-0000-0000-0000-000000000065",
+      "unit": "BOTTLE",
+      "days": [
+        {
+          "day": "2026-10-25",
+          "source_literal": "2",
+          "unrounded_literal": "2",
+          "units": 2,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-26",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-27",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-28",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-29",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-30",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-31",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        }
+      ],
+      "forecast_result_id": "00000000-0000-0000-0000-0000000003f3",
+      "actual_provider": "SIMULATED_EXACT_FIXTURE",
+      "basis": "REQUESTED",
+      "numeric_conversion": "EXACT_LITERAL",
+      "upstream_metadata_json": null
+    },
+    {
+      "site_id": "00000000-0000-0000-0000-00000000000c",
+      "product_id": "00000000-0000-0000-0000-000000000064",
+      "unit": "MEAL",
+      "days": [
+        {
+          "day": "2026-10-25",
+          "source_literal": "2",
+          "unrounded_literal": "2",
+          "units": 2,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-26",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-27",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-28",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-29",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-30",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-31",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        }
+      ],
+      "forecast_result_id": "00000000-0000-0000-0000-0000000003fc",
+      "actual_provider": "SIMULATED_EXACT_FIXTURE",
+      "basis": "REQUESTED",
+      "numeric_conversion": "EXACT_LITERAL",
+      "upstream_metadata_json": null
+    },
+    {
+      "site_id": "00000000-0000-0000-0000-00000000000c",
+      "product_id": "00000000-0000-0000-0000-000000000065",
+      "unit": "BOTTLE",
+      "days": [
+        {
+          "day": "2026-10-25",
+          "source_literal": "2",
+          "unrounded_literal": "2",
+          "units": 2,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-26",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-27",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-28",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-29",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-30",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-31",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        }
+      ],
+      "forecast_result_id": "00000000-0000-0000-0000-0000000003fd",
+      "actual_provider": "SIMULATED_EXACT_FIXTURE",
+      "basis": "REQUESTED",
+      "numeric_conversion": "EXACT_LITERAL",
+      "upstream_metadata_json": null
+    },
+    {
+      "site_id": "00000000-0000-0000-0000-00000000000d",
+      "product_id": "00000000-0000-0000-0000-000000000064",
+      "unit": "MEAL",
+      "days": [
+        {
+          "day": "2026-10-25",
+          "source_literal": "2",
+          "unrounded_literal": "2",
+          "units": 2,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-26",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-27",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-28",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-29",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-30",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-31",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        }
+      ],
+      "forecast_result_id": "00000000-0000-0000-0000-000000000406",
+      "actual_provider": "SIMULATED_EXACT_FIXTURE",
+      "basis": "REQUESTED",
+      "numeric_conversion": "EXACT_LITERAL",
+      "upstream_metadata_json": null
+    },
+    {
+      "site_id": "00000000-0000-0000-0000-00000000000d",
+      "product_id": "00000000-0000-0000-0000-000000000065",
+      "unit": "BOTTLE",
+      "days": [
+        {
+          "day": "2026-10-25",
+          "source_literal": "2",
+          "unrounded_literal": "2",
+          "units": 2,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-26",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-27",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-28",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-29",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-30",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-31",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        }
+      ],
+      "forecast_result_id": "00000000-0000-0000-0000-000000000407",
+      "actual_provider": "SIMULATED_EXACT_FIXTURE",
+      "basis": "REQUESTED",
+      "numeric_conversion": "EXACT_LITERAL",
+      "upstream_metadata_json": null
+    },
+    {
+      "site_id": "00000000-0000-0000-0000-00000000000e",
+      "product_id": "00000000-0000-0000-0000-000000000064",
+      "unit": "MEAL",
+      "days": [
+        {
+          "day": "2026-10-25",
+          "source_literal": "2",
+          "unrounded_literal": "2",
+          "units": 2,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-26",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-27",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-28",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-29",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-30",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-31",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        }
+      ],
+      "forecast_result_id": "00000000-0000-0000-0000-000000000410",
+      "actual_provider": "SIMULATED_EXACT_FIXTURE",
+      "basis": "REQUESTED",
+      "numeric_conversion": "EXACT_LITERAL",
+      "upstream_metadata_json": null
+    },
+    {
+      "site_id": "00000000-0000-0000-0000-00000000000e",
+      "product_id": "00000000-0000-0000-0000-000000000065",
+      "unit": "BOTTLE",
+      "days": [
+        {
+          "day": "2026-10-25",
+          "source_literal": "2",
+          "unrounded_literal": "2",
+          "units": 2,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-26",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-27",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-28",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-29",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-30",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-31",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        }
+      ],
+      "forecast_result_id": "00000000-0000-0000-0000-000000000411",
+      "actual_provider": "SIMULATED_EXACT_FIXTURE",
+      "basis": "REQUESTED",
+      "numeric_conversion": "EXACT_LITERAL",
+      "upstream_metadata_json": null
+    },
+    {
+      "site_id": "00000000-0000-0000-0000-00000000000f",
+      "product_id": "00000000-0000-0000-0000-000000000064",
+      "unit": "MEAL",
+      "days": [
+        {
+          "day": "2026-10-25",
+          "source_literal": "2",
+          "unrounded_literal": "2",
+          "units": 2,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-26",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-27",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-28",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-29",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-30",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-31",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        }
+      ],
+      "forecast_result_id": "00000000-0000-0000-0000-00000000041a",
+      "actual_provider": "SIMULATED_EXACT_FIXTURE",
+      "basis": "REQUESTED",
+      "numeric_conversion": "EXACT_LITERAL",
+      "upstream_metadata_json": null
+    },
+    {
+      "site_id": "00000000-0000-0000-0000-00000000000f",
+      "product_id": "00000000-0000-0000-0000-000000000065",
+      "unit": "BOTTLE",
+      "days": [
+        {
+          "day": "2026-10-25",
+          "source_literal": "2",
+          "unrounded_literal": "2",
+          "units": 2,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-26",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-27",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-28",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-29",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-30",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-31",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        }
+      ],
+      "forecast_result_id": "00000000-0000-0000-0000-00000000041b",
+      "actual_provider": "SIMULATED_EXACT_FIXTURE",
+      "basis": "REQUESTED",
+      "numeric_conversion": "EXACT_LITERAL",
+      "upstream_metadata_json": null
+    },
+    {
+      "site_id": "00000000-0000-0000-0000-000000000010",
+      "product_id": "00000000-0000-0000-0000-000000000064",
+      "unit": "MEAL",
+      "days": [
+        {
+          "day": "2026-10-25",
+          "source_literal": "2",
+          "unrounded_literal": "2",
+          "units": 2,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-26",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-27",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-28",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-29",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-30",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-31",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        }
+      ],
+      "forecast_result_id": "00000000-0000-0000-0000-000000000424",
+      "actual_provider": "SIMULATED_EXACT_FIXTURE",
+      "basis": "REQUESTED",
+      "numeric_conversion": "EXACT_LITERAL",
+      "upstream_metadata_json": null
+    },
+    {
+      "site_id": "00000000-0000-0000-0000-000000000010",
+      "product_id": "00000000-0000-0000-0000-000000000065",
+      "unit": "BOTTLE",
+      "days": [
+        {
+          "day": "2026-10-25",
+          "source_literal": "2",
+          "unrounded_literal": "2",
+          "units": 2,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-26",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-27",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-28",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-29",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-30",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        },
+        {
+          "day": "2026-10-31",
+          "source_literal": "0",
+          "unrounded_literal": "0",
+          "units": 0,
+          "method": "CENTRAL"
+        }
+      ],
+      "forecast_result_id": "00000000-0000-0000-0000-000000000425",
+      "actual_provider": "SIMULATED_EXACT_FIXTURE",
+      "basis": "REQUESTED",
+      "numeric_conversion": "EXACT_LITERAL",
+      "upstream_metadata_json": null
+    }
+  ],
+  "loading_order": [
+    {
+      "route_id": "00000000-0000-0000-0000-000000000190",
+      "product_id": "00000000-0000-0000-0000-000000000064"
+    },
+    {
+      "route_id": "00000000-0000-0000-0000-000000000191",
+      "product_id": "00000000-0000-0000-0000-000000000064"
+    },
+    {
+      "route_id": "00000000-0000-0000-0000-000000000192",
+      "product_id": "00000000-0000-0000-0000-000000000064"
+    },
+    {
+      "route_id": "00000000-0000-0000-0000-000000000193",
+      "product_id": "00000000-0000-0000-0000-000000000064"
+    },
+    {
+      "route_id": "00000000-0000-0000-0000-000000000194",
+      "product_id": "00000000-0000-0000-0000-000000000064"
+    },
+    {
+      "route_id": "00000000-0000-0000-0000-000000000195",
+      "product_id": "00000000-0000-0000-0000-000000000064"
+    },
+    {
+      "route_id": "00000000-0000-0000-0000-000000000190",
+      "product_id": "00000000-0000-0000-0000-000000000065"
+    },
+    {
+      "route_id": "00000000-0000-0000-0000-000000000191",
+      "product_id": "00000000-0000-0000-0000-000000000065"
+    },
+    {
+      "route_id": "00000000-0000-0000-0000-000000000192",
+      "product_id": "00000000-0000-0000-0000-000000000065"
+    },
+    {
+      "route_id": "00000000-0000-0000-0000-000000000193",
+      "product_id": "00000000-0000-0000-0000-000000000065"
+    },
+    {
+      "route_id": "00000000-0000-0000-0000-000000000194",
+      "product_id": "00000000-0000-0000-0000-000000000065"
+    },
+    {
+      "route_id": "00000000-0000-0000-0000-000000000195",
+      "product_id": "00000000-0000-0000-0000-000000000065"
+    },
+    {
+      "route_id": "00000000-0000-0000-0000-0000000002bc",
+      "product_id": "00000000-0000-0000-0000-000000000064"
+    },
+    {
+      "route_id": "00000000-0000-0000-0000-0000000002bd",
+      "product_id": "00000000-0000-0000-0000-000000000064"
+    },
+    {
+      "route_id": "00000000-0000-0000-0000-0000000002be",
+      "product_id": "00000000-0000-0000-0000-000000000064"
+    },
+    {
+      "route_id": "00000000-0000-0000-0000-0000000002bf",
+      "product_id": "00000000-0000-0000-0000-000000000064"
+    },
+    {
+      "route_id": "00000000-0000-0000-0000-0000000002c0",
+      "product_id": "00000000-0000-0000-0000-000000000064"
+    },
+    {
+      "route_id": "00000000-0000-0000-0000-0000000002bc",
+      "product_id": "00000000-0000-0000-0000-000000000065"
+    },
+    {
+      "route_id": "00000000-0000-0000-0000-0000000002bd",
+      "product_id": "00000000-0000-0000-0000-000000000065"
+    },
+    {
+      "route_id": "00000000-0000-0000-0000-0000000002be",
+      "product_id": "00000000-0000-0000-0000-000000000065"
+    },
+    {
+      "route_id": "00000000-0000-0000-0000-0000000002bf",
+      "product_id": "00000000-0000-0000-0000-000000000065"
+    },
+    {
+      "route_id": "00000000-0000-0000-0000-0000000002c0",
+      "product_id": "00000000-0000-0000-0000-000000000065"
+    }
+  ],
+  "cost_reference": 14,
+  "waste_references": [
+    {
+      "product_id": "00000000-0000-0000-0000-000000000064",
+      "units": 8
+    },
+    {
+      "product_id": "00000000-0000-0000-0000-000000000065",
+      "units": 6
+    }
+  ],
+  "decision_ids": [
+    "OR-DEC-001",
+    "OR-DEC-002",
+    "OR-DEC-003",
+    "OR-DEC-004",
+    "OR-DEC-005",
+    "OR-DEC-006",
+    "OR-DEC-007",
+    "OR-DEC-008",
+    "OR-DEC-009",
+    "OR-DEC-010",
+    "OR-DEC-011",
+    "OR-DEC-012",
+    "OR-DEC-013",
+    "OR-DEC-014",
+    "OR-DEC-015",
+    "OR-DEC-016",
+    "OR-DEC-017",
+    "OR-DEC-018",
+    "OR-DEC-019",
+    "OR-DEC-020"
+  ],
+  "policy_hash": "e1a5a175fa17d7a7ae81815538e8a6e06048040638458d0a66f00a20d1f414eb",
+  "operational_hash": "0d3aa29e1ad083ec11d09ad7c7b553833044f368257de31e1e2e4fad71d9dbca"
+}
