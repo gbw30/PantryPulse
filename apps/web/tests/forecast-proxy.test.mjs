@@ -1,3 +1,4 @@
+import { NextRequest } from "next/server.js";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { GET, POST } from "../src/app/api/v1/[...path]/route.ts";
@@ -118,4 +119,36 @@ test("CSV import proxy preserves multipart boundary and rejects JSON uploads", a
     Origin: "http://localhost:3000", "Content-Type": "application/json",
   } }))).status, 422);
   assert.equal(fetchMock.mock.calls.length, 1);
+});
+
+test("real NextRequest preserves browser origin despite loopback URL normalization", async (t) => {
+  process.env.PANTRYPULSE_API_ORIGIN = "http://127.0.0.1:8000";
+  process.env.PP_TRUSTED_PROXY_TOKEN = "test-proxy-secret";
+  t.after(() => {
+    delete process.env.PANTRYPULSE_API_ORIGIN;
+    delete process.env.PP_TRUSTED_PROXY_TOKEN;
+  });
+  const fetchMock = t.mock.method(globalThis, "fetch", async (_url, options) => {
+    assert.ok(["http://127.0.0.1:3000", "https://demo.example"].includes(
+      options.headers.get("x-forwarded-origin"),
+    ));
+    return Response.json({ ok: true });
+  });
+  const request = (origin, forwardedHost) => new NextRequest(
+    "http://127.0.0.1:3000/api/v1/presenter/login", {
+      method: "POST", body: "{}", headers: {
+        Host: "127.0.0.1:3000", Origin: origin,
+        "X-Forwarded-Host": forwardedHost ?? "ignored.example",
+      },
+    });
+  const legitimate = request("http://127.0.0.1:3000");
+  assert.equal(new URL(legitimate.url).hostname, "localhost");
+  assert.equal((await POST(legitimate)).status, 200);
+  assert.equal((await POST(request("http://localhost:3000"))).status, 403);
+  assert.equal((await POST(request("https://evil.example", "evil.example"))).status, 403);
+  const external = new NextRequest("https://localhost:3000/api/v1/presenter/login", {
+    method: "POST", body: "{}", headers: { Host: "demo.example", Origin: "https://demo.example" },
+  });
+  assert.equal((await POST(external)).status, 200);
+  assert.equal(fetchMock.mock.calls.length, 2);
 });

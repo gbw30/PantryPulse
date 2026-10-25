@@ -805,20 +805,22 @@
             "title": "Code",
             "type": "string"
           },
+          "details": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Details",
+            "type": "object"
+          },
           "message": {
             "title": "Message",
-            "type": "string"
-          },
-          "request_id": {
-            "format": "uuid",
-            "title": "Request Id",
             "type": "string"
           }
         },
         "required": [
           "code",
           "message",
-          "request_id"
+          "details"
         ],
         "title": "ErrorDetail",
         "type": "object"
@@ -828,10 +830,16 @@
         "properties": {
           "error": {
             "$ref": "#/components/schemas/ErrorDetail"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
           }
         },
         "required": [
-          "error"
+          "error",
+          "request_id"
         ],
         "title": "ErrorEnvelope",
         "type": "object"
@@ -3944,6 +3952,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
           "401": {
             "content": {
               "application/json": {
@@ -4013,6 +4031,16 @@
               }
             },
             "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           },
           "503": {
             "content": {
@@ -4068,6 +4096,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
           "401": {
             "content": {
               "application/json": {
@@ -4137,6 +4175,16 @@
               }
             },
             "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           },
           "503": {
             "content": {
@@ -4181,6 +4229,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
           "401": {
             "content": {
               "application/json": {
@@ -4250,6 +4308,16 @@
               }
             },
             "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           },
           "503": {
             "content": {
@@ -5069,6 +5137,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
           "401": {
             "content": {
               "application/json": {
@@ -5138,6 +5216,16 @@
               }
             },
             "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           },
           "503": {
             "content": {
@@ -5193,6 +5281,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
           "401": {
             "content": {
               "application/json": {
@@ -5262,6 +5360,16 @@
               }
             },
             "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           },
           "503": {
             "content": {
@@ -5317,6 +5425,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
           "401": {
             "content": {
               "application/json": {
@@ -5386,6 +5504,16 @@
               }
             },
             "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           },
           "503": {
             "content": {
@@ -6334,6 +6462,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
           "401": {
             "content": {
               "application/json": {
@@ -6403,6 +6541,16 @@
               }
             },
             "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           },
           "503": {
             "content": {
@@ -6435,6 +6583,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
           "401": {
             "content": {
               "application/json": {
@@ -6504,6 +6662,16 @@
               }
             },
             "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           },
           "503": {
             "content": {

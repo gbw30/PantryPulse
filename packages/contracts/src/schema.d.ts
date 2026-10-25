@@ -1026,17 +1026,21 @@ export interface components {
         ErrorDetail: {
             /** Code */
             code: string;
+            /** Details */
+            details: {
+                [key: string]: string;
+            };
             /** Message */
             message: string;
+        };
+        /** ErrorEnvelope */
+        ErrorEnvelope: {
+            error: components["schemas"]["ErrorDetail"];
             /**
              * Request Id
              * Format: uuid
              */
             request_id: string;
-        };
-        /** ErrorEnvelope */
-        ErrorEnvelope: {
-            error: components["schemas"]["ErrorDetail"];
         };
         /** ExpiryDeclaration */
         ExpiryDeclaration: {
@@ -2568,6 +2572,15 @@ export interface operations {
                     "application/json": components["schemas"]["ForecastCatalog"];
                 };
             };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Unauthorized */
             401: {
                 headers: {
@@ -2624,6 +2637,15 @@ export interface operations {
             };
             /** @description Too Many Requests */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2666,6 +2688,15 @@ export interface operations {
                     "application/json": components["schemas"]["ForecastAccepted"];
                 };
             };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Unauthorized */
             401: {
                 headers: {
@@ -2722,6 +2753,15 @@ export interface operations {
             };
             /** @description Too Many Requests */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2760,6 +2800,15 @@ export interface operations {
                     "application/json": components["schemas"]["ForecastResult"];
                 };
             };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Unauthorized */
             401: {
                 headers: {
@@ -2816,6 +2865,15 @@ export interface operations {
             };
             /** @description Too Many Requests */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3397,6 +3455,15 @@ export interface operations {
                     "application/json": components["schemas"]["ForecastJob"];
                 };
             };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Unauthorized */
             401: {
                 headers: {
@@ -3453,6 +3520,15 @@ export interface operations {
             };
             /** @description Too Many Requests */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3493,6 +3569,15 @@ export interface operations {
                     "application/json": components["schemas"]["ForecastCancelled"];
                 };
             };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Unauthorized */
             401: {
                 headers: {
@@ -3549,6 +3634,15 @@ export interface operations {
             };
             /** @description Too Many Requests */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3589,6 +3683,15 @@ export interface operations {
                     "application/json": components["schemas"]["ForecastAccepted"];
                 };
             };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Unauthorized */
             401: {
                 headers: {
@@ -3645,6 +3748,15 @@ export interface operations {
             };
             /** @description Too Many Requests */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4385,6 +4497,15 @@ export interface operations {
                     "application/json": components["schemas"]["LoginResponse"];
                 };
             };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Unauthorized */
             401: {
                 headers: {
@@ -4441,6 +4562,15 @@ export interface operations {
             };
             /** @description Too Many Requests */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4477,6 +4607,15 @@ export interface operations {
                     "application/json": components["schemas"]["LogoutResponse"];
                 };
             };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /** @description Unauthorized */
             401: {
                 headers: {
@@ -4533,6 +4672,15 @@ export interface operations {
             };
             /** @description Too Many Requests */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -3,7 +3,7 @@
 The local backend includes authentication, persisted forecast jobs, inventory,
 audited stock adjustments, receipt history/posting/reconciliation, lot declarations,
 supplies, history imports, dashboard/shortages, and saved allocation workflows.
-Supplier procurement remains paused. This work is local and has not been pushed.
+Supplier procurement remains paused. Commit and publication history is tracked on VP.
 
 ## Start and explore
 

@@ -29,7 +29,8 @@ from app.services.presenter_access import AccessError, authenticate, login, logo
 router = APIRouter(
     prefix="/api/v1",
     responses={
-        status: {"model": ErrorEnvelope} for status in (401, 403, 404, 409, 413, 422, 429, 503)
+        status: {"model": ErrorEnvelope}
+        for status in (400, 401, 403, 404, 409, 413, 422, 429, 500, 503)
     },
 )
 

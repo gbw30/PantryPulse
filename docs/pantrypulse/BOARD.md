@@ -45,7 +45,7 @@ Update after each integration. [Project specification V5](SPEC-V5.md) records th
 
 | [PP-47](tasks/PP-47.md) | Audited existing-lot adjustment HTTP API | VaishnaviPhadtare / lead | Stock service + PP-46 + presenter access | 848 non-integration tests passed (11 Linux skips); 14 PostgreSQL/HTTP tests (9 adjustment + 5 snapshot); 3 proxy tests; Ruff, web types/lint and contract drift passed | Implemented locally on VP; receipt creation/posting API, UI binding and independent release review remain open |
 
-| [PP-49](tasks/PP-49.md) | Remaining operational and planning APIs | VaishnaviPhadtare / lead | PP-45–48 | 856 backend checks, native solving, isolated PostgreSQL checks, 21 migration checks, two final planning checks and real HTTP read smoke; see task packet | Implemented locally on VP, uncommitted/unpushed; supervised Linux worker, UI binding and independent release acceptance remain open |
+| [PP-49](tasks/PP-49.md) | Remaining operational and planning APIs | VaishnaviPhadtare / lead | PP-45–48 | 856 backend checks, native solving, isolated PostgreSQL checks, 21 migration checks, two final planning checks and real HTTP read smoke; see task packet | Implemented on VP; supervised Linux worker, UI binding and independent release acceptance remain open |
 
 PP-49 supersedes earlier remaining-work notes about receipt APIs and OR convergence
 in PP-45/47/48; their original evidence remains historical.
