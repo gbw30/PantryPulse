@@ -73,7 +73,18 @@ function LoadingBlock() {
   );
 }
 
+/** AppShell provides the presenter session, so everything that reads it lives in this child. */
 export function RecommendationsScreen() {
+  return (
+    <MotionConfig reducedMotion="user">
+      <AppShell active="recommendations">
+        <ScreenBody />
+      </AppShell>
+    </MotionConfig>
+  );
+}
+
+function ScreenBody() {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -140,7 +151,6 @@ export function RecommendationsScreen() {
     if (result === "expired") { setSessionExpired(true); expired(); }
   }, [plan, expired]);
 
-  const horizon = loaded ? `${loaded.scenario.payload.planning_days}-day window` : undefined;
 
   let body: React.ReactNode;
   if (presenterState === "checking") {
@@ -215,7 +225,7 @@ export function RecommendationsScreen() {
         </div>
         <Tabs value={tab} onValueChange={(value) => setParam("tab", value === "action-plan" ? null : value)}>
           <TabsList variant="line" className="max-w-full overflow-x-auto">
-            {TAB_KEYS.map((key) => <TabsTrigger key={key} value={key} className="flex-none px-3">{TAB_LABEL[key]}</TabsTrigger>)}
+            {TAB_KEYS.map((key) => <TabsTrigger key={key} value={key} className="flex-none px-3 text-muted-foreground data-[state=active]:text-foreground">{TAB_LABEL[key]}</TabsTrigger>)}
           </TabsList>
           <TabsContent value="action-plan" className="pt-3">
             {usable ? (
@@ -250,9 +260,7 @@ export function RecommendationsScreen() {
   }
 
   return (
-    <MotionConfig reducedMotion="user">
-      <AppShell active="recommendations" horizonLabel={horizon}>
-        <div className="flex flex-1 flex-col gap-4 px-4 pt-3 pb-6 md:px-6 md:py-5">
+    <div className="flex flex-1 flex-col gap-4 px-4 pt-3 pb-6 md:px-6 md:py-5">
           <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="min-w-0">
               <p className="font-condensed text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Corrective-action review</p>
@@ -273,9 +281,7 @@ export function RecommendationsScreen() {
               </div>
             )}
           </header>
-          {body}
-        </div>
-      </AppShell>
-    </MotionConfig>
+      {body}
+    </div>
   );
 }

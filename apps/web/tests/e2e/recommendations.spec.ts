@@ -239,10 +239,10 @@ test("URL selects the comparison and tab; a late response for the previous compa
   await select.click();
   await page.getByRole("option", { name: /PARTIAL/ }).click();
   await expect(page).toHaveURL(new RegExp(`comparison=${COMPARISON_B}`));
-  await expect(page.getByText(/2-day planning window/).first()).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/2 days from/).first()).toBeVisible({ timeout: 15_000 });
   await page.waitForTimeout(1800);
-  await expect(page.getByText(/2-day planning window/).first()).toBeVisible();
-  await expect(page.getByText(/3-day planning window/)).toHaveCount(0);
+  await expect(page.getByText(/2 days from/).first()).toBeVisible();
+  await expect(page.getByText(/3 days from/)).toHaveCount(0);
 });
 
 test("presenter review POSTs once with the plan hash and shows Reviewed — simulation", async ({ page }, testInfo) => {

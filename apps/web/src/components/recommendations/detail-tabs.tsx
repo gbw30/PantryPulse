@@ -160,8 +160,8 @@ export function ImpactFairness({ loaded, method }: { loaded: Loaded; method: Met
         description="Every beneficiary × product goal from the saved plan. Decimals are rounded to four places; hover a value for the exact fraction.">
         <p className="text-xs text-muted-foreground">AP and RP are the absolute- and relative-poverty threshold flags of the goal model. The vulnerability attributes are SIMULATED and describe fictional institutions, not people. In this simulated scenario they show how the plan treats each goal; they do not establish that one method is better.</p>
         <div role="region" aria-label="Per-goal outcome table" tabIndex={0} className="overflow-x-auto rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <div className="min-w-[860px]">
-            <Table>
+          <div className="w-max min-w-full">
+            <Table className="min-w-[860px]">
               <TableCaption className="sr-only">Per-goal outcome for the {METHOD_LABEL[method.method]} plan; quantities in each product&apos;s unit</TableCaption>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
