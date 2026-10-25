@@ -1,3 +1,5 @@
+> OR ownership correction (October 24, 2026, explicit user direction): the OR assignment owns only the research-centered computation and necessary Python schemas. Next.js is frontend only; no Next API routes/proxies. Frontend, FastAPI routes/auth, data persistence and shared runtime belong to their developers. [Current scope and reversible handoff](../optimization/SCOPE-CORRECTION.md) supersede earlier broad OR task assignments; historical project requirements below do not transfer their ownership.
+
 # PantryPulse — Project Specification V5
 
 **Version:** 5.0 · **Consolidated:** October 24, 2026, America/New_York  

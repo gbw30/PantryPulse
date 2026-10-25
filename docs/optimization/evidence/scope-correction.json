@@ -1,0 +1,36 @@
+{
+  "scope": "OR_ONLY",
+  "completion_date_local": "2026-10-25",
+  "base_before_or": "f3946c726e53fa546be1400d80ab717fcb2c3468",
+  "head": "46ff0cd8aaf299b1874e7400e42bdc9f6b23d978",
+  "state": "UNCOMMITTED_CORRECTIVE_WORKTREE",
+  "core_source_and_test_sha256": "3159498386865f2adacf1234f7d7ef30848e3378bc5cb7d8100c451cfc954c09",
+  "external_paths_checked": 81,
+  "external_paths_restored_or_removed": 79,
+  "next_api_route_source_files": [],
+  "checks": {
+    "npm_run_check": "PASS",
+    "all_retained_python_tests": 594,
+    "or_tests_included": 106,
+    "ruff": "PASS",
+    "typescript_and_web_lint": "PASS",
+    "configuration_tests": 17,
+    "baseline_frontend_build": "PASS",
+    "core_decision_mappings": 18,
+    "external_or_withdrawn_decisions": 2,
+    "baseline_relative_diff_check": "PASS for owned changes; restored worker reference retains its original Markdown hard-break whitespace",
+    "handoff_patch_exact_reconstruction_files": 81
+  },
+  "handoff_artifacts": {
+    "integration.patch": "8f868c6254fb473341d2bb6d20c31288bfc8beab7b32807193a0533511b65465",
+    "source-snapshot.tar.gz": "be461e6b1ef8c068537dec5ad30a6e0c650fc328f25bec47184faeb6c44ff72c"
+  },
+  "limitations": [
+    "Current HTTP/database/browser/shared-worker/hosted-CI acceptance is not claimed.",
+    "Restored shared full-gate template has pre-existing placeholder commands and was not reported passing.",
+    "Offline limits are affinity and per-process address space, not global worker aggregate-memory/quota guarantees."
+  ],
+  "ownership_reaudit": "docs/optimization/evidence/ownership-audit.json",
+  "imported_reference_documents_preserved": 2,
+  "all_external_paths_reconciled": 81
+}

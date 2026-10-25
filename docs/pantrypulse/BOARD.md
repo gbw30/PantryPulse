@@ -1,3 +1,5 @@
+> OR ownership correction (October 24, 2026, explicit user direction): the OR assignment owns only the research-centered computation and necessary Python schemas. Next.js is frontend only; no Next API routes/proxies. Frontend, FastAPI routes/auth, data persistence and shared runtime belong to their developers. [Current scope and reversible handoff](../optimization/SCOPE-CORRECTION.md) supersede earlier broad OR task assignments; historical project requirements below do not transfer their ownership.
+
 # PantryPulse delivery board
 
 Update after each integration. [Project specification V5](SPEC-V5.md) records the current implementation/branch state and acceptance. PP-01–23 retain the historical planning board and require reconciliation; PP-24–29 were merged through PR #7. PR #51 integrated the offline forecasting core and design lab; live domain API/database acceptance remains open. PP-31–36 (worker/job queue foundation, [ADR 0005](../architecture/0005-worker-job-queue.md)) are delivered by PR #52; they use test handlers only. No completed application is claimed.

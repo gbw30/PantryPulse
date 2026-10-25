@@ -1,0 +1,65 @@
+{
+  "provenance": "REAL_HTTP_POSTGRESQL_OR_TOOLS_SIMULATED_INPUTS",
+  "repetitions": [
+    {
+      "cycle": 1,
+      "mode": "HUB_ONLY",
+      "multiplier": "1",
+      "scenario_hash": "bf580a7930712de5095135f5aaf7cfe19290eead1830fd3bfa5e6f44834ce337",
+      "job_id": "8232c00c-7b63-4586-9eda-42b53a0e7ea2",
+      "duration_ms": 4737
+    },
+    {
+      "cycle": 2,
+      "mode": "HUB_AND_PANTRY",
+      "multiplier": "1.5",
+      "scenario_hash": "e56b02919b7e88d889ad4841d16bba28e91df91f9c7856687e8c45aac378b25a",
+      "job_id": "b935bcfd-5da4-4ca9-a0c9-c4b409bf0281",
+      "duration_ms": 4822
+    },
+    {
+      "cycle": 3,
+      "mode": "HUB_ONLY",
+      "multiplier": "1",
+      "scenario_hash": "bf580a7930712de5095135f5aaf7cfe19290eead1830fd3bfa5e6f44834ce337",
+      "job_id": "0ea72c4b-0d90-43ea-93d5-6ffe7449fcc6",
+      "duration_ms": 4837
+    },
+    {
+      "cycle": 4,
+      "mode": "HUB_AND_PANTRY",
+      "multiplier": "1",
+      "scenario_hash": "8177dab5f689b3534b3fef17bcf06ebfe5c065b5aa729ef2797d868d2593d386",
+      "job_id": "06655c3d-0619-4787-a815-1d4112ee23e6",
+      "duration_ms": 4739
+    },
+    {
+      "cycle": 5,
+      "mode": "HUB_ONLY",
+      "multiplier": "1",
+      "scenario_hash": "bf580a7930712de5095135f5aaf7cfe19290eead1830fd3bfa5e6f44834ce337",
+      "job_id": "064d164c-0064-4b91-9c7a-a149ab375400",
+      "duration_ms": 4802
+    }
+  ],
+  "page_errors": [],
+  "base_commit": "e49e360d23e46b43542b0a2e9b5f6277d5f840d5",
+  "source_state": "WORKING_TREE_AFTER_REVIEW",
+  "fixture_revision": "sim-v2-stock-asof",
+  "browser": "Chromium / Playwright",
+  "viewports": [
+    "1440x900",
+    "1280x720",
+    "390x844"
+  ],
+  "checks": [
+    "Presenter login, CSRF and origin rejection",
+    "Real paired solves, both transfer modes, new immutable demand disruption",
+    "Append-only review and isolated reset",
+    "Unauthenticated saved reads and pagination cursor",
+    "Keyboard methodology controls, reduced motion, keyboard-scrollable sticky beneficiary column"
+  ],
+  "scope_note": "Simulated local HTTP/PostgreSQL/production-supervisor journey. Does not qualify LIVE sources or human visual sign-off.",
+  "suite_tests_passed": 7,
+  "suite_seconds": 39.0
+}
