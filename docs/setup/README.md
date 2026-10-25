@@ -17,6 +17,7 @@ Supplementary references:
 - [Neon](NEON.md)
 - [Fly.io guide location](FLY.md)
 - [Vercel](VERCEL.md)
+- [Internal worker queue foundation](WORKER-QUEUE.md)
 - [Optional Hugging Face / Chronos-2](HUGGING-FACE.md)
 
 The laptop demo remains the selected full-product presentation path. The current Vercel preview is a public, synthetic UI prototype and does not establish backend, database or release readiness.

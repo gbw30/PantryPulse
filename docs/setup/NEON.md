@@ -152,9 +152,9 @@ It should identify the intended database and complete the trivial CP-SAT smoke c
 
 ## Schema gate
 
-There is currently no Alembic environment or domain revision. Do not run alembic upgrade head or hand-create production tables as though this step were ready.
+PR #52 provides an Alembic environment and `0001_jobs_foundation`, which creates only the internal queue tables; see the [worker runbook](WORKER-QUEUE.md). No domain revisions or demo seed exist. Review and test migrations against a dedicated target before applying them; a jobs-only upgrade does not create a functioning application database.
 
-After migrations are implemented: test them against an isolated branch; use the direct URL; apply the reviewed revision once as a release step; then seed only the dedicated demo organization. The migration loader must deliberately select the unpooled URL.
+For a later integrated release: test all required migrations against an isolated branch, supply the direct/unpooled URL as `DATABASE_URL` to the migration process, and apply the reviewed revisions once as a release step. The loader reads `DATABASE_URL`; it does not automatically select `DATABASE_URL_UNPOOLED`. Add and verify a dedicated demo seed only when domain persistence is implemented.
 
 ## Completion checklist
 

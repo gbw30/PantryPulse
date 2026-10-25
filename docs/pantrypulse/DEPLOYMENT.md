@@ -23,6 +23,8 @@ A Vercel preview does not automatically create a matching Python API or database
 
 ## Database and backend
 
+The internal worker foundation from PR #52 includes a jobs-only migration and Linux supervisor, documented in the [worker runbook](../setup/WORKER-QUEUE.md). Its production registry is empty. Public routes/auth, production forecast/allocation handlers, domain persistence and measured resource enforcement remain release gates; the current Vercel preview needs none of these services.
+
 1. Provision a dedicated Neon/PostgreSQL demo database or branch on an authorized account. Use the correct driver URL and TLS mode; store secrets only in server configuration. The template uses postgresql+psycopg with SQLAlchemy; raw tooling may need a plain PostgreSQL URL. Keep migration and runtime URL formats intentional.
 2. Apply Alembic migrations as one controlled release step before serving the new API. Test migration on a fresh isolated DB first. Do not run migrations independently from every app worker or frontend preview.
 3. Seed the fixed demo organization and verify non-demo organizations are untouched by reset. A reset endpoint scoped only by a user-provided organization ID is insufficient; enforce server-side demo flag and presenter authorization.

@@ -116,7 +116,7 @@ docker compose -f compose.demo.yaml exec -T api uv run --frozen pytest
 
 `config --quiet` avoids printing the resolved credentials. Expected health is `{"status":"ok","scope":"process"}`. The separate runtime command checks a trivial CP-SAT solve and a read-only database connection. Confirm its database name matches the intended Neon database. The pytest command runs the implemented scaffold tests, not a complete allocation acceptance suite.
 
-These commands do not create the domain schema, run migrations, seed data or implement algorithms. No migration command is ready yet. The demo Compose project has no local PostgreSQL service and does not delete or replace the original local database volume.
+These commands do not create the domain schema, run migrations, seed data or implement algorithms. PR #52 supplies a jobs-only Alembic migration and [internal worker runbook](docs/setup/WORKER-QUEUE.md); domain migrations and a connected demo remain pending. The demo Compose project has no local PostgreSQL service and does not delete or replace the original local database volume.
 
 Use commands with `-f compose.demo.yaml` for this environment. Existing npm Docker scripts target the original local-development project. To inspect demo logs or stop its API:
 
@@ -177,7 +177,7 @@ These are development tasks, not additional account signups:
 2. Implement the domain schema, Alembic migrations and deterministic simulated seed/reset workflow.
 3. Connect application persistence to the injected database URL, with deliberate settings parsing and role permissions.
 4. Implement shared inventory, FEFO, capacity and feasibility rules, plus both allocation engines and independent comparison metrics.
-5. Implement the forecast adapter/fallback and truthful provenance. Chronos remains optional and must be benchmarked on the laptop.
+5. Connect the existing offline forecast baselines/fallback and provenance to production worker handlers and domain publication. Real Chronos inference remains optional and must be benchmarked on the laptop.
 6. Implement the frontend API client, result charts, pending/error states and selected same-origin proxy.
 7. Test the full comparison on identical snapshots, protect any exposed mutations, and rehearse the judge journey.
 

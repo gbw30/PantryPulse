@@ -6,7 +6,7 @@
 
 The `gbw30s-projects` Hobby team has a Git-connected project named [`pantrypulse-prototype-preview`](https://vercel.com/gbw30s-projects/pantrypulse-prototype-preview), linked to `gbw30/PantryPulse`. Its root directory is `apps/web`; source outside that directory is enabled for the root npm workspace lockfile. Node 24.x, the locked install command below and `npm run build` are configured. No API, database, model or presenter variables were added for this preview.
 
-The [branch `/design-lab` URL](https://pantrypulse-prototype-preview-git-codex-e82088-gbw30s-projects.vercel.app/design-lab) is public and moves to the latest successful build from `codex/vercel-prototype-preview`. An earlier [verified deployment](https://pantrypulse-prototype-preview-jqswzwcxq-gbw30s-projects.vercel.app/) of commit `81387fe8d7ca97774a61425c97d75a982b1ab1be` redirected `/`; the redirect was removed before proposing the branch for main so future Vercel builds retain the root landing page. Check the current commit and URL before treating a later build as verified.
+The [branch `/design-lab` URL](https://pantrypulse-prototype-preview-git-codex-e82088-gbw30s-projects.vercel.app/design-lab) is public and moves to the latest successful build from `codex/vercel-prototype-preview`. The [reviewed deployment](https://pantrypulse-prototype-preview-7r77os2kv-gbw30s-projects.vercel.app/design-lab) of commit `b04fee1e7c8fac5cbe8b7fc8171a58571126e9ff` is READY: `/` returns HTTP 200 with the scaffold landing page, and `/design-lab` returns HTTP 200 with simulated/illustrative disclosures. An earlier deployment of `81387fe8d7ca97774a61425c97d75a982b1ab1be` redirected `/`; that redirect was removed. Check the current commit and URL before treating a later build as verified.
 
 Only `codex/vercel-prototype-preview` should build automatically. The project's ignored-build command is:
 
@@ -14,7 +14,11 @@ Only `codex/vercel-prototype-preview` should build automatically. The project's 
 if [ "$VERCEL_GIT_COMMIT_REF" = "codex/vercel-prototype-preview" ]; then exit 1; else exit 0; fi
 ```
 
+Merging PR #53 into `main` preserves this branch-specific build policy; it does not promote the preview or connect the backend. Keep the preview branch while this project uses it. Further pushes to that branch can update the public preview; changes on `main` alone do not refresh it. The worker foundation from PR #52 is separate infrastructure and does not make this preview call a worker or database.
+
 A Git push to this branch triggered a Vercel Preview deployment. The `/design-lab` page was checked at 1440×900 and 390×844: simulated/illustrative labels remained visible, location selection and 3D→2D worked, and the browser reported no page errors or horizontal overflow. No ready Production deployment was created; an initial API request classified as Production was canceled before readiness. The project has no deployment protection enabled, so anyone with the URL can access the synthetic preview.
+
+The original deployment session supplied the desktop/mobile interaction evidence above. PR #53 review independently rechecked the READY deployment's commit/alias, Node 24.x, disabled access protection, and public HTTP responses. It did not repeat the visual interaction smoke or verify environment-variable contents; the account checks below remain open.
 
 ## Manual account checks
 
