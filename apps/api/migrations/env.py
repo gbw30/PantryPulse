@@ -8,7 +8,10 @@ from sqlalchemy import text
 from sqlalchemy.engine import make_url
 
 from app.database import database_engine
-from app.models import forecasts  # noqa: F401 — register additive operational metadata
+from app.models import (
+    forecasts,  # noqa: F401 — register additive operational metadata
+    optimization,  # noqa: F401
+)
 from app.models.jobs import metadata as job_metadata
 from app.models.operational import Base
 

@@ -1,3 +1,5 @@
+> **October 25, 2026 approved integration:** [Connected OR integration](../optimization/CONNECTED-INTEGRATION.md) supersedes conflicting OR-only/no-proxy guidance and earlier solver limits for the connected simulated application. Historical checkpoint evidence remains scoped to its original code and contracts.
+
 # PantryPulse delivery board
 
 Update after each integration. [Project specification V5](SPEC-V5.md) records the current implementation/branch state and acceptance. PP-01–23 retain the historical planning board and require reconciliation; PP-24–29 were merged through PR #7. PR #51 integrated the offline forecasting core and design lab; live domain API/database acceptance remains open. PP-31–36 (worker/job queue foundation, [ADR 0005](../architecture/0005-worker-job-queue.md)) are delivered by PR #52; they use test handlers only. No completed application is claimed.
@@ -44,3 +46,7 @@ Update after each integration. [Project specification V5](SPEC-V5.md) records th
 P1 reservations/completion are separate tickets only after all P0 rows are accepted. No worker may claim a shared foundational file without a lead assignment.
 
 Review-fix integration: PR #51 integrated the PR #49 baseline core and PR #50 design lab with V5 corrections. See tasks/PP-30-pr-review-fixes.md for the bounded task and verification evidence.
+
+## Current integration task
+
+[PP-46](tasks/PP-46.md) implements the approved connected simulated OR flow. Measured evidence and outstanding gates are tracked in [FINALIZATION](../optimization/FINALIZATION.md); historical TODO rows do not override this bounded scope.

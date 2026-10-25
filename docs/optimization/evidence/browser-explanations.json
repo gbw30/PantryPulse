@@ -1,0 +1,89 @@
+{
+  "base_commit": "46ff0cd8aaf299b1874e7400e42bdc9f6b23d978",
+  "source_state": "WORKING_TREE_AFTER_SAVED_RESULT_EXPLANATIONS",
+  "source_kind": "SIMULATED",
+  "suite_tests_passed": 8,
+  "suite_seconds": 59.0,
+  "rehearsals": {
+    "provenance": "REAL_HTTP_POSTGRESQL_OR_TOOLS_SIMULATED_INPUTS",
+    "repetitions": [
+      {
+        "cycle": 1,
+        "mode": "HUB_ONLY",
+        "multiplier": "1",
+        "scenario_hash": "29a2a6803f43ae6f8011ce05667934212d89a0762d16e7fc7e3b5140e32613da",
+        "scenario_id": "43eba418-0f8c-47b3-abe6-490a03ceb5ce",
+        "policy_hash": "e1a5a175fa17d7a7ae81815538e8a6e06048040638458d0a66f00a20d1f414eb",
+        "job_id": "e4e8b822-bc52-4c9a-b8ab-a98bac83f248",
+        "duration_ms": 6434
+      },
+      {
+        "cycle": 2,
+        "mode": "HUB_AND_PANTRY",
+        "multiplier": "1.5",
+        "scenario_hash": "a071b9f926dcd4f8bfa398d080c2bc7b7ccd302b95fcff2ac43bf99969ca515e",
+        "scenario_id": "39acb269-698a-49e3-8104-1a328cd53165",
+        "policy_hash": "e1a5a175fa17d7a7ae81815538e8a6e06048040638458d0a66f00a20d1f414eb",
+        "job_id": "156276b4-fa20-4b4c-8786-0d9304a48d69",
+        "duration_ms": 4812
+      },
+      {
+        "cycle": 3,
+        "mode": "HUB_ONLY",
+        "multiplier": "1",
+        "scenario_hash": "29a2a6803f43ae6f8011ce05667934212d89a0762d16e7fc7e3b5140e32613da",
+        "scenario_id": "6dd63616-89da-424d-a90a-4fcd46939c1a",
+        "policy_hash": "e1a5a175fa17d7a7ae81815538e8a6e06048040638458d0a66f00a20d1f414eb",
+        "job_id": "988bfeb5-6a48-4c21-87c6-00bfad32039e",
+        "duration_ms": 4841
+      },
+      {
+        "cycle": 4,
+        "mode": "HUB_AND_PANTRY",
+        "multiplier": "1",
+        "scenario_hash": "9413637b8281becaca4ae17b99dd8e3bae487294ae53552ef0438afc8c8278da",
+        "scenario_id": "4fbd87f0-d38a-4620-99e4-8be279fa83cb",
+        "policy_hash": "e1a5a175fa17d7a7ae81815538e8a6e06048040638458d0a66f00a20d1f414eb",
+        "job_id": "2b5dde25-10ba-447a-8ad8-89c44f6cf363",
+        "duration_ms": 4937
+      },
+      {
+        "cycle": 5,
+        "mode": "HUB_ONLY",
+        "multiplier": "1",
+        "scenario_hash": "29a2a6803f43ae6f8011ce05667934212d89a0762d16e7fc7e3b5140e32613da",
+        "scenario_id": "1ecbb1c1-1823-476d-8240-a72d29ea2817",
+        "policy_hash": "e1a5a175fa17d7a7ae81815538e8a6e06048040638458d0a66f00a20d1f414eb",
+        "job_id": "97de8600-a31b-4047-ae86-2b42943aa0dc",
+        "duration_ms": 4954
+      }
+    ],
+    "page_errors": []
+  },
+  "presentation_states": {
+    "provenance": "REAL_HTTP_POSTGRESQL_OR_TOOLS_SIMULATED_INPUTS",
+    "zero": {
+      "job_id": "9a7229a2-203c-42d7-bcd1-42023319115c",
+      "scenario_hash": "d28474d969ddff3b3eb312cc7337cc9535a2a9fa7ee6d4d42576806fc2c26c78"
+    },
+    "partial": {
+      "job_id": "c545cf60-fb3b-4bcb-8498-1774ba93ca5c",
+      "scenario_hash": "29a2a6803f43ae6f8011ce05667934212d89a0762d16e7fc7e3b5140e32613da",
+      "state": "CANCELLED",
+      "retained_methods": [
+        "CLASSICAL_GP"
+      ]
+    }
+  },
+  "checks": [
+    "Actual generated saved assumption/policy metadata",
+    "New immutable draft freeze and original history replay",
+    "1.5x saved visitor refresh",
+    "Delayed real old-scenario response cannot overwrite newer selection",
+    "Per-product independently known service gains/losses",
+    "Exact/quantized policy tables and strict saved thresholds",
+    "Initial mobile viewport outcome summary, DOM order, keyboard and reduced motion",
+    "Actual zero-stock native comparison and cancellation with first-method retention"
+  ],
+  "limits": "Local HTTP/PostgreSQL/production-supervisor/Chromium only; human visual approval, wider V5 and LIVE source integration remain separate."
+}

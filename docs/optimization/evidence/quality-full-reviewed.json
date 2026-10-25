@@ -1,0 +1,70 @@
+{
+  "mode": "full",
+  "pass": true,
+  "head": "e49e360d23e46b43542b0a2e9b5f6277d5f840d5",
+  "treeSha256": "874a613b0872752893ad150459d7a9c1bbf0a6d0095ee112c314e21aee4e2a6c",
+  "sourceUnchangedDuringRun": true,
+  "generatedAt": "2026-10-25T02:43:56.026Z",
+  "results": [
+    {
+      "name": "web typecheck",
+      "pass": true,
+      "exitCode": 0,
+      "durationMs": 2003
+    },
+    {
+      "name": "web lint",
+      "pass": true,
+      "exitCode": 0,
+      "durationMs": 4081
+    },
+    {
+      "name": "web proxy tests",
+      "pass": true,
+      "exitCode": 0,
+      "durationMs": 426
+    },
+    {
+      "name": "api lint",
+      "pass": true,
+      "exitCode": 0,
+      "durationMs": 25
+    },
+    {
+      "name": "api tests",
+      "pass": true,
+      "exitCode": 0,
+      "durationMs": 22834
+    },
+    {
+      "name": "contract drift",
+      "pass": true,
+      "exitCode": 0,
+      "durationMs": 1725
+    },
+    {
+      "name": "decision coverage",
+      "pass": true,
+      "exitCode": 0,
+      "durationMs": 372
+    },
+    {
+      "name": "PostgreSQL migrations and integration",
+      "pass": true,
+      "exitCode": 0,
+      "durationMs": 104559
+    },
+    {
+      "name": "configuration tests",
+      "pass": true,
+      "exitCode": 0,
+      "durationMs": 1370
+    },
+    {
+      "name": "web build",
+      "pass": true,
+      "exitCode": 0,
+      "durationMs": 4316
+    }
+  ]
+}

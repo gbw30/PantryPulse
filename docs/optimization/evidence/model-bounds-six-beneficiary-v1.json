@@ -1,0 +1,44 @@
+{
+  "source_kind": "SIMULATED",
+  "operational_hash": "8054b987bcfe1a7f1f5ca62e85bfb7c123179afa329fb5f49a28097304fcfb4e",
+  "policy_hash": "e1a5a175fa17d7a7ae81815538e8a6e06048040638458d0a66f00a20d1f414eb",
+  "decision_ids": [
+    "OR-DEC-001",
+    "OR-DEC-002",
+    "OR-DEC-003",
+    "OR-DEC-004",
+    "OR-DEC-005",
+    "OR-DEC-006",
+    "OR-DEC-007",
+    "OR-DEC-008",
+    "OR-DEC-009",
+    "OR-DEC-010",
+    "OR-DEC-011",
+    "OR-DEC-012",
+    "OR-DEC-013",
+    "OR-DEC-014",
+    "OR-DEC-015",
+    "OR-DEC-016",
+    "OR-DEC-017",
+    "OR-DEC-018",
+    "OR-DEC-019",
+    "OR-DEC-020"
+  ],
+  "models": [
+    {
+      "method": "CLASSICAL_GP",
+      "physical_fingerprint": "be566dd6a9881cb9f09879559587a791bf95995d58fcb842d22dc3bc1ed43838",
+      "expressions_checked": 1982,
+      "maximum_activity": 13040000,
+      "exclusive_limit": 1152921504606846976
+    },
+    {
+      "method": "EGP_PI_INSPIRED",
+      "physical_fingerprint": "be566dd6a9881cb9f09879559587a791bf95995d58fcb842d22dc3bc1ed43838",
+      "expressions_checked": 2098,
+      "maximum_activity": 90120000,
+      "exclusive_limit": 1152921504606846976
+    }
+  ],
+  "interpretation": "Actual emitted expression intervals; solver outcome evidence is separate."
+}

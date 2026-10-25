@@ -12,8 +12,10 @@ from app.services.forecasting.schemas import ForecastPolicy, HistoryBundle
 SPEC_PATH = Path(__file__).resolve().parents[3] / "data/demo/forecasting-v1.json"
 
 
-def build_fixture() -> tuple[HistoryBundle, ForecastPolicy, tuple[EvaluationOrigin, ...], datetime]:
-    spec = json.loads(SPEC_PATH.read_text(encoding="utf-8"))
+def build_fixture(
+    spec=None,
+) -> tuple[HistoryBundle, ForecastPolicy, tuple[EvaluationOrigin, ...], datetime]:
+    spec = json.loads(SPEC_PATH.read_text(encoding="utf-8")) if spec is None else spec
     dataset = uuid5(NAMESPACE_URL, spec["dataset_name"])
     organization = uuid5(dataset, "organization")
     start = date.fromisoformat(spec["start_date"])

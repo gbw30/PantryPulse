@@ -1,9 +1,8 @@
 # API contracts
 
 Pydantic/FastAPI owns the machine contract. `openapi.json` and `src/schema.d.ts`
-cover the PP-45 baseline forecast/presenter routes reviewed in PR #75.
-They do not finalize every V5 domain or imply OR-branch integration. See
-[forecast flow and boundaries](../../docs/pantrypulse/FORECAST-API-FLOW.md).
+cover presenter/forecast routes and PP-46 planning catalog, assumptions, scenario, comparison and generalized job routes. They do not finalize broader V5 domains. See
+[forecast flow](../../docs/pantrypulse/FORECAST-API-FLOW.md) and [connected planning](../../docs/optimization/CONNECTED-INTEGRATION.md).
 
 From the repository root (PowerShell):
 

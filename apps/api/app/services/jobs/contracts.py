@@ -124,15 +124,15 @@ class RuntimeProfile:
     must be passed explicitly (tests), never silently exceed these ceilings in production."""
 
     max_queued: int = 2
-    queue_wait_s: float = 900
+    queue_wait_s: float = 1800
     heartbeat_interval_s: float = 5
     heartbeat_stale_s: float = 15
     forecast_total_s: float = 300
     forecast_primary_cutoff_s: float = 270
-    allocation_total_s: float = 25
-    method_wall_s: float = 25
-    method_search_s: float = 15
-    comparison_total_s: float = 60
+    allocation_total_s: float = 330
+    method_wall_s: float = 330
+    method_search_s: float = 300
+    comparison_total_s: float = 690
     stop_grace_s: float = 2
     publication_reserve_s: float = 2
     # Engineering margin (ADR 0005 A4): SIGKILL lands this long before a hard cutoff so
@@ -172,7 +172,7 @@ class RuntimeProfile:
 
     def effective_limits(self) -> dict[str, Any]:
         return {
-            "version": 1,
+            "version": 2,
             "limits": {f.name: getattr(self, f.name) for f in fields(self)},
         }
 

@@ -1,6 +1,14 @@
 # Internal worker queue foundation
 
-PR #52 implements WQ-01–06 under [ADR 0005](../architecture/0005-worker-job-queue.md). This is infrastructure with fixed test handlers, not a connected forecast/allocation service. The `production` registry is empty. No public job routes, authentication or measured container CPU/memory enforcement are included; WQ-07–10 remain open. Native Windows cannot provide the Linux process boundary and never reports compute READY.
+The production registry contains `forecast.v1` and `or-comparison.v2`. Presenter API
+admission, immutable domain publication and `/optimization` use this shared lane.
+See [approved connected integration](../optimization/CONNECTED-INTEGRATION.md).
+Native Windows cannot provide the Linux boundary and never reports compute READY.
+
+Solver defaults are 120s native / 150s method / 330s comparison; maximum settings
+are 300s / 330s / 690s. Queue expiry is 1,800s, with one active and two waiting jobs.
+Capability advertisement version 2 is required; restart old supervisors after migration.
+Forecast limits remain 270/300s. Drain grace is 720s; container stop grace is 725s.
 
 ## Schema and startup
 
@@ -12,7 +20,10 @@ uv run --frozen python -m app.workers.admin status
 uv run --frozen python -m app.workers.supervisor --registry production
 ```
 
-The migration creates only `compute_control`, `compute_jobs`, `compute_attempts`, `compute_commands` and `compute_audit_events`. It creates no domain tables or fixture-result table. Startup requires Linux `/proc` and process-group control. An empty production registry may own the lane but advertises no executable contracts, so it cannot admit application jobs. Do not expose the `test` registry through a public service.
+The current Alembic head is `ppor_0005`, following the preserved worker/operational
+merge and forecast migration. It adds immutable planning assumptions, scenarios,
+comparisons and method verification records. Pass `--schema` to the supervisor and
+`PP_DATABASE_SCHEMA` to the API for an isolated demo. Do not expose the test registry.
 
 One lane permits one active attempt and at most two waiting attempts. Heartbeats run independently; a separate watchdog enforces child deadlines even while database I/O blocks. Finalization and publication remain transactional and fenced. A child stopping does not free its slot until cleanup is confirmed and recorded.
 

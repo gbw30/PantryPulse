@@ -661,7 +661,11 @@ class Supervisor:
     # --- shutdown --------------------------------------------------------------------------
 
     def _wait_idle(self, timeout_s: float | None) -> None:
-        budget = timeout_s if timeout_s is not None else self.profile.forecast_total_s + 30
+        budget = timeout_s if timeout_s is not None else max(
+            self.profile.forecast_total_s,
+            self.profile.allocation_total_s,
+            self.profile.comparison_total_s,
+        ) + 30
         end = self.clock() + budget
         while self.active is not None and self.clock() < end and not self.ownership_lost:
             self.tick()

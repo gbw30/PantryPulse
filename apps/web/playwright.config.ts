@@ -12,7 +12,7 @@ export default defineConfig({
   use: { baseURL, trace: "retain-on-failure" },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    command: `npm run dev -- --port ${port}`,
+    command: `npm run ${process.env.PP_E2E_PRODUCTION === "1" ? "start" : "dev"} -- --port ${port}`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
