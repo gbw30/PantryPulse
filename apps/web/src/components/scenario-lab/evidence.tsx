@@ -9,6 +9,9 @@ import {
 
 // R8 detail evidence and R9 enforced constraints. Every value is read from the saved comparison.
 
+/** The focusable wrapper scrolls; the Table primitive's own container is told not to, so keyboard users can scroll it. */
+export const SCROLL = "overflow-x-auto rounded-lg border border-border focus-visible:ring-2 focus-visible:ring-ring outline-none [&>[data-slot=table-container]]:overflow-visible";
+
 type Props = { comparison: Schema["SavedComparison"]; scenario: Schema["ScenarioResult"] | null; rows: GoalRow[]; sites: SiteInfo[]; products: ProductInfo[] };
 
 const siteName = (sites: SiteInfo[], id: string) => sites.find((s) => s.id === id)?.name ?? `Site ${shortId(id)}`;
@@ -25,7 +28,7 @@ export function MethodGoalTable({ comparison, rows, sites, products }: Props) {
   const egpOk = !!usableMetrics(methodOutcome(comparison, "EGP_PI_INSPIRED"));
   const cell = (goal: Goal | undefined, ok: boolean, read: (g: Goal) => string) => (!ok ? "Not verified" : goal ? read(goal) : "N/A");
   return (
-    <div className="overflow-x-auto rounded-lg border border-border" tabIndex={0} role="region" aria-label="Goals table, scrolls horizontally">
+    <div className={SCROLL} tabIndex={0} role="region" aria-label="Goals table, scrolls horizontally">
       <Table className="text-xs">
         <TableCaption className="mt-0 caption-top px-3 py-2 text-left text-sm text-foreground">
           Goals by site and product — Classical GP (C) and EGP-PI-inspired (E) on the same frozen scenario
@@ -97,7 +100,7 @@ export function TransferDiffTable({ comparison, sites, products }: Props) {
   const changes = diffAssignments(classical?.candidate?.assignments ?? [], egp?.candidate?.assignments ?? []);
   if (!changes.length) return <p className="text-sm text-muted-foreground">Neither verified method selected any transfer.</p>;
   return (
-    <div className="overflow-x-auto rounded-lg border border-border" tabIndex={0} role="region" aria-label="Transfer changes table, scrolls horizontally">
+    <div className={SCROLL} tabIndex={0} role="region" aria-label="Transfer changes table, scrolls horizontally">
       <Table className="text-xs">
         <TableCaption className="mt-0 caption-top px-3 py-2 text-left text-sm text-foreground">Transfer changes between methods (Classical GP → EGP-PI-inspired)</TableCaption>
         <TableHeader>
@@ -146,7 +149,7 @@ export function CommonDifferences({ comparison }: Props) {
 /** SolverStatus per method: native status, verification, objective, bound, gap and time. */
 export function SolverStatusTable({ comparison }: Props) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-border" tabIndex={0} role="region" aria-label="Solver status table, scrolls horizontally">
+    <div className={SCROLL} tabIndex={0} role="region" aria-label="Solver status table, scrolls horizontally">
       <Table className="text-xs">
         <TableCaption className="mt-0 caption-top px-3 py-2 text-left text-sm text-foreground">Solver status and independent replay, per method</TableCaption>
         <TableHeader>

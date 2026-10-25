@@ -353,7 +353,7 @@ function ScenarioLabScreen() {
         </Alert>
       )}
 
-      <div className="grid gap-4 md:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] 2xl:grid-cols-[minmax(0,19rem)_minmax(0,1fr)_minmax(0,20rem)] min-[1400px]:grid-cols-[minmax(0,18.5rem)_minmax(0,1fr)_minmax(0,19rem)]">
+      <div className="grid gap-4 md:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] min-[1400px]:grid-cols-[minmax(0,18.5rem)_minmax(0,1fr)_minmax(0,19rem)]">
         {/* R3 wizard + R9 constraints */}
         <div className="min-w-0">
           {loading && session !== "visitor" ? <Skeleton className="h-96 w-full" /> : (
@@ -395,7 +395,7 @@ function ScenarioLabScreen() {
 
         {/* R6 + R7 rail (stacks under results below 2xl) */}
         {comparison && (
-          <div className="flex min-w-0 flex-col gap-4 md:col-span-2 2xl:col-span-1 min-[1400px]:col-span-1">
+          <div className="flex min-w-0 flex-col gap-4 md:max-[1399px]:col-span-2">
             {anyVerified && <ComparisonRail comparison={comparison} products={products} productId={productId} />}
             <KeyTradeoffs comparison={comparison} rows={rows} sites={resultSites} products={products} methodology={methodology} />
           </div>

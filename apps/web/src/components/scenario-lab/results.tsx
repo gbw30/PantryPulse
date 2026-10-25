@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Methodology, Schema } from "@/lib/planning-api";
 import { cn } from "@/lib/utils";
+import { SCROLL } from "./evidence";
 import {
   METHOD_LABEL, METHODS, count, coverage, expired, flagged, methodOutcome, pct, ratio, shortId, solverStatusText, tradeoffs, unmet, units,
   usableMetrics, when, type GoalRow, type Method, type Metrics, type ProductInfo, type SiteInfo,
@@ -84,6 +85,7 @@ function MetricCard({ title, basis, comparison, products, read }: {
     <article className="rounded-lg border border-border bg-card p-3">
       <h3 className="text-sm font-semibold">{title}</h3>
       <p className="mb-2 text-xs text-muted-foreground">{basis}</p>
+      <div className={cn(SCROLL, "border-0")} tabIndex={0} role="region" aria-label={`${title} table`}>
       <Table className="text-xs">
         <TableCaption className="sr-only">{title} by product: baseline, Classical GP and EGP-PI-inspired</TableCaption>
         <TableHeader>
@@ -101,6 +103,7 @@ function MetricCard({ title, basis, comparison, products, read }: {
           ))}
         </TableBody>
       </Table>
+      </div>
     </article>
   );
 }
@@ -109,7 +112,7 @@ function MetricCard({ title, basis, comparison, products, read }: {
 export function ScenarioResultsSummary({ comparison, products }: { comparison: Comparison; products: ProductInfo[] }) {
   const cols = columns(comparison);
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-1 min-[1700px]:grid-cols-2">
       <MetricCard title="Service coverage" basis="Σ served ÷ Σ target over positive-target goals, allocation window" comparison={comparison} products={products}
         read={(m, p) => pct(coverage(m, p.id))} />
       <MetricCard title="Unmet units" basis="Target not served in the allocation window, per product unit" comparison={comparison} products={products}
@@ -179,7 +182,8 @@ export function ProjectedFillRateBySite({ comparison, rows, sites, products, pro
           </BarChart>
         </ResponsiveContainer>
       </div>
-      <Table className="mt-2 text-xs">
+      <div className={cn(SCROLL, "mt-2 border-0")} tabIndex={0} role="region" aria-label="Fill-rate data table">
+      <Table className="text-xs">
         <TableCaption className="mt-0 caption-top pb-1 text-left text-xs text-muted-foreground">Projected fill rate by site, {product.name} ({product.unit}s): served of target</TableCaption>
         <TableHeader>
           <TableRow>
@@ -202,6 +206,7 @@ export function ProjectedFillRateBySite({ comparison, rows, sites, products, pro
           ))}
         </TableBody>
       </Table>
+      </div>
     </section>
   );
 }
