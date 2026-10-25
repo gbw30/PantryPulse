@@ -29,6 +29,8 @@ export default function Workspace() {
   const [policyText, setPolicyText] = useState("");
   const [forecastId, setForecastId] = useState("");
   const [sourceId, setSourceId] = useState("");
+  const [forecastStrategy, setForecastStrategy] = useState<"SEASONAL_NAIVE" | "MOVING_AVERAGE" | "CHRONOS2">("SEASONAL_NAIVE");
+  const [forecastResult, setForecastResult] = useState<Schema["ForecastResult"] | null>(null);
   const [mode, setMode] = useState<"" | "HUB_ONLY" | "HUB_AND_PANTRY">("");
   const [days, setDays] = useState(3);
   const [budget, setBudget] = useState(120);
@@ -96,6 +98,7 @@ export default function Workspace() {
             if (!stopped && selectedView === viewRevision.current) { setComparison(result); setScenario(saved); }
           } else {
             const result = await api<Schema["ForecastResult"]>(`forecasts/${active!.id}`);
+            if (!stopped && selectedView === viewRevision.current) setForecastResult(result);
             if (!result.planning_ready) {
               if (!stopped) {
                 setJob(status);
@@ -131,11 +134,12 @@ export default function Workspace() {
     const request: Schema["ForecastRequest"] = { source_id: sourceId,
       data_cutoff_date: localDay(zone, -1), history_start_date: localDay(zone, -90),
       snapshot_as_of: new Date().toISOString(), force_refresh: false,
-      policy: { strategy: "SEASONAL_NAIVE", policy_version: "demo-proposal-14d-3samples-v1",
+      policy: { strategy: forecastStrategy, policy_version: "demo-proposal-14d-3samples-v1",
         adapter_version: "core-v1", preprocessing_version: "preserve-gaps-v1", postprocessing_version: "reject-invalid-v1",
         sparse_window_days: 14, sparse_min_samples: 3, allow_fallback: true,
         allow_fulfilled_proxy: false, allow_mixed_proxy_history: false } };
     track(await api<Schema["ForecastAccepted"]>("forecasts", request), "forecasts");
+    setForecastResult(null);
   }
   async function freeze() {
     if (!assumptions || !catalog || !mode) return;
@@ -172,10 +176,12 @@ export default function Workspace() {
     </section> : <>
       <div className={styles.grid}>
         <section className={styles.card}><h2>1 · Select a forecast</h2>
-          <label>Saved planning-ready forecast<select disabled={busy} value={forecastId} onChange={(e) => setForecastId(e.target.value)}><option value="">Choose a forecast</option>{catalog?.forecasts.map((r) => <option key={r.id} value={r.id}>{new Date(r.recorded_at).toLocaleString()} · {r.id.slice(0, 8)}</option>)}</select></label>
+          <label>Saved planning-ready forecast<select disabled={busy} value={forecastId} onChange={(e) => { setForecastId(e.target.value); setForecastResult(null); }}><option value="">Choose a forecast</option>{catalog?.forecasts.map((r) => <option key={r.id} value={r.id}>{new Date(r.recorded_at).toLocaleString()} · {r.id.slice(0, 8)}</option>)}</select></label>
           <label>Fictional history source<select disabled={busy} value={sourceId} onChange={(e) => setSourceId(e.target.value)}><option value="">Choose a source</option>{network?.sources.filter((s) => s.classification === "SIMULATED").map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
+          <label>Forecast method<select disabled={busy || !!running} value={forecastStrategy} onChange={(e) => setForecastStrategy(e.target.value as typeof forecastStrategy)}><option value="SEASONAL_NAIVE">Seasonal naive</option><option value="MOVING_AVERAGE">Moving average</option><option value="CHRONOS2">Chronos-2 · experimental</option></select></label>
           <button disabled={busy || !!running || !sourceId} onClick={() => void perform(generateForecast)}>Generate forecast</button>
-          <p>Seven days from yesterday’s cutoff, using seasonal naive with an explicitly enabled moving-average fallback. Donation predictions never become stock.</p>
+          <p>Seven days from yesterday’s cutoff, with an explicitly enabled moving-average fallback. Chronos requires available model compute; its raw intervals are uncalibrated. Donation predictions never become stock.</p>
+          {forecastResult && <p role="status">Last generated forecast ({forecastResult.job_id.slice(0, 8)}): {forecastResult.planning_ready ? "planning ready" : "incomplete; unavailable for planning"}. Actual providers: {forecastResult.forecast.actual_providers.join(", ") || "none"}.{forecastResult.forecast.series.some((r) => r.fallback_used) && " Baseline fallback was used."}</p>}
         </section>
         <section className={styles.card}><h2>2 · Freeze a scenario</h2>
           <label>Transfer mode (required)<select disabled={busy} value={mode} onChange={(e) => setMode(e.target.value as typeof mode)}><option value="">Choose transfer mode</option><option value="HUB_ONLY">Hub to pantry only</option><option value="HUB_AND_PANTRY">Hub and pantry transfers</option></select></label>

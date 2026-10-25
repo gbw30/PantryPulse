@@ -357,109 +357,6 @@
         "title": "AttributeScore",
         "type": "object"
       },
-      "BaselinePolicy": {
-        "additionalProperties": false,
-        "properties": {
-          "adapter_version": {
-            "const": "core-v1",
-            "default": "core-v1",
-            "title": "Adapter Version",
-            "type": "string"
-          },
-          "allow_fallback": {
-            "default": false,
-            "title": "Allow Fallback",
-            "type": "boolean"
-          },
-          "allow_fulfilled_proxy": {
-            "default": false,
-            "title": "Allow Fulfilled Proxy",
-            "type": "boolean"
-          },
-          "allow_mixed_proxy_history": {
-            "default": false,
-            "title": "Allow Mixed Proxy History",
-            "type": "boolean"
-          },
-          "checkpoint": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Checkpoint"
-          },
-          "checkpoint_revision": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Checkpoint Revision"
-          },
-          "policy_version": {
-            "minLength": 1,
-            "title": "Policy Version",
-            "type": "string"
-          },
-          "postprocessing_version": {
-            "const": "reject-invalid-v1",
-            "default": "reject-invalid-v1",
-            "title": "Postprocessing Version",
-            "type": "string"
-          },
-          "preprocessing_version": {
-            "const": "preserve-gaps-v1",
-            "default": "preserve-gaps-v1",
-            "title": "Preprocessing Version",
-            "type": "string"
-          },
-          "provider_package_version": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Provider Package Version"
-          },
-          "sparse_min_samples": {
-            "minimum": 1.0,
-            "title": "Sparse Min Samples",
-            "type": "integer"
-          },
-          "sparse_window_days": {
-            "maximum": 366.0,
-            "minimum": 1.0,
-            "title": "Sparse Window Days",
-            "type": "integer"
-          },
-          "strategy": {
-            "enum": [
-              "SEASONAL_NAIVE",
-              "MOVING_AVERAGE"
-            ],
-            "title": "Strategy",
-            "type": "string"
-          }
-        },
-        "required": [
-          "policy_version",
-          "sparse_window_days",
-          "sparse_min_samples",
-          "strategy"
-        ],
-        "title": "BaselinePolicy",
-        "type": "object"
-      },
       "Body_demand_csv_api_v1_imports_demand_csv_post": {
         "properties": {
           "file": {
@@ -1644,7 +1541,7 @@
             "type": "string"
           },
           "policy": {
-            "$ref": "#/components/schemas/BaselinePolicy"
+            "$ref": "#/components/schemas/ForecastSubmissionPolicy"
           },
           "snapshot_as_of": {
             "format": "date-time",
@@ -1963,6 +1860,114 @@
           "generated_at"
         ],
         "title": "ForecastSeriesResult",
+        "type": "object"
+      },
+      "ForecastSubmissionPolicy": {
+        "additionalProperties": false,
+        "description": "Clients choose a strategy, never a Chronos model path or execution profile.",
+        "properties": {
+          "adapter_version": {
+            "default": "core-v1",
+            "enum": [
+              "core-v1",
+              "chronos2-univariate-cpu-f32-v1"
+            ],
+            "title": "Adapter Version",
+            "type": "string"
+          },
+          "allow_fallback": {
+            "default": false,
+            "title": "Allow Fallback",
+            "type": "boolean"
+          },
+          "allow_fulfilled_proxy": {
+            "default": false,
+            "title": "Allow Fulfilled Proxy",
+            "type": "boolean"
+          },
+          "allow_mixed_proxy_history": {
+            "default": false,
+            "title": "Allow Mixed Proxy History",
+            "type": "boolean"
+          },
+          "checkpoint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkpoint"
+          },
+          "checkpoint_revision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkpoint Revision"
+          },
+          "policy_version": {
+            "minLength": 1,
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "postprocessing_version": {
+            "const": "reject-invalid-v1",
+            "default": "reject-invalid-v1",
+            "title": "Postprocessing Version",
+            "type": "string"
+          },
+          "preprocessing_version": {
+            "const": "preserve-gaps-v1",
+            "default": "preserve-gaps-v1",
+            "title": "Preprocessing Version",
+            "type": "string"
+          },
+          "provider_package_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Package Version"
+          },
+          "sparse_min_samples": {
+            "minimum": 1.0,
+            "title": "Sparse Min Samples",
+            "type": "integer"
+          },
+          "sparse_window_days": {
+            "maximum": 366.0,
+            "minimum": 1.0,
+            "title": "Sparse Window Days",
+            "type": "integer"
+          },
+          "strategy": {
+            "default": "SEASONAL_NAIVE",
+            "enum": [
+              "SEASONAL_NAIVE",
+              "MOVING_AVERAGE",
+              "CHRONOS2"
+            ],
+            "title": "Strategy",
+            "type": "string"
+          }
+        },
+        "required": [
+          "policy_version",
+          "sparse_window_days",
+          "sparse_min_samples"
+        ],
+        "title": "ForecastSubmissionPolicy",
         "type": "object"
       },
       "GoalMetric": {

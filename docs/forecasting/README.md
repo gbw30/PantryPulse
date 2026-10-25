@@ -2,6 +2,11 @@
 
 Updated October 25, 2026. [SPEC-V5](../pantrypulse/SPEC-V5.md) controls product requirements; [current status](../pantrypulse/CURRENT-STATUS.md) separates source, runtime and release evidence.
 
+Next work: [forecasting execution plan and owned PBIs #80–#86](EXECUTION-PLAN.md)
+refines existing data/evaluation/Chronos issues #38/#40/#46. See
+[evaluation data-source research](DATA-SOURCES.md) for the direct-pantry sourcing
+requirements and the proposed FreshRetailNet-50K retail benchmark.
+
 | Area | Implemented | Remaining qualification |
 |---|---|---|
 | Preparation/baselines | Immutable history/cutoffs, missingness/proxy handling, seasonal/sparse methods and explicit fallback provenance | Representative chronological accuracy/selection evidence |

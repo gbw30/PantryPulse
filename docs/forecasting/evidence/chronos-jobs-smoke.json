@@ -1,0 +1,103 @@
+{
+  "schema_version": "chronos-jobs-smoke-v1",
+  "scope": "SIMULATED",
+  "generated_at": "2026-10-25T16:28:09.311757+00:00",
+  "capability": {
+    "checkpoint": "amazon/chronos-2",
+    "checkpoint_revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
+    "package_version": "2.3.2",
+    "adapter_version": "chronos2-univariate-cpu-f32-v1"
+  },
+  "schema": "ppfc84_test_1d35f98705b54566a3e42b6f0a25101f",
+  "production_profile": {
+    "version": 2,
+    "limits": {
+      "max_queued": 2,
+      "queue_wait_s": 1800,
+      "heartbeat_interval_s": 5,
+      "heartbeat_stale_s": 15,
+      "forecast_total_s": 300,
+      "forecast_primary_cutoff_s": 270,
+      "allocation_total_s": 330,
+      "method_wall_s": 330,
+      "method_search_s": 300,
+      "comparison_total_s": 690,
+      "stop_grace_s": 2,
+      "publication_reserve_s": 2,
+      "kill_margin_s": 0.25,
+      "method_min_s": 1,
+      "worker_cpu": 6,
+      "worker_memory_gib": 8
+    }
+  },
+  "no_fallback": {
+    "job_id": "2aebdffb-0502-4eaf-9cb5-0184e95ab226",
+    "state": "SUCCEEDED",
+    "planning_ready": false,
+    "actual_providers": [
+      "CHRONOS2"
+    ],
+    "available_series": 12,
+    "forecast_points": 84
+  },
+  "fallback": {
+    "job_id": "b7fc58fb-3d3a-4962-9d7a-4239871cb51c",
+    "state": "SUCCEEDED",
+    "planning_ready": true,
+    "actual_providers": [
+      "MOVING_AVERAGE"
+    ],
+    "fallback_series": 26,
+    "forecast_points": 182
+  },
+  "cancel_retry": {
+    "cancelled_state": "CANCELLED",
+    "boundary_empty": true,
+    "retry_state": "SUCCEEDED",
+    "same_job_new_attempt": true,
+    "database_credentials_absent_in_child": true
+  },
+  "canonical_scenario": {
+    "id": "d98ccd77-d36a-42d3-991b-46223da83075",
+    "frozen": true,
+    "provider": "MOVING_AVERAGE"
+  },
+  "offline_saved_reuse": true,
+  "offline_new_computation": "COMPUTE_UNAVAILABLE",
+  "handler_contract": "forecast.chronos.v1",
+  "wall_seconds": 54.75193338999816,
+  "disposable_schema_removed": true,
+  "source_sha256": {
+    "apps/api/app/services/chronos_runtime.py": "51e05dff1abece6b8c311c49de4a2cb55955bd3a2f4349a1f27acb4894772dfe",
+    "apps/api/app/workers/chronos_forecasting.py": "d3ab54df9d02faa743a249c4f350590c8ddd80925e25cdfca71c7a3ecefd973d",
+    "apps/api/app/workers/forecasting.py": "7df7b5acf687930c7c3ecd2325532b6b2702bdf76cb2285ff34cb4fe2737ea79",
+    "apps/api/app/services/jobs/registry.py": "695d40b56b2ae2b8eda7285f30e6dfab44b2aa60bc182b83497224cac5894443",
+    "apps/api/app/repositories/jobs.py": "9c3e90a0dd897777e424b773b67ab76a27c9c01f371b0255adcec0c4d953fe1c",
+    "apps/api/app/routers/forecasts.py": "abe516b4fa5f50cf888f1899a5ac541388451a8f8f5783e35404b0246535ffd3",
+    "apps/api/app/repositories/forecast_history.py": "398402926129bf6692b308b675acb21b34750c05b28d87001cb730efbe74e647",
+    "apps/api/app/schemas/forecast_api.py": "215ba8675be8242b017c9ab7a7766ffefd961c3ccac930a12c90260a1f4d2440",
+    "apps/api/app/services/forecasting/schemas.py": "e63734e3f50a9d37a5abc1bd89926d111f8caef57c1ee257c334f0672e544eb0",
+    "apps/api/app/workers/production.py": "bf7a8b9675ace103e076d8264968a05349ce41df5d8e7de68ed7e0d23c11afe3",
+    "apps/api/app/workers/supervisor.py": "be1b5b76727f01e26eb637ddbc2a545eedaf4ec2a53dc86f4807eb3d8696e10f",
+    "apps/api/app/workers/process_driver.py": "7eb1916fc6294239e637c8e99b6f8eab5661bad9d2c4fe4b45144e61ade7e545",
+    "apps/api/scripts/smoke_chronos_jobs.py": "ca54f8292e1ee94c657cd4167d1ec69afbb2641fd21a1590841f7830467db1e7",
+    "apps/api/tests/forecasting/test_chronos_jobs.py": "f486d12b5488b713bf0e82167450a91b1c9d2db5a42e23be53fe1aea1104d650",
+    "apps/web/src/app/optimization/workspace.tsx": "7825d8f2114a311eea4a4ed4303bff7b49759fddbf28c9c53c0d77044cf36ad8",
+    "packages/contracts/openapi.json": "c5e0a23ae22bd6ed8acf37be761955d8eaaecce3ee41407152831830d43f3280",
+    "packages/contracts/src/schema.d.ts": "e458cbcbd8ecbe49530375e2875e10d388f68a5b0b72476927ef0585e7e35134"
+  },
+  "source_note": "Real smoke completed before final additive malformed-cache guard and explicit no-fallback 270-second cutoff; the sub-deadline valid-cache execution path is unchanged. Final deterministic tests cover both guards.",
+  "raw_evidence_sha256": "8a72ee29a181dab168d74d4271406f2244a9bed6786fc049e9958634475e1093",
+  "qualification": "ACTUAL_HTTP_POSTGRES_LINUX_MODEL_JOBS_VERIFIED; FULL_CHRONOS_SCOPE_NOT_PLANNING_READY; NO_PREDICTIVE_QUALIFICATION",
+  "checks": {
+    "initial_changed_path_tests": 352,
+    "postgres_queue_supervisor_process_tests": 95,
+    "final_ticket_tests": 26,
+    "web_typecheck": true,
+    "web_lint": true,
+    "generated_contracts": true,
+    "proxy_unit": true,
+    "production_build": true,
+    "browser_e2e": "NOT_RUN_IN_THIS_STAGE"
+  }
+}

@@ -454,10 +454,21 @@ class QueueRepository:
         return len(rows)
 
     def _admission(
-        self, conn: sa.Connection, ctl: Mapping[str, Any], now: datetime, contract: str
+        self, conn: sa.Connection, ctl: Mapping[str, Any], now: datetime, contract: str,
+        validated: Mapping[str, Any] | None = None,
     ) -> AdmissionOutcome:
         age = None if ctl["heartbeat_at"] is None else _seconds(now - ctl["heartbeat_at"])
         capable, advertised = advertised_capability(ctl["effective_limits"], contract)
+        profile_hook = getattr(self.registry.get(contract).handler, "required_capability", None)
+        if profile_hook is not None:
+            limits = ctl["effective_limits"]
+            capabilities = limits.get("capabilities", {}) if isinstance(limits, dict) else {}
+            profiles = (
+                capabilities.get("handler_profiles", {}) if isinstance(capabilities, dict) else {}
+            )
+            advertised = advertised and isinstance(profiles, dict) and (
+                validated is not None and profiles.get(contract) == profile_hook(validated)
+            )
         queued = conn.scalar(
             sa.text(
                 "SELECT count(*) FROM compute_attempts WHERE lane_id = :l AND state = 'QUEUED'"
@@ -629,7 +640,7 @@ class QueueRepository:
                                 details={"action": "SUBMIT", "input_sha256": input_sha})
                     return Accepted(duplicate["job_id"], duplicate["attempt_id"],
                                     AttemptState(duplicate["state"]), True)
-            outcome = self._admission(conn, ctl, now, registration.contract)
+            outcome = self._admission(conn, ctl, now, registration.contract, validated)
             if outcome is not AdmissionOutcome.ACCEPT:
                 rejection = outcome
             else:
@@ -736,7 +747,9 @@ class QueueRepository:
             job, attempt = self._locked_scoped_job(conn, scope, job_id)
             if not can_retry(AttemptState(attempt["state"])):
                 raise JobStateConflict(f"cannot retry a {attempt['state']} job")
-            outcome = self._admission(conn, ctl, now, job["handler_contract"])
+            outcome = self._admission(
+                conn, ctl, now, job["handler_contract"], job["input_package"]["input"]
+            )
             if outcome is not AdmissionOutcome.ACCEPT:
                 rejection = outcome
             else:

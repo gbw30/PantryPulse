@@ -23,6 +23,7 @@ from app.schemas.forecast_api import (
     LoginResponse,
     LogoutResponse,
 )
+from app.services.chronos_runtime import CHRONOS_CONTRACT, bind_policy
 from app.services.forecast_runtime import configured_runtime
 from app.services.presenter_access import AccessError, authenticate, login, logout
 
@@ -121,10 +122,17 @@ def submit(
     rt=RUNTIME,
     scope=PRESENTER,
 ):
-    inputs = load_input(rt.engine, scope.organization_id, body)
+    contract = "forecast.v1"
+    policy = None
+    if body.policy.strategy == "CHRONOS2":
+        policy = bind_policy(body.policy)
+        if policy is None:
+            raise AccessError("COMPUTE_UNAVAILABLE", 503)
+        contract = CHRONOS_CONTRACT
+    inputs = load_input(rt.engine, scope.organization_id, body, policy=policy)
     accepted = rt.queue.submit(
         scope,
-        "forecast.v1",
+        contract,
         {
             "forecast_input": inputs.model_dump(mode="json"),
         },
@@ -155,6 +163,7 @@ def retry(
 ):
     if rt.queue.get_job(scope, job_id).handler_contract not in {
         "forecast.v1",
+        CHRONOS_CONTRACT,
         "or-comparison.v2",
         "or-allocation.v2",
     }:
@@ -193,6 +202,7 @@ def cancel(
 ):
     if rt.queue.get_job(scope, job_id).handler_contract not in {
         "forecast.v1",
+        CHRONOS_CONTRACT,
         "or-comparison.v2",
         "or-allocation.v2",
     }:
@@ -210,7 +220,12 @@ def cancel(
 @router.get("/jobs/{job_id}", response_model=ForecastJob, tags=["forecasts"])
 def job_status(job_id: UUID, rt=RUNTIME, scope=PRESENTER):
     job = rt.queue.get_job(scope, job_id)
-    if job.handler_contract not in {"forecast.v1", "or-comparison.v2", "or-allocation.v2"}:
+    if job.handler_contract not in {
+        "forecast.v1",
+        CHRONOS_CONTRACT,
+        "or-comparison.v2",
+        "or-allocation.v2",
+    }:
         raise JobNotFound()
     return ForecastJob(
         job_id=job.job_id,
@@ -246,7 +261,12 @@ def result(job_id: UUID, rt=RUNTIME, scope=PRESENTER):
         if row is None:
             # Different organizations get 404; an owned job awaiting publication gets 409.
             job = rt.queue.get_job(scope, job_id)
-            if job.handler_contract not in {"forecast.v1", "or-comparison.v2", "or-allocation.v2"}:
+            if job.handler_contract not in {
+                "forecast.v1",
+                CHRONOS_CONTRACT,
+                "or-comparison.v2",
+                "or-allocation.v2",
+            }:
                 raise JobNotFound()
             raise HistoryRejected("FORECAST_NOT_PUBLISHED", 409)
         return ForecastResult(
