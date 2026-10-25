@@ -1,0 +1,21 @@
+
+> @pantrypulse/web@0.1.0 test:e2e
+> playwright test --workers=1
+
+
+Running 10 tests using 1 worker
+
+(node:51580) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 [chromium] › tests\e2e\design-lab.spec.ts:16:7 › network fits and stays labeled at 1440x900 (5.2s)
+  ok  2 [chromium] › tests\e2e\design-lab.spec.ts:16:7 › network fits and stays labeled at 1280x720 (4.7s)
+  ok  3 [chromium] › tests\e2e\design-lab.spec.ts:16:7 › network fits and stays labeled at 390x844 (4.6s)
+  ok  4 [chromium] › tests\e2e\design-lab.spec.ts:82:5 › fit adapts when resizing and when returning from optional 3D (1.5s)
+  ok  5 [chromium] › tests\e2e\design-lab.spec.ts:96:5 › unavailable WebGL offers the usable 2D alternative (805ms)
+  ok  6 [chromium] › tests\e2e\optimization.spec.ts:7:5 › connected presenter forecast scenario comparison and revision (30.0s)
+  ok  7 [chromium] › tests\e2e\optimization.spec.ts:59:5 › a real failed partner preserves and displays the verified survivor (3.9s)
+  ok  8 [chromium] › tests\e2e\optimization.spec.ts:87:5 › cancel and retry a durable comparison through the real proxy (9.3s)
+  ok  9 [chromium] › tests\e2e\optimization.spec.ts:109:5 › a late real comparison response cannot replace a newly frozen scenario (6.5s)
+  ok 10 [chromium] › tests\e2e\scaffold.spec.ts:3:5 › home links the connected workspace and states simulation boundaries (223ms)
+
+  10 passed (1.1m)

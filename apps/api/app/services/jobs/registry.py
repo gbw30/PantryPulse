@@ -101,6 +101,21 @@ class Registration:
     handler: Handler
     publisher: Publisher
 
+    def execution_budget(self, validated: Mapping[str, Any], profile: RuntimeProfile) -> float:
+        """A registered handler may freeze a shorter allowance than the lane ceiling."""
+        import math
+
+        from app.services.jobs.policies import operation_budget_s
+
+        ceiling = operation_budget_s(self.operation_kind, profile)
+        callback = getattr(self.handler, "execution_budget", None)
+        budget = callback(validated, profile) if callback else ceiling
+        if isinstance(budget, bool) or not isinstance(budget, int | float) or (
+            not math.isfinite(budget) or not profile.publication_reserve_s < budget <= ceiling
+        ):
+            raise InputRejected("UNSUPPORTED_EXECUTION_SETTINGS", "Budget exceeds lane capability")
+        return budget
+
     def __post_init__(self) -> None:
         if not self.contract or not self.input_schema_version:
             raise ValueError("contract and input schema version are required")

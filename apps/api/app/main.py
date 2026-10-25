@@ -14,6 +14,7 @@ from starlette.responses import JSONResponse
 from app.repositories.forecast_history import HistoryRejected
 from app.repositories.jobs import IdempotencyConflict, JobNotFound, JobStateConflict, QueueError
 from app.routers.forecasts import router
+from app.routers.optimization import router as optimization_router
 from app.services.jobs.registry import InputRejected
 from app.services.presenter_access import AccessError, LoginLimiter
 
@@ -60,7 +61,8 @@ class RequestBoundary:
             if message["type"] == "http.disconnect":
                 return
             body.extend(message.get("body", b""))
-            if len(body) > 65_536:
+            limit = 524_288 if scope["path"] == "/api/v1/planning-assumptions" else 65_536
+            if len(body) > limit:
                 return await error_response("INPUT_TOO_LARGE", 413, request_id)(
                     scope, receive, send
                 )
@@ -146,6 +148,7 @@ def create_app(runtime=None):
         return error_response("INTERNAL_ERROR", 500, request.state.request_id)
 
     application.include_router(router)
+    application.include_router(optimization_router)
     application.add_api_route(
         "/api/v1/health", health, response_model=HealthResponse, tags=["health"]
     )

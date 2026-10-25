@@ -1,6 +1,154 @@
 {
   "components": {
     "schemas": {
+      "AllocationMethod": {
+        "enum": [
+          "CLASSICAL_GP",
+          "EGP_PI_INSPIRED"
+        ],
+        "title": "AllocationMethod",
+        "type": "string"
+      },
+      "AssumptionsPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "capacities": {
+            "$ref": "#/components/schemas/Capacities"
+          },
+          "classification": {
+            "const": "SIMULATED",
+            "default": "SIMULATED",
+            "title": "Classification",
+            "type": "string"
+          },
+          "handling": {
+            "items": {
+              "$ref": "#/components/schemas/HandlingCoefficient"
+            },
+            "maxItems": 2,
+            "minItems": 1,
+            "title": "Handling",
+            "type": "array"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/ORPolicy"
+          },
+          "reserves": {
+            "items": {
+              "$ref": "#/components/schemas/Reserve"
+            },
+            "maxItems": 28,
+            "title": "Reserves",
+            "type": "array"
+          },
+          "routes": {
+            "items": {
+              "$ref": "#/components/schemas/Route"
+            },
+            "maxItems": 182,
+            "title": "Routes",
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "planning-assumptions-v1",
+            "default": "planning-assumptions-v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "vulnerability_attributes": {
+            "items": {
+              "$ref": "#/components/schemas/VulnerabilityAttributes"
+            },
+            "maxItems": 12,
+            "title": "Vulnerability Attributes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "policy",
+          "routes",
+          "capacities",
+          "reserves",
+          "vulnerability_attributes",
+          "handling"
+        ],
+        "title": "AssumptionsPayload",
+        "type": "object"
+      },
+      "AssumptionsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "parent_id": {
+            "format": "uuid",
+            "title": "Parent Id",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/AssumptionsPayload"
+          }
+        },
+        "required": [
+          "name",
+          "parent_id",
+          "payload"
+        ],
+        "title": "AssumptionsRequest",
+        "type": "object"
+      },
+      "AssumptionsResult": {
+        "additionalProperties": false,
+        "properties": {
+          "content_hash": {
+            "title": "Content Hash",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/AssumptionsPayload"
+          },
+          "recorded_at": {
+            "format": "date-time",
+            "title": "Recorded At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "parent_id",
+          "name",
+          "content_hash",
+          "recorded_at",
+          "payload"
+        ],
+        "title": "AssumptionsResult",
+        "type": "object"
+      },
       "AttemptState": {
         "enum": [
           "QUEUED",
@@ -77,6 +225,76 @@
           "completed_at"
         ],
         "title": "AttemptSummary",
+        "type": "object"
+      },
+      "AttributeCoefficient": {
+        "additionalProperties": false,
+        "properties": {
+          "attribute_id": {
+            "title": "Attribute Id",
+            "type": "string"
+          },
+          "percent": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Percent",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "attribute_id",
+          "percent"
+        ],
+        "title": "AttributeCoefficient",
+        "type": "object"
+      },
+      "AttributeScore": {
+        "additionalProperties": false,
+        "properties": {
+          "attribute_id": {
+            "minLength": 1,
+            "title": "Attribute Id",
+            "type": "string"
+          },
+          "classification": {
+            "enum": [
+              "SIMULATED",
+              "OBSERVED"
+            ],
+            "title": "Classification",
+            "type": "string"
+          },
+          "raw_note": {
+            "minLength": 1,
+            "title": "Raw Note",
+            "type": "string"
+          },
+          "score_bp": {
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "title": "Score Bp",
+            "type": "integer"
+          },
+          "transformation": {
+            "minLength": 1,
+            "title": "Transformation",
+            "type": "string"
+          },
+          "transformation_version": {
+            "minLength": 1,
+            "title": "Transformation Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "attribute_id",
+          "score_bp",
+          "raw_note",
+          "transformation",
+          "transformation_version",
+          "classification"
+        ],
+        "title": "AttributeScore",
         "type": "object"
       },
       "BaselinePolicy": {
@@ -182,6 +400,451 @@
         "title": "BaselinePolicy",
         "type": "object"
       },
+      "Candidate": {
+        "additionalProperties": false,
+        "properties": {
+          "assignments": {
+            "items": {
+              "$ref": "#/components/schemas/TransferAssignment"
+            },
+            "title": "Assignments",
+            "type": "array"
+          },
+          "claimed_metrics": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Metrics"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "route_quantities": {
+            "items": {
+              "$ref": "#/components/schemas/RouteQuantity"
+            },
+            "title": "Route Quantities",
+            "type": "array"
+          }
+        },
+        "required": [
+          "route_quantities",
+          "assignments"
+        ],
+        "title": "Candidate",
+        "type": "object"
+      },
+      "CandidateKey": {
+        "additionalProperties": false,
+        "properties": {
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "route_id": {
+            "format": "uuid",
+            "title": "Route Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "route_id",
+          "product_id"
+        ],
+        "title": "CandidateKey",
+        "type": "object"
+      },
+      "Capacities": {
+        "additionalProperties": false,
+        "properties": {
+          "cost_budget_minor": {
+            "anyOf": [
+              {
+                "maximum": 25600000000000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Budget Minor"
+          },
+          "global_handling": {
+            "$ref": "#/components/schemas/ResidualCapacity"
+          },
+          "sites": {
+            "items": {
+              "$ref": "#/components/schemas/SiteCapacity"
+            },
+            "title": "Sites",
+            "type": "array"
+          }
+        },
+        "required": [
+          "sites",
+          "global_handling",
+          "cost_budget_minor"
+        ],
+        "title": "Capacities",
+        "type": "object"
+      },
+      "ComparisonRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "scenario_id": {
+            "format": "uuid",
+            "title": "Scenario Id",
+            "type": "string"
+          },
+          "search_seconds": {
+            "default": 120,
+            "maximum": 300.0,
+            "minimum": 1.0,
+            "title": "Search Seconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "scenario_id"
+        ],
+        "title": "ComparisonRequest",
+        "type": "object"
+      },
+      "ComparisonResult": {
+        "additionalProperties": false,
+        "properties": {
+          "baseline_metrics": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Metrics"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "common_differences": {
+            "additionalProperties": true,
+            "title": "Common Differences",
+            "type": "object"
+          },
+          "historical": {
+            "title": "Historical",
+            "type": "boolean"
+          },
+          "methods": {
+            "items": {
+              "$ref": "#/components/schemas/MethodOutcome"
+            },
+            "title": "Methods",
+            "type": "array"
+          },
+          "operational_hash": {
+            "title": "Operational Hash",
+            "type": "string"
+          },
+          "outcome": {
+            "enum": [
+              "SUCCEEDED",
+              "PARTIAL",
+              "FAILED"
+            ],
+            "title": "Outcome",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "or-comparison-v2",
+            "default": "or-comparison-v2",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "transfer_mode": {
+            "$ref": "#/components/schemas/TransferMode"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "operational_hash",
+          "transfer_mode",
+          "outcome",
+          "methods",
+          "common_differences",
+          "historical",
+          "warnings"
+        ],
+        "title": "ComparisonResult",
+        "type": "object"
+      },
+      "ConfirmedArrival": {
+        "additionalProperties": false,
+        "properties": {
+          "already_posted": {
+            "title": "Already Posted",
+            "type": "boolean"
+          },
+          "available_on": {
+            "format": "date",
+            "title": "Available On",
+            "type": "string"
+          },
+          "confirmed": {
+            "title": "Confirmed",
+            "type": "boolean"
+          },
+          "eligibility": {
+            "enum": [
+              "ELIGIBLE",
+              "HELD",
+              "UNKNOWN"
+            ],
+            "title": "Eligibility",
+            "type": "string"
+          },
+          "expires_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires On"
+          },
+          "expiry_kind": {
+            "enum": [
+              "DATED",
+              "NON_EXPIRING",
+              "UNKNOWN"
+            ],
+            "title": "Expiry Kind",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "site_id": {
+            "format": "uuid",
+            "title": "Site Id",
+            "type": "string"
+          },
+          "source_line_id": {
+            "format": "uuid",
+            "title": "Source Line Id",
+            "type": "string"
+          },
+          "source_revision": {
+            "minLength": 1,
+            "title": "Source Revision",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "units": {
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Units",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "source_line_id",
+          "site_id",
+          "product_id",
+          "unit",
+          "units",
+          "available_on",
+          "expires_on",
+          "expiry_kind",
+          "eligibility",
+          "confirmed",
+          "already_posted",
+          "source_revision"
+        ],
+        "title": "ConfirmedArrival",
+        "type": "object"
+      },
+      "DemandDay": {
+        "additionalProperties": false,
+        "properties": {
+          "day": {
+            "format": "date",
+            "title": "Day",
+            "type": "string"
+          },
+          "method": {
+            "enum": [
+              "CENTRAL",
+              "MODEL_UPPER_QUANTILE",
+              "EXPLICIT_BUFFER"
+            ],
+            "title": "Method",
+            "type": "string"
+          },
+          "source_literal": {
+            "title": "Source Literal",
+            "type": "string"
+          },
+          "units": {
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Units",
+            "type": "integer"
+          },
+          "unrounded_literal": {
+            "title": "Unrounded Literal",
+            "type": "string"
+          }
+        },
+        "required": [
+          "day",
+          "source_literal",
+          "unrounded_literal",
+          "units",
+          "method"
+        ],
+        "title": "DemandDay",
+        "type": "object"
+      },
+      "DemandModifier": {
+        "additionalProperties": false,
+        "properties": {
+          "buffer_fraction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buffer Fraction"
+          },
+          "mode": {
+            "enum": [
+              "CENTRAL",
+              "CONSERVATIVE"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "multiplier": {
+            "title": "Multiplier",
+            "type": "string"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "site_id": {
+            "format": "uuid",
+            "title": "Site Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "product_id",
+          "mode",
+          "multiplier",
+          "buffer_fraction"
+        ],
+        "title": "DemandModifier",
+        "type": "object"
+      },
+      "DemandSeries": {
+        "additionalProperties": false,
+        "properties": {
+          "actual_provider": {
+            "title": "Actual Provider",
+            "type": "string"
+          },
+          "basis": {
+            "title": "Basis",
+            "type": "string"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/DemandDay"
+            },
+            "maxItems": 7,
+            "minItems": 7,
+            "title": "Days",
+            "type": "array"
+          },
+          "forecast_result_id": {
+            "format": "uuid",
+            "title": "Forecast Result Id",
+            "type": "string"
+          },
+          "numeric_conversion": {
+            "enum": [
+              "EXACT_LITERAL",
+              "LEGACY_FLOAT_LITERAL"
+            ],
+            "title": "Numeric Conversion",
+            "type": "string"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "site_id": {
+            "format": "uuid",
+            "title": "Site Id",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "upstream_metadata_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Upstream Metadata Json"
+          }
+        },
+        "required": [
+          "site_id",
+          "product_id",
+          "unit",
+          "days",
+          "forecast_result_id",
+          "actual_provider",
+          "basis",
+          "numeric_conversion"
+        ],
+        "title": "DemandSeries",
+        "type": "object"
+      },
       "Diagnostics": {
         "additionalProperties": false,
         "properties": {
@@ -260,6 +923,25 @@
           "request_id"
         ],
         "title": "ErrorEnvelope",
+        "type": "object"
+      },
+      "Exclusion": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "resource_id": {
+            "title": "Resource Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "resource_id",
+          "code"
+        ],
+        "title": "Exclusion",
         "type": "object"
       },
       "ForecastAccepted": {
@@ -371,6 +1053,62 @@
           "products"
         ],
         "title": "ForecastCatalog",
+        "type": "object"
+      },
+      "ForecastDay": {
+        "additionalProperties": false,
+        "properties": {
+          "central_literal": {
+            "title": "Central Literal",
+            "type": "string"
+          },
+          "day": {
+            "format": "date",
+            "title": "Day",
+            "type": "string"
+          },
+          "p10_literal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P10 Literal"
+          },
+          "p50_literal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P50 Literal"
+          },
+          "p90_literal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P90 Literal"
+          }
+        },
+        "required": [
+          "day",
+          "central_literal",
+          "p10_literal",
+          "p50_literal",
+          "p90_literal"
+        ],
+        "title": "ForecastDay",
         "type": "object"
       },
       "ForecastJob": {
@@ -644,6 +1382,162 @@
         "title": "ForecastResult",
         "type": "object"
       },
+      "ForecastSeries": {
+        "additionalProperties": false,
+        "properties": {
+          "actual_provider": {
+            "minLength": 1,
+            "title": "Actual Provider",
+            "type": "string"
+          },
+          "basis": {
+            "enum": [
+              "REQUESTED",
+              "FULFILLED_PROXY"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "committed": {
+            "title": "Committed",
+            "type": "boolean"
+          },
+          "cutoff": {
+            "format": "date",
+            "title": "Cutoff",
+            "type": "string"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/ForecastDay"
+            },
+            "maxItems": 7,
+            "minItems": 7,
+            "title": "Days",
+            "type": "array"
+          },
+          "estimate_kind": {
+            "enum": [
+              "POINT",
+              "MEAN",
+              "MEDIAN"
+            ],
+            "title": "Estimate Kind",
+            "type": "string"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "interval_method": {
+            "enum": [
+              "NONE",
+              "MODEL_QUANTILES"
+            ],
+            "title": "Interval Method",
+            "type": "string"
+          },
+          "numeric_conversion": {
+            "enum": [
+              "EXACT_LITERAL",
+              "LEGACY_FLOAT_LITERAL"
+            ],
+            "title": "Numeric Conversion",
+            "type": "string"
+          },
+          "organization_id": {
+            "format": "uuid",
+            "title": "Organization Id",
+            "type": "string"
+          },
+          "planning_ready": {
+            "title": "Planning Ready",
+            "type": "boolean"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "site_id": {
+            "format": "uuid",
+            "title": "Site Id",
+            "type": "string"
+          },
+          "source_classification": {
+            "enum": [
+              "SIMULATED",
+              "OBSERVED",
+              "MIXED"
+            ],
+            "title": "Source Classification",
+            "type": "string"
+          },
+          "source_id": {
+            "format": "uuid",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_revision": {
+            "title": "Source Revision",
+            "type": "string"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "upstream_metadata_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Upstream Metadata Json"
+          }
+        },
+        "required": [
+          "id",
+          "run_id",
+          "source_id",
+          "organization_id",
+          "site_id",
+          "product_id",
+          "unit",
+          "timezone",
+          "source_revision",
+          "actual_provider",
+          "basis",
+          "source_classification",
+          "estimate_kind",
+          "interval_method",
+          "cutoff",
+          "generated_at",
+          "committed",
+          "planning_ready",
+          "numeric_conversion",
+          "days"
+        ],
+        "title": "ForecastSeries",
+        "type": "object"
+      },
       "ForecastSeriesResult": {
         "additionalProperties": false,
         "properties": {
@@ -750,6 +1644,157 @@
         "title": "ForecastSeriesResult",
         "type": "object"
       },
+      "GoalMetric": {
+        "additionalProperties": false,
+        "properties": {
+          "ap": {
+            "title": "Ap",
+            "type": "boolean"
+          },
+          "deficit": {
+            "$ref": "#/components/schemas/Rational"
+          },
+          "exact_ap": {
+            "title": "Exact Ap",
+            "type": "boolean"
+          },
+          "exact_rp": {
+            "title": "Exact Rp",
+            "type": "boolean"
+          },
+          "fulfilled": {
+            "title": "Fulfilled",
+            "type": "integer"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "q": {
+            "title": "Q",
+            "type": "integer"
+          },
+          "q0": {
+            "title": "Q0",
+            "type": "integer"
+          },
+          "rp": {
+            "title": "Rp",
+            "type": "boolean"
+          },
+          "service_ratio": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Rational"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "site_id": {
+            "format": "uuid",
+            "title": "Site Id",
+            "type": "string"
+          },
+          "target": {
+            "title": "Target",
+            "type": "integer"
+          },
+          "unmet": {
+            "title": "Unmet",
+            "type": "integer"
+          },
+          "vulnerability": {
+            "$ref": "#/components/schemas/Rational"
+          },
+          "weighted_deficit": {
+            "$ref": "#/components/schemas/Rational"
+          }
+        },
+        "required": [
+          "site_id",
+          "product_id",
+          "target",
+          "fulfilled",
+          "unmet",
+          "service_ratio",
+          "deficit",
+          "vulnerability",
+          "weighted_deficit",
+          "q",
+          "q0",
+          "ap",
+          "rp",
+          "exact_ap",
+          "exact_rp"
+        ],
+        "title": "GoalMetric",
+        "type": "object"
+      },
+      "GroupMetric": {
+        "additionalProperties": false,
+        "properties": {
+          "ap_count": {
+            "title": "Ap Count",
+            "type": "integer"
+          },
+          "ap_excess_numerator": {
+            "title": "Ap Excess Numerator",
+            "type": "integer"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "rp_count": {
+            "title": "Rp Count",
+            "type": "integer"
+          },
+          "rp_excess_numerator": {
+            "title": "Rp Excess Numerator",
+            "type": "integer"
+          },
+          "size": {
+            "title": "Size",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "product_id",
+          "size",
+          "ap_count",
+          "rp_count",
+          "ap_excess_numerator",
+          "rp_excess_numerator"
+        ],
+        "title": "GroupMetric",
+        "type": "object"
+      },
+      "HandlingCoefficient": {
+        "additionalProperties": false,
+        "properties": {
+          "coefficient": {
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Coefficient",
+            "type": "integer"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_id",
+          "coefficient"
+        ],
+        "title": "HandlingCoefficient",
+        "type": "object"
+      },
       "HealthResponse": {
         "properties": {
           "scope": {
@@ -768,6 +1813,142 @@
           "scope"
         ],
         "title": "HealthResponse",
+        "type": "object"
+      },
+      "InventoryLot": {
+        "additionalProperties": false,
+        "properties": {
+          "available_on": {
+            "format": "date",
+            "title": "Available On",
+            "type": "string"
+          },
+          "commitment_overlaps_demand": {
+            "title": "Commitment Overlaps Demand",
+            "type": "boolean"
+          },
+          "commitment_scope_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Commitment Scope Refs",
+            "type": "array"
+          },
+          "committed_units": {
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Committed Units",
+            "type": "integer"
+          },
+          "dispatchable": {
+            "title": "Dispatchable",
+            "type": "boolean"
+          },
+          "eligibility": {
+            "enum": [
+              "ELIGIBLE",
+              "HELD",
+              "UNKNOWN"
+            ],
+            "title": "Eligibility",
+            "type": "string"
+          },
+          "expires_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires On"
+          },
+          "expiry_kind": {
+            "enum": [
+              "DATED",
+              "NON_EXPIRING",
+              "UNKNOWN"
+            ],
+            "title": "Expiry Kind",
+            "type": "string"
+          },
+          "free_units": {
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Free Units",
+            "type": "integer"
+          },
+          "held_units": {
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Held Units",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "physical_units": {
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Physical Units",
+            "type": "integer"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "reserved_units": {
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Reserved Units",
+            "type": "integer"
+          },
+          "site_id": {
+            "format": "uuid",
+            "title": "Site Id",
+            "type": "string"
+          },
+          "source_line_id": {
+            "format": "uuid",
+            "title": "Source Line Id",
+            "type": "string"
+          },
+          "source_revision": {
+            "minLength": 1,
+            "title": "Source Revision",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "site_id",
+          "product_id",
+          "unit",
+          "physical_units",
+          "free_units",
+          "reserved_units",
+          "committed_units",
+          "held_units",
+          "available_on",
+          "expires_on",
+          "expiry_kind",
+          "eligibility",
+          "source_line_id",
+          "source_revision",
+          "dispatchable",
+          "commitment_scope_refs",
+          "commitment_overlaps_demand"
+        ],
+        "title": "InventoryLot",
         "type": "object"
       },
       "LoginRequest": {
@@ -837,6 +2018,931 @@
         "title": "LogoutResponse",
         "type": "object"
       },
+      "LotTrajectory": {
+        "additionalProperties": false,
+        "properties": {
+          "arrival": {
+            "format": "date",
+            "title": "Arrival",
+            "type": "string"
+          },
+          "consumed": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Consumed",
+            "type": "array"
+          },
+          "end_balances": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "End Balances",
+            "type": "array"
+          },
+          "expired": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Expired",
+            "type": "array"
+          },
+          "expires_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires On"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "initial_units": {
+            "title": "Initial Units",
+            "type": "integer"
+          },
+          "original_lot_id": {
+            "format": "uuid",
+            "title": "Original Lot Id",
+            "type": "string"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "proposed": {
+            "title": "Proposed",
+            "type": "boolean"
+          },
+          "site_id": {
+            "format": "uuid",
+            "title": "Site Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "original_lot_id",
+          "site_id",
+          "product_id",
+          "arrival",
+          "expires_on",
+          "initial_units",
+          "consumed",
+          "expired",
+          "end_balances",
+          "proposed"
+        ],
+        "title": "LotTrajectory",
+        "type": "object"
+      },
+      "MethodOutcome": {
+        "additionalProperties": false,
+        "properties": {
+          "candidate": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Candidate"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "decision_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Decision Ids",
+            "type": "array"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "gap": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gap"
+          },
+          "historical": {
+            "default": false,
+            "title": "Historical",
+            "type": "boolean"
+          },
+          "method": {
+            "$ref": "#/components/schemas/AllocationMethod"
+          },
+          "native_bound": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Native Bound"
+          },
+          "native_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Native Status"
+          },
+          "objective": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Rational"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "objective_integer": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Objective Integer"
+          },
+          "objective_scale": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Rational"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "operational_hash": {
+            "title": "Operational Hash",
+            "type": "string"
+          },
+          "outcome": {
+            "enum": [
+              "VERIFIED",
+              "FAILED",
+              "TIMED_OUT",
+              "CANCELLED",
+              "INTERRUPTED"
+            ],
+            "title": "Outcome",
+            "type": "string"
+          },
+          "physical_fingerprint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Physical Fingerprint"
+          },
+          "policy_hash": {
+            "title": "Policy Hash",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "or-method-result-v2",
+            "default": "or-method-result-v2",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "search_seconds": {
+            "default": 0,
+            "title": "Search Seconds",
+            "type": "number"
+          },
+          "settings_hash": {
+            "title": "Settings Hash",
+            "type": "string"
+          },
+          "solver_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Solver Version"
+          },
+          "termination_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Termination Reason"
+          },
+          "total_seconds": {
+            "default": 0,
+            "title": "Total Seconds",
+            "type": "number"
+          },
+          "transfer_mode": {
+            "$ref": "#/components/schemas/TransferMode"
+          },
+          "verification": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VerificationReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "method",
+          "transfer_mode",
+          "operational_hash",
+          "policy_hash",
+          "settings_hash",
+          "decision_ids",
+          "native_status",
+          "outcome",
+          "candidate",
+          "verification",
+          "objective"
+        ],
+        "title": "MethodOutcome",
+        "type": "object"
+      },
+      "Metrics": {
+        "additionalProperties": false,
+        "properties": {
+          "W": {
+            "$ref": "#/components/schemas/Rational"
+          },
+          "W0": {
+            "$ref": "#/components/schemas/Rational"
+          },
+          "Z": {
+            "$ref": "#/components/schemas/Rational"
+          },
+          "Z0": {
+            "$ref": "#/components/schemas/Rational"
+          },
+          "ap_excess": {
+            "$ref": "#/components/schemas/Rational"
+          },
+          "classical_objective": {
+            "$ref": "#/components/schemas/Rational"
+          },
+          "cost_minor": {
+            "title": "Cost Minor",
+            "type": "integer"
+          },
+          "goals": {
+            "items": {
+              "$ref": "#/components/schemas/GoalMetric"
+            },
+            "title": "Goals",
+            "type": "array"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/GroupMetric"
+            },
+            "title": "Groups",
+            "type": "array"
+          },
+          "q_cost": {
+            "title": "Q Cost",
+            "type": "integer"
+          },
+          "q_waste_by_product": {
+            "items": {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            },
+            "title": "Q Waste By Product",
+            "type": "array"
+          },
+          "research_objective": {
+            "$ref": "#/components/schemas/Rational"
+          },
+          "rp_excess": {
+            "$ref": "#/components/schemas/Rational"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "waste_by_product": {
+            "items": {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            },
+            "title": "Waste By Product",
+            "type": "array"
+          }
+        },
+        "required": [
+          "goals",
+          "groups",
+          "cost_minor",
+          "q_cost",
+          "waste_by_product",
+          "q_waste_by_product",
+          "W",
+          "Z",
+          "W0",
+          "Z0",
+          "ap_excess",
+          "rp_excess",
+          "classical_objective",
+          "research_objective",
+          "warnings"
+        ],
+        "title": "Metrics",
+        "type": "object"
+      },
+      "ORInputPackage": {
+        "additionalProperties": false,
+        "properties": {
+          "capacities": {
+            "$ref": "#/components/schemas/Capacities"
+          },
+          "confirmed_arrivals": {
+            "items": {
+              "$ref": "#/components/schemas/ConfirmedArrival"
+            },
+            "title": "Confirmed Arrivals",
+            "type": "array"
+          },
+          "dataset_id": {
+            "format": "uuid",
+            "title": "Dataset Id",
+            "type": "string"
+          },
+          "decision_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Decision Ids",
+            "type": "array"
+          },
+          "first_planning_date": {
+            "format": "date",
+            "title": "First Planning Date",
+            "type": "string"
+          },
+          "forecasts": {
+            "items": {
+              "$ref": "#/components/schemas/ForecastSeries"
+            },
+            "title": "Forecasts",
+            "type": "array"
+          },
+          "inventory": {
+            "items": {
+              "$ref": "#/components/schemas/InventoryLot"
+            },
+            "title": "Inventory",
+            "type": "array"
+          },
+          "operational_timezone": {
+            "title": "Operational Timezone",
+            "type": "string"
+          },
+          "organization_id": {
+            "format": "uuid",
+            "title": "Organization Id",
+            "type": "string"
+          },
+          "products": {
+            "items": {
+              "$ref": "#/components/schemas/Product"
+            },
+            "maxItems": 2,
+            "minItems": 1,
+            "title": "Products",
+            "type": "array"
+          },
+          "provenance_warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Provenance Warnings",
+            "type": "array"
+          },
+          "reserves": {
+            "items": {
+              "$ref": "#/components/schemas/Reserve"
+            },
+            "title": "Reserves",
+            "type": "array"
+          },
+          "routes": {
+            "items": {
+              "$ref": "#/components/schemas/Route"
+            },
+            "maxItems": 182,
+            "title": "Routes",
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "or-input-v2",
+            "default": "or-input-v2",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "sites": {
+            "items": {
+              "$ref": "#/components/schemas/Site"
+            },
+            "maxItems": 14,
+            "minItems": 2,
+            "title": "Sites",
+            "type": "array"
+          },
+          "snapshot_as_of": {
+            "format": "date-time",
+            "title": "Snapshot As Of",
+            "type": "string"
+          },
+          "source_coverage": {
+            "$ref": "#/components/schemas/SourceCoverage"
+          },
+          "source_kind": {
+            "enum": [
+              "SIMULATED",
+              "LIVE"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_manifest_hash": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Source Manifest Hash",
+            "type": "string"
+          },
+          "source_refs": {
+            "items": {
+              "$ref": "#/components/schemas/SourceRef"
+            },
+            "minItems": 1,
+            "title": "Source Refs",
+            "type": "array"
+          },
+          "source_revision_token": {
+            "minLength": 1,
+            "title": "Source Revision Token",
+            "type": "string"
+          },
+          "vulnerability_attributes": {
+            "items": {
+              "$ref": "#/components/schemas/VulnerabilityAttributes"
+            },
+            "title": "Vulnerability Attributes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "organization_id",
+          "dataset_id",
+          "source_kind",
+          "source_revision_token",
+          "source_refs",
+          "snapshot_as_of",
+          "operational_timezone",
+          "first_planning_date",
+          "sites",
+          "products",
+          "forecasts",
+          "inventory",
+          "confirmed_arrivals",
+          "routes",
+          "capacities",
+          "reserves",
+          "vulnerability_attributes",
+          "source_coverage",
+          "source_manifest_hash",
+          "provenance_warnings",
+          "decision_ids"
+        ],
+        "title": "ORInputPackage",
+        "type": "object"
+      },
+      "ORPolicy": {
+        "additionalProperties": false,
+        "properties": {
+          "ap_cap_bp": {
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "title": "Ap Cap Bp",
+            "type": "integer"
+          },
+          "ap_threshold": {
+            "maximum": 20000.0,
+            "minimum": 0.0,
+            "title": "Ap Threshold",
+            "type": "integer"
+          },
+          "beta_percent": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Beta Percent",
+            "type": "integer"
+          },
+          "coefficients": {
+            "items": {
+              "$ref": "#/components/schemas/AttributeCoefficient"
+            },
+            "maxItems": 8,
+            "minItems": 2,
+            "title": "Coefficients",
+            "type": "array"
+          },
+          "decision_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Decision Ids",
+            "type": "array"
+          },
+          "epsilon_cost_bp": {
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "title": "Epsilon Cost Bp",
+            "type": "integer"
+          },
+          "epsilon_waste_bp": {
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "title": "Epsilon Waste Bp",
+            "type": "integer"
+          },
+          "gamma_ap_percent": {
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "Gamma Ap Percent",
+            "type": "integer"
+          },
+          "gamma_rp_percent": {
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "Gamma Rp Percent",
+            "type": "integer"
+          },
+          "lambda_percent": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Lambda Percent",
+            "type": "integer"
+          },
+          "purpose": {
+            "enum": [
+              "PRIMARY",
+              "ABLATION"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          },
+          "rp_cap_bp": {
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "title": "Rp Cap Bp",
+            "type": "integer"
+          },
+          "rp_threshold": {
+            "maximum": 20000.0,
+            "minimum": 0.0,
+            "title": "Rp Threshold",
+            "type": "integer"
+          },
+          "schema_version": {
+            "const": "or-policy-v1",
+            "default": "or-policy-v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "version": {
+            "minLength": 1,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "purpose",
+          "lambda_percent",
+          "beta_percent",
+          "coefficients",
+          "ap_threshold",
+          "rp_threshold",
+          "ap_cap_bp",
+          "rp_cap_bp",
+          "gamma_ap_percent",
+          "gamma_rp_percent",
+          "epsilon_cost_bp",
+          "epsilon_waste_bp",
+          "decision_ids"
+        ],
+        "title": "ORPolicy",
+        "type": "object"
+      },
+      "ORScenarioPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "cost_reference": {
+            "maximum": 25600000000000.0,
+            "minimum": 0.0,
+            "title": "Cost Reference",
+            "type": "integer"
+          },
+          "decision_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Decision Ids",
+            "type": "array"
+          },
+          "demand": {
+            "items": {
+              "$ref": "#/components/schemas/DemandSeries"
+            },
+            "title": "Demand",
+            "type": "array"
+          },
+          "intent": {
+            "enum": [
+              "CURRENT",
+              "HISTORICAL_REPLAY"
+            ],
+            "title": "Intent",
+            "type": "string"
+          },
+          "loading_order": {
+            "items": {
+              "$ref": "#/components/schemas/CandidateKey"
+            },
+            "title": "Loading Order",
+            "type": "array"
+          },
+          "modifiers": {
+            "items": {
+              "$ref": "#/components/schemas/DemandModifier"
+            },
+            "title": "Modifiers",
+            "type": "array"
+          },
+          "operational_hash": {
+            "title": "Operational Hash",
+            "type": "string"
+          },
+          "package": {
+            "$ref": "#/components/schemas/ORInputPackage"
+          },
+          "planning_days": {
+            "maximum": 3.0,
+            "minimum": 1.0,
+            "title": "Planning Days",
+            "type": "integer"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/ORPolicy"
+          },
+          "policy_hash": {
+            "title": "Policy Hash",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "or-scenario-v2",
+            "default": "or-scenario-v2",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "transfer_mode": {
+            "$ref": "#/components/schemas/TransferMode"
+          },
+          "waste_references": {
+            "items": {
+              "$ref": "#/components/schemas/ProductReference"
+            },
+            "title": "Waste References",
+            "type": "array"
+          }
+        },
+        "required": [
+          "package",
+          "policy",
+          "transfer_mode",
+          "planning_days",
+          "intent",
+          "modifiers",
+          "demand",
+          "loading_order",
+          "cost_reference",
+          "waste_references",
+          "decision_ids",
+          "policy_hash",
+          "operational_hash"
+        ],
+        "title": "ORScenarioPayload",
+        "type": "object"
+      },
+      "PlanningCatalog": {
+        "additionalProperties": false,
+        "properties": {
+          "assumptions": {
+            "items": {
+              "$ref": "#/components/schemas/SavedItem"
+            },
+            "title": "Assumptions",
+            "type": "array"
+          },
+          "comparisons": {
+            "items": {
+              "$ref": "#/components/schemas/SavedItem"
+            },
+            "title": "Comparisons",
+            "type": "array"
+          },
+          "forecasts": {
+            "items": {
+              "$ref": "#/components/schemas/SavedItem"
+            },
+            "title": "Forecasts",
+            "type": "array"
+          },
+          "next_before": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Before"
+          },
+          "next_before_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Before Id"
+          },
+          "scenarios": {
+            "items": {
+              "$ref": "#/components/schemas/SavedItem"
+            },
+            "title": "Scenarios",
+            "type": "array"
+          },
+          "source_revision": {
+            "title": "Source Revision",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_revision",
+          "assumptions",
+          "forecasts",
+          "scenarios",
+          "comparisons",
+          "next_before",
+          "next_before_id"
+        ],
+        "title": "PlanningCatalog",
+        "type": "object"
+      },
+      "Product": {
+        "additionalProperties": false,
+        "properties": {
+          "handling_coefficient": {
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Handling Coefficient",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "source_revision": {
+            "minLength": 1,
+            "title": "Source Revision",
+            "type": "string"
+          },
+          "unit": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "unit",
+          "handling_coefficient",
+          "source_revision"
+        ],
+        "title": "Product",
+        "type": "object"
+      },
+      "ProductReference": {
+        "additionalProperties": false,
+        "properties": {
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "units": {
+            "maximum": 25600000000.0,
+            "minimum": 0.0,
+            "title": "Units",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "product_id",
+          "units"
+        ],
+        "title": "ProductReference",
+        "type": "object"
+      },
       "ProductSummary": {
         "additionalProperties": false,
         "properties": {
@@ -860,6 +2966,138 @@
           "base_unit"
         ],
         "title": "ProductSummary",
+        "type": "object"
+      },
+      "ProjectionDay": {
+        "additionalProperties": false,
+        "properties": {
+          "day": {
+            "format": "date",
+            "title": "Day",
+            "type": "string"
+          },
+          "demand": {
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Demand",
+            "type": "integer"
+          },
+          "expired": {
+            "minimum": 0.0,
+            "title": "Expired",
+            "type": "integer"
+          },
+          "on_hand": {
+            "minimum": 0.0,
+            "title": "On Hand",
+            "type": "integer"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "received": {
+            "minimum": 0.0,
+            "title": "Received",
+            "type": "integer"
+          },
+          "served": {
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Served",
+            "type": "integer"
+          },
+          "site_id": {
+            "format": "uuid",
+            "title": "Site Id",
+            "type": "string"
+          },
+          "unmet": {
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Unmet",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "site_id",
+          "product_id",
+          "day",
+          "demand",
+          "received",
+          "expired",
+          "served",
+          "unmet",
+          "on_hand"
+        ],
+        "title": "ProjectionDay",
+        "type": "object"
+      },
+      "ProjectionReport": {
+        "additionalProperties": false,
+        "properties": {
+          "blocked_units": {
+            "items": {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            },
+            "title": "Blocked Units",
+            "type": "array"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectionDay"
+            },
+            "title": "Days",
+            "type": "array"
+          },
+          "exclusions": {
+            "items": {
+              "$ref": "#/components/schemas/Exclusion"
+            },
+            "title": "Exclusions",
+            "type": "array"
+          },
+          "lots": {
+            "items": {
+              "$ref": "#/components/schemas/LotTrajectory"
+            },
+            "title": "Lots",
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "or-projection-v2",
+            "default": "or-projection-v2",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "transit": {
+            "items": {
+              "$ref": "#/components/schemas/TransitDay"
+            },
+            "title": "Transit",
+            "type": "array"
+          }
+        },
+        "required": [
+          "days",
+          "lots",
+          "transit",
+          "exclusions",
+          "blocked_units"
+        ],
+        "title": "ProjectionReport",
         "type": "object"
       },
       "ProviderIdentity": {
@@ -913,6 +3151,403 @@
           "name"
         ],
         "title": "ProviderIdentity",
+        "type": "object"
+      },
+      "Rational": {
+        "additionalProperties": false,
+        "properties": {
+          "denominator": {
+            "exclusiveMinimum": 0.0,
+            "title": "Denominator",
+            "type": "integer"
+          },
+          "numerator": {
+            "title": "Numerator",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "numerator",
+          "denominator"
+        ],
+        "title": "Rational",
+        "type": "object"
+      },
+      "Reserve": {
+        "additionalProperties": false,
+        "properties": {
+          "floors": {
+            "items": {
+              "maximum": 100000.0,
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "maxItems": 7,
+            "minItems": 7,
+            "title": "Floors",
+            "type": "array"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "site_id": {
+            "format": "uuid",
+            "title": "Site Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "product_id",
+          "floors"
+        ],
+        "title": "Reserve",
+        "type": "object"
+      },
+      "ResidualCapacity": {
+        "additionalProperties": false,
+        "properties": {
+          "fixed_used": {
+            "maximum": 25600000000.0,
+            "minimum": 0.0,
+            "title": "Fixed Used",
+            "type": "integer"
+          },
+          "original": {
+            "maximum": 25600000000.0,
+            "minimum": 0.0,
+            "title": "Original",
+            "type": "integer"
+          },
+          "residual": {
+            "maximum": 25600000000.0,
+            "minimum": 0.0,
+            "title": "Residual",
+            "type": "integer"
+          },
+          "source_revision": {
+            "minLength": 1,
+            "title": "Source Revision",
+            "type": "string"
+          }
+        },
+        "required": [
+          "original",
+          "fixed_used",
+          "residual",
+          "source_revision"
+        ],
+        "title": "ResidualCapacity",
+        "type": "object"
+      },
+      "Route": {
+        "additionalProperties": false,
+        "properties": {
+          "capacity": {
+            "$ref": "#/components/schemas/ResidualCapacity"
+          },
+          "cost_unit": {
+            "minLength": 1,
+            "title": "Cost Unit",
+            "type": "string"
+          },
+          "costs": {
+            "items": {
+              "$ref": "#/components/schemas/RouteCost"
+            },
+            "title": "Costs",
+            "type": "array"
+          },
+          "destination_id": {
+            "format": "uuid",
+            "title": "Destination Id",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "eta_days": {
+            "maximum": 2.0,
+            "minimum": 0.0,
+            "title": "Eta Days",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "source_id": {
+            "format": "uuid",
+            "title": "Source Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "source_id",
+          "destination_id",
+          "enabled",
+          "eta_days",
+          "capacity",
+          "costs",
+          "cost_unit"
+        ],
+        "title": "Route",
+        "type": "object"
+      },
+      "RouteCost": {
+        "additionalProperties": false,
+        "properties": {
+          "cost_minor": {
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "title": "Cost Minor",
+            "type": "integer"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_id",
+          "cost_minor"
+        ],
+        "title": "RouteCost",
+        "type": "object"
+      },
+      "RouteQuantity": {
+        "additionalProperties": false,
+        "properties": {
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "route_id": {
+            "format": "uuid",
+            "title": "Route Id",
+            "type": "string"
+          },
+          "units": {
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Units",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "route_id",
+          "product_id",
+          "units"
+        ],
+        "title": "RouteQuantity",
+        "type": "object"
+      },
+      "SavedComparison": {
+        "additionalProperties": false,
+        "properties": {
+          "historical": {
+            "title": "Historical",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "recorded_at": {
+            "format": "date-time",
+            "title": "Recorded At",
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/ComparisonResult"
+          },
+          "scenario_id": {
+            "format": "uuid",
+            "title": "Scenario Id",
+            "type": "string"
+          },
+          "settings": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Settings",
+            "type": "object"
+          },
+          "stale": {
+            "title": "Stale",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "scenario_id",
+          "recorded_at",
+          "settings",
+          "stale",
+          "historical",
+          "result"
+        ],
+        "title": "SavedComparison",
+        "type": "object"
+      },
+      "SavedItem": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "recorded_at": {
+            "format": "date-time",
+            "title": "Recorded At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "recorded_at",
+          "label"
+        ],
+        "title": "SavedItem",
+        "type": "object"
+      },
+      "ScenarioRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "assumptions_id": {
+            "format": "uuid",
+            "title": "Assumptions Id",
+            "type": "string"
+          },
+          "expected_source_revision": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Expected Source Revision",
+            "type": "string"
+          },
+          "forecast_run_id": {
+            "format": "uuid",
+            "title": "Forecast Run Id",
+            "type": "string"
+          },
+          "modifiers": {
+            "items": {
+              "$ref": "#/components/schemas/DemandModifier"
+            },
+            "maxItems": 28,
+            "title": "Modifiers",
+            "type": "array"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "planning_days": {
+            "maximum": 3.0,
+            "minimum": 1.0,
+            "title": "Planning Days",
+            "type": "integer"
+          },
+          "transfer_mode": {
+            "$ref": "#/components/schemas/TransferMode"
+          }
+        },
+        "required": [
+          "forecast_run_id",
+          "assumptions_id",
+          "expected_source_revision",
+          "transfer_mode",
+          "planning_days",
+          "modifiers"
+        ],
+        "title": "ScenarioRequest",
+        "type": "object"
+      },
+      "ScenarioResult": {
+        "additionalProperties": false,
+        "properties": {
+          "assumptions_id": {
+            "format": "uuid",
+            "title": "Assumptions Id",
+            "type": "string"
+          },
+          "forecast_run_id": {
+            "format": "uuid",
+            "title": "Forecast Run Id",
+            "type": "string"
+          },
+          "historical": {
+            "title": "Historical",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/ORScenarioPayload"
+          },
+          "recorded_at": {
+            "format": "date-time",
+            "title": "Recorded At",
+            "type": "string"
+          },
+          "stale": {
+            "title": "Stale",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "parent_id",
+          "forecast_run_id",
+          "assumptions_id",
+          "recorded_at",
+          "stale",
+          "historical",
+          "payload"
+        ],
+        "title": "ScenarioResult",
         "type": "object"
       },
       "SeriesKey": {
@@ -991,6 +3626,93 @@
         "title": "SeriesScope",
         "type": "object"
       },
+      "Site": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "organization_id": {
+            "format": "uuid",
+            "title": "Organization Id",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "HUB",
+              "BENEFICIARY"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "source_revision": {
+            "minLength": 1,
+            "title": "Source Revision",
+            "type": "string"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "role",
+          "name",
+          "timezone",
+          "source_revision"
+        ],
+        "title": "Site",
+        "type": "object"
+      },
+      "SiteCapacity": {
+        "additionalProperties": false,
+        "properties": {
+          "receiving": {
+            "items": {
+              "$ref": "#/components/schemas/ResidualCapacity"
+            },
+            "maxItems": 7,
+            "minItems": 7,
+            "title": "Receiving",
+            "type": "array"
+          },
+          "site_id": {
+            "format": "uuid",
+            "title": "Site Id",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/ResidualCapacity"
+          },
+          "storage": {
+            "items": {
+              "$ref": "#/components/schemas/ResidualCapacity"
+            },
+            "maxItems": 7,
+            "minItems": 7,
+            "title": "Storage",
+            "type": "array"
+          }
+        },
+        "required": [
+          "site_id",
+          "source",
+          "receiving",
+          "storage"
+        ],
+        "title": "SiteCapacity",
+        "type": "object"
+      },
       "SiteSummary": {
         "additionalProperties": false,
         "properties": {
@@ -1023,6 +3745,79 @@
           "timezone"
         ],
         "title": "SiteSummary",
+        "type": "object"
+      },
+      "SourceCoverage": {
+        "additionalProperties": false,
+        "properties": {
+          "excluded_series": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Excluded Series",
+            "type": "array"
+          },
+          "forecast_handoff_hash": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forecast Handoff Hash"
+          },
+          "partial_scope": {
+            "title": "Partial Scope",
+            "type": "boolean"
+          },
+          "required_complete": {
+            "title": "Required Complete",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "required_complete",
+          "excluded_series",
+          "partial_scope",
+          "forecast_handoff_hash"
+        ],
+        "title": "SourceCoverage",
+        "type": "object"
+      },
+      "SourceRef": {
+        "additionalProperties": false,
+        "properties": {
+          "content_hash": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Content Hash",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "minLength": 1,
+            "title": "Kind",
+            "type": "string"
+          },
+          "revision": {
+            "minLength": 1,
+            "title": "Revision",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "revision",
+          "content_hash"
+        ],
+        "title": "SourceRef",
         "type": "object"
       },
       "SourceSummary": {
@@ -1087,6 +3882,225 @@
         ],
         "title": "StructuredError",
         "type": "object"
+      },
+      "TransferAssignment": {
+        "additionalProperties": false,
+        "properties": {
+          "arrival": {
+            "format": "date",
+            "title": "Arrival",
+            "type": "string"
+          },
+          "cost_minor": {
+            "minimum": 0.0,
+            "title": "Cost Minor",
+            "type": "integer"
+          },
+          "departure": {
+            "format": "date",
+            "title": "Departure",
+            "type": "string"
+          },
+          "destination_id": {
+            "format": "uuid",
+            "title": "Destination Id",
+            "type": "string"
+          },
+          "expires_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires On"
+          },
+          "original_lot_id": {
+            "format": "uuid",
+            "title": "Original Lot Id",
+            "type": "string"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "route_id": {
+            "format": "uuid",
+            "title": "Route Id",
+            "type": "string"
+          },
+          "source_id": {
+            "format": "uuid",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_revision": {
+            "title": "Source Revision",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "units": {
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Units",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "original_lot_id",
+          "route_id",
+          "source_id",
+          "destination_id",
+          "product_id",
+          "unit",
+          "units",
+          "departure",
+          "arrival",
+          "expires_on",
+          "source_revision",
+          "cost_minor"
+        ],
+        "title": "TransferAssignment",
+        "type": "object"
+      },
+      "TransferMode": {
+        "enum": [
+          "HUB_ONLY",
+          "HUB_AND_PANTRY"
+        ],
+        "title": "TransferMode",
+        "type": "string"
+      },
+      "TransitDay": {
+        "additionalProperties": false,
+        "properties": {
+          "day": {
+            "format": "date",
+            "title": "Day",
+            "type": "string"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "units": {
+            "title": "Units",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "day",
+          "product_id",
+          "units"
+        ],
+        "title": "TransitDay",
+        "type": "object"
+      },
+      "VerificationReport": {
+        "additionalProperties": false,
+        "properties": {
+          "candidate_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Candidate Hash"
+          },
+          "metrics": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Metrics"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "operational_hash": {
+            "title": "Operational Hash",
+            "type": "string"
+          },
+          "passed": {
+            "title": "Passed",
+            "type": "boolean"
+          },
+          "projection": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProjectionReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "schema_version": {
+            "const": "or-verification-v2",
+            "default": "or-verification-v2",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "verifier_version": {
+            "const": "independent-replay-v2",
+            "default": "independent-replay-v2",
+            "title": "Verifier Version",
+            "type": "string"
+          },
+          "violations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Violations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "passed",
+          "violations",
+          "projection",
+          "metrics",
+          "operational_hash",
+          "candidate_hash"
+        ],
+        "title": "VerificationReport",
+        "type": "object"
+      },
+      "VulnerabilityAttributes": {
+        "additionalProperties": false,
+        "properties": {
+          "scores": {
+            "items": {
+              "$ref": "#/components/schemas/AttributeScore"
+            },
+            "maxItems": 8,
+            "minItems": 2,
+            "title": "Scores",
+            "type": "array"
+          },
+          "site_id": {
+            "format": "uuid",
+            "title": "Site Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "site_id",
+          "scores"
+        ],
+        "title": "VulnerabilityAttributes",
+        "type": "object"
       }
     }
   },
@@ -1096,6 +4110,223 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/comparisons": {
+      "post": {
+        "operationId": "submit_api_v1_comparisons_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComparisonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForecastAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Submit",
+        "tags": [
+          "optimization"
+        ]
+      }
+    },
+    "/api/v1/comparisons/{identity}": {
+      "get": {
+        "operationId": "comparison_api_v1_comparisons__identity__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identity",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedComparison"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Comparison",
+        "tags": [
+          "optimization"
+        ]
+      }
+    },
     "/api/v1/forecast-catalog": {
       "get": {
         "operationId": "catalog_api_v1_forecast_catalog_get",
@@ -1937,6 +5168,337 @@
         ]
       }
     },
+    "/api/v1/planning-assumptions": {
+      "post": {
+        "operationId": "save_assumptions_api_v1_planning_assumptions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssumptionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssumptionsResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Save Assumptions",
+        "tags": [
+          "optimization"
+        ]
+      }
+    },
+    "/api/v1/planning-assumptions/{identity}": {
+      "get": {
+        "operationId": "assumptions_api_v1_planning_assumptions__identity__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identity",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssumptionsResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Assumptions",
+        "tags": [
+          "optimization"
+        ]
+      }
+    },
+    "/api/v1/planning-catalog": {
+      "get": {
+        "operationId": "catalog_api_v1_planning_catalog_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before"
+            }
+          },
+          {
+            "in": "query",
+            "name": "before_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanningCatalog"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Catalog",
+        "tags": [
+          "optimization"
+        ]
+      }
+    },
     "/api/v1/presenter/login": {
       "post": {
         "operationId": "presenter_login_api_v1_presenter_login_post",
@@ -2186,6 +5748,223 @@
         "summary": "Presenter Logout",
         "tags": [
           "presenter"
+        ]
+      }
+    },
+    "/api/v1/scenarios": {
+      "post": {
+        "operationId": "save_scenario_api_v1_scenarios_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScenarioRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Save Scenario",
+        "tags": [
+          "optimization"
+        ]
+      }
+    },
+    "/api/v1/scenarios/{identity}": {
+      "get": {
+        "operationId": "scenario_api_v1_scenarios__identity__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identity",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Scenario",
+        "tags": [
+          "optimization"
         ]
       }
     }

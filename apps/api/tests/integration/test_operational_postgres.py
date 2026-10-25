@@ -152,7 +152,7 @@ def test_existing_parent_history_upgrades_to_combined_head(storage, prior):
             migrate(connection, schema)
             assert connection.scalar(sa.text(
                 f'SELECT version_num FROM "{schema}".alembic_version'
-            )) == "pp45_0004"
+            )) == "ppor_0005"
             assert set(sa.inspect(connection).get_table_names(schema=schema)) == (
                 set(m.Base.metadata.tables) | set(job_metadata.tables) | {"alembic_version"}
             )

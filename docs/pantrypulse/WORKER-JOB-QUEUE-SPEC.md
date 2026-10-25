@@ -1,3 +1,5 @@
+> **October 25, 2026 approved integration:** [Connected OR integration](../optimization/CONNECTED-INTEGRATION.md) supersedes conflicting OR-only/no-proxy guidance and earlier solver limits for the connected simulated application. Historical checkpoint evidence remains scoped to its original code and contracts.
+
 # PantryPulse — Worker and Job Queue Build Specification
 
 **Version:** 0.1 · **Date:** October 24, 2026, America/New_York
@@ -51,10 +53,10 @@ These values and behaviors are **V5 REQUIRED**; this document does not reopen th
 |---|---|---|
 | WQ-R01 | Persist forecast, allocation and comparison jobs; return 202 only after durable acceptance | BD-11 |
 | WQ-R02 | At most one active expensive top-level operation across the queue | BD-34 |
-| WQ-R03 | At most two waiting top-level operations; maximum wait 900 seconds | BD-35 |
+| WQ-R03 | At most two waiting top-level operations; maximum wait 1,800 seconds | BD-35 |
 | WQ-R04 | Whole forecast operation at most 300 seconds | BD-35 |
 | WQ-R05 | With fallback allowed, stop the primary by 270 seconds; fallback/cleanup/validation/publication share the original deadline | BD-38 |
-| WQ-R06 | Native solver search 15 seconds per method; whole method 25 seconds; whole paired comparison 60 seconds | BD-35 |
+| WQ-R06 | Native search default 120 seconds (configurable 1–300); method = search + 30; pair = 2 × method + 30 (default 150/330, maximum 330/690) | BD-35 |
 | WQ-R07 | A comparison is one top-level operation; methods run sequentially on identical frozen operational inputs and equivalent settings | BD-34 |
 | WQ-R08 | Supervisor heartbeat every 5 seconds; unavailable after 15 seconds without an update | BD-37 |
 | WQ-R09 | Unavailable compute promptly rejects new computation with structured 503; saved reads and existing queued records remain | BD-31 |
@@ -212,7 +214,7 @@ Organization IDs do not prove ownership by themselves. The core's trusted scope 
 |---|---|
 | Identity | UUID `attempt_id`, job FK, positive `attempt_number`, unique `(job_id, attempt_number)` |
 | Scope | `lane_id TEXT NOT NULL`, `organization_id UUID NOT NULL`; constrain both to the parent job through a matching composite FK/unique key |
-| Queue | `enqueued_at`, `queue_deadline_at`; deadline = enqueue + 900 seconds under selected runtime profile |
+| Queue | `enqueued_at`, `queue_deadline_at`; deadline = enqueue + 1,800 seconds under selected runtime profile |
 | State | constrained state, safe reason code, `state_version` BIGINT for conditional transitions |
 | Ownership | nullable supervisor UUID/generation and unpredictable UUID `execution_token` assigned at claim |
 | Execution | `started_at`, immutable `execution_deadline_at`, optional `primary_deadline_at`, current phase |
@@ -271,7 +273,7 @@ Execution time includes child startup, preparation, model work, validation and c
 
 ### 7.3 Queue expiry
 
-**WQ PROPOSAL boundary:** expiry applies at `database_now >= queue_deadline_at`. At 899.999 seconds the attempt may still be claimed; at 900 seconds it must expire. Preserve the terminal record and make manual retry deliberate.
+**WQ PROPOSAL boundary:** expiry applies at `database_now >= queue_deadline_at`. At 1,799.999 seconds the attempt may still be claimed; at 1,800 seconds it must expire. Preserve the terminal record and make manual retry deliberate.
 
 Expiry scanning runs in supervisor control work and admission/recovery transactions. Saved GET requests do not silently mutate state. During total supervisor/database downtime, recording expiry can be delayed; the preserved deadline still prevents execution on recovery.
 
@@ -338,8 +340,8 @@ The scheduler supports the budget; it does not prove the current synchronous for
 
 ### 9.4 Allocation and comparison phases
 
-- A standalone method has at most 25 seconds wall time, with at most 15 seconds native solver search inside it.
-- A comparison has one 60-second parent deadline and runs CLASSICAL_GP then EGP_PI_INSPIRED sequentially, each with equivalent configured search/method limits and shared frozen operational identity.
+- A method freezes search + 30 seconds wall time, with selected 1–300 seconds native search inside it. Default is 120 seconds search / 150 seconds method.
+- A comparison has one frozen parent deadline of 2 * (search + 30) + 30 seconds and runs CLASSICAL_GP then EGP_PI_INSPIRED sequentially, each with equivalent configured search/method limits and shared frozen operational identity.
 - Per-method clocks begin at method construction/start, not after solving. Parent preparation/publication also consumes the parent budget.
 - No method starts if its permitted remaining parent budget is exhausted. Record NOT_RUN with its reason; do not fabricate a native status or zero vector.
 - Candidate access still passes through the existing status gate and an independent verifier.
@@ -502,7 +504,7 @@ All cases below are requirements for this proposed build contract, not claims th
 |---|---|
 | WQ-T01 | Every allowed/forbidden state transition; terminal attempts immutable; retry creates a new attempt |
 | WQ-T02 | Pure admission recognizes global one-active/two-waiting and distinguishes busy, unavailable and full |
-| WQ-T03 | Queue boundary 899.999/900 seconds; heartbeat 14.999/15/15.001 seconds; future-time anomaly fails closed |
+| WQ-T03 | Queue boundary 1799.999/1800 seconds; heartbeat 14.999/15/15.001 seconds; future-time anomaly fails closed |
 | WQ-T04 | Whole-operation deadlines cannot be reset by child startup, phases, series or retrying a provider |
 | WQ-T05 | Concurrent submissions under different keys never create a third QUEUED attempt or two active attempts |
 | WQ-T06 | Concurrent identical key/payload creates one command/job/attempt; changed payload under same key conflicts |
@@ -516,7 +518,7 @@ All cases below are requirements for this proposed build contract, not claims th
 | WQ-T14 | Unverifiable PID/start/runtime identity quarantines; unrelated processes are untouched |
 | WQ-T15 | Primary is actually stopped by 270 within a 300-second forecast policy; fallback shares the same budget |
 | WQ-T16 | Early classified primary failure can start fallback early; invalid application input/programming error is not hidden |
-| WQ-T17 | Both comparison methods sequential, same input identity/settings; 15/25/60 limits and NOT_RUN reason preserved |
+| WQ-T17 | Both comparison methods sequential, same input identity/settings; 120/150/330 default and 300/330/690 maximum limits and NOT_RUN reason preserved |
 | WQ-T18 | Invalid native status/vector cannot publish; valid operation INFEASIBLE is not fabricated into a feasible plan |
 | WQ-T19 | Publisher failure rolls back result/job-success/audit/slot transition together |
 | WQ-T20 | COMMIT response loss reconciles committed versus rolled-back outcomes by identity without duplicate execution/publication |
@@ -568,7 +570,7 @@ The expected output of this build is a reviewed worker foundation and its eviden
 | WQ-D01 | PostgreSQL single lane/control-row serialization, existing Python/DB stack | Proposed |
 | WQ-D02 | Stable job + immutable attempts; internal states and manual-retry rules | Proposed |
 | WQ-D03 | Global FIFO, at most two QUEUED, no API-reserved active slot | Proposed |
-| WQ-D04 | 900-second expiry and 15-second staleness apply at equality | Proposed boundary clarification |
+| WQ-D04 | 1800-second expiry and 15-second staleness apply at equality | Proposed boundary clarification |
 | WQ-D05 | Supervisor generation/attempt token fence; no automatic stale-owner execution takeover | Proposed |
 | WQ-D06 | Cleanup confirmation before slot release; quarantine if orphan identity is uncertain | Proposed safety mechanism |
 | WQ-D07 | Jobs-only schema and accepted-command idempotency | Proposed; domain FK/auth adapters gated |

@@ -15,33 +15,37 @@ from app.services.forecasting.schemas import ForecastInput, ForecastOutput
 def read_committed_forecast(engine, organization_id: UUID, run_id: UUID):
     """Planning callers receive exact frozen inputs and original raw model precision."""
     with engine.connect() as conn:
-        row = (
-            conn.execute(
-                sa.select(ForecastRun.__table__)
-                .join(
-                    compute_jobs,
-                    sa.and_(
-                        compute_jobs.c.job_id == ForecastRun.job_id,
-                        compute_jobs.c.organization_id == ForecastRun.organization_id,
-                    ),
-                )
-                .join(
-                    compute_attempts,
-                    sa.and_(
-                        compute_attempts.c.attempt_id == ForecastRun.attempt_id,
-                        compute_attempts.c.organization_id == organization_id,
-                    ),
-                )
-                .where(
-                    ForecastRun.organization_id == organization_id,
-                    ForecastRun.id == run_id,
-                    compute_jobs.c.state == "SUCCEEDED",
-                    compute_attempts.c.state == "SUCCEEDED",
-                )
+        return read_committed_forecast_connection(conn, organization_id, run_id)
+
+
+def read_committed_forecast_connection(conn, organization_id: UUID, run_id: UUID):
+    row = (
+        conn.execute(
+            sa.select(ForecastRun.__table__)
+            .join(
+                compute_jobs,
+                sa.and_(
+                    compute_jobs.c.job_id == ForecastRun.job_id,
+                    compute_jobs.c.organization_id == ForecastRun.organization_id,
+                ),
             )
-            .mappings()
-            .one_or_none()
+            .join(
+                compute_attempts,
+                sa.and_(
+                    compute_attempts.c.attempt_id == ForecastRun.attempt_id,
+                    compute_attempts.c.organization_id == organization_id,
+                ),
+            )
+            .where(
+                ForecastRun.organization_id == organization_id,
+                ForecastRun.id == run_id,
+                compute_jobs.c.state == "SUCCEEDED",
+                compute_attempts.c.state == "SUCCEEDED",
+            )
         )
+        .mappings()
+        .one_or_none()
+    )
     if row is None:
         raise HistoryRejected("FORECAST_NOT_FOUND", 404)
     if not row["planning_ready"]:

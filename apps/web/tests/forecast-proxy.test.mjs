@@ -76,3 +76,21 @@ test("real NextRequest preserves browser origin despite loopback URL normalizati
   assert.equal((await POST(external)).status, 200);
   assert.equal(fetchMock.mock.calls.length, 2);
 });
+
+test("planning proxy allowlist preserves bounded catalog paging and rejects arbitrary queries", async (t) => {
+  process.env.PANTRYPULSE_API_ORIGIN = "http://127.0.0.1:8000";
+  process.env.PP_TRUSTED_PROXY_TOKEN = "test-proxy-secret";
+  t.after(() => {
+    delete process.env.PANTRYPULSE_API_ORIGIN;
+    delete process.env.PP_TRUSTED_PROXY_TOKEN;
+  });
+  const fetchMock = t.mock.method(globalThis, "fetch", async () => Response.json({ ok: true }));
+  const id = "00000000-0000-0000-0000-000000000001";
+  for (const path of [`scenarios/${id}`, `comparisons/${id}`, `planning-assumptions/${id}`, "planning-catalog?before=2026-10-25T00%3A00%3A00Z"]) {
+    assert.equal((await GET(new Request(`http://localhost:3000/api/v1/${path}`))).status, 200);
+  }
+  for (const path of ["planning-catalog?organization_id=other", `scenarios/${id}?before=x`, "planning-catalog?before=x&before=y", "planning-catalog/unsafe"]) {
+    assert.equal((await GET(new Request(`http://localhost:3000/api/v1/${path}`))).status, 404);
+  }
+  assert.equal(fetchMock.mock.calls.length, 4);
+});

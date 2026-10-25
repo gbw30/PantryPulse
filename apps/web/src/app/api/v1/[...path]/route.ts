@@ -13,11 +13,15 @@ async function proxy(request: Request) {
   const path = incoming.pathname.slice("/api/v1/".length);
   const uuid = "[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}";
   const allowed = request.method === "GET"
-    ? path === "health" || path === "forecast-catalog" ||
-      new RegExp(`^(jobs|forecasts)/${uuid}$`).test(path)
-    : request.method === "POST" && (["forecasts", "presenter/login", "presenter/logout"].includes(path) ||
+    ? ["health", "forecast-catalog", "planning-catalog"].includes(path) ||
+      new RegExp(`^(jobs|forecasts|scenarios|comparisons|planning-assumptions)/${uuid}$`).test(path)
+    : request.method === "POST" && (["forecasts", "scenarios", "comparisons", "planning-assumptions", "presenter/login", "presenter/logout"].includes(path) ||
       new RegExp(`^jobs/${uuid}/(retry|cancel)$`).test(path));
-  if (!allowed || incoming.search) return failure("NOT_FOUND", 404);
+  const paging = path === "planning-catalog" && request.method === "GET" &&
+    [...incoming.searchParams.keys()].every((key) => ["before", "before_id"].includes(key)) &&
+    incoming.searchParams.getAll("before").length <= 1 &&
+    incoming.searchParams.getAll("before_id").length <= 1;
+  if (!allowed || (incoming.search && !paging)) return failure("NOT_FOUND", 404);
   const origin = request.headers.get("origin");
   // NextRequest normalizes loopback URLs to localhost and may use the server's
   // bind hostname. Host retains the browser-facing authority. Never trust a
@@ -65,7 +69,7 @@ async function proxy(request: Request) {
         const chunk = await reader.read();
         if (chunk.done) break;
         size += chunk.value.byteLength;
-        if (size > 65536) {
+        if (size > (path === "planning-assumptions" ? 524288 : 65536)) {
           await reader.cancel();
           return failure("INPUT_TOO_LARGE", 413);
         }
@@ -77,7 +81,7 @@ async function proxy(request: Request) {
     for (const chunk of chunks) { body.set(chunk, offset); offset += chunk.length; }
   }
   try {
-    const upstream = await fetch(`${target.origin}/api/v1/${path}`, {
+    const upstream = await fetch(`${target.origin}/api/v1/${path}${incoming.search}`, {
       method: request.method, headers, body: body as BodyInit | undefined,
       redirect: "error", cache: "no-store", signal: AbortSignal.timeout(20000),
     });

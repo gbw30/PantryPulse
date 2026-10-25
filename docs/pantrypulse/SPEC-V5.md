@@ -1,6 +1,8 @@
+> **October 25, 2026 approved integration:** [Connected OR integration](../optimization/CONNECTED-INTEGRATION.md) supersedes conflicting OR-only/no-proxy guidance and earlier solver limits for the connected simulated application. Historical checkpoint evidence remains scoped to its original code and contracts.
+
 # PantryPulse — Project Specification V5
 
-**Version:** 5.0 · **Consolidated:** October 24, 2026, America/New_York  
+**Version:** 5.1 · **Consolidated:** October 25, 2026, America/New_York
 **Purpose:** the project source of truth for product scope, accepted decisions, implementation status, contracts, unresolved work and acceptance.  
 **Status:** consolidated specification with explicit implementation gates. The complete product is not implemented or release-ready.
 
@@ -9,6 +11,8 @@
 **Current integration update:** [PR #75](https://github.com/gbw30/PantryPulse/pull/75) reviews VP at `8a4d069` with main at `829262a`, including the already merged PRs #58 and #74. Section 3.5 and the current interface/acceptance rows supersede historical implementation-status statements; historical evidence stays scoped to its original tree.
 
 **Authority and reading copy:** This repository Markdown file is the source of truth. The [Google Docs v5 tab](https://docs.google.com/document/d/1WcsV69YCE1mqW2pI7IyEFQBSuwQB_hMhVQKfU20ZFk8/edit?tab=t.phiita8avpoe) is a reading copy; proposed changes there must be reconciled into this file before they change the project specification. The tab was empty at the original consolidation inspection. Source material includes [V4 and working tabs 00–07](https://docs.google.com/document/d/1WcsV69YCE1mqW2pI7IyEFQBSuwQB_hMhVQKfU20ZFk8/edit?tab=t.951hp1xdarlq).
+
+**PP-46 integration:** main `aadd2d2` plus OR `465d026` is integrated on `codex/or-connected-review`. [Connected integration](../optimization/CONNECTED-INTEGRATION.md) defines the approved bounded public flow, immutable migrations, simulated preset, explicit expiry and source authority. [Finalization](../optimization/FINALIZATION.md) records current evidence. Previous unimplemented/withdrawn statements about this specific flow are historical. Hosting, Chronos, supplier planning and broader scope remain open.
 
 ## Contents
 
@@ -570,9 +574,9 @@ Pydantic/FastAPI OpenAPI is authoritative for the implemented baseline forecast/
 | Dashboard/sites/site inventory/history | Saved scoped data, units, dates, lot exclusions and provenance | Proposed catalog; not implemented |
 | Demand/donation imports, receipt posting, corrections | Validated history and authorized, audited transactional stock operations | Proposed; transaction/public schemas open |
 | Forecast submission/status/points | Durable 202 acceptance; saved per-series outcomes and committed points | Implemented in PR #75: `/forecasts`, `/jobs/{job_id}`, `/forecasts/{job_id}`; baseline only; Linux live execution unverified in review |
-| Presenter/catalog | Session lifecycle, origin/CSRF checks, authenticated source/site/product IDs | Implemented in PR #75; visitor access and OR convergence remain open |
-| Scenario creation/read | Required mode and fully frozen input package | Pure scenario-v1 freeze/freshness implemented; database capture/storage and HTTP remain absent |
-| Plan/comparison submission/read | Durable jobs against the selected scenario; independent method outcomes | Not implemented |
+| Presenter/catalog | Session lifecycle, origin/CSRF checks, authenticated source/site/product IDs | Implemented in PR #75; visitor access remains deferred; OR connected subset implemented in PP-46 |
+| Scenario creation/read | Required mode and fully frozen input package | Implemented scenario-v2 immutable database capture/read; approved bounded source/expiry validation |
+| Plan/comparison submission/read | Durable jobs against the selected scenario; independent method outcomes | Implemented POST /comparisons (202), GET /comparisons/{id}; partial results retained |
 | Shortages/policy/methodology/audit | Saved projections, policy explanation, research attribution, versions and safe diagnostics | Not implemented |
 | Review/reset | Presenter-controlled review with no stock effect; isolated deterministic reset | Not implemented |
 | Readiness/capabilities/job retry | Cheap readiness/availability and explicit attempt operations | Forecast job retry/cancel implemented; public readiness/capability catalog remains open |
@@ -611,13 +615,13 @@ Finalize PostgreSQL admission/deduplication, ownership/leases, transitions, stal
 |---|---:|---|
 | Active expensive top-level operations | 1 | BD-34 |
 | Waiting top-level operations | At most 2 | BD-35 |
-| Queue wait | At most 900 seconds | BD-35 |
+| Queue wait | At most 1,800 seconds | PP-46 override of BD-35 |
 | Whole forecast operation | At most 300 seconds | BD-35 |
 | Primary attempt when fallback allowed | Stop by 270 seconds | BD-38 |
 | Fallback/termination/validation/publication | Remaining allowance, up to 30 seconds within the same 300 seconds | BD-38 |
-| Native solver search | 15 seconds per method | BD-35 |
-| Whole method wall time | 25 seconds | BD-35 |
-| Whole sequential comparison | 60 seconds | BD-35 |
+| Native solver search | Default 120; configurable integral 1–300 seconds per method | PP-46 override of BD-35 |
+| Whole method wall time | Search + 30: default 150, maximum 330 seconds | PP-46 |
+| Whole sequential comparison | Twice method allowance + 30: default 330, maximum 690 seconds | PP-46 |
 | Configurable compute-worker CPU ceiling | 6 CPU equivalents | BD-36 |
 | Configurable compute-worker memory ceiling | 8 GiB | BD-36 |
 | Persisted supervisor heartbeat | Every 5 seconds | BD-37 |
@@ -708,7 +712,7 @@ The eventual deployed browser still uses the selected Next.js proxy. Old direct 
 
 Tracked examples include `apps/api/.env.example` and `apps/api/demo.env.example`; no web environment example is currently tracked. Private local paths such as `apps/api/.env`, `apps/api/.env.demo` and `apps/web/.env.local` remain ignored. The static web scaffold and Vercel preview need no environment file. No database password, model token or presenter credential may enter Git, screenshots/logs or a `NEXT_PUBLIC_` value.
 
-Demo Compose explicitly injects `.env.demo`; merely placing a URL in another dotenv file does not switch the API's database. The current API has no settings/dotenv loader, CORS middleware or auth implementation. `APP_ENV`/`DEMO_MODE` in configuration are not access controls by themselves. Retain provider-supplied TLS/security parameters on hosted database URLs and use deliberate migration/runtime connection roles.
+Demo Compose explicitly injects `.env.demo`; merely placing a URL in another dotenv file does not switch the API's database. The API uses explicit environment configuration and presenter session/CSRF authentication through the same-origin proxy; no dotenv loader or direct-browser CORS dependency is implied. `APP_ENV`/`DEMO_MODE` in configuration are not access controls by themselves. Retain provider-supplied TLS/security parameters on hosted database URLs and use deliberate migration/runtime connection roles.
 
 The standalone model cache is a persistent Docker volume, while outputs under `artifacts/` are ignored. A package lock does not pin weights; a completed download pin does not prove inference. The current forecast extra also resolves large CUDA-related packages on Linux despite CPU use; changing to a CPU-only package source needs a reviewed dependency/lock change.
 
@@ -728,23 +732,23 @@ V5 acceptance IDs avoid V4's reused FR numbers. Existing FR/INV/TEST-EGP/F ident
 
 | ID | Required evidence | Current status / traceability |
 |---|---|---|
-| V5-A01 Foundation and primitives | Frozen install, main types/lint/tests, six strict pure helpers and process health | Bounded MAIN evidence: 437 API tests; BE-01–06 / PP-24–29; independent verifier completion not established |
+| V5-A01 Foundation and primitives | Frozen install, main types/lint/tests, six strict pure helpers and process health  | PASS combined tree: retained primitives, independent OR verifier and all Linux/PostgreSQL tests; see PP-46 finalization. |
 | V5-A02 Historical truth | Gaps/zeros/proxies/revisions, donor versus receiver, complete receipt revisions, data/knowledge cutoff leakage tests | BRANCH offline evidence; operational persistence/import policy open; INV-10/11/13 |
 | V5-A03 Stock transactions | Historical import leaves stock unchanged; exactly-once posting, corrections, rollback, competing versions/idempotency and audit | IMPLEMENTED/VERIFIED — local #21 internal services, real PostgreSQL concurrency/rollback; HTTP/import integration and P1 movement/reservation remain separate |
-| V5-A04 Baseline forecast | Seven dates per required demand/donation series, explicit insufficiency, null intervals, actual provider | PR #75: real PostgreSQL/API publication, reuse and fallback tests; live Linux supervisor workflow unverified in review; stock-import gate separate |
+| V5-A04 Baseline forecast | Seven dates per required demand/donation series, explicit insufficiency, null intervals, actual provider  | PASS baseline persisted forecast through actual browser/proxy/API/PostgreSQL/Linux worker; Chronos remains outside this integration. |
 | V5-A05 Qualification/fallback | Classified failure → permitted usable baseline; explicit failure otherwise; actual pinned Chronos separately qualified | BRANCH fallback boundary tested; real Chronos UNVERIFIED/PAUSED; INV-13/14; F-25 |
 | V5-A06 Evaluation | Chronological equal-scored-set metrics, denominator/zero/missing counts, source and actual-provider identity | Synthetic branch experiment reproduced; representative evaluation/selection open; F-07–12 / OPEN-18 |
-| V5-A07 Atomic publication/reuse | Committed complete results before planning; exact identity, concurrent deduplication, force refresh, rollback/stale-attempt rejection | Pure reuse/handoff only; DB/API unimplemented; F-13/14 |
-| V5-A08 Frozen scenarios | Complete input schema/hash, explicit mode/exclusions, changed inputs → new scenario, replay after mutable-source changes | Local #11 scenario-v1 schema/freeze/freshness helpers and pure replay evidence; #30 DB capture/storage and upstream semantic qualification remain; INV-08/15/19 |
-| V5-A09 Projection/feasibility | Dated loss arithmetic, lot expiry/ETA/use, FEFO, both modes, donor protection, capacity/conservation/no relay | Local #23 pure projection-v1 with BD-48/43/44; see PP-39 evidence. Full scenario/DB/API integration, donor/route/capacity/no-relay checker/builder remain absent; INV-03–09 |
-| V5-A10 Mathematical gate | Paper mapping, independent hand/enumeration, coefficients/scales/overflow, zero/group/equality cases, active AP/RP and ablations | GATED; TEST-EGP-01–05 / OPEN-23–25 |
-| V5-A11 Paired research comparison | Both real methods in both modes; pair shares operational inputs/constraints/settings; interpretable difference and independent checking | NOT IMPLEMENTED; TEST-EGP-06/07 |
-| V5-A12 Durable execution | One active/two waiting, expiry/heartbeat, real 270/300/15/25/60-second containment, interrupted attempt/manual retry | Internal queue/supervisor and baseline forecast handler implemented; DB fencing/admission tested; Linux process execution and deployed limits unverified in PR #75; OPEN-30/33/35 remain partial |
-| V5-A13 Public API and security | Generated types/drift; backend presenter authorization, proxy/CSRF, structured errors, no compute on GET, saved reads during compute outage | Baseline forecast/presenter subset implemented/tested in PR #75; visitor/other-domain contracts and OR convergence remain OPEN-29/31/36 |
+| V5-A07 Atomic publication/reuse | Committed complete results before planning; exact identity, concurrent deduplication, force refresh, rollback/stale-attempt rejection  | PASS committed forecast publication/reuse and fenced comparison publication; concurrency, rollback and stale-attempt regressions retained. |
+| V5-A08 Frozen scenarios | Complete input schema/hash, explicit mode/exclusions, changed inputs → new scenario, replay after mutable-source changes  | PASS scenario-v2: repeatable-read committed sources, explicit mode/expiry, immutable history, source staleness and new-scenario revisions. |
+| V5-A09 Projection/feasibility | Dated loss arithmetic, lot expiry/ETA/use, FEFO, both modes, donor protection, capacity/conservation/no relay  | PASS bounded OR-v2: independent expiry-day/non-expiring/unknown, FEFO, donor protection, conservation, capacities and model-reduction equivalence. |
+| V5-A10 Mathematical gate | Paper mapping, independent hand/enumeration, coefficients/scales/overflow, zero/group/equality cases, active AP/RP and ablations  | PASS retained independent enumeration, native AP/RP boundaries/ablations, objective replay and numerical domain tests; policy remains simulated. |
+| V5-A11 Paired research comparison | Both real methods in both modes; pair shares operational inputs/constraints/settings; interpretable difference and independent checking  | PASS two native methods, identical frozen inputs/settings, independent verification and dense 15/30/60/120/300-second evidence; optimality is not guaranteed. |
+| V5-A12 Durable execution | One active/two waiting, expiry/heartbeat, real forecast 270/300 and frozen solver default 120/150/330, maximum 300/330/690 containment, interrupted attempt/manual retry  | PASS real Linux process and isolated PostgreSQL gates, including >25-second execution, cancellation, worker loss, cleanup, retry and fenced partial publication. Hosting remains unqualified. |
+| V5-A13 Public API and security | Generated types/drift; backend presenter authorization, proxy/CSRF, structured errors, no compute on GET, saved reads during compute outage  | PASS presenter/forecast/planning/comparison subset through generated contracts, CSRF and same-origin proxy; tenant isolation tested. Visitor and broader-domain APIs remain deferred. |
 | V5-A14 Supplier proposals | Selected offer/priority/coverage policy; coordinated budget; alternatives/uncovered need; no stock/order/payment effects | Accepted scope, dependent decisions/implementation PAUSED |
-| V5-A15 User journey | Actual imports/readouts → forecast → shortage → paired allocation → disruption/new scenario → review/reset; independent failures visible | NOT IMPLEMENTED; scaffold browser smoke is insufficient |
-| V5-A16 Research attribution | DOI/date, bounded adaptation and simulated labels; failed research never relabeled; methodology visible early | Static attribution exists; runtime methodology/failure UI unimplemented; TEST-ELIG-01 |
-| V5-A17 Visual/accessibility | Real three-viewport screenshots, keyboard/focus/chart tables/contrast/reduced motion and human review | UNVERIFIED for product UI |
+| V5-A15 User journey | Actual imports/readouts → forecast → shortage → paired allocation → disruption/new scenario → review/reset; independent failures visible  | PASS approved bounded flow: isolated seed, login, persisted forecast, frozen scenario, durable comparison, refresh, partial failure, cancellation/retry and revised scenario. Import/reset/dispatch UI is outside PP-46. |
+| V5-A16 Research attribution | DOI/date, bounded adaptation and simulated labels; failed research never relabeled; methodology visible early  | PASS bounded adaptation and simulated-policy/provenance labels with honest method failures; no real-world policy efficacy claim. |
+| V5-A17 Visual/accessibility | Real three-viewport screenshots, keyboard/focus/chart tables/contrast/reduced motion and human review  | PASS automated keyboard, reduced-motion, axe and screenshots at 1440x900, 1280x720, 390x844; human taste approval remains separate. |
 | V5-A18 Release and operations | Isolated migration/seed/reset, redacted audit, live proxy/deployment smoke, release manifest/rollback, five full rehearsals and backup | NOT COMPLETE; targets and limitations must be disclosed |
 
 ### 16.2 Required adversarial cases
@@ -907,7 +911,7 @@ No accepted parameter is reopened merely because details remain. Conversely, no 
 | Direct browser API client / CORS instructions | Same-origin Next.js proxy selected; old guides are reachability/procedure references pending reconciliation |
 | Synchronous plan creation returning success after solve | Durable 202 for expensive work; committed validated results exposed separately |
 | Automatic interrupted-job retry | Manual retry with linked saved inputs/attempt history; provider fallback is separate |
-| Short solver example or warm-forecast target treated as deadline | Accepted 300/270/15/25/60-second ceilings control; latency targets remain separate |
+| Short solver example or warm-forecast target treated as deadline | PP-46 frozen solver allowances and unchanged forecast 300/270 ceilings control; latency targets remain separate |
 | “Hook enforcement disabled” in old logs/guides | Current quick Stop gate enabled; historical logs stay historical |
 | Tracing initially selected | Later BD-30 chooses logs/audit and defers distributed tracing |
 | Supplier proposals omitted or quietly made optional | Accepted scope after BD-22 correction; unresolved design/implementation remains paused |

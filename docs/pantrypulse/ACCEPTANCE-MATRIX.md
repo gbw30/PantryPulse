@@ -1,3 +1,5 @@
+> **October 25, 2026 approved integration:** [Connected OR integration](../optimization/CONNECTED-INTEGRATION.md) supersedes conflicting OR-only/no-proxy guidance and earlier solver limits for the connected simulated application. Historical checkpoint evidence remains scoped to its original code and contracts.
+
 # PantryPulse acceptance matrix
 
 > **Current authority:** [Project specification V5](SPEC-V5.md). Historical planning matrix. V5 section 16 is the consolidated acceptance matrix and distinguishes main helpers, unmerged experiments and unimplemented live workflows.
@@ -40,7 +42,7 @@ Source-spec requirements without an FR number (added after the 2026-10-23 audit;
 
 Quality gates:
 
-- Quick: web typecheck/lint, API lint and backend correctness tests. Target <=120 seconds total; measure and keep Stop's outer timeout above the actual total. If the quick suite grows, select a meaningful invariant/fallback subset for Stop and keep the full backend suite in CI.
+- Quick: web typecheck/lint, API lint and backend correctness tests. Current complete quick-gate budget is 600 seconds with a 360-second backend timeout; measure and keep Stop's outer timeout above the actual total. If the quick suite grows, select a meaningful invariant/fallback subset for Stop and keep the full backend suite in CI.
 - Full: quick + frontend unit/build, canonical contract drift and real fresh-DB migration test.
 - E2E: Chromium judge flow against running frontend/API/isolated PostgreSQL; assert shortage/plan/scenario result changes, reset and actual error behavior.
 - Visual: real screenshots at three viewports plus keyboard/reduced-motion observations and human taste acceptance.

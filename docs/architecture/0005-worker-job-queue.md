@@ -1,3 +1,5 @@
+> **PP-46 approved runtime update (October 25, 2026):** [Connected integration](../optimization/CONNECTED-INTEGRATION.md) changes solver defaults/caps, queue expiry, capability version and shutdown grace while preserving containment, ownership and publication fences. Earlier fixed solver limits below are historical.
+
 # ADR 0005: Worker and job queue foundation decisions
 
 > **Authority:** [Project specification V5](../pantrypulse/SPEC-V5.md) §§12–13 and BD-11/12/30/31/34–38 remain the accepted requirements. This ADR records the lead's review of the technical proposals in [WORKER-JOB-QUEUE-SPEC.md](../pantrypulse/WORKER-JOB-QUEUE-SPEC.md) (WQ-D01–D11) for the internal foundation packages WQ-01–06 only. It does not close OPEN-29/30/31/33/35, expose public routes or select deployment.
