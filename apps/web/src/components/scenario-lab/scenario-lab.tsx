@@ -63,6 +63,8 @@ function ScenarioLabScreen() {
   const [methodology, setMethodology] = useState<Methodology | null>(null);
   const [assumptions, setAssumptions] = useState<Schema["AssumptionsResult"] | null>(null);
   const [draft, setDraftState] = useState<Draft>({ forecastId: "", assumptionsId: "", mode: "", days: 1, multipliers: {}, search: "120" });
+  const [forecastStrategy, setForecastStrategy] = useState<Schema["ForecastSubmissionPolicy"]["strategy"]>("SEASONAL_NAIVE");
+  const [forecastResult, setForecastResult] = useState<Schema["ForecastResult"] | null>(null);
   const [scenario, setScenario] = useState<Scenario | null>(null);
   const [comparison, setComparison] = useState<Comparison | null>(null);
   const [comparisonScenario, setComparisonScenario] = useState<Scenario | null>(null);
@@ -129,7 +131,7 @@ function ScenarioLabScreen() {
       const params = new URL(window.location.href).searchParams;
       const comparisonId = params.get("comparison"), jobId = params.get("job");
       if (isUuid(comparisonId)) await loadComparison(comparisonId).catch((e) => handle(e, "Loading the saved comparison"));
-      if (isUuid(jobId)) setActive({ id: jobId, kind: params.get("kind") === "forecast" ? "forecast" : "comparison" });
+      if (isUuid(jobId)) setActive({ id: jobId, kind: ["forecast", "forecasts"].includes(params.get("kind") ?? "") ? "forecast" : "comparison" });
     }).catch((error) => {
       if (!alive) return;
       if (error instanceof ApiError && error.status === 401) { expired(); return; }
@@ -158,8 +160,13 @@ function ScenarioLabScreen() {
           } else {
             const result = await planningApi.forecast(active.id);
             if (stopped) return;
+            setForecastResult(result);
             if (!result.planning_ready) setNotice({ title: "The forecast was saved but is not planning ready. Choose another forecast or review its history." });
-            else { await refreshCatalog(); setDraftState((d) => ({ ...d, forecastId: result.forecast.run_id })); }
+            else {
+              await refreshCatalog();
+              if (stopped) return;
+              setDraftState((d) => ({ ...d, forecastId: result.forecast.run_id }));
+            }
           }
           if (!stopped) setJob(status);
           return;
@@ -189,8 +196,10 @@ function ScenarioLabScreen() {
     setUrl({ job: accepted.job_id, kind: kind === "forecast" ? "forecast" : null, comparison: null });
   };
 
-  const modifiers = (): Schema["DemandModifier"][] => beneficiaries.flatMap((site) => products.map((p) => ({
-    site_id: site.id, product_id: p.id, mode: "CENTRAL" as const, multiplier: (draft.multipliers[modifierKey(site.id, p.id)] ?? "1").trim(), buffer_fraction: null,
+  // Canonical capture includes fixed zero-demand hub series as well as editable beneficiaries.
+  const modifiers = (): Schema["DemandModifier"][] => (network?.sites ?? []).flatMap((site) => products.map((p) => ({
+    site_id: site.id, product_id: p.id, mode: "CENTRAL" as const,
+    multiplier: site.role === "HUB" ? "1" : (draft.multipliers[modifierKey(site.id, p.id)] ?? "1").trim(), buffer_fraction: null,
   })));
 
   const diff = useMemo(() => {
@@ -233,7 +242,8 @@ function ScenarioLabScreen() {
   const generateForecast = () => perform(async () => {
     const source = network?.sources.find((s) => s.classification === "SIMULATED");
     if (!source) return;
-    track(await planningApi.generateForecast(demoForecastRequest(source.id, network?.sites[0]?.timezone ?? "America/New_York")), "forecast");
+    track(await planningApi.generateForecast(demoForecastRequest(source.id, network?.sites[0]?.timezone ?? "America/New_York", forecastStrategy)), "forecast");
+    setForecastResult(null);
   }, "Generating the forecast");
 
   const saveAssumptions = async (text: string): Promise<string | null> => {
@@ -253,6 +263,7 @@ function ScenarioLabScreen() {
 
   const selectScenario = (id: string) => perform(async () => {
     const value = await planningApi.scenario(id);
+    setForecastResult(null);
     setScenario(value);
     const multipliers = { ...draft.multipliers };
     for (const m of value.payload.modifiers) multipliers[modifierKey(m.site_id, m.product_id)] = m.multiplier;
@@ -358,6 +369,9 @@ function ScenarioLabScreen() {
         <div className="min-w-0">
           {loading && session !== "visitor" ? <Skeleton className="h-96 w-full" /> : (
             <GuidedScenarioStepper readOnly={readOnly} busy={busy} jobRunning={running} draft={draft} setDraft={setDraft} catalog={catalog}
+              forecastStrategy={forecastStrategy} onForecastStrategyChange={setForecastStrategy} forecastResult={forecastResult}
+              forecastRunning={running && active?.kind === "forecast"}
+              onSelectForecast={(id) => { setDraft((d) => ({ ...d, forecastId: id })); setForecastResult(null); }}
               beneficiaries={beneficiaries} products={products} assumptions={assumptions} scenario={scenario} dirty={dirty} diff={diff}
               windows={methodology?.planning_window_days ?? [1, 2, 3]} maxSearch={methodology?.search_seconds?.maximum ?? 300}
               canGenerate={!!network?.sources.some((s) => s.classification === "SIMULATED")}

@@ -1,26 +1,26 @@
 # Current source and runtime status
 
-Updated October 25, 2026. This is the current navigation/status summary for the source containing PR #75 (baseline API), PR #76 (connected OR), and PR #77 (bounded compute setup). SPEC-V5 remains authoritative for product decisions. Dated review reports, task packets and immutable evidence retain their original scope; a merge does not update a running image, migrate a database or deploy a website.
+Updated October 25, 2026. The inspected main baseline is `f7a921a`, through PRs #91–#92: baseline forecasting/OR and operational APIs, the live Overview, shared navigation/themes, read-only visitor access, Data Explorer/Inputs, Recommendations, Scenario Lab and support for up to eight products. The `feat/forecasting-next` candidate includes that main baseline and adds opt-in Chronos jobs and a completed retail-proxy qualification experiment; see [the dossier](../forecasting/QUALIFICATION.md). SPEC-V5 remains authoritative for product decisions. Dated review reports, task packets and immutable evidence retain their original scope; source changes do not update a running image, migrate a database or deploy a website.
 
 | Area | Implemented source | Limits / next step |
 |---|---|---|
-| API and persistence | Presenter sessions/CSRF; baseline forecasts; immutable assumptions, scenarios, comparisons and result reads; generated OpenAPI/TypeScript | Reads currently require presenter access; general imports, visitor access and real dispatch remain outside the accepted demo |
-| Worker | `forecast.v1` and `or-comparison.v2` on the shared PostgreSQL lane; Linux containment, cancellation, manual retry and fenced publication | Capability version 2 is required; an older running supervisor must be upgraded deliberately after schema/environment review |
+| API and persistence | Presenter sessions/CSRF; forecast and operational APIs/imports; immutable assumptions, scenarios, plans, comparisons and result reads; generated OpenAPI/TypeScript; typed dashboard/shortage responses | Presenter access remains required for compute and mutations; optional `PP_VISITOR_ORGANIZATION_ID` permits only saved Overview/catalog reads; general management UI and real dispatch remain separate |
+| Worker | Baseline `forecast.v1`, paired `or-comparison.v2`, single `or-allocation.v2`; candidate opt-in `forecast.chronos.v1` on the shared PostgreSQL lane | Capability version 2 and exact model/profile advertisement are required; runtime upgrades remain deliberate |
 | Optimization | Classical and research-inspired methods on identical frozen inputs, independent result verification, honest partial outcomes | Bounded simulated policy/domain; no real-world efficacy or automatic stock movement claim |
-| Web | Root redirects to `/optimization`; connected workspace and thin same-origin proxy; optional illustrative `/design-lab` | Configure server-only API origin and matching presenter/proxy settings; the old branch-scoped Vercel preview remains separate |
-| Migrations/demo | Single head `ppor_0005`; explicit loader creates a NEW `ppor_demo_*` schema and simulated history/stock/assumptions | No startup migrations, resets, fake forecasts or fake solver results; old applied revisions remain unchanged |
-| Chronos | Full pinned model downloaded and real standalone CPU inference/ten-run benchmark verified on the laptop | Not registered as an application forecast provider; no predictive-accuracy or interval-calibration qualification |
+| Web | Root opens the live `/overview` Network Atlas; Data Explorer/Inputs, Recommendations, Methodology and `/scenarios`; shared presenter session and thin same-origin proxy; `/optimization` redirects to Scenario Lab | Chronos selection and actual-provider/readiness reporting live in Scenario Lab; legacy forecast job links still resume; Overview preserves incomplete/fallback provenance; configure server-only API origin and matching presenter/proxy settings |
+| Migrations/demo | Single source head `ppvp_0007` after #78; explicit loader creates a NEW `ppor_demo_*` schema and simulated history/stock/assumptions | Forecasting follow-up adds no migration; no startup migrations/resets or fabricated results |
+| Chronos | Candidate pinned lazy adapter, opt-in jobs/API and real contained model/fallback/downstream OR checks | Full demo donation quantiles invalid; final retail availability 92%; experimental, defaults unchanged; no pantry/donation accuracy or calibration claim |
 | Compute | Opt-in `compose.compute.yaml`, bounded Windows builder/tools, persistent model cache; separate Fly API/worker configuration | No Fly login/platform validation/deployment or paid resources established |
 | CI | `.github/workflows/pantrypulse-ci.yml` runs Linux/PostgreSQL backend, web/contracts/build and connected browser gates | Skips are rejected; an ignored Vercel build is not application validation |
 
-## VP API integration candidate
+## VP API integration in the inspected main baseline
 
-[PP-50 review](VP-API-INTEGRATION.md) prepares VP `35615a6` on main `9df7c51`.
-The candidate adds operational inventory/receipt/supply/import/dashboard APIs and
+[PP-50 review](VP-API-INTEGRATION.md) records VP `35615a6` on main `9df7c51`.
+PR #78 merged that operational convergence at `5add760`. It adds inventory/receipt/supply/import/dashboard APIs and
 canonical single-method plans/reviews. Main planning contracts and the connected
 workspace remain authoritative. New migration head `ppvp_0007` preserves both
 planning histories; legacy VP records are read-only and non-executable. This is
-review-branch status until the PR is merged; no live deployment/migration is implied.
+source status after merge; no live deployment/migration is implied.
 
 ## Execution limits
 
@@ -46,4 +46,4 @@ Supervisor drain allows 720 seconds; local container grace is 725 seconds. Fly's
 
 Keep private API/web environment files, presenter secrets, model tokens and connection strings outside Git. No secret belongs in a `NEXT_PUBLIC_*` value. Public health proves process liveness only; it does not prove schema, compute, model, browser or release readiness.
 
-Supplier planning, general-purpose import/data-management UI, visitor access, production reset and real purchasing/reservation/dispatch remain separate work. An implemented demo does not close those gates.
+Supplier planning, general-purpose import/data-management UI, broader visitor workflows, production reset and real purchasing/reservation/dispatch remain separate work. An implemented demo does not close those gates.

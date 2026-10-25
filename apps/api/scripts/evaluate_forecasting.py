@@ -41,10 +41,11 @@ def main() -> None:
     evidence = {
         "classification": "SIMULATED",
         "qualification": {
-            "core": "OFFLINE_ONLY",
-            "postgres_api_jobs": "NOT_IMPLEMENTED",
-            "chronos": "UNQUALIFIED",
-            "solvers_research": "GATED",
+            "experiment_scope": "OFFLINE_SYNTHETIC_BASELINE_EVALUATION",
+            "postgres_api_jobs": "IMPLEMENTED_NOT_EXERCISED_BY_THIS_COMMAND",
+            "chronos": "NOT_EVALUATED_BY_THIS_COMMAND",
+            "solvers_research": "IMPLEMENTED_NOT_EXERCISED_BY_THIS_COMMAND",
+            "predictive_accuracy": "SYNTHETIC_ONLY_NOT_DOMAIN_QUALIFIED",
         },
         "fixture": {
             "beneficiaries": 6,

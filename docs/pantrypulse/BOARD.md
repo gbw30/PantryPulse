@@ -58,6 +58,15 @@ Review-fix integration: PR #51 integrated the PR #49 baseline core and PR #50 de
 
 ## Current integration tasks
 
+Forecasting follow-up: [execution plan and milestones](../forecasting/EXECUTION-PLAN.md)
+tracks PBIs [#80–#86](https://github.com/gbw30/PantryPulse/issues?q=is%3Aissue+%22PBI-FC-%22),
+assigned to @GestebanFalcon under existing #38 (sources), #40 (evaluation) and #46
+(Chronos). All seven now have local implementation/decision evidence pending
+review/publication; calibrated improvements remain #70. The
+[final dossier](../forecasting/QUALIFICATION.md) records insufficient Chronos
+coverage and unchanged defaults. The work uses main through PR #78 and does not
+reopen delivered baseline/job/OR infrastructure.
+
 [PP-46](tasks/PP-46.md) implements the approved connected simulated OR flow. Measured evidence and outstanding gates are tracked in [FINALIZATION](../optimization/FINALIZATION.md); historical TODO rows do not override this bounded scope.
 
 PR #77 reconciles local/Fly compute configuration and current documentation, with a 725-second local stop grace and preserved existing runtimes. Fly account/platform/deployment qualification remains separate.

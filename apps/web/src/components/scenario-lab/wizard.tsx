@@ -24,6 +24,11 @@ type Props = {
   readOnly: boolean;
   busy: boolean;
   jobRunning: boolean;
+  forecastRunning: boolean;
+  forecastStrategy: Schema["ForecastSubmissionPolicy"]["strategy"];
+  onForecastStrategyChange: (strategy: Schema["ForecastSubmissionPolicy"]["strategy"]) => void;
+  forecastResult: Schema["ForecastResult"] | null;
+  onSelectForecast: (id: string) => void;
   draft: Draft;
   setDraft: (update: (draft: Draft) => Draft) => void;
   catalog: Schema["PlanningCatalog"] | null;
@@ -94,7 +99,7 @@ export function GuidedScenarioStepper(props: Props) {
   const s3: StepStatus = invalid || !beneficiaries.length ? "Incomplete" : saved ? "Saved" : "Valid draft";
   const ready = contextOk && !!draft.mode && !invalid && beneficiaries.length > 0;
   const s4: StepStatus = saved ? "Saved" : ready ? "Ready" : "Incomplete";
-  const canFreeze = !lock && ready && dirty;
+  const canFreeze = !lock && !props.forecastRunning && ready && dirty;
   const canCompare = !lock && !!scenario && !props.jobRunning && !searchError;
 
   const setMultiplier = (key: string, value: string) => setDraft((d) => ({ ...d, multipliers: { ...d.multipliers, [key]: value } }));
@@ -110,15 +115,28 @@ export function GuidedScenarioStepper(props: Props) {
       <Step n={1} current={current} status={s1}>
         <div className="grid gap-1.5">
           <Label htmlFor="sl-forecast">Planning-ready forecast</Label>
-          <Select value={draft.forecastId} onValueChange={(v) => setDraft((d) => ({ ...d, forecastId: v }))} disabled={lock || !catalog?.forecasts.length}>
+          <Select value={draft.forecastId} onValueChange={props.onSelectForecast} disabled={lock || !catalog?.forecasts.length}>
             <SelectTrigger id="sl-forecast" className="w-full"><SelectValue placeholder={readOnly ? "Presenter only" : "No planning-ready forecast"} /></SelectTrigger>
             <SelectContent>{catalog?.forecasts.map((f) => <SelectItem key={f.id} value={f.id}>{when(f.recorded_at)} · {shortId(f.id)}</SelectItem>)}</SelectContent>
           </Select>
           {catalog && !catalog.forecasts.length && <p className="text-xs text-muted-foreground">No planning-ready forecast yet. Generate a seven-day forecast from the simulated history first.</p>}
+          <Label htmlFor="sl-forecast-method">Forecast method</Label>
+          <Select value={props.forecastStrategy} onValueChange={(value) => props.onForecastStrategyChange(value as Props["forecastStrategy"])} disabled={lock || props.jobRunning}>
+            <SelectTrigger id="sl-forecast-method" className="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="SEASONAL_NAIVE">Seasonal naive</SelectItem>
+              <SelectItem value="MOVING_AVERAGE">Moving average</SelectItem>
+              <SelectItem value="CHRONOS2">Chronos-2 · experimental</SelectItem>
+            </SelectContent>
+          </Select>
           {props.canGenerate && !readOnly && (
             <Button type="button" variant="outline" size="sm" className="justify-self-start" disabled={lock || props.jobRunning} onClick={props.onGenerateForecast}>Generate forecast</Button>
           )}
-          <p className="text-xs text-muted-foreground">Seven-day demand forecast (seasonal naive with labelled fallback). Donation predictions never become stock.</p>
+          <p className="text-xs text-muted-foreground">Seven-day demand forecast with explicitly enabled moving-average fallback. Chronos requires available model compute; its raw intervals are uncalibrated. Donation predictions never become stock.</p>
+          {props.forecastResult && <p role="status" aria-label="Last generated forecast" className="text-xs text-muted-foreground">
+            Last generated forecast ({shortId(props.forecastResult.job_id)}): {props.forecastResult.planning_ready ? "planning ready" : "incomplete; unavailable for planning"}. Actual providers: {props.forecastResult.forecast.actual_providers.join(", ") || "none"}.
+            {props.forecastResult.forecast.series.some((row) => row.fallback_used) && " Baseline fallback was used."}
+          </p>}
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor="sl-assumptions">Simulated assumptions version</Label>
@@ -169,7 +187,8 @@ export function GuidedScenarioStepper(props: Props) {
 
       <Step n={3} current={current} status={s3}>
         <p className="text-xs text-muted-foreground">Demand multiplier per site and product, 0–3 (1 = baseline forecast). Central forecast estimate.</p>
-        <div className="grid gap-1.5 overflow-x-auto">
+        <div className="overflow-x-auto">
+        <div className="grid gap-1.5" style={{ minWidth: products.length > 2 ? `${7 + products.length * 5.25}rem` : undefined }}>
           <div className="grid gap-x-2 text-[11px] font-medium text-muted-foreground" style={columns} aria-hidden="true">
             <span>Site</span>{products.map((p) => <span key={p.id} className="truncate">{pluralize(p.unit)} ×</span>)}
           </div>
@@ -197,7 +216,8 @@ export function GuidedScenarioStepper(props: Props) {
           }))}
           {!beneficiaries.length && <p className="text-xs text-muted-foreground">{readOnly ? "Sites load for a signed-in presenter." : "No beneficiary sites loaded."}</p>}
         </div>
-        <p className="text-xs text-muted-foreground">Conservative demand needs model quantiles; the seasonal-naive forecasts report none, so only the central estimate is offered.</p>
+        </div>
+        <p className="text-xs text-muted-foreground">Only the central estimate is offered for planning. Raw model intervals are uncalibrated.</p>
       </Step>
 
       <Step n={4} current={current} status={s4}>

@@ -193,7 +193,7 @@ class ForecastPolicy(Contract):
     allow_mixed_proxy_history: bool = False
     preprocessing_version: Literal["preserve-gaps-v1"] = "preserve-gaps-v1"
     postprocessing_version: Literal["reject-invalid-v1"] = "reject-invalid-v1"
-    adapter_version: Literal["core-v1"] = "core-v1"
+    adapter_version: Literal["core-v1", "chronos2-univariate-cpu-f32-v1"] = "core-v1"
     provider_package_version: str | None = None
     checkpoint: str | None = None
     checkpoint_revision: str | None = None

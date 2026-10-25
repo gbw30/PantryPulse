@@ -12,6 +12,22 @@ from app.services.jobs.contracts import AttemptState
 
 class BaselinePolicy(ForecastPolicy):
     strategy: Literal["SEASONAL_NAIVE", "MOVING_AVERAGE"]
+    adapter_version: Literal["core-v1"] = "core-v1"
+
+
+class ForecastSubmissionPolicy(ForecastPolicy):
+    """Clients choose a strategy, never a Chronos model path or execution profile."""
+
+    @model_validator(mode="after")
+    def server_bound_chronos(self) -> Self:
+        if self.strategy == "CHRONOS2" and (
+            self.adapter_version != "core-v1"
+            or self.provider_package_version is not None
+            or self.checkpoint is not None
+            or self.checkpoint_revision is not None
+        ):
+            raise ValueError("Chronos provider identity is selected by the server")
+        return self
 
 
 class ForecastRequest(Contract):
@@ -19,7 +35,7 @@ class ForecastRequest(Contract):
     data_cutoff_date: date
     snapshot_as_of: AwareDatetime
     history_start_date: date
-    policy: BaselinePolicy
+    policy: ForecastSubmissionPolicy
     force_refresh: bool = False
 
     @model_validator(mode="after")

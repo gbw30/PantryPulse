@@ -46,7 +46,7 @@ def _rows(conn, model, org, *conditions):
     return rows
 
 
-def load_input(engine, org: UUID, request: ForecastRequest):
+def load_input(engine, org: UUID, request: ForecastRequest, *, policy=None):
     """Freeze catalog and facts atomically; no model, stock mutation or hidden write."""
     with engine.connect().execution_options(isolation_level="REPEATABLE READ") as conn:
         with conn.begin():
@@ -282,5 +282,5 @@ def load_input(engine, org: UUID, request: ForecastRequest):
                 history,
                 data_cutoff_date=request.data_cutoff_date,
                 snapshot_as_of=request.snapshot_as_of,
-                policy=request.policy,
+                policy=policy if policy is not None else request.policy,
             )

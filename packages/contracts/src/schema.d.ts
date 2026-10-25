@@ -842,59 +842,6 @@ export interface components {
             /** Transformation Version */
             transformation_version: string;
         };
-        /** BaselinePolicy */
-        BaselinePolicy: {
-            /**
-             * Adapter Version
-             * @default core-v1
-             * @constant
-             */
-            adapter_version: "core-v1";
-            /**
-             * Allow Fallback
-             * @default false
-             */
-            allow_fallback: boolean;
-            /**
-             * Allow Fulfilled Proxy
-             * @default false
-             */
-            allow_fulfilled_proxy: boolean;
-            /**
-             * Allow Mixed Proxy History
-             * @default false
-             */
-            allow_mixed_proxy_history: boolean;
-            /** Checkpoint */
-            checkpoint?: string | null;
-            /** Checkpoint Revision */
-            checkpoint_revision?: string | null;
-            /** Policy Version */
-            policy_version: string;
-            /**
-             * Postprocessing Version
-             * @default reject-invalid-v1
-             * @constant
-             */
-            postprocessing_version: "reject-invalid-v1";
-            /**
-             * Preprocessing Version
-             * @default preserve-gaps-v1
-             * @constant
-             */
-            preprocessing_version: "preserve-gaps-v1";
-            /** Provider Package Version */
-            provider_package_version?: string | null;
-            /** Sparse Min Samples */
-            sparse_min_samples: number;
-            /** Sparse Window Days */
-            sparse_window_days: number;
-            /**
-             * Strategy
-             * @enum {string}
-             */
-            strategy: "SEASONAL_NAIVE" | "MOVING_AVERAGE";
-        };
         /** Body_demand_csv_api_v1_imports_demand_csv_post */
         Body_demand_csv_api_v1_imports_demand_csv_post: {
             /** File */
@@ -1414,7 +1361,7 @@ export interface components {
              * Format: date
              */
             history_start_date: string;
-            policy: components["schemas"]["BaselinePolicy"];
+            policy: components["schemas"]["ForecastSubmissionPolicy"];
             /**
              * Snapshot As Of
              * Format: date-time
@@ -1580,6 +1527,63 @@ export interface components {
              * @default []
              */
             warnings: string[];
+        };
+        /**
+         * ForecastSubmissionPolicy
+         * @description Clients choose a strategy, never a Chronos model path or execution profile.
+         */
+        ForecastSubmissionPolicy: {
+            /**
+             * Adapter Version
+             * @default core-v1
+             * @enum {string}
+             */
+            adapter_version: "core-v1" | "chronos2-univariate-cpu-f32-v1";
+            /**
+             * Allow Fallback
+             * @default false
+             */
+            allow_fallback: boolean;
+            /**
+             * Allow Fulfilled Proxy
+             * @default false
+             */
+            allow_fulfilled_proxy: boolean;
+            /**
+             * Allow Mixed Proxy History
+             * @default false
+             */
+            allow_mixed_proxy_history: boolean;
+            /** Checkpoint */
+            checkpoint?: string | null;
+            /** Checkpoint Revision */
+            checkpoint_revision?: string | null;
+            /** Policy Version */
+            policy_version: string;
+            /**
+             * Postprocessing Version
+             * @default reject-invalid-v1
+             * @constant
+             */
+            postprocessing_version: "reject-invalid-v1";
+            /**
+             * Preprocessing Version
+             * @default preserve-gaps-v1
+             * @constant
+             */
+            preprocessing_version: "preserve-gaps-v1";
+            /** Provider Package Version */
+            provider_package_version?: string | null;
+            /** Sparse Min Samples */
+            sparse_min_samples: number;
+            /** Sparse Window Days */
+            sparse_window_days: number;
+            /**
+             * Strategy
+             * @default SEASONAL_NAIVE
+             * @enum {string}
+             */
+            strategy: "SEASONAL_NAIVE" | "MOVING_AVERAGE" | "CHRONOS2";
         };
         /** GoalMetric */
         GoalMetric: {
