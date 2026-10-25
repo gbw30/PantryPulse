@@ -89,11 +89,12 @@ class ForecastResult(Contract):
 class ErrorDetail(Contract):
     code: str
     message: str
-    request_id: UUID
+    details: dict[str, str]
 
 
 class ErrorEnvelope(Contract):
     error: ErrorDetail
+    request_id: UUID
 
 
 class SourceSummary(Contract):

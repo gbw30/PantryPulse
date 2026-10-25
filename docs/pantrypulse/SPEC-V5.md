@@ -6,6 +6,8 @@
 
 **Code baseline:** `main` / `origin/main` at `5d2012e`; merged backend primitives entered through PR #7 at `0244ef1`. **Additional reviewed work:** `origin/forecasting` at `bed08544e3dc9b00499224806d92dd8f437f0644`, not merged into this main baseline. Their common ancestor is `a0ad11f45bb15a3c3158ed6678f9522652d2a723`. The forecasting branch was inspected and tested in an isolated copy, without modifying or integrating it.
 
+**Current integration update:** [PR #75](https://github.com/gbw30/PantryPulse/pull/75) reviews VP at `8a4d069` with main at `829262a`, including the already merged PRs #58 and #74. Section 3.5 and the current interface/acceptance rows supersede historical implementation-status statements; historical evidence stays scoped to its original tree.
+
 **Authority and reading copy:** This repository Markdown file is the source of truth. The [Google Docs v5 tab](https://docs.google.com/document/d/1WcsV69YCE1mqW2pI7IyEFQBSuwQB_hMhVQKfU20ZFk8/edit?tab=t.phiita8avpoe) is a reading copy; proposed changes there must be reconciled into this file before they change the project specification. The tab was empty at the original consolidation inspection. Source material includes [V4 and working tabs 00–07](https://docs.google.com/document/d/1WcsV69YCE1mqW2pI7IyEFQBSuwQB_hMhVQKfU20ZFk8/edit?tab=t.951hp1xdarlq).
 
 ## Contents
@@ -159,6 +161,14 @@ Sandbox-only test stalls/temporary Git permission failures were resolved by auth
 ### 3.4 Worker foundation review (PR #52)
 
 WQ-01–06 implement the internal durable queue, jobs-only Alembic revision, admission and idempotency rules, Linux process containment, heartbeat, deadlines, cancellation, recovery and fenced publication. [ADR 0005](../architecture/0005-worker-job-queue.md), the [PP-31–36 packet](tasks/PP-31.md) and the [worker runbook](../setup/WORKER-QUEUE.md) record the scope and test evidence. The production registry is empty; test handlers publish only test infrastructure artifacts. These changes do not implement public job routes, authentication, forecast/allocation handlers, measured CPU/memory enforcement or a deployed compute service. A1/A7 remain provisional for deployment.
+
+### 3.5 VP integration review (PR #75, October 25)
+
+The reviewed candidate includes operational storage and stock services, pure dated projection, pure scenario freeze/freshness, and persisted **baseline** forecasting. Its production registry now contains `forecast.v1`. Alembic joins the existing operational/worker histories at `pp_merge_0003` and adds forecasts/presenter sessions at `pp45_0004`; previously applied revisions are unchanged. Frozen scenario database capture/storage, imports, allocation integration, visitor access and the complete product journey remain incomplete.
+
+The bounded forecast HTTP contract and generated OpenAPI/TypeScript are implemented as detailed in [FORECAST-API-FLOW.md](FORECAST-API-FLOW.md). This resolves the baseline forecast subset of OPEN-29/31/36; it does not close those broader gates or adopt OR-branch contracts. Reads currently require a presenter session. The future visitor experience remains separate. Review corrected the API/proxy error envelope to `{error:{code,message,details},request_id}` and malformed JSON to HTTP 400; valid JSON with invalid business/schema input remains 422. Error details are empty to avoid leaking inputs or database internals.
+
+Fresh Windows/Python 3.12/PostgreSQL 16 review evidence: **950 backend tests passed**, including **133 database integration tests**; **20 Linux process-control tests skipped**. Backend Ruff, frontend types/lint/build, generated-contract drift checks and proxy tests passed. Docker Desktop failed during secrets-engine socket initialization; the available WSL image has no Python runtime. Linux supervisor execution is **UNVERIFIED in this review**, not a passing worker smoke or deployment qualification. Actual Chronos inference remains paused/unverified. Detailed commands, additional HTTP/browser evidence and limitations are recorded in [PR-75-REVIEW.md](PR-75-REVIEW.md).
 
 ## 4. Architecture and ownership boundaries
 
@@ -552,19 +562,20 @@ Coverage days, currency/price representation, available/minimum quantities, offe
 
 ### 12.1 Implemented versus planned interfaces
 
-Pydantic/FastAPI OpenAPI will be authoritative for public schemas; generate TypeScript rather than maintaining duplicate DTOs. Internal experimental forecasting models are not the final HTTP/SQL contract. Complete OPEN-29/36 before public generation.
+Pydantic/FastAPI OpenAPI is authoritative for the implemented baseline forecast/presenter schemas; TypeScript is generated from it. Other domain contracts remain gated by OPEN-29/36. Internal experimental models do not automatically become public HTTP/SQL contracts.
 
 | Interface family under `/api/v1` | Intended behavior | Status |
 |---|---|---|
 | `GET /health` | Cheap process liveness, exact existing response | IMPLEMENTED — MAIN |
 | Dashboard/sites/site inventory/history | Saved scoped data, units, dates, lot exclusions and provenance | Proposed catalog; not implemented |
 | Demand/donation imports, receipt posting, corrections | Validated history and authorized, audited transactional stock operations | Proposed; transaction/public schemas open |
-| Forecast submission/status/points | Durable 202 acceptance; saved per-series outcomes and committed points | Not implemented; branch has pure computation only |
-| Scenario creation/read | Required mode and fully frozen input package | Not implemented; BE-01 is only a schema fragment |
+| Forecast submission/status/points | Durable 202 acceptance; saved per-series outcomes and committed points | Implemented in PR #75: `/forecasts`, `/jobs/{job_id}`, `/forecasts/{job_id}`; baseline only; Linux live execution unverified in review |
+| Presenter/catalog | Session lifecycle, origin/CSRF checks, authenticated source/site/product IDs | Implemented in PR #75; visitor access and OR convergence remain open |
+| Scenario creation/read | Required mode and fully frozen input package | Pure scenario-v1 freeze/freshness implemented; database capture/storage and HTTP remain absent |
 | Plan/comparison submission/read | Durable jobs against the selected scenario; independent method outcomes | Not implemented |
 | Shortages/policy/methodology/audit | Saved projections, policy explanation, research attribution, versions and safe diagnostics | Not implemented |
 | Review/reset | Presenter-controlled review with no stock effect; isolated deterministic reset | Not implemented |
-| Readiness/capabilities/job retry | Cheap readiness/availability and explicit attempt operations | Exact routes/enums open |
+| Readiness/capabilities/job retry | Cheap readiness/availability and explicit attempt operations | Forecast job retry/cancel implemented; public readiness/capability catalog remains open |
 
 Inherited paths such as `/forecast-runs`, `/scenarios/{id}/compare-methods`, `/allocation-methodology` and `/demo/reset` are candidate names until the complete catalog is finalized. V5 does not pretend that listing them exposes those routes.
 
@@ -720,7 +731,7 @@ V5 acceptance IDs avoid V4's reused FR numbers. Existing FR/INV/TEST-EGP/F ident
 | V5-A01 Foundation and primitives | Frozen install, main types/lint/tests, six strict pure helpers and process health | Bounded MAIN evidence: 437 API tests; BE-01–06 / PP-24–29; independent verifier completion not established |
 | V5-A02 Historical truth | Gaps/zeros/proxies/revisions, donor versus receiver, complete receipt revisions, data/knowledge cutoff leakage tests | BRANCH offline evidence; operational persistence/import policy open; INV-10/11/13 |
 | V5-A03 Stock transactions | Historical import leaves stock unchanged; exactly-once posting, corrections, rollback, competing versions/idempotency and audit | IMPLEMENTED/VERIFIED — local #21 internal services, real PostgreSQL concurrency/rollback; HTTP/import integration and P1 movement/reservation remain separate |
-| V5-A04 Baseline forecast | Seven dates per required demand/donation series, explicit insufficiency, null intervals, actual provider | BRANCH offline evidence; live workflow not implemented; F-01–05/07–12 pure scope, not the F-06 stock-import gate |
+| V5-A04 Baseline forecast | Seven dates per required demand/donation series, explicit insufficiency, null intervals, actual provider | PR #75: real PostgreSQL/API publication, reuse and fallback tests; live Linux supervisor workflow unverified in review; stock-import gate separate |
 | V5-A05 Qualification/fallback | Classified failure → permitted usable baseline; explicit failure otherwise; actual pinned Chronos separately qualified | BRANCH fallback boundary tested; real Chronos UNVERIFIED/PAUSED; INV-13/14; F-25 |
 | V5-A06 Evaluation | Chronological equal-scored-set metrics, denominator/zero/missing counts, source and actual-provider identity | Synthetic branch experiment reproduced; representative evaluation/selection open; F-07–12 / OPEN-18 |
 | V5-A07 Atomic publication/reuse | Committed complete results before planning; exact identity, concurrent deduplication, force refresh, rollback/stale-attempt rejection | Pure reuse/handoff only; DB/API unimplemented; F-13/14 |
@@ -728,8 +739,8 @@ V5 acceptance IDs avoid V4's reused FR numbers. Existing FR/INV/TEST-EGP/F ident
 | V5-A09 Projection/feasibility | Dated loss arithmetic, lot expiry/ETA/use, FEFO, both modes, donor protection, capacity/conservation/no relay | Local #23 pure projection-v1 with BD-48/43/44; see PP-39 evidence. Full scenario/DB/API integration, donor/route/capacity/no-relay checker/builder remain absent; INV-03–09 |
 | V5-A10 Mathematical gate | Paper mapping, independent hand/enumeration, coefficients/scales/overflow, zero/group/equality cases, active AP/RP and ablations | GATED; TEST-EGP-01–05 / OPEN-23–25 |
 | V5-A11 Paired research comparison | Both real methods in both modes; pair shares operational inputs/constraints/settings; interpretable difference and independent checking | NOT IMPLEMENTED; TEST-EGP-06/07 |
-| V5-A12 Durable execution | One active/two waiting, expiry/heartbeat, real 270/300/15/25/60-second containment, interrupted attempt/manual retry | NOT IMPLEMENTED; OPEN-30/33/35; F-19–22 |
-| V5-A13 Public API and security | Generated types/drift; backend presenter authorization, proxy/CSRF, structured errors, no compute on GET, saved reads during compute outage | NOT IMPLEMENTED beyond health; OPEN-29/31/36 |
+| V5-A12 Durable execution | One active/two waiting, expiry/heartbeat, real 270/300/15/25/60-second containment, interrupted attempt/manual retry | Internal queue/supervisor and baseline forecast handler implemented; DB fencing/admission tested; Linux process execution and deployed limits unverified in PR #75; OPEN-30/33/35 remain partial |
+| V5-A13 Public API and security | Generated types/drift; backend presenter authorization, proxy/CSRF, structured errors, no compute on GET, saved reads during compute outage | Baseline forecast/presenter subset implemented/tested in PR #75; visitor/other-domain contracts and OR convergence remain OPEN-29/31/36 |
 | V5-A14 Supplier proposals | Selected offer/priority/coverage policy; coordinated budget; alternatives/uncovered need; no stock/order/payment effects | Accepted scope, dependent decisions/implementation PAUSED |
 | V5-A15 User journey | Actual imports/readouts → forecast → shortage → paired allocation → disruption/new scenario → review/reset; independent failures visible | NOT IMPLEMENTED; scaffold browser smoke is insufficient |
 | V5-A16 Research attribution | DOI/date, bounded adaptation and simulated labels; failed research never relabeled; methodology visible early | Static attribution exists; runtime methodology/failure UI unimplemented; TEST-ELIG-01 |
