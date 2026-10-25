@@ -1,4 +1,19 @@
 # API contracts
 
-Use [Project specification V5](../../docs/pantrypulse/SPEC-V5.md) for accepted product requirements and unresolved contract gates. Pydantic and FastAPI OpenAPI will define the public machine contract; generate TypeScript after the enclosing public schemas are validated under OPEN-29/36. No generated domain contracts exist yet. Internal experimental forecasting models on the unmerged branch are not the finalized public DTOs.
+Pydantic/FastAPI owns the machine contract. `openapi.json` and `src/schema.d.ts`
+cover the PP-45 baseline forecast/presenter routes currently implemented on VP.
+They do not finalize every V5 domain or imply OR-branch integration. See
+[forecast flow and boundaries](../../docs/pantrypulse/FORECAST-API-FLOW.md).
+
+From the repository root (PowerShell):
+
+```powershell
+apps/api/.venv/Scripts/python.exe apps/api/scripts/export_openapi.py --stdout | Set-Content -Encoding utf8 packages/contracts/openapi.json
+node node_modules/openapi-typescript/bin/cli.js packages/contracts/openapi.json -o packages/contracts/src/schema.d.ts
+apps/api/.venv/Scripts/python.exe apps/api/scripts/export_openapi.py --check packages/contracts/openapi.json
+node node_modules/openapi-typescript/bin/cli.js packages/contracts/openapi.json -o packages/contracts/src/schema.d.ts --check
+```
+
+Exporting never connects to a database, loads credentials or runs inference. Never
+edit generated output manually. Regenerate and diff it after public schema changes.
 

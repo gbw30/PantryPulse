@@ -6,7 +6,7 @@ The revision reads frozen sibling SQL files, never mutable current ORM metadata.
 Subsequent changes require a new migration. `alembic_version` is an additional
 infrastructure table. Main also supplies the five durable-job tables from immutable
 revision `0001_jobs_foundation`, per [ADR 0005](../../../docs/architecture/0005-worker-job-queue.md).
-Forecast/scenario persistence remains separate work.
+Forecast persistence is added by `pp45_0004`; scenario persistence remains separate work.
 
 `pp21_0002` follows that baseline and adds positive/reversal partial unique indexes
 for supply allocations. Both revisions are applied to the selected Neon branch.
@@ -18,6 +18,13 @@ Its upgrade/downgrade has no SQL; Alembic applies any missing parent branch firs
 The combined schema has 22 operational and five job tables plus `alembic_version`.
 Existing published revision files are unchanged. This local integration does not
 apply the new head to the user's Neon schema automatically.
+
+`pp45_0004` now follows the merge head. It adds three immutable forecast tables,
+presenter sessions, and scoped queue identity constraints, without rewriting any
+earlier revision. The complete schema has 31 application tables plus
+`alembic_version`. See [forecast API flow](../../../docs/pantrypulse/FORECAST-API-FLOW.md).
+The local demo loader applies this only inside its new `pp45_demo_*` schema;
+existing `public` tables/data are not migrated or reset by that command.
 
 ## Run an explicit migration
 

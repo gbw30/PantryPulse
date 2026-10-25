@@ -257,6 +257,15 @@ BD-46 applies that same rule to posted-receipt cancellations: retain the correct
 
 ## 6. Forecasting requirements and existing implementation
 
+**Local VP update (October 25, PP-45 / #29):** the baseline path now connects
+operational history, durable admission, production worker registration, atomic
+forecast persistence, presenter-protected HTTP reads/commands and a thin Next proxy.
+See [implemented flow, policy boundaries and evidence](FORECAST-API-FLOW.md).
+This updates implementation-status statements below only for that bounded slice.
+It does not qualify Chronos, merge or_pipeline, close #67/#68, complete CSV/UI/OR
+integration or establish a running Linux worker on this Windows host. Explicit
+request policy avoids adopting new sparse-history defaults under OPEN-13.
+
 ### 6.1 Shared service requirements
 
 A series is identified by organization, site, product, target type and unit/calendar context. DEMAND and DONATION stay distinct. Produce seven unique, ordered future local dates for every successful required series. Failure or missing required coverage cannot silently turn into zero or a smaller complete-looking scope.

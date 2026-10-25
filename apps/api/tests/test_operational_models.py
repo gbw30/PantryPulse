@@ -9,7 +9,8 @@ from app.models.operational import Base
 def test_domain_metadata_is_tenant_scoped_and_excludes_compute():
     assert len(Base.metadata.tables) >= 20
     for name, table in Base.metadata.tables.items():
-        assert not any(word in name for word in ("job", "forecast", "scenario"))
+        # PP-45 adds persisted forecasts; compute/scenario metadata stays separate.
+        assert not any(word in name for word in ("compute_", "scenario"))
         if name != "organizations":
             assert "organization_id" in table.c
             assert any(

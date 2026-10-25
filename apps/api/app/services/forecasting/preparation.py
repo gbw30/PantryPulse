@@ -107,6 +107,8 @@ def _donation_days(
     for receipt in receipts:
         if receipt.receiving_site_id != scope.key.site_id or receipt.local_day > cutoff:
             continue
+        if receipt.is_void:
+            continue
         for line in receipt.lines:
             if line.product_id != scope.key.product_id:
                 continue
@@ -175,7 +177,7 @@ def prepare(
         and any(
             scope.key.target_type == "DONATION"
             and scope.key.site_id == row.receiving_site_id
-            and any(line.product_id == scope.key.product_id for line in row.lines)
+            and (row.is_void or any(line.product_id == scope.key.product_id for line in row.lines))
             for scope in history.scope
         )
     )
