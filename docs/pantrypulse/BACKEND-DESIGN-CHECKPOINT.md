@@ -10,6 +10,25 @@
 
 ## Purpose and authority
 
+October 24 issue #11 update: the user explicitly selected **BD-49** (protect each
+donating pantry's service across the seven-day horizon plus configured reserves),
+**BD-50** (one batch on the first day of an explicit 1–3-day allocation window,
+shared frozen timezone, whole-day route delays), and **BD-51** (every transferred
+unit contributes to additional service inside that window). The
+[scenario-v1 contract](SCENARIO-CONTRACT.md) supplies the operational field layout,
+identity, staleness/replay, FEFO, reserves, routes and capacity semantics. Concrete
+parameter values remain explicit inputs. See [PP-33](tasks/PP-33.md) for local
+checks and boundaries; upstream semantic qualification, #24/#25 enforcement,
+#30 persistence and public APIs are not completed by this contract work.
+
+October 24 issue #23 update: **BD-48**, explicitly selected by the user, fixes
+daily projection order to confirmed arrivals → expiry/eligibility exclusions →
+explicit outbound commitments → FEFO local service. Unmet remains on its original
+day. See [V5 §9](SPEC-V5.md#9-inventory-projection-and-common-feasibility) and
+[projection-v1](INVENTORY-PROJECTION.md). This resolves only that portion of
+OPEN-21; donor protection, routes/capacities and the complete #11 scenario contract
+remain open. The implementation is an internal pure service, not a new HTTP API.
+
 Preserve the backend and API planning progress so the discussion can continue after a restart without losing selections, reopening settled questions, or mistaking recommendations for accepted defaults. The companion [backend specification](BACKEND-SPEC.md) explains the covered architecture, logical data model, contracts, processing rules, operations, and verification requirements. This checkpoint retains the decision history, remaining topics, explicit alternatives, and resume instructions (BD-40).
 
 The accepted decisions below record the human user's selections. Earlier assistant recommendations that were not selected do not override them. In particular, scenarios are fully frozen, and draft supplier proposals are included. The temporary selection to omit supplier proposals was explicitly superseded by the user.
@@ -30,7 +49,13 @@ Forecasts and recommendations remain projections. Current stock, confirmed futur
 
 ## Accepted decisions
 
+Issue #8 follow-up, October 24, 2026: the user selected **audited adjustments only** for first-release stock corrections (V5 BD-42), and **allow explicitly declared non-expiring stock** (V5 BD-43). These resolve OPEN-11's scope and part of OPEN-06. Unknown expiry differs from declared non-expiring; the latter does not establish eligibility or food safety. See [V5 §5](SPEC-V5.md#5-domain-data-history-and-stock-integrity) and the [operational draft](OPERATIONAL-CONTRACT.md). Older OPEN-06/11 tracker wording below is historical where superseded by these selections; remaining transaction/calendar details still need review.
+
 All rows below are accepted directions. Their exact fields, algorithms, and edge cases may still require specification under the remaining-topic tracker. The recorded-choice column retains the selected option's letter and a shortened label; original “Recommended” annotations are omitted because recommendation status is not evidence of selection. Option letters are local to each question.
+
+Further issue #8 selections on October 24: **usable through expiry day** (V5 BD-44), and **save corrected history, reject negative stock adjustment and flag mismatch** (V5 BD-45). The physical lot remains unchanged on that failed adjustment. Exact calendar/reconciliation representation remains to be reviewed under OPEN-06/08/09; these selections do not close all remaining contract details.
+
+Final issue #8 user selections, October 24: **posted cancellation follows the same rule** (V5 BD-46), and **future supply requires explicit reconfirmation after a downward receipt correction** (V5 BD-47). [Operational contract v1](OPERATIONAL-CONTRACT.md) now supplies the technical implementation baseline for #19; database and transaction verification remain pending. Earlier OPEN-04–11 prose below is historical where superseded by that contract and V5's updated register. No GitHub issue was closed or remote schema changed by this update.
 
 | ID | Topic | Recorded user choice | Agreed specification |
 |---|---|---|---|
@@ -158,10 +183,10 @@ An unchecked item means its full specification is not frozen. It does not mean i
 
 ### Scenarios, projections, and optimization
 
-- [ ] **OPEN-19 — Snapshot construction.** Define the full JSONB schema, immutable source references, canonical serialization, hashing, schema versioning, and explicit partial-scope representation.
+- [ ] **OPEN-19 — Snapshot construction.** Define the full JSONB schema including required frozen `transfer_mode`, immutable source references, canonical serialization, hashing, schema versioning, and explicit partial-scope representation.
 - [ ] **OPEN-20 — Staleness and historical replay.** Specify invalidating changes, replacement scenarios, archived-result visibility, and historical reruns versus current recommendations.
 - [ ] **OPEN-21 — Dated stock projection and donor protection.** Finalize event ordering, daily consumption/lost-demand calculations, reserves, hard FEFO enforcement, and exclusion reasons.
-- [ ] **OPEN-22 — Transport and capacity definitions.** Specify allowed routes, ETA assumptions, capacity units, product handling coefficients, receiving limits, and modeled costs.
+- [ ] **OPEN-22 — Transport and capacity definitions.** Specify mode-dependent allowed routes, ETA assumptions, capacity units, product handling coefficients, receiving limits, and modeled costs.
 - [ ] **OPEN-23 — Complete objective policy.** Freeze classical/research formulas, coefficients, AP/RP excess aggregation, cost/waste normalization, defaults, and permitted parameter ranges.
 - [ ] **OPEN-24 — Numerical and boundary behavior.** Finalize fixed-point encoding, overflow limits, strict comparisons, zero-demand cases, invalid groups, and independent verification.
 - [ ] **OPEN-25 — Policy and attribute management.** Define immutable versions, editing/creation permissions, validation, methodology output, and how changes create new frozen scenarios.
@@ -176,7 +201,7 @@ OPEN-03 remains the separate deferred choice about which needs receive priority 
 
 ### API, execution, and access
 
-- [ ] **OPEN-29 — Endpoint and wire-contract catalog.** Finalize routes, request/response fields, filtering, pagination, validation, errors, HTTP statuses, and generated TypeScript contracts.
+- [ ] **OPEN-29 — Endpoint and wire-contract catalog.** Finalize routes, required scenario `transfer_mode` validation and result/methodology metadata, request/response fields, filtering, pagination, validation, errors, HTTP statuses, and generated TypeScript contracts.
 - [ ] **OPEN-30 — Job orchestration.** Define states, worker ownership, queue limits, cancellation, actual computation timeouts, manual retries, publication, and independent comparison-method failures.
 - [ ] **OPEN-31 — Presenter authentication and proxy security.** Specify sessions, login/logout, expiry, credential forwarding, backend verification, CSRF protection, and request limits.
 - [ ] **OPEN-32 — Demo isolation and retention.** Define reset boundaries, audit preservation, snapshot/job retention, cache cleanup, and historical-result access.
@@ -251,8 +276,8 @@ Three supporting files below remain local-only. They are listed as code paths ra
 | [Implementation plan](IMPLEMENTATION-PLAN.md) | Research-first priorities and the distinction between scaffold and completed platform. |
 | [Invariants](INVARIANTS.md) | Conservation, timing, provenance, version, and accounting checks. |
 | Forecasting proposal evaluation — `FORECASTING-PROPOSAL-EVALUATION.md` | Local-only supporting file: earlier correct/reject/improve analysis that motivated the design discussion. |
-| [Detailed backend explanation](BACKEND-DATA-FLOW.md) | Earlier explanatory document; not updated by this checkpoint save. |
-| [Simple backend explanation](BACKEND-DATA-FLOW-SIMPLE.md) | Plain-language companion; not updated by this checkpoint save. |
+| [Detailed backend explanation](BACKEND-DATA-FLOW.md) | Explanatory document reconciled with BD-30. |
+| [Simple backend explanation](BACKEND-DATA-FLOW-SIMPLE.md) | Plain-language companion reconciled with BD-30. |
 | [Generated-contract boundary](../../packages/contracts/README.md) | Pydantic/OpenAPI authority and generated TypeScript expectations. |
 | Local compute evaluation — `LOCAL-COMPUTE-EVALUATION.md` | Local-only supporting file: proposed resource/caching strategy and measurement limits; not performance proof. |
 | Hosting/model setup pause — `../setup/SETUP-PROGRESS.md` | Local-only supporting file: user's pause on hosting/model preparation; the pause is also preserved in the resume instructions below. |

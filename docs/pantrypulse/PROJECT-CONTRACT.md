@@ -52,7 +52,7 @@ Use UUID primary IDs. Golden unit-test fixtures may use readable aliases; seed g
 | Scheduled supply | site/category/date/quantity/status; confirmed contributes by default, expected only in an explicit scenario |
 | Forecast run | id, organization_id, provider/requested provider/actual model/checkpoint revision, cutoff, generated_at, horizon, status, fallback flag/reason, data_source_label (observed/proxy/simulated), dataset version and provenance, evaluation_json nullable, error_message nullable, selection_reason nullable (D09) |
 | Forecast point | unique run/site/category/date, p50 finite >= 0, p10/p90 nullable, interval_method; quantiles ordered where present |
-| Scenario | id, organization_id, forecast_run_id, name, validated overrides, created_at; no mutation of history or baseline run |
+| Scenario | id, organization_id, forecast_run_id, name, required transfer_mode (HUB_ONLY or HUB_AND_PANTRY; no default), frozen inputs, validated overrides, created_at; no mutation of history or baseline run |
 | Allocation plan | id, scenario_id, inventory_version, solver_status, plan_status, snapshot hash, unmet_before and unmet_after by category, movement_cost, objective_value nullable (null unless the solver returned a proven or incumbent value), baseline comparison (D08), assumptions, solver parameters, generated_at |
 | Plan transfer | plan/from/to/category/quantity > 0/planned date/estimated cost/status; from != to |
 | Inventory movement | site/category/optional lot, signed quantity, reason, transfer id, timestamp, idempotency key |
@@ -97,7 +97,7 @@ Central projection uses p50. Conservative mode uses p90 where available or an ex
 
 Decision D05 restricts P0 to one transfer batch arriving before first-day demand, no relay or repeated use of inbound transfers, over a stated 1–3-day horizon. Do not claim full scheduling or routing. Site closures affect demand and route availability according to explicit scenario fields; disabling a route does not erase a site's needs.
 
-For site i, category c: eligible physical stock S; confirmed supplies available by batch dispatch; local protected demand D over the allocation window; end-of-window minimum reserve R. Compute donor budget conservatively as max(0, stock available at dispatch - protected local demand - reserve). Later donor receipts do not increase this P0 early-batch budget, though they still appear in daily projections. This deliberately conservative feasible region must be disclosed when claiming optimality. A receiver with unavoidable unmet demand is not forced to meet an impossible end-stock reserve; reserve is a donor-protection policy unless the human explicitly chooses a stronger hard constraint.
+For site i, category c: eligible physical stock S; confirmed supplies available by batch dispatch; local protected demand D over the allocation window; end-of-window minimum reserve R. The historical aggregate bound max(0, stock available at dispatch - protected local demand - reserve) is insufficient to establish pantry surplus. Use dated lot projections with demand/reserve protection, expiry and arrival checks (OPEN-21). Later donor receipts do not increase this P0 early-batch budget, though they still appear in daily projections. This deliberately conservative feasible region must be disclosed when claiming optimality. A receiver with unavoidable unmet demand is not forced to meet an impossible end-stock reserve; reserve is a donor-protection policy unless the human explicitly chooses a stronger hard constraint.
 
 Integer variable x[i,j,c] >= 0 exists only for allowed non-self routes. Outgoing <= donor budget. Inbound <= receiving capacity. Total sum(a[c] * x) <= handling capacity, where a[c] is a documented integer conversion. Do not sum bottles and meals as comparable food quantities. The source spec's generic max_total_transfer_units becomes a shared **handling-unit** budget with documented coefficients; category quantities remain separate.
 
@@ -120,13 +120,13 @@ Heuristics truncate instead of violating a hard constraint. For each policy, rep
 
 ## API contract
 
-All application routes use /api/v1 and JSON except multipart CSV upload. Errors use `{ "error": { "code": "...", "message": "...", "details": {} }, "request_id": "..." }`. Every mutation has a request ID. Approval/completion additionally require an idempotency key. Translate framework validation errors into the same envelope.
+The following domain route contracts are proposed and remain to be finalized under OPEN-29; this table does not establish implementation. All application routes use /api/v1 and JSON except multipart CSV upload. Errors use `{ "error": { "code": "...", "message": "...", "details": {} }, "request_id": "..." }`. Every mutation has a request ID. Approval/completion additionally require an idempotency key. Translate framework validation errors into the same envelope.
 
 Status codes follow source spec §8.1, each with the error envelope where it is an error:
 
 | Code | Use |
 |---|---|
-| 200 / 201 / 202 | Read or action / resource created / forecast job accepted |
+| 200 / 201 / 202 | Read or action / resource created / forecast, allocation or comparison job accepted |
 | 400 | Malformed request: unparseable JSON, a bad multipart body, or a CSV with missing or unexpected headers |
 | 401 / 403 | Authentication required, if enabled / action not permitted, including a demo reset without presenter authorization or against a non-demo organization |
 | 404 | Unknown site, category, run, scenario, plan or transfer ID |
@@ -138,26 +138,26 @@ Status codes follow source spec §8.1, each with the error envelope where it is 
 | Method and route | Required behavior |
 |---|---|
 | GET /dashboard/summary | Latest committed data, counts/by-category quantities/risk/latest run/provenance; no inference on read |
-| GET /sites | Three sites within active organization |
+| GET /sites | Included sites within active organization; main demo at least six beneficiaries plus hub(s) |
 | GET /sites/{id}/inventory | Physical, eligible, reserved if P1, and scheduled incoming stock by category |
 | POST /inventory/adjustments | site/category/delta/reason/expected_inventory_version; transaction, nonnegative check, movement, increment version, stale plans; 201 |
 | GET /demand/history | Filter site/category/start/end, chronological order and provenance |
 | POST /demand/import | Multipart CSV with required source headers, specific row errors and accepted/rejected counts; duplicate keys rejected |
-| POST /forecast-runs | organization/horizon/model/allow_fallback; 202 queued or 201 already completed; UI reads returned status |
+| POST /forecast-runs | organization/horizon/model/allow_fallback; 202 Accepted with job reference; exact-match reuse preserves original forecast identity/timestamps (BD-29); separate status/result reads |
 | GET /forecast-runs/{id} | Actual provider/status/error/fallback/evaluation metadata |
 | GET /forecast-runs/{id}/points | Dated points, quantile method and per-series availability |
 | GET /shortages | Query: forecast_run_id, optional scenario_id, planning_mode (central/conservative). Per site/category: first projected deficit date, deficit quantity with unit, current eligible inventory, expected inbound supply with the statuses included, forecast run and method, planning mode, risk classification label, and horizon/category assumptions. Deterministic against the selected snapshot |
-| POST /scenarios | name/forecast_run_id/validated overrides; baseline unchanged; 201 |
-| GET /scenarios/{id} | Immutable overrides, linked plans |
-| POST /scenarios/{id}/plans | planning_days/priority policy/handling budget/solver time limit; persisted result with native status and validated vector; 201 |
-| GET /plans/{id} | Snapshot/version/status/assumptions/transfers/before-after metrics/D08 baseline comparison |
+| POST /scenarios | name/forecast_run_id/required transfer_mode/validated overrides; freeze all inputs and mode, no default; baseline unchanged; 201 |
+| GET /scenarios/{id} | Frozen mode/inputs/overrides, linked plans |
+| POST /scenarios/{id}/plans | method (CLASSICAL_GP or EGP_PI_INSPIRED); use frozen scenario mode/inputs/assumptions; 202 Accepted with job reference; separate status and committed-result reads |
+| GET /plans/{id} | Snapshot/version/transfer_mode/method/status/assumptions/transfers/before-after metrics; primary paired comparison per ADR 0001; D08 supplemental |
 | POST /demo/reset | Dedicated demo organization only, presenter authorization and rate limiting, reset audit; returns dataset version |
 | POST /plans/{id}/approve P1 | Expected inventory version, idempotency key, atomic reservation, 409 conflict |
 | POST /transfers/{id}/complete P1 | Idempotent, transactional paired movement and reservation release |
 
-P0 simulated review can be stored as POST /plans/{id}/review with decision/note, explicitly no stock effect; this route is an implementation extension. If omitted, keep review purely a UI action and do not claim persistent approval.
+BD-01 requires recorded review identifying actor, plan/version and time with no stock effect. Proposed `POST /plans/{id}/review` captures this; exact wire details remain OPEN-29.
 
-Decision D06: allow scenario demand multiplier 0–3 inclusive, nonnegative integer supply/capacity overrides, positive bounded priority weights and known IDs only. Reject NaN, infinity, unknown fields and dates outside the chosen window. These bounds are demo policies, not universal operational limits. Public job submission has a short concurrency limit and timeout; expose run status and disable repeated clicks while pending. Preserve server validation regardless of UI constraints.
+Decision D06: allow scenario demand multiplier 0–3 inclusive, nonnegative integer supply/capacity overrides, positive bounded priority weights and known IDs only. Reject NaN, infinity, unknown fields and dates outside the chosen window. These bounds are demo policies, not universal operational limits. Presenter-only job submission has a short concurrency limit and timeout; expose run status and disable repeated clicks while pending. Preserve server validation regardless of UI constraints.
 
 CSV headers are site_id,category_id,demand_date,requested_units,fulfilled_units,unmet_units,source_type. Set upload size/row limits and reject unexpected columns rather than guessing mappings. Decision D07: valid nonduplicate rows can be accepted while invalid rows are returned, atomically storing each accepted batch with an import ID; report row numbers. Do not overwrite existing history. Test repeated uploads.
 

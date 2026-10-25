@@ -203,7 +203,7 @@ After a plan is produced, another calculation checks that it obeys the rules and
 
 **7. The output is a recommendation with an explanation.**
 
-Using the document’s example:
+Using the `HUB_AND_PANTRY` example (this transfer is prohibited in `HUB_ONLY`):
 
 | | Pantry A | Pantry B |
 |---|---:|---:|
@@ -248,12 +248,12 @@ The **API** is the set of requests the website can send to the backend.
 | View forecasts | Return daily predictions |
 | Create a scenario | Validate and save the assumptions |
 | Check shortages | Return projected deficits |
-| Compare allocation methods | Return both plans and their differences |
+| Start allocation or compare methods | Return `202 Accepted` and a job reference; separate reads expose persisted status and committed plans/differences |
 | Open a plan | Return its recommendations and explanations |
 
 A `GET` request generally retrieves information. A `POST` request submits an action or creates something.
 
-Forecasting may take time, so the backend first returns a job ID. The website checks that ID until results are ready. Opening the dashboard retrieves saved information without starting another forecast.
+Forecasting, allocation and comparison may take time, so submission returns `202 Accepted` and a job reference. The website checks that ID until results are ready. Opening the dashboard retrieves saved information without starting another forecast.
 
 The document also names response codes:
 

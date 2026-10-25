@@ -39,6 +39,7 @@ Update after each integration. [Project specification V5](SPEC-V5.md) records th
 | PP-34 | WQ-04 Linux process driver and containment | Lead | PP-31 | Linux real-process tests (WQ-T12, T14, T23) | PR #52 foundation; reviewed and regression-tested (see PP-31 packet) |
 | PP-35 | WQ-05 fenced publication and commit reconciliation | Lead | PP-32 | PostgreSQL tests (WQ-T18–T20) | PR #52 foundation; reviewed and regression-tested (see PP-31 packet) |
 | PP-36 | WQ-06 PostgreSQL + supervisor + test-job vertical slice | Lead | PP-32–35 | Linux slice with real supervisor SIGKILL (WQ-T10–T15, T21, T22) | PR #52 foundation; reviewed and regression-tested (see PP-31 packet) |
+| [PP-45](tasks/PP-45.md) | Persisted baseline forecast API (#29) | VaishnaviPhadtare | Operational history + shared worker foundation | 817 unit / 44 PostgreSQL checks; generated contracts / proxy / real pooled-Neon HTTP smoke | Local VP implementation; Linux live-worker smoke, independent review and OR convergence remain open |
 
 P1 reservations/completion are separate tickets only after all P0 rows are accepted. No worker may claim a shared foundational file without a lead assignment.
 

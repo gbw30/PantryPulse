@@ -23,3 +23,5 @@ test-results/
 *.key
 *.tsbuildinfo
 **/next-env.d.ts
+.venv-tools/
+.neon

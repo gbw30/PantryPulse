@@ -5,8 +5,7 @@ import importlib
 from app.services.jobs.registry import Registry
 
 _REGISTRIES = {
-    # No domain handlers exist until WQ-07/08; production compute advertises none.
-    "production": None,
+    "production": ("app.workers.production", "REGISTRY"),
     "test": ("app.workers.testing", "REGISTRY"),
 }
 

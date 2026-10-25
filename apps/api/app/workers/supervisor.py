@@ -712,7 +712,8 @@ def main(argv: list[str] | None = None) -> int:
 
     parser = argparse.ArgumentParser(description="PantryPulse compute supervisor")
     parser.add_argument("--registry", default="production", choices=["production", "test"])
-    parser.add_argument("--schema", default=None, help="search_path schema (isolated tests)")
+    parser.add_argument("--schema", default=os.environ.get("PP_DATABASE_SCHEMA") or None,
+                        help="search_path schema (defaults to PP_DATABASE_SCHEMA)")
     parser.add_argument("--profile-json", default=None, help="shorter limits only")
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stderr)
