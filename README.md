@@ -29,9 +29,9 @@ The goal of the reproducible demonstration is to show when these research-derive
 
 ## Current state
 
-**PantryPulse is in early development.** The repository contains the frontend foundation, a backend process-health endpoint, locked dependencies, and a Linux container environment for the optimization libraries. Backend primitives cover transfer modes, route eligibility, demand rounding, fixed-point arithmetic, solver outcomes and forecast-history alignment. The complete allocation engines, forecasting adapters, application database schema and interactive comparison workflow are not yet implemented. Equation-level research validation remains a prerequisite for complex solver work.
+**PantryPulse is in early development.** The repository contains the frontend foundation, a backend process-health endpoint, locked dependencies, and a Linux container environment for the optimization libraries. Backend primitives cover transfer modes, route eligibility, demand rounding, fixed-point arithmetic, solver outcomes and forecast-history alignment. The complete allocation engines, application database schema and interactive comparison workflow are not yet implemented. Equation-level research validation remains a prerequisite for complex solver work.
 
-The separate `forecasting` branch contains an offline preparation/baseline/evaluation core and pure projection, verified with 44 branch tests and a simulated 26-series evaluation. It is not merged into this main baseline. Its Chronos adapter remains unavailable pending actual model qualification; database, durable jobs and browser integration remain unfinished. V5 records the exact reviewed commits and experimental-policy boundaries.
+The [offline forecasting core](docs/pantrypulse/forecasting/IMPLEMENTATION.md), integrated through PR #51, provides preparation, baselines, evaluation and pure projection. PR #52 adds the [durable job foundation](docs/setup/WORKER-QUEUE.md): PostgreSQL admission, Linux supervision, deadlines, cancellation and recovery, with test handlers only. Actual Chronos inference, forecast/domain publication, production job handlers and browser integration remain unfinished. Run the synthetic evaluation with `uv run --frozen --directory apps/api python -m scripts.evaluate_forecasting`. The [forecasting roadmap](docs/forecasting/README.md) preserves the remaining integration gates.
 
 The demo is planned around simulated data and institution-level indicators. It will not purchase supplies or dispatch real deliveries.
 
@@ -39,7 +39,7 @@ The demo is planned around simulated data and institution-level indicators. It w
 
 The planned system uses a Next.js/React interface, a Python/FastAPI backend, OR-Tools for allocation calculations, and PostgreSQL for shared data. Charts will explain the results, while brief animations and clear loading states will help users follow calculations in progress. Chronos-2 is the preferred optional forecasting model, with a seasonal-naive fallback.
 
-For the presentation, the website and Python API can run on the presenter's computer, with Neon holding the demo database. A completely local database is also available for an offline setup. Vercel with a temporary tunnel supports access from other devices; Fly.io remains an optional hosted backend alternative. GitHub holds the source code.
+For a future integrated presentation, the website and Python API can run on the presenter's computer, with Neon holding the demo database. A completely local database is available for an offline setup. A separate simulated Vercel preview is live; connecting a hosted frontend to the laptop API would require the V5 proxy/auth work and a temporary tunnel. Fly.io remains an optional hosted backend alternative. GitHub holds the source code.
 
 ## Further reading
 
@@ -53,3 +53,7 @@ For the presentation, the website and Python API can run on the presenter's comp
 - [Architecture and research validation](docs/architecture/0001-v4-research-first.md)
 
 V5 consolidates V4, later accepted decisions and actual implementation evidence. Older documents remain historical or detailed references where compatible.
+
+The optional `/design-lab` route is an illustrative dashboard experiment, with a default 2D network and a [bounded optional 3D exception](docs/architecture/0004-design-lab-3d-exception.md). It does not connect to allocation APIs or represent committed transfers.
+
+A [frontend-only Vercel preview of `/design-lab`](https://pantrypulse-prototype-preview-git-codex-e82088-gbw30s-projects.vercel.app/design-lab) is available from `codex/vercel-prototype-preview`. The root page remains the scaffold; no API, Neon database, tunnel or presenter workflow is connected. The [Vercel setup record](docs/setup/VERCEL.md) describes its branch-scoped deployment and remaining account checks. This preview is not the V5 release candidate.

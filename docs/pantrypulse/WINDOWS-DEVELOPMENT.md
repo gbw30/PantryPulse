@@ -45,9 +45,9 @@ npm run test:e2e
 node --test scripts/quality/tests/*.test.cjs
 ```
 
-These validate the scaffold only. Existing full quality gates still expect future contracts, migrations and domain tests; do not weaken them to claim product validation. Hook enforcement remains disabled.
+These validate the scaffold, offline helpers and configured tests, not the complete product. Full quality gates still expect future public contracts and domain integration. Worker PostgreSQL tests need `PP_TEST_DATABASE_URL`; Linux containment tests skip on native Windows. See the [worker runbook](../setup/WORKER-QUEUE.md). Consult the checked-in quality configuration for hook enforcement rather than assuming every gate is enabled or complete.
 
-Tracked examples: apps/api/.env.example and apps/web/.env.example. Copy locally to apps/api/.env and apps/web/.env.local when configured domain services are implemented. Current health/static shell need no environment file. API settings loading and CORS are not implemented yet. Examples describe future configuration. No secrets in NEXT_PUBLIC_ variables.
+Tracked API example: `apps/api/.env.example`. Copy it to `apps/api/.env` only when local API configuration is needed; do not overwrite an existing private file. No web environment example is tracked. The current health/static shell and simulated Vercel preview need no environment file. API settings loading and the selected same-origin Next.js proxy are not implemented yet. No secrets belong in `NEXT_PUBLIC_` variables.
 
 ## Database
 
@@ -60,7 +60,7 @@ docker compose stop postgres
 
 Local URL: postgresql+psycopg://pantrypulse:local_dev_only@127.0.0.1:55432/pantrypulse_dev. Tests use pantrypulse_test. These isolated local credentials come from existing Compose config and must never be reused for hosting. Init SQL runs only on a fresh named volume. Investigate existing volumes without deleting them.
 
-No Alembic domain revisions exist. Neon follows later using server-only credentials and TLS; do not use SQLite as migration validation.
+PR #52 supplies a jobs-only Alembic revision; no domain revisions exist. Neon follows later using server-only credentials and TLS; do not use SQLite as migration validation.
 
 ## Optional forecasting dependencies
 

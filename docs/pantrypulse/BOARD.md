@@ -1,6 +1,6 @@
 # PantryPulse delivery board
 
-Update after each integration. [Project specification V5](SPEC-V5.md) records the current implementation/branch state and acceptance. PP-01–23 retain the historical planning board and require reconciliation; PP-24–29 were merged through PR #7. The offline forecasting core exists on a separate unmerged branch. No completed application is claimed.
+Update after each integration. [Project specification V5](SPEC-V5.md) records the current implementation/branch state and acceptance. PP-01–23 retain the historical planning board and require reconciliation; PP-24–29 were merged through PR #7. PR #51 integrated the offline forecasting core and design lab; live domain API/database acceptance remains open. PP-31–36 (worker/job queue foundation, [ADR 0005](../architecture/0005-worker-job-queue.md)) are delivered by PR #52; they use test handlers only. No completed application is claimed.
 
 | ID | Outcome | Owner | Depends on | Exit evidence | Status |
 |---|---|---|---|---|---|
@@ -33,5 +33,13 @@ Update after each integration. [Project specification V5](SPEC-V5.md) records th
 | PP-27 | BE-04 fixed-point floor primitive (#4) | Lead | none | Unit tests + verifier at a3f44c1 | MERGED; independent review pending |
 | PP-28 | BE-05 native solver-status gate (#5) | Lead | none | Unit tests + verifier at a3f44c1 | MERGED; independent review pending |
 | PP-29 | BE-06 history alignment without imputation (#6) | Lead | none | Unit tests + verifier at a3f44c1 | MERGED; independent review pending |
+| PP-31 | WQ-01 internal job contracts and pure policies | Lead | none | Pure tests (WQ-T01–T04) | PR #52 foundation; reviewed and regression-tested (see PP-31 packet) |
+| PP-32 | WQ-02 jobs-only migration and queue repository | Lead | PP-31 | Isolated PostgreSQL tests (WQ-T05–T10, T19–T21, T27) | PR #52 foundation; reviewed and regression-tested (see PP-31 packet) |
+| PP-33 | WQ-03 supervisor ownership/heartbeat/recovery | Lead | PP-32 | Supervisor tests with fake boundary (WQ-T08, T11, T13, T22) | PR #52 foundation; reviewed and regression-tested (see PP-31 packet) |
+| PP-34 | WQ-04 Linux process driver and containment | Lead | PP-31 | Linux real-process tests (WQ-T12, T14, T23) | PR #52 foundation; reviewed and regression-tested (see PP-31 packet) |
+| PP-35 | WQ-05 fenced publication and commit reconciliation | Lead | PP-32 | PostgreSQL tests (WQ-T18–T20) | PR #52 foundation; reviewed and regression-tested (see PP-31 packet) |
+| PP-36 | WQ-06 PostgreSQL + supervisor + test-job vertical slice | Lead | PP-32–35 | Linux slice with real supervisor SIGKILL (WQ-T10–T15, T21, T22) | PR #52 foundation; reviewed and regression-tested (see PP-31 packet) |
 
 P1 reservations/completion are separate tickets only after all P0 rows are accepted. No worker may claim a shared foundational file without a lead assignment.
+
+Review-fix integration: PR #51 integrated the PR #49 baseline core and PR #50 design lab with V5 corrections. See tasks/PP-30-pr-review-fixes.md for the bounded task and verification evidence.

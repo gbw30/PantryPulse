@@ -1,6 +1,6 @@
 # Cloudflare temporary tunnel for the laptop API
 
-Use this when teammates or a Vercel frontend need to reach the API running on the presenter's computer. A local-only presentation does not need a tunnel. The tunnel publishes the API, not the frontend or PostgreSQL.
+Use this for direct API reachability checks from another computer, or for a future integrated Vercel frontend after the V5 same-origin proxy and authorization are implemented. The current [simulated Vercel preview](VERCEL.md) does not need a tunnel. The tunnel publishes the API, not the frontend or PostgreSQL.
 
 ## Install on the host's Windows computer
 
@@ -45,16 +45,16 @@ Invoke-RestMethod 'https://YOUR-ACTUAL-TUNNEL.trycloudflare.com/api/v1/health'
 
 The local and public responses should match. Verify both on the current host. The hostname changes after restart. A tunnel health check does not verify Neon connectivity.
 
-## Connect teammates or Vercel
+## Connect teammates or a future integrated Vercel frontend
 
-Give teammates the public API base address ending in `/api/v1`. They do not need the Neon password to call this API. They may use it as `NEXT_PUBLIC_API_BASE_URL` in their local frontend, or configure that variable in the intended Vercel environment and rebuild/redeploy there.
+Give teammates the public API base address ending in `/api/v1` for direct health/docs checks. They do not need the Neon password for those checks. Do not set `NEXT_PUBLIC_API_BASE_URL` on the current Vercel preview. A future connected frontend needs the selected thin same-origin Next.js proxy with a server-side API origin, plus FastAPI authorization and a reviewed API/database mapping.
 
-Frontend integration and backend CORS are not implemented yet. Once implemented, allow the exact intended frontend origins and test requests in the browser. A public health response does not establish browser integration. Use only the synthetic demo environment and verify presenter controls before exposing mutation/reset routes.
+Frontend integration is not implemented yet. A public health response does not establish browser integration. Use only the synthetic demo environment and verify presenter controls before exposing mutation/reset routes.
 
 ## Stop, restart and troubleshoot
 
 - Stop the tunnel with **Ctrl+C** in its terminal. This removes public access but leaves Docker running.
-- Start it again with the same command; use the new address and update any frontend configuration. Restart local frontend servers or rebuild Vercel when changing browser-embedded API URLs.
+- Start it again with the same command; use the new address for direct API checks. A future integrated proxy will need its server-side API origin updated and redeployed after a URL change.
 - Keep the computer awake, connected and plugged in while others use it.
 - Quick Tunnels have no uptime guarantee and do not support Server-Sent Events. A stable hostname requires a separately configured named tunnel.
 - If the public address fails, first check local health, then confirm the tunnel process is still connected. A gateway/origin error can indicate that the local API stopped.

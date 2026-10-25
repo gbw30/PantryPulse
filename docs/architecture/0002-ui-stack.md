@@ -33,3 +33,7 @@ Three.js/React Three Fiber are deferred because spatial camera/rendering work is
 - [Kokonut installation](https://kokonutui.com/docs).
 
 Documentation and CLI configuration were checked during setup. Individual third-party component behavior/accessibility still needs validation when chosen.
+
+## Later bounded exception
+
+On October 24, 2026, the user explicitly retained optional Three.js only in `/design-lab`. [ADR 0004](0004-design-lab-3d-exception.md) records the tradeoffs and constraints. The production stack above remains unchanged.

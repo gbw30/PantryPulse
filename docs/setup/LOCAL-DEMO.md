@@ -14,7 +14,7 @@ Your browser → Next.js on your laptop → FastAPI in local Docker → Neon dem
 
 Use `http://127.0.0.1:3000` for the website. No tunnel or Vercel deployment is necessary when only the presenter accesses it. Neon still requires internet. A fully local PostgreSQL alternative is described below for an offline rehearsal.
 
-If judges need to open the deployed Vercel website on their own devices, add the optional HTTPS tunnel described later.
+The [deployed Vercel UI preview](VERCEL.md) is already accessible from other devices and needs no tunnel; it contains simulated `/design-lab` content only. An integrated judge demo would need the later HTTPS tunnel and V5 proxy/auth work described below.
 
 ## Hardware and prerequisites
 
@@ -39,7 +39,7 @@ git check-ignore apps/api/.env.demo
 
 In your editor, replace the placeholder `DATABASE_URL` in `apps/api/.env.demo` with that branch's pooled Neon URL, using the `postgresql+psycopg://` scheme. Preserve encoded credentials and the supplied TLS parameters. Keep this file private and out of screenshots. Nothing in this guide fetches or invents your credentials.
 
-`compose.demo.yaml` explicitly passes this file into the container using `env_file`. This works without an application dotenv loader. `apps/api/.env` remains the local-development template/configuration; `apps/web/.env.local` contains only the public local API address. Source: [Compose environment files](https://docs.docker.com/compose/how-tos/environment-variables/set-environment-variables/).
+`compose.demo.yaml` explicitly passes this file into the container using `env_file`. This works without an application dotenv loader. `apps/api/.env` remains the local-development template/configuration; the current web scaffold needs no `.env.local`. Source: [Compose environment files](https://docs.docker.com/compose/how-tos/environment-variables/set-environment-variables/).
 
 ## 2. Start the API container
 
@@ -65,11 +65,7 @@ Use the explicit `-f compose.demo.yaml` commands for this project. Existing npm 
 
 ## 3. Start the website on the same computer
 
-Confirm `apps/web/.env.local` has the public address only:
-
-```dotenv
-NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1
-```
+The current static web scaffold does not need `apps/web/.env.local`. Do not configure a browser-visible API address as a substitute for the V5 same-origin proxy.
 
 In a second PowerShell terminal at the repository root:
 
@@ -77,7 +73,7 @@ In a second PowerShell terminal at the repository root:
 npm run dev:web
 ```
 
-Open `http://127.0.0.1:3000`. Leave the terminal running. Restart Next.js after changing environment values. This currently displays the scaffold; once the API client exists, it must read the configured URL. Even on one computer, ports 3000 and 8000 are different browser origins, so settings/CORS or a same-origin proxy must be implemented for the full workflow.
+Open `http://127.0.0.1:3000`. Leave the terminal running. This currently displays the scaffold; the future API client must use the selected same-origin Next.js proxy, which will forward to FastAPI from the server. Running web and API processes does not yet connect them.
 
 For final presentation polish, rehearse a production frontend build rather than relying only on the development server:
 
@@ -88,9 +84,9 @@ npm run start --workspace @pantrypulse/web
 
 Stop the development web server first so port 3000 is free. The current workspace start command binds to loopback, appropriate for a presentation on this computer.
 
-## 4. Optional: let the Vercel website reach your laptop
+## 4. Future integrated demo: let the Vercel proxy reach your laptop
 
-Skip this section when presenting only in your own browser. Install `cloudflared` from the official [Windows downloads](https://developers.cloudflare.com/tunnel/downloads/#windows), add the installed executable to PATH if necessary, and verify `cloudflared --version` in a new terminal.
+The current simulated Vercel preview does not use this tunnel. After the V5 proxy, authorization and backend integration are implemented, install `cloudflared` from the official [Windows downloads](https://developers.cloudflare.com/tunnel/downloads/#windows), add the installed executable to PATH if necessary, and verify `cloudflared --version` in a new terminal.
 
 With the API running, keep a separate terminal open:
 
@@ -100,15 +96,9 @@ cloudflared tunnel --url http://127.0.0.1:8000
 
 It prints an HTTPS `trycloudflare.com` address. Use the actual address, not this placeholder. Quick Tunnels need no account/domain, provide no uptime guarantee, and change hostname after restart. They do not support Server-Sent Events, so use a different tunnel arrangement if that later becomes necessary. See [Quick Tunnels](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/).
 
-In the intended Vercel environment set:
+Configure the future proxy's server-side API origin with the actual tunnel URL after its setting and credential-forwarding contract is designed. Do not set `NEXT_PUBLIC_API_BASE_URL` on the current preview. Rebuild/redeploy the integrated frontend and verify authenticated requests through its real URL; tunnel health alone proves only reachability. A Vercel server-side proxy cannot reach your laptop via `127.0.0.1`.
 
-```dotenv
-NEXT_PUBLIC_API_BASE_URL=https://YOUR-TUNNEL.trycloudflare.com/api/v1
-```
-
-Rebuild/redeploy Vercel after that change. Configure the exact Vercel origin in the backend CORS allowlist once parsing/middleware exist. This must be tested in the browser; a tunnel health request alone proves only reachability. Never point a shared Vercel site to `127.0.0.1`: that address refers to each visitor's own computer.
-
-The tunnel publishes the API to people who know the URL. Use synthetic demo data and implement/verify the intended presenter boundary for reset or other mutations before exposing those routes. Do not tunnel PostgreSQL or port 55432. No router port forwarding is needed for this method. On a tunnel restart, update the Vercel API URL and redeploy, or use a configured stable tunnel for repeat demonstrations.
+The tunnel publishes the API to people who know the URL. Use synthetic demo data and implement/verify the intended presenter boundary for reset or other mutations before exposing those routes. Do not tunnel PostgreSQL or port 55432. No router port forwarding is needed for this method. On a tunnel restart, update the future proxy's server-side API origin and redeploy, or use a configured stable tunnel for repeat demonstrations.
 
 ## 5. Rehearse and stop
 
