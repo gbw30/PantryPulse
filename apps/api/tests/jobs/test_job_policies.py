@@ -273,3 +273,12 @@ def test_advertisement_round_trip_and_malformed_documents_fail_closed():
     assert advertised_capability({"version": 2, "capabilities": {}}, "a.v1") == (False, False)
     off = supervisor_advertisement(PRODUCTION_PROFILE, handler_contracts=[], process_containment=0)
     assert advertised_capability(off, "a.v1") == (False, False)
+
+
+def test_force_stop_lands_before_the_cutoff_to_absorb_termination_latency():  # verifier F1
+    primary, _ = forecast_steps(PRODUCTION_PROFILE, fallback_allowed=True)
+    window = plan_step_window(primary, elapsed_s=0, budget_s=300, profile=PRODUCTION_PROFILE)
+    assert (window.soft_stop_s, window.force_stop_s, window.hard_stop_s) == (268, 269.75, 270)
+    method, _ = comparison_steps(PRODUCTION_PROFILE)
+    w = plan_step_window(method, elapsed_s=0, budget_s=60, profile=PRODUCTION_PROFILE)
+    assert (w.soft_stop_s, w.force_stop_s, w.hard_stop_s) == (23, 24.75, 25)

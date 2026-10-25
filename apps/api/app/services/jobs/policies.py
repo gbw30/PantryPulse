@@ -168,7 +168,10 @@ def plan_step_window(
     if hard - elapsed_s < step.min_s:
         return None
     soft = max(elapsed_s, hard - profile.stop_grace_s)
-    return StepWindow(name=step.name, start_s=elapsed_s, soft_stop_s=soft, hard_stop_s=hard)
+    force = max(soft, hard - profile.kill_margin_s)
+    return StepWindow(
+        name=step.name, start_s=elapsed_s, soft_stop_s=soft, force_stop_s=force, hard_stop_s=hard
+    )
 
 
 def supervisor_advertisement(

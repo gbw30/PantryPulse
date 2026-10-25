@@ -135,6 +135,9 @@ class RuntimeProfile:
     comparison_total_s: float = 60
     stop_grace_s: float = 2
     publication_reserve_s: float = 2
+    # Engineering margin (ADR 0004 A4): SIGKILL lands this long before a hard cutoff so
+    # termination/scheduling latency still meets it.
+    kill_margin_s: float = 0.25
     method_min_s: float = 1
     worker_cpu: float = 6
     worker_memory_gib: float = 8
@@ -160,6 +163,8 @@ class RuntimeProfile:
             raise ValueError("publication reserve must fit inside every operation budget")
         if self.stop_grace_s >= min(self.method_wall_s, self.forecast_primary_cutoff_s):
             raise ValueError("stop grace must fit inside the step it stops")
+        if self.kill_margin_s >= self.stop_grace_s:
+            raise ValueError("kill margin must be shorter than the stop grace")
 
     def within(self, ceiling: "RuntimeProfile") -> bool:
         """True when no time/resource limit exceeds ``ceiling`` (shorter is allowed)."""
@@ -207,8 +212,9 @@ class StepWindow:
 
     name: str
     start_s: float
-    soft_stop_s: float
-    hard_stop_s: float
+    soft_stop_s: float  # SIGTERM
+    force_stop_s: float  # SIGKILL, kill margin before the cutoff
+    hard_stop_s: float  # the step must have exited by now
 
 
 @dataclass(frozen=True, slots=True)
@@ -229,6 +235,11 @@ class StepOutcome:
             "error_code": self.error_code,
             "fallback_eligible": self.fallback_eligible,
             "elapsed_s": self.elapsed_s,
+            **(
+                {"cutoff_breach_s": self.details["cutoff_breach_s"]}
+                if "cutoff_breach_s" in self.details
+                else {}
+            ),
         }
 
 

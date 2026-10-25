@@ -88,9 +88,11 @@ class StepRun:
     window: StepWindow
     handle: Any
     soft_at: float
+    force_at: float
     hard_at: float
     started_at: float
     timed_out: bool = False
+    kill_sent_at: float | None = None
     term_sent: bool = False
     overflowed: bool = False
     exited_at: float | None = None
@@ -111,6 +113,7 @@ class Execution:
     current: StepRun | None = None
     stopping: bool = False
     kill_at: float | None = None
+    kill_sent_at: float | None = None
     cleanup_deadline: float | None = None
     cleanup_quarantined: bool = False
     publish_pending: bool = False
@@ -385,6 +388,7 @@ class Supervisor:
                 window=window,
                 handle=handle,
                 soft_at=ex.mono_start + window.soft_stop_s,
+                force_at=ex.mono_start + window.force_stop_s,
                 hard_at=ex.mono_start + window.hard_stop_s,
                 started_at=self.clock(),
             )
@@ -423,13 +427,25 @@ class Supervisor:
         if driver.poll(run.handle) is None:
             if _overflowing(run.handle):
                 run.overflowed = True
+                run.kill_sent_at = run.kill_sent_at or now
                 driver.force_stop(run.handle)
-            elif now >= run.hard_at:
+            elif now >= run.force_at:
+                # SIGKILL a kill margin before the cutoff so the exit itself meets it.
                 run.timed_out = True
+                run.kill_sent_at = run.kill_sent_at or now
                 driver.force_stop(run.handle)
             elif now >= run.soft_at and not run.term_sent:
                 run.timed_out = run.term_sent = True
                 driver.request_stop(run.handle)
+            killed_long_ago = (
+                run.kill_sent_at is not None
+                and now >= run.kill_sent_at + self.config.stop_confirm_timeout_s
+            )
+            if killed_long_ago and not ex.cleanup_quarantined:
+                # The leader survives SIGKILL (e.g. uninterruptible sleep): keep the slot.
+                self.repo.request_stop(self.own, ex.claim, ReasonCode.CLEANUP_UNCONFIRMED)
+                self._quarantine_active(ex, "STEP_KILL_UNCONFIRMED")
+                self._begin_stop(ex, now)
             return
         if run.exited_at is None:
             run.exited_at = now
@@ -449,7 +465,15 @@ class Supervisor:
             timed_out=run.timed_out,
             overflowed=run.overflowed,
             elapsed_s=run.exited_at - ex.mono_start,
+            hard_stop_s=run.window.hard_stop_s,
         )
+        if "cutoff_breach_s" in outcome.details:
+            log_event(
+                "STEP_CUTOFF_BREACH",
+                attempt_id=ex.claim.attempt_id,
+                step=run.spec.name,
+                breach_s=outcome.details["cutoff_breach_s"],
+            )
         log_event(
             "STEP_FINISHED",
             attempt_id=ex.claim.attempt_id,
@@ -482,7 +506,14 @@ class Supervisor:
         if run is not None:
             if self.driver.poll(run.handle) is None:
                 if now >= ex.kill_at:
+                    ex.kill_sent_at = ex.kill_sent_at or now
                     self.driver.force_stop(run.handle)
+                stuck = (
+                    ex.kill_sent_at is not None
+                    and now >= ex.kill_sent_at + self.config.stop_confirm_timeout_s
+                )
+                if stuck and not ex.cleanup_quarantined:
+                    self._quarantine_active(ex, "STOP_KILL_UNCONFIRMED")
                 return
             if not self.driver.confirm_empty(run.handle.identity):
                 self.driver.force_stop(run.handle)

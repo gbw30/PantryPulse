@@ -133,7 +133,7 @@ def test_force_stop_handles_a_child_ignoring_sigterm(driver):
         child_argv(), envelope({"sleep_s": 60, "ignore_sigterm": True}), max_stdout_bytes=4096
     )
     wait_members(driver, handle.identity, 1)
-    time.sleep(0.3)  # let the child install its handler
+    wait_sigterm_ignored(handle.identity.leader_pid)
     driver.request_stop(handle)
     time.sleep(0.3)
     assert driver.poll(handle) is None
@@ -242,6 +242,18 @@ def test_foreign_cleanup_never_kills_an_unrelated_group(driver):  # WQ-T14
     finally:
         unrelated.send_signal(signal.SIGKILL)
         unrelated.wait()
+
+
+def wait_sigterm_ignored(pid, timeout=15):
+    """Readiness from the kernel: SIGTERM's bit is set in the leader's SigIgn mask."""
+    end = time.monotonic() + timeout
+    while time.monotonic() < end:
+        with open(f"/proc/{pid}/status") as f:
+            mask = next(line for line in f if line.startswith("SigIgn:")).split()[1]
+        if int(mask, 16) & (1 << (signal.SIGTERM - 1)):
+            return
+        time.sleep(0.02)
+    raise AssertionError("child never ignored SIGTERM")
 
 
 def _alive_non_zombie(pid):

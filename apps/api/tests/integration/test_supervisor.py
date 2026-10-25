@@ -32,6 +32,7 @@ PROFILE = RuntimeProfile(
     comparison_total_s=4.5,
     stop_grace_s=0.2,
     publication_reserve_s=0.3,
+    kill_margin_s=0.1,
     method_min_s=0.3,
 )
 
@@ -197,7 +198,7 @@ def test_primary_is_stopped_by_cutoff_and_fallback_shares_budget(q, org):  # WQ-
     assert view.state is AttemptState.SUCCEEDED
     manifest_steps = _fixture_payload(q, view.attempts[0].attempt_id)["steps"]
     assert [s["status"] for s in manifest_steps] == ["TIMED_OUT", "COMPLETED"]
-    assert manifest_steps[0]["elapsed_s"] <= PROFILE.forecast_primary_cutoff_s + 0.15
+    assert manifest_steps[0]["elapsed_s"] <= PROFILE.forecast_primary_cutoff_s
     assert _fixture_payload(q, view.attempts[0].attempt_id)["outputs"][0]["provider"] == (
         "test-fallback"
     )
@@ -541,4 +542,104 @@ def test_logs_and_audit_omit_tokens_and_payloads(q, org, caplog):  # WQ-T26
         assert "postgresql" not in text.lower()
     view = q.get_job(org, accepted.job_id)
     assert not hasattr(view.attempts[0], "execution_token")
+    sup.shutdown_drain()
+
+
+def test_sigterm_ignoring_primary_is_force_stopped_before_the_cutoff(q, org):  # verifier F1
+    sup, driver = started(q)
+    accepted = submit(
+        q,
+        org,
+        "test.forecast.v1",
+        {
+            "fallback_allowed": True,
+            "primary": {"sleep_s": 30, "ignore_sigterm": True},
+            "fallback": {},
+        },
+    )
+    run_until(sup, settled(q, org, accepted.job_id))
+    view = q.get_job(org, accepted.job_id)
+    assert view.state is AttemptState.SUCCEEDED
+    steps = _fixture_payload(q, view.attempts[0].attempt_id)["steps"]
+    assert steps[0]["status"] == "TIMED_OUT"
+    assert steps[0]["elapsed_s"] <= PROFILE.forecast_primary_cutoff_s
+    assert "cutoff_breach_s" not in steps[0]
+    assert driver.started[0].killed
+    sup.shutdown_drain()
+
+
+def test_storage_blips_during_an_attempt_do_not_kill_the_loop(q, org, monkeypatch):  # F3
+    from app.repositories.jobs import QueueStorageUnavailable
+
+    sup, _ = started(q)
+    accepted = submit(q, org, payload={"value": 1, "behavior": {"sleep_s": 1.0}})
+    run_until(sup, lambda: job_state(q, org, accepted.job_id) is AttemptState.RUNNING)
+    real_read, real_control = q.read_attempt, q.control
+    failures = {"n": 0}
+
+    def flaky(real):
+        def call(*args, **kwargs):
+            if failures["n"] < 3:
+                failures["n"] += 1
+                raise QueueStorageUnavailable("blip")
+            return real(*args, **kwargs)
+
+        return call
+
+    monkeypatch.setattr(q, "read_attempt", flaky(real_read))
+    monkeypatch.setattr(q, "control", flaky(real_control))
+    run_until(sup, settled(q, org, accepted.job_id))
+    assert failures["n"] == 3
+    assert real_read(accepted.attempt_id).state is AttemptState.SUCCEEDED
+    assert not sup.closed
+    sup.shutdown_drain()
+
+
+def test_child_that_survives_sigkill_quarantines_the_lane(q, org):  # verifier low finding
+    sup, driver = started(q, stop_confirm_timeout_s=0.4)
+    driver.unkillable_steps.add("TEST_METHOD")
+    accepted = submit(q, org, payload={"value": 1, "behavior": {"sleep_s": 30}})
+    run_until(sup, lambda: q.control().state is SupervisorState.QUARANTINED, timeout=10)
+    assert q.control().active_attempt_id == accepted.attempt_id
+    assert job_state(q, org, accepted.job_id) is AttemptState.STOPPING
+    driver.unkillable_steps.clear()
+    run_until(sup, lambda: q.control().state is SupervisorState.READY, timeout=10)
+    assert job_state(q, org, accepted.job_id) in (AttemptState.TIMED_OUT, AttemptState.FAILED)
+    sup.shutdown_drain()
+
+
+class _CommitThenLose(QueueRepository):
+    def _commit(self, transaction):
+        from sqlalchemy.exc import OperationalError
+
+        transaction.commit()
+        raise OperationalError("COMMIT", {}, Exception("ack lost"))
+
+
+class _LoseBeforeCommit(QueueRepository):
+    def _commit(self, transaction):
+        from sqlalchemy.exc import OperationalError
+
+        transaction.rollback()
+        raise OperationalError("COMMIT", {}, Exception("ack lost"))
+
+
+@pytest.mark.parametrize(
+    ("cls", "expected"),
+    [(_CommitThenLose, AttemptState.SUCCEEDED), (_LoseBeforeCommit, AttemptState.FAILED)],
+)
+def test_supervisor_reconciles_an_uncertain_commit(db, org, cls, expected):  # WQ-T20
+    repo = cls(db, registry=REGISTRY, profile=PROFILE)
+    sup, driver = started(repo)
+    accepted = submit(repo, org)
+    done = settled(repo, org, accepted.job_id)
+    run_until(sup, lambda: done() and sup.active is None)
+    attempt = repo.get_job(org, accepted.job_id).attempts[0]
+    assert attempt.state is expected
+    if expected is AttemptState.FAILED:
+        assert attempt.reason_code == "PUBLICATION_COMMIT_LOST"
+    events = [e["event_type"] for e in repo.audit_events(accepted.job_id)]
+    assert "PUBLICATION_RECONCILED" in events
+    assert len(driver.started) == 1  # never recomputed
+    assert repo.control().active_attempt_id is None
     sup.shutdown_drain()

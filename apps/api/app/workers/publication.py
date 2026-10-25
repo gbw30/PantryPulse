@@ -21,9 +21,27 @@ def reason_for(code: str) -> ReasonCode:
 
 
 def step_outcome(
-    name: str, output: ChildOutput, *, timed_out: bool, overflowed: bool, elapsed_s: float
+    name: str,
+    output: ChildOutput,
+    *,
+    timed_out: bool,
+    overflowed: bool,
+    elapsed_s: float,
+    hard_stop_s: float,
 ) -> StepOutcome:
+    """``elapsed_s`` is when the supervisor observed exit; past ``hard_stop_s`` it is a
+    recorded cutoff breach and the output, if any, is not publishable (spec §9.3)."""
     elapsed = round(elapsed_s, 3)
+    breach = round(elapsed_s - hard_stop_s, 3)
+    if breach > 0:
+        return StepOutcome(
+            name,
+            StepStatus.TIMED_OUT,
+            error_code=ReasonCode.STEP_DEADLINE_EXCEEDED.value,
+            fallback_eligible=True,
+            elapsed_s=elapsed,
+            details={"cutoff_breach_s": breach},
+        )
     if timed_out:
         # Late raw output is discarded; a stopped primary may make fallback eligible.
         return StepOutcome(

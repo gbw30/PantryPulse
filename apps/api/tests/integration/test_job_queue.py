@@ -570,3 +570,89 @@ def test_commit_uncertainty_reconciles_by_identity(db, scope, cls, expected):  #
         assert state is AttemptState.FAILED
     events = [e["event_type"] for e in plain.audit_events(accepted.job_id)]
     assert "PUBLICATION_RECONCILED" in events
+
+
+# --- verifier findings ---------------------------------------------------------------------
+
+
+def test_input_that_jsonb_normalizes_is_still_claimable(repo, scope):  # verifier F2
+    own = make_ready(repo)
+    accepted = repo.submit(scope, ECHO, {"value": 1, "behavior": {"sleep_s": -0.0}}, "neg-zero")
+    claim = repo.claim_next(own)
+    assert claim is not None and claim.attempt_id == accepted.attempt_id
+    assert repo.read_attempt(claim.attempt_id).state is AttemptState.RUNNING
+    manifest = repo.publish(own, claim, echo_package(claim))
+    assert manifest["label"] == FIXTURE_LABEL
+
+
+def test_unrepresentable_text_is_a_typed_input_rejection(repo, scope):  # verifier F2 (low)
+    make_ready(repo)
+    with pytest.raises(InputRejected) as err:
+        repo.submit(scope, ECHO, echo(native_status="bad\u0000status"), "nul-char")
+    assert err.value.code == "INPUT_NOT_REPRESENTABLE"
+    assert queued_count(repo.engine) == 0
+
+
+def test_reads_report_storage_unavailable_not_raw_driver_errors(scope):  # verifier F3
+    broken = QueueRepository(
+        sa.create_engine(
+            "postgresql+psycopg://nobody:nothing@127.0.0.1:1/none_test",
+            connect_args={"connect_timeout": 1},
+        ),
+        registry=REGISTRY,
+        profile=TEST_PROFILE,
+    )
+    for call in (
+        lambda: broken.read_attempt(uuid.uuid4()),
+        broken.control,
+        lambda: broken.audit_events(uuid.uuid4()),
+    ):
+        with pytest.raises(Exception) as err:
+            call()
+        assert getattr(err.value, "code", None) == "QUEUE_STORAGE_UNAVAILABLE"
+
+
+def test_failure_mid_submission_leaves_no_partial_records(db, scope):  # WQ-T07
+    class _FailAfterJobInsert(QueueRepository):
+        def _record_command(self, *args, **kwargs):
+            raise OperationalError("INSERT", {}, Exception("connection lost mid-transaction"))
+
+    plain = QueueRepository(db, registry=REGISTRY, profile=TEST_PROFILE)
+    make_ready(plain)
+    failing = _FailAfterJobInsert(db, registry=REGISTRY, profile=TEST_PROFILE)
+    with pytest.raises(Exception) as err:
+        submit(failing, scope, key="mid")
+    assert getattr(err.value, "code", None) == "QUEUE_STORAGE_UNAVAILABLE"
+    with db.connect() as conn:
+        for table in ("compute_jobs", "compute_attempts", "compute_commands"):
+            assert conn.scalar(sa.text(f"SELECT count(*) FROM {table}")) == 0
+    assert not submit(plain, scope, key="mid").replayed  # the key was not consumed
+
+
+def test_running_cancel_and_publication_race_has_one_winner(repo, scope):  # WQ-T21
+    own = make_ready(repo)
+    for i in range(6):
+        accepted = submit(repo, scope)
+        claim = repo.claim_next(own)
+
+        def race(n, claim=claim, job_id=accepted.job_id, i=i):
+            if n == 0:
+                return repo.publish(own, claim, echo_package(claim))
+            return repo.cancel(scope, job_id, f"race-{i}")
+
+        published, cancelled = _concurrently(2, race)
+        view = repo.get_job(scope, accepted.job_id)
+        if isinstance(published, dict):
+            assert view.state is AttemptState.SUCCEEDED
+            assert isinstance(cancelled, JobStateConflict)
+        else:
+            assert isinstance(published, Fenced)
+            assert view.state is AttemptState.STOPPING and not cancelled.completed
+            assert repo.finalize(own, claim) is AttemptState.CANCELLED
+        with repo.engine.connect() as conn:
+            rows = conn.scalar(
+                sa.text("SELECT count(*) FROM wq_fixture_results WHERE attempt_id = :a"),
+                {"a": claim.attempt_id},
+            )
+        assert rows == (1 if isinstance(published, dict) else 0)
+        assert repo.control().active_attempt_id is None

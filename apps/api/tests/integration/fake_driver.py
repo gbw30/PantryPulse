@@ -35,6 +35,7 @@ class FakeDriver:
     clock: object = time.monotonic
     capable: bool = True
     stuck_steps: set = field(default_factory=set)
+    unkillable_steps: set = field(default_factory=set)
     foreign_evidence: dict | None = field(default_factory=lambda: {"method": "FAKE_GROUP_SCAN"})
     fail_spawn: bool = False
     started: list = field(default_factory=list)
@@ -102,6 +103,8 @@ class FakeDriver:
         return handle
 
     def poll(self, handle):
+        if handle.step in self.unkillable_steps:
+            return None  # e.g. uninterruptible sleep: even SIGKILL does not land
         if handle.returncode is None:
             if handle.killed:
                 handle.returncode = -9

@@ -211,7 +211,33 @@ def test_primary_really_stops_by_cutoff_and_fallback_publishes(q, org, superviso
             {"a": attempt.attempt_id},
         )
     assert [s["status"] for s in payload["steps"]] == ["TIMED_OUT", "COMPLETED"]
-    assert payload["steps"][0]["elapsed_s"] <= PROFILE["forecast_primary_cutoff_s"] + 0.25
+    assert payload["steps"][0]["elapsed_s"] <= PROFILE["forecast_primary_cutoff_s"]
+
+
+def test_sigterm_ignoring_primary_really_exits_by_the_cutoff(q, org, supervisors):  # F1
+    supervisors()
+    accepted = submit(
+        q,
+        org,
+        contract="test.forecast.v1",
+        payload={
+            "fallback_allowed": True,
+            "primary": {"sleep_s": 60, "ignore_sigterm": True, "spawn_descendant": True},
+            "fallback": {},
+        },
+    )
+    wait_for(terminal(q, org, accepted.job_id))
+    view = q.get_job(org, accepted.job_id)
+    assert view.state is AttemptState.SUCCEEDED
+    with q.engine.connect() as conn:
+        payload = conn.scalar(
+            sa.text("SELECT payload FROM wq_fixture_results WHERE attempt_id = :a"),
+            {"a": view.attempts[0].attempt_id},
+        )
+    primary = payload["steps"][0]
+    assert primary["status"] == "TIMED_OUT"
+    assert primary["elapsed_s"] <= PROFILE["forecast_primary_cutoff_s"]
+    assert "cutoff_breach_s" not in primary
 
 
 def test_supervisor_sigkill_recovers_orphans_and_never_recomputes(q, org, supervisors):  # T13

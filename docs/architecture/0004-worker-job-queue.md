@@ -28,13 +28,15 @@ Date: 2026-10-24. Base: main `04df41ced650896bd4f4a4cd10de1354b406d216`. Status:
 
 **A3 — heartbeat from ownership.** The owner writes heartbeats from the moment it acquires the lane (including STARTING/RECOVERING/QUARANTINED) so a second supervisor cannot take over during recovery. Admission still requires state READY, so a startup heartbeat never admits work.
 
-**A4 — budgets and steps.** Operation budgets: FORECAST 300 s, ALLOCATION 25 s, COMPARISON 60 s. Each handler declares sequential steps; forecast primary is hard-stopped by 270 s, a fallback step runs only after a timed-out or classified-failed primary, each comparison method is capped at 25 s inside the 60 s parent and is NOT_RUN if the remaining parent budget is below its minimum. Soft stop = hard cutoff − 2 s grace. A configurable publication reserve (initial 2 s, an engineering value, not a BD value) is kept inside the budget. Production values are asserted by policy tests; integration tests use explicit short profiles.
+**A4 — budgets and steps.** Operation budgets: FORECAST 300 s, ALLOCATION 25 s, COMPARISON 60 s. Each handler declares sequential steps; forecast primary is hard-stopped by 270 s, a fallback step runs only after a timed-out or classified-failed primary, each comparison method is capped at 25 s inside the 60 s parent and is NOT_RUN if the remaining parent budget is below its minimum. Soft stop (SIGTERM) = hard cutoff − 2 s grace; force stop (SIGKILL) = hard cutoff − a 0.25 s kill margin, so termination latency still meets the cutoff (forecast primary: 268/269.75/270 s). An exit observed after the cutoff is recorded as `cutoff_breach_s` on the step and its output is never publishable. The attempt-level deadline is only a backstop: it fires at the hard deadline, or at budget − grace when no step is running, so it cannot pre-empt a step's own cutoff. A configurable publication reserve (initial 2 s, an engineering value, not a BD value) is kept inside the budget. Production values are asserted by policy tests; integration tests use explicit short profiles.
 
 **A5 — capability advertisement.** The supervisor records effective limits, its registered handler contracts and its containment capability in `compute_control.effective_limits`. Admission rejects a contract the running supervisor does not advertise.
 
 **A6 — test handlers.** Fixed test handlers live in `app/workers/testing.py` and load only through the named `test` registry. The `production` registry is empty until WQ-07/08. Fixture results go to a table that only the tests create; every fixture manifest is labeled `TEST_INFRASTRUCTURE_ARTIFACT`.
 
 **A7 — acceptance scope.** WQ-01–06 target WQ-T01–T23, T26 and T27. WQ-T24/T25 wait for public routes (WQ-09) and WQ-T28 for runtime limits (WQ-10); they are reported NOT RUN, not passed. **USER CONFIRM:** this is the P0 test scope for the foundation.
+
+**A8 — input identity.** The input hash covers the package exactly as JSONB stores it (JSONB rewrites values such as `-0.0` or `1e16`), and the handler must re-validate that stored form unchanged; input that changes on storage or cannot be stored (e.g. a NUL character) is rejected at submit with `INPUT_NOT_REPRESENTABLE`, never accepted and failed later.
 
 ## Rollback trigger
 

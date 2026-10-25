@@ -190,3 +190,14 @@ def test_a_profile_may_be_shorter_but_never_longer_than_the_ceiling():
     assert not longer.within(PRODUCTION_PROFILE)
     more_waiters = dataclasses.replace(PRODUCTION_PROFILE, max_queued=3)
     assert not more_waiters.within(PRODUCTION_PROFILE)
+
+
+@pytest.mark.parametrize("margin", [0, 2, 3])
+def test_kill_margin_must_fit_inside_the_stop_grace(margin):
+    with pytest.raises(ValueError):
+        dataclasses.replace(PRODUCTION_PROFILE, kill_margin_s=margin)
+
+
+def test_production_kill_margin_is_recorded():
+    assert PRODUCTION_PROFILE.kill_margin_s == 0.25
+    assert PRODUCTION_PROFILE.effective_limits()["limits"]["kill_margin_s"] == 0.25

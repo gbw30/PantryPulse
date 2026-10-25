@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import sqlalchemy as sa
-from sqlalchemy.exc import DBAPIError, InterfaceError, OperationalError
+from sqlalchemy.exc import DataError, DBAPIError, InterfaceError, OperationalError
 
 from app.services.jobs.contracts import (
     LANE_OCCUPYING_STATES,
@@ -284,6 +284,25 @@ class QueueRepository:
         except (OperationalError, InterfaceError) as exc:
             raise QueueStorageUnavailable("queue storage unavailable") from exc
 
+    @contextmanager
+    def _read(self) -> Iterator[sa.Connection]:
+        """Lock-free read connection; driver failures surface as QueueStorageUnavailable."""
+        try:
+            with self.engine.connect() as conn:
+                yield conn
+        except (OperationalError, InterfaceError) as exc:
+            raise QueueStorageUnavailable("queue storage unavailable") from exc
+
+    @staticmethod
+    def _jsonb_normalized(conn: sa.Connection, encoded: str) -> dict[str, Any]:
+        try:
+            with conn.begin_nested():
+                return conn.scalar(sa.text("SELECT CAST(:p AS jsonb)"), {"p": encoded})
+        except DataError:
+            raise InputRejected(
+                "INPUT_NOT_REPRESENTABLE", "input cannot be stored as JSONB"
+            ) from None
+
     @staticmethod
     def _set_timeouts(conn: sa.Connection, lock_ms: int, statement_ms: int) -> None:
         conn.execute(sa.text(f"SET LOCAL lock_timeout = {max(1, int(lock_ms))}"))
@@ -544,10 +563,16 @@ class QueueRepository:
         encoded = _json(package)
         if len(encoded.encode("utf-8")) > registration.max_input_bytes:
             raise InputRejected("INPUT_TOO_LARGE", "input package exceeds its registered bound")
-        input_sha = sha256_hex(package)
         request_sha = sha256_hex({"action": "SUBMIT", "package": package})
         rejection: AdmissionOutcome | None = None
         with self._tx() as conn:
+            # Hash and store exactly what JSONB keeps (it rewrites e.g. -0.0 and 1e16), so the
+            # claim/publish re-hash of the stored package matches; reject what it cannot keep.
+            stored = self._jsonb_normalized(conn, encoded)
+            if registration.handler.validate_input(stored["input"]) != stored["input"]:
+                raise InputRejected("INPUT_NOT_REPRESENTABLE", "input changes when stored")
+            encoded = _json(stored)
+            input_sha = sha256_hex(stored)
             ctl, now = self._lock_control(conn)
             existing = self._find_command(conn, scope, CommandAction.SUBMIT, idempotency_key)
             if existing is not None:
@@ -784,33 +809,30 @@ class QueueRepository:
     # --- reads (no locks, no mutation) -----------------------------------------------------
 
     def get_job(self, scope: TrustedScope, job_id: uuid.UUID) -> JobView:
-        try:
-            with self.engine.connect() as conn:
-                job = (
-                    conn.execute(
-                        sa.text(
-                            "SELECT * FROM compute_jobs WHERE job_id = :j AND organization_id = :o"
-                        ),
-                        {"j": job_id, "o": scope.organization_id},
-                    )
-                    .mappings()
-                    .one_or_none()
+        with self._read() as conn:
+            job = (
+                conn.execute(
+                    sa.text(
+                        "SELECT * FROM compute_jobs WHERE job_id = :j AND organization_id = :o"
+                    ),
+                    {"j": job_id, "o": scope.organization_id},
                 )
-                if job is None:
-                    raise JobNotFound("job not found")
-                attempts = (
-                    conn.execute(
-                        sa.text(
-                            f"SELECT {_ATTEMPT_VIEW_COLUMNS} FROM compute_attempts"
-                            " WHERE job_id = :j ORDER BY attempt_number"
-                        ),
-                        {"j": job_id},
-                    )
-                    .mappings()
-                    .all()
+                .mappings()
+                .one_or_none()
+            )
+            if job is None:
+                raise JobNotFound("job not found")
+            attempts = (
+                conn.execute(
+                    sa.text(
+                        f"SELECT {_ATTEMPT_VIEW_COLUMNS} FROM compute_attempts"
+                        " WHERE job_id = :j ORDER BY attempt_number"
+                    ),
+                    {"j": job_id},
                 )
-        except (OperationalError, InterfaceError) as exc:
-            raise QueueStorageUnavailable("queue storage unavailable") from exc
+                .mappings()
+                .all()
+            )
         return JobView(
             job_id=job["job_id"],
             organization_id=job["organization_id"],
@@ -825,7 +847,7 @@ class QueueRepository:
         )
 
     def read_attempt(self, attempt_id: uuid.UUID) -> AttemptView:
-        with self.engine.connect() as conn:
+        with self._read() as conn:
             row = (
                 conn.execute(
                     sa.text(
@@ -840,7 +862,7 @@ class QueueRepository:
         return _attempt_view(row)
 
     def control(self) -> ControlView:
-        with self.engine.connect() as conn:
+        with self._read() as conn:
             row = (
                 conn.execute(
                     sa.text("SELECT * FROM compute_control WHERE lane_id = :l"), {"l": self.lane_id}
@@ -861,7 +883,7 @@ class QueueRepository:
         )
 
     def audit_events(self, job_id: uuid.UUID) -> list[dict[str, Any]]:
-        with self.engine.connect() as conn:
+        with self._read() as conn:
             rows = conn.execute(
                 sa.text(
                     "SELECT event_type, from_state, to_state, reason_code, details,"
