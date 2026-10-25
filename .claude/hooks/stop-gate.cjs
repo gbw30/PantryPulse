@@ -6,7 +6,10 @@ try {
   if (input.stop_hook_active) {
     console.error('PantryPulse: avoiding a Stop loop; any previous gate failure remains unresolved.');
   } else {
-    const cwd = input.cwd || process.cwd();
+    // The supplied cwd can name a folder that no longer exists (e.g. a session's original start
+    // folder); fall back to the project directory so the gate still runs instead of erroring.
+    const cwd = [input.cwd, process.env.CLAUDE_PROJECT_DIR, process.cwd()].find((dir) => dir && fs.existsSync(dir));
+    if (!cwd) throw new Error('Cannot identify the active Git worktree.');
     const result = cp.spawnSync('git', ['rev-parse','--show-toplevel'], {cwd,encoding:'utf8',timeout:5000,windowsHide:true});
     if (result.status !== 0) throw new Error('Cannot identify the active Git worktree.');
     const root = path.resolve(result.stdout.trim());
