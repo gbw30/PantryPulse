@@ -7,7 +7,7 @@ export type SiteListItem = { site: Site; status: MarkerStatus; statusLine: strin
 /** Accessible list of every site, independent of the map. Selecting a row selects the marker. */
 export function SiteList({ items, selectedId, query, onSelect }: { items: SiteListItem[]; selectedId: string | null; query: string; onSelect: (siteId: string, invoker: HTMLElement) => void }) {
   return (
-    <div className="flex min-w-0 flex-col gap-1 md:flex-row md:items-center md:gap-3">
+    <div data-site-strip className="flex min-w-0 flex-col gap-1 md:flex-row md:items-center md:gap-3">
       <span className="shrink-0 text-xs font-medium text-muted-foreground max-md:hidden">Sites</span>
       {items.length > 1 && <span className="text-xs text-muted-foreground md:hidden">Scroll sideways for all {items.length} sites</span>}
       {items.length === 0 ? (
@@ -24,7 +24,7 @@ export function SiteList({ items, selectedId, query, onSelect }: { items: SiteLi
                   aria-describedby={`site-detail-${site.id}`}
                   onClick={(event) => onSelect(site.id, event.currentTarget)}
                   className={cn(
-                    "flex min-h-11 items-center gap-2 rounded-lg border bg-card px-2.5 py-1 text-left outline-none transition-colors hover:border-foreground/40 focus-visible:ring-2 focus-visible:ring-ring md:min-h-10",
+                    "flex min-h-11 items-center gap-2 rounded-lg border bg-card px-2.5 py-1 text-left outline-none transition-[border-color,background-color,translate,box-shadow] duration-150 hover:-translate-y-px hover:border-foreground/40 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring md:min-h-10",
                     selected ? "border-primary bg-pp-teal-soft" : "border-border",
                   )}
                 >

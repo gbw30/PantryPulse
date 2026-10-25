@@ -72,7 +72,7 @@ async function expectSupplyLinks(page: Page) {
   const links = page.locator("[data-supply-link]");
   await expect(links).toHaveCount(6);
   const pairs = await links.evaluateAll((paths) => paths.map((path) => [path.getAttribute("data-from"), path.getAttribute("data-supply-link")]));
-  for (const [from, to] of pairs) expect(from).toBe("gator-hub");
+  for (const [from] of pairs) expect(from).toBe("gator-hub");
   expect(pairs.map(([, to]) => to).sort()).toEqual([...BENEFICIARY_IDS].sort());
 }
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
-import { motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Focus, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -20,7 +20,7 @@ export type MapMarker = { site: Site; status: MarkerStatus; statusLine: string; 
  * Where the selection card docks, in map pixels. `top` is the anchor line and `side` the side of it the
  * card opens on. Desktop: a band along the bottom of the map that markers never enter. Compact: above
  * the zoom row, or below the caption at the top when the selected marker sits in the lower half, so the
- * card never covers the site it describes. Position only; nothing pans or animates.
+ * card never covers the site it describes. Position only; nothing pans.
  */
 export type SelectionContext = { left: number; top: number; width: number; side: "top" | "bottom" };
 
@@ -42,17 +42,41 @@ export type NetworkMapProps = {
 
 const ZOOM_MIN = 0.7;
 const ZOOM_MAX = 1.8;
-const PAD_X = 64;
-const PAD_TOP = 40;
-// Desktop markers stay above a ~110px selection band along the bottom of the map.
-const PAD_BOTTOM = 168;
+// Marker box: 104px wide, ~82px tall. Its glyph centre sits 22px from the box top (label below)
+// or 59px from the top (label above).
+const GLYPH_FROM_TOP_LABEL_BELOW = 22;
+const GLYPH_FROM_TOP_LABEL_ABOVE = 59;
+const PAD_X = 60;
+// Top clearance for labels drawn above the top row (and, on narrow layouts, the caption).
+const PAD_TOP = 84;
+const LABEL_ABOVE_CLEARANCE = 74;
+// Desktop markers stay above a ~120px selection band along the bottom of the map.
+const PAD_BOTTOM = 192;
 const CAPTION_WIDTH = 232;
-// Leaves >= 8px between the bottom marker label (82px tall) and the 46px control row.
-const PAD_BOTTOM_COMPACT = 104;
-const MARKER_RISE = 36;
+// Leaves >= 8px between the bottom marker label and the 46px control row.
+const PAD_BOTTOM_COMPACT = 112;
+const DOCK_INSET = 16;
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
+}
+
+type Point = { left: number; top: number };
+
+/**
+ * Supply link geometry, hub -> beneficiary only (permitted in both transfer modes, so no mode is implied).
+ * The curve leaves the hub horizontally and meets the pantry vertically, so it never crosses a label:
+ * labels sit above the glyph for sites level with or above the hub, below it for sites below the hub.
+ * Same-height links bow slightly downward, away from labels drawn above.
+ */
+export function supplyLinkPath(hub: Point, site: Point) {
+  const dx = site.left - hub.left;
+  const dy = site.top - hub.top;
+  if (Math.abs(dy) < 1) {
+    const bow = Math.min(28, Math.abs(dx) * 0.08);
+    return `M ${hub.left} ${hub.top} Q ${hub.left + dx / 2} ${hub.top + bow} ${site.left} ${site.top}`;
+  }
+  return `M ${hub.left} ${hub.top} C ${hub.left + dx * 0.6} ${hub.top}, ${site.left} ${site.top - dy * 0.35}, ${site.left} ${site.top}`;
 }
 
 // Decorative, abstract contour texture. Not geography: no coastlines, roads or place names.
@@ -88,45 +112,82 @@ function MapTexture() {
           ))}
         </g>
       ))}
-      <path d="M -20 300 C 180 260 300 380 520 330 S 860 240 1020 290" fill="none" stroke="var(--pp-surface)" strokeWidth="5" opacity="0.8" />
-      <path d="M 380 -20 C 420 160 340 300 420 460 S 520 600 500 640" fill="none" stroke="var(--pp-surface)" strokeWidth="3" opacity="0.7" />
     </svg>
   );
 }
 
+type MarkerProps = {
+  marker: MapMarker;
+  point: Point;
+  labelAbove: boolean;
+  selected: boolean;
+  index: number;
+  animate: boolean;
+  onSelect: NetworkMapProps["onSelect"];
+};
+
 /** AtlasMarker: one site as a keyboard-operable button. Status is shape + text, not colour alone. */
-function AtlasMarker({ marker, point, selected, onSelect }: { marker: MapMarker; point: { left: number; top: number }; selected: boolean; onSelect: NetworkMapProps["onSelect"] }) {
+function AtlasMarker({ marker, point, labelAbove, selected, index, animate, onSelect }: MarkerProps) {
   const { site, status } = marker;
   const isHub = site.role === "HUB";
+  const glyph = (
+    <motion.span
+      className={cn("relative grid size-10 place-items-center rounded-full border bg-card shadow-sm transition-colors duration-200", selected ? "border-primary" : "border-border group-hover:border-foreground/40")}
+      animate={{ scale: selected ? 1.1 : 1 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
+    >
+      {selected && (
+        <motion.span
+          aria-hidden="true"
+          className="absolute -inset-1.5 rounded-full border-2 border-primary"
+          initial={animate ? { opacity: 0, scale: 0.7 } : false}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+        />
+      )}
+      {animate ? (
+        <AnimatePresence initial={false} mode="wait">
+          <motion.span key={status} className="grid place-items-center" initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.6 }} transition={{ duration: 0.22 }}>
+            <StatusGlyph status={status} size={isHub ? 22 : 20} />
+          </motion.span>
+        </AnimatePresence>
+      ) : (
+        <StatusGlyph status={status} size={isHub ? 22 : 20} />
+      )}
+    </motion.span>
+  );
+  const label = (
+    <span className="max-w-full rounded-md bg-card/95 px-1.5 py-0.5 text-center leading-tight shadow-xs">
+      <span className="block font-condensed text-xs font-semibold whitespace-nowrap text-foreground">{site.shortName}</span>
+      {animate ? (
+        <AnimatePresence initial={false} mode="wait">
+          <motion.span key={marker.statusLine} className="block text-[11px] whitespace-nowrap text-foreground" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+            {marker.statusLine}
+          </motion.span>
+        </AnimatePresence>
+      ) : (
+        <span className="block text-[11px] whitespace-nowrap text-foreground">{marker.statusLine}</span>
+      )}
+    </span>
+  );
   return (
-    <button
+    <motion.button
       type="button"
       data-marker-role={isHub ? "hub" : "beneficiary"}
       data-site-id={site.id}
       data-status={status}
+      data-label={labelAbove ? "above" : "below"}
       aria-label={marker.accessibleName}
       aria-pressed={selected}
       onClick={(event) => onSelect(site.id, event.currentTarget)}
-      className="group absolute flex w-28 -translate-x-1/2 flex-col items-center gap-1 rounded-lg p-0.5 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-      style={{ left: point.left, top: point.top - 20 }}
+      className="group absolute flex w-26 -translate-x-1/2 flex-col items-center gap-1 rounded-lg p-0.5 outline-none transition-[translate] duration-150 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:translate-y-0"
+      style={{ left: point.left, top: point.top - (labelAbove ? GLYPH_FROM_TOP_LABEL_ABOVE : GLYPH_FROM_TOP_LABEL_BELOW) }}
+      initial={animate ? { opacity: 0, scale: 0.85 } : false}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.25, delay: 0.1 + index * 0.06, ease: "easeOut" }}
     >
-      <span className={cn("relative grid size-10 place-items-center rounded-full border bg-card shadow-sm transition-colors", selected ? "border-primary" : "border-border group-hover:border-foreground/40")}>
-        {selected && (
-          <motion.span
-            aria-hidden="true"
-            className="absolute -inset-1.5 rounded-full border-2 border-primary"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.18, ease: "easeOut" }}
-          />
-        )}
-        <StatusGlyph status={status} size={isHub ? 22 : 20} />
-      </span>
-      <span className="max-w-full rounded-md bg-card/95 px-1.5 py-0.5 text-center leading-tight shadow-xs">
-        <span className="block truncate font-condensed text-xs font-semibold text-foreground">{site.shortName}</span>
-        <span className="block truncate text-[11px] text-foreground">{marker.statusLine}</span>
-      </span>
-    </button>
+      {labelAbove ? <>{label}{glyph}</> : <>{glyph}{label}</>}
+    </motion.button>
   );
 }
 
@@ -136,6 +197,8 @@ export function SchematicMapRenderer({ markers, positions, selectedId, onSelect,
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const drag = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
+  // First-load reveals and status transitions explain change; they are skipped under reduced motion.
+  const animate = !useReducedMotion();
 
   useEffect(() => {
     const map = mapRef.current;
@@ -145,7 +208,7 @@ export function SchematicMapRenderer({ markers, positions, selectedId, onSelect,
     return () => observer.disconnect();
   }, []);
 
-  const top = reserveTop > 0 ? reserveTop + MARKER_RISE : PAD_TOP;
+  const top = reserveTop > 0 ? reserveTop + LABEL_ABOVE_CLEARANCE : PAD_TOP;
   const bottom = compact ? PAD_BOTTOM_COMPACT : PAD_BOTTOM;
   const area = {
     left: PAD_X,
@@ -179,6 +242,23 @@ export function SchematicMapRenderer({ markers, positions, selectedId, onSelect,
 
   const selectedPosition = selectedId ? positions.get(selectedId) : undefined;
   const ready = size.width > 0;
+  const hubs = markers.filter((marker) => marker.site.role === "HUB");
+  const hubY = positions.get(hubs[0]?.site.id ?? "")?.y ?? 0.5;
+  // One link per hub -> beneficiary pair; never pantry <-> pantry (that topology needs a transfer mode).
+  const links = ready
+    ? hubs.flatMap((hub) => {
+        const hubPosition = positions.get(hub.site.id);
+        if (!hubPosition) return [];
+        return markers
+          .filter((marker) => marker.site.role !== "HUB")
+          .flatMap((marker) => {
+            const position = positions.get(marker.site.id);
+            return position ? [{ hubId: hub.site.id, siteId: marker.site.id, d: supplyLinkPath(project(hubPosition), project(position)) }] : [];
+          });
+      })
+    : [];
+  const selectedIsHub = hubs.some((hub) => hub.site.id === selectedId);
+  const emphasized = (link: { hubId: string; siteId: string }) => selectedIsHub ? link.hubId === selectedId : link.siteId === selectedId;
 
   return (
     <div
@@ -193,17 +273,65 @@ export function SchematicMapRenderer({ markers, positions, selectedId, onSelect,
       <div className="absolute inset-0" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: `${center.x}px ${center.y}px` }}>
         <MapTexture />
       </div>
-      {ready && markers.map((marker) => {
+      {/* Supply links: what the hub can send to, not a planned route or shipment. Drawn under markers. */}
+      <svg className="pointer-events-none absolute inset-0 size-full" aria-hidden="true">
+        {links.map((link, index) => {
+          const isEmphasized = emphasized(link);
+          return (
+            <motion.path
+              key={`${link.hubId}-${link.siteId}`}
+              data-supply-link={link.siteId}
+              data-from={link.hubId}
+              data-emphasis={String(isEmphasized)}
+              d={link.d}
+              fill="none"
+              strokeLinecap="round"
+              stroke="var(--pp-ink-muted)"
+              strokeWidth={1.5}
+              initial={animate ? { pathLength: 0, opacity: 0 } : false}
+              animate={{ pathLength: 1, opacity: selectedId && !isEmphasized ? 0.25 : 0.55 }}
+              transition={{ pathLength: { duration: 0.7, delay: 0.1 + index * 0.04, ease: "easeInOut" }, opacity: { duration: 0.2 } }}
+            />
+          );
+        })}
+        {/* The selected site's link (or every link for the hub) re-draws in teal; keyed so it re-runs per selection. */}
+        {links.filter(emphasized).map((link) => (
+          <motion.path
+            key={`emphasis-${selectedId}-${link.siteId}`}
+            data-supply-emphasis={link.siteId}
+            d={link.d}
+            fill="none"
+            strokeLinecap="round"
+            stroke="var(--pp-teal)"
+            strokeWidth={2.5}
+            initial={animate ? { pathLength: 0 } : false}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+          />
+        ))}
+      </svg>
+      {ready && markers.map((marker, index) => {
         const position = positions.get(marker.site.id);
         if (!position) return null;
-        return <AtlasMarker key={marker.site.id} marker={marker} point={project(position)} selected={marker.site.id === selectedId} onSelect={onSelect} />;
+        return (
+          <AtlasMarker
+            key={marker.site.id}
+            marker={marker}
+            point={project(position)}
+            labelAbove={position.y <= hubY + 1e-6}
+            selected={marker.site.id === selectedId}
+            index={index}
+            animate={animate}
+            onSelect={onSelect}
+          />
+        );
       })}
       {ready && selectedPosition && renderSelection?.(
         compact
           ? project(selectedPosition).top > size.height / 2
-            ? { left: 12, top: 44, width: size.width - 24, side: "bottom" }
-            : { left: 12, top: size.height - 64, width: size.width - 24, side: "top" }
-          : { left: 60, top: size.height - 12, width: clamp(size.width - reserveRight - 60 - 12 - CAPTION_WIDTH, 280, 420), side: "top" },
+            ? { left: DOCK_INSET, top: 40, width: size.width - DOCK_INSET * 2, side: "bottom" }
+            : { left: DOCK_INSET, top: size.height - 64, width: size.width - DOCK_INSET * 2, side: "top" }
+          : { left: PAD_X, top: size.height - DOCK_INSET, width: clamp(size.width - reserveRight - PAD_X - 12 - CAPTION_WIDTH, 280, 420), side: "top" },
       )}
       <div className={cn("absolute bottom-3 left-3 z-10 flex overflow-hidden rounded-lg border border-border bg-card shadow-sm", compact ? "flex-row" : "flex-col")} role="group" aria-label="Map controls">
         <Tooltip>

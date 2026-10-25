@@ -6,6 +6,8 @@ type Props = {
   active: NavKey;
   horizonLabel?: string;
   search?: TopBarSearch;
+  /** "div" when the page content provides its own <main> landmark. */
+  contentElement?: "main" | "div";
   children: React.ReactNode;
 };
 
@@ -13,7 +15,8 @@ type Props = {
  * Shared navigation shell (blueprint §2): skip link, sidebar, top bar, main content.
  * Rendered by each page's client root; identical geometry on every main page.
  */
-export function AppShell({ active, horizonLabel, search, children }: Props) {
+export function AppShell({ active, horizonLabel, search, contentElement = "main", children }: Props) {
+  const Content = contentElement;
   return (
     <SidebarProvider style={{ "--sidebar-width": "clamp(15rem, 18.9vw, 17rem)" } as React.CSSProperties}>
       <a
@@ -25,9 +28,9 @@ export function AppShell({ active, horizonLabel, search, children }: Props) {
       <AppSidebar active={active} />
       <div className="flex min-h-svh min-w-0 flex-1 flex-col bg-background">
         <TopBar search={search} horizonLabel={horizonLabel} />
-        <main id="main-content" tabIndex={-1} className="flex min-w-0 flex-1 flex-col outline-none">
+        <Content id="main-content" tabIndex={-1} className="flex min-w-0 flex-1 flex-col outline-none">
           {children}
-        </main>
+        </Content>
       </div>
     </SidebarProvider>
   );

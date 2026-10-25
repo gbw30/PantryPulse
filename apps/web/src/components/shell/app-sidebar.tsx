@@ -12,7 +12,8 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
-export type NavKey = "overview" | "data" | "recommendations" | "scenarios";
+// "optimization" is the connected presenter workspace (a utility destination, not a blueprint page).
+export type NavKey = "overview" | "data" | "recommendations" | "scenarios" | "optimization";
 
 // Proposed routes from the blueprint (§2). Only built destinations are links; the rest stay visible
 // but disabled so the shell geometry is identical on every page without linking to missing screens.
@@ -72,8 +73,8 @@ export function AppSidebar({ active }: { active: NavKey }) {
             <nav aria-label="Workspaces" className="mt-4 border-t border-sidebar-border pt-3">
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild className="h-10 gap-3 px-3 text-[15px]">
-                    <Link href="/optimization">
+                  <SidebarMenuButton asChild isActive={active === "optimization"} className="h-10 gap-3 px-3 text-[15px]">
+                    <Link href="/optimization" aria-current={active === "optimization" ? "page" : undefined}>
                       <GitCompareArrows className="size-[18px]" />
                       <span>Optimization workspace</span>
                     </Link>
