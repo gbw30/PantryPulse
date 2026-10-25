@@ -2,7 +2,7 @@
 
 The main baseline is a static Next.js development landing page. The dashboard, method comparison, presenter controls, API client and selected same-origin proxy remain to be implemented.
 
-On `codex/vercel-prototype-preview`, the [Vercel branch preview](https://pantrypulse-prototype-preview-git-codex-e82088-gbw30s-projects.vercel.app/) redirects `/` to the illustrative `/design-lab`. It contains simulated data only and needs no API, database or environment variable. See the [deployment record](../../docs/setup/VERCEL.md). The local `/` landing page is still available in development; the redirect is configured in `vercel.json` for Vercel.
+On `codex/vercel-prototype-preview`, the [Vercel branch preview of `/design-lab`](https://pantrypulse-prototype-preview-git-codex-e82088-gbw30s-projects.vercel.app/design-lab) shows illustrative data only and needs no API, database or environment variable. See the [deployment record](../../docs/setup/VERCEL.md). The root landing page remains available locally and on Vercel.
 
 Read [Project specification V5](../../docs/pantrypulse/SPEC-V5.md) for current requirements, main/forecasting-branch status, UI architecture and acceptance. Follow the root [installation guide](../../INSTALLATION.md) for the pinned toolchain.
 

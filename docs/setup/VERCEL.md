@@ -1,12 +1,12 @@
 # Vercel Next.js setup
 
-> **Scope (October 24, 2026):** This guide records the live, simulated `/design-lab` preview. Its branch redirects `/` to `/design-lab`. It does not contact the API, use Neon, require a tunnel, or need `NEXT_PUBLIC_API_BASE_URL`. Backend/model hosting remains paused. [Project specification V5](../pantrypulse/SPEC-V5.md) requires a thin same-origin Next.js proxy before any later connected frontend or product release.
+> **Scope (October 24, 2026):** This guide records the live, simulated `/design-lab` preview. The root page remains the scaffold. The preview does not contact the API, use Neon, require a tunnel, or need `NEXT_PUBLIC_API_BASE_URL`. Backend/model hosting remains paused. [Project specification V5](../pantrypulse/SPEC-V5.md) requires a thin same-origin Next.js proxy before any later connected frontend or product release.
 
 ## Connected prototype project
 
 The `gbw30s-projects` Hobby team has a Git-connected project named [`pantrypulse-prototype-preview`](https://vercel.com/gbw30s-projects/pantrypulse-prototype-preview), linked to `gbw30/PantryPulse`. Its root directory is `apps/web`; source outside that directory is enabled for the root npm workspace lockfile. Node 24.x, the locked install command below and `npm run build` are configured. No API, database, model or presenter variables were added for this preview.
 
-The [branch preview URL](https://pantrypulse-prototype-preview-git-codex-e82088-gbw30s-projects.vercel.app/) is public and moves to the latest successful build from `codex/vercel-prototype-preview`. For immutable evidence, use the [verified deployment](https://pantrypulse-prototype-preview-jqswzwcxq-gbw30s-projects.vercel.app/) of commit `81387fe8d7ca97774a61425c97d75a982b1ab1be`. A later docs-only push creates another build; check its commit and URL before treating it as verified.
+The [branch `/design-lab` URL](https://pantrypulse-prototype-preview-git-codex-e82088-gbw30s-projects.vercel.app/design-lab) is public and moves to the latest successful build from `codex/vercel-prototype-preview`. An earlier [verified deployment](https://pantrypulse-prototype-preview-jqswzwcxq-gbw30s-projects.vercel.app/) of commit `81387fe8d7ca97774a61425c97d75a982b1ab1be` redirected `/`; the redirect was removed before proposing the branch for main so future Vercel builds retain the root landing page. Check the current commit and URL before treating a later build as verified.
 
 Only `codex/vercel-prototype-preview` should build automatically. The project's ignored-build command is:
 
@@ -14,13 +14,13 @@ Only `codex/vercel-prototype-preview` should build automatically. The project's 
 if [ "$VERCEL_GIT_COMMIT_REF" = "codex/vercel-prototype-preview" ]; then exit 1; else exit 0; fi
 ```
 
-A Git push to this branch triggered a Vercel Preview deployment. Its live page was checked at 1440×900 and 390×844: `/` leads to `/design-lab`, simulated/illustrative labels remain visible, location selection and 3D→2D work, and the browser reported no page errors or horizontal overflow. No ready Production deployment was created; an initial API request classified as Production was canceled before readiness. The project has no deployment protection enabled, so anyone with the URL can access the synthetic preview.
+A Git push to this branch triggered a Vercel Preview deployment. The `/design-lab` page was checked at 1440×900 and 390×844: simulated/illustrative labels remained visible, location selection and 3D→2D worked, and the browser reported no page errors or horizontal overflow. No ready Production deployment was created; an initial API request classified as Production was canceled before readiness. The project has no deployment protection enabled, so anyone with the URL can access the synthetic preview.
 
 ## Manual account checks
 
 The project, GitHub import, root directory and build settings are already configured. To use the preview, no additional Vercel setup is required. In the [Environment Variables settings](https://vercel.com/gbw30s-projects/pantrypulse-prototype-preview/settings/environment-variables), confirm no inherited API URL, database credential or other secret is present. The integration returned HTTP 403 when listing variables, so this one setting could not be independently verified. Do not add variables for the current simulated preview. Review the Hobby plan's permitted use and usage; decide whether public URL access is appropriate before sharing.
 
-Vercel's [monorepo documentation](https://vercel.com/docs/monorepos) describes per-application roots. There is no rootDirectory key to add to vercel.json.
+Vercel's [monorepo documentation](https://vercel.com/docs/monorepos) describes per-application roots. The root directory is a Vercel project setting; this branch needs no `vercel.json`.
 
 ## Build configuration for this repository
 
@@ -46,7 +46,7 @@ Do not set `NEXT_PUBLIC_API_BASE_URL` on this project. Earlier direct browser-to
 
 ## Deploy and verify
 
-For each new commit, inspect its Vercel Preview build, record the commit and deployment URL, then check `/` and `/design-lab` in desktop and mobile browsers. Confirm the simulated disclosures, stylesheet, location selection and optional 3D/2D controls work without page errors. The branch URL may point to a newer build than the immutable deployment above. A successful static preview does not prove API, database, forecasting or allocation readiness.
+For each new commit, inspect its Vercel Preview build, record the commit and deployment URL, then check the root landing page and `/design-lab` in desktop and mobile browsers. Confirm the simulated disclosures, stylesheet, location selection and optional 3D/2D controls work without page errors. The branch URL may point to a newer build than the immutable deployment above. A successful static preview does not prove API, database, forecasting or allocation readiness.
 
 For a later connected release, verify proxy/auth behavior, correct synthetic API/database isolation, error and pending states, full comparison, and rollback using [the deployment runbook](../pantrypulse/DEPLOYMENT.md). A tunnel health response alone establishes only API reachability.
 

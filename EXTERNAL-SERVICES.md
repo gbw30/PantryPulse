@@ -16,7 +16,7 @@ Updated October 24, 2026. **The selected future integrated demo runs the backend
 | Full application integration | Not implemented | Add the frontend API client, same-origin proxy, FastAPI authorization, domain persistence and migrations |
 | Backend primitives | Implemented | Transfer modes, route eligibility, rounding, fixed-point arithmetic, solver outcomes and history alignment are available; integrate them into the complete workflow |
 | Allocation/forecasting demonstration | Not implemented | Complete research validation, both allocation engines, forecasts/fallback and the deterministic comparison fixture |
-| Simulated remote UI preview | Deployed from `codex/vercel-prototype-preview` | Open the [branch preview](https://pantrypulse-prototype-preview-git-codex-e82088-gbw30s-projects.vercel.app/); it has no API or database |
+| Simulated remote UI preview | Deployed from `codex/vercel-prototype-preview` | Open the [branch `/design-lab` preview](https://pantrypulse-prototype-preview-git-codex-e82088-gbw30s-projects.vercel.app/design-lab); it has no API or database |
 | Integrated remote judge access | Not configured | Implement the V5 proxy/auth/backend/database path before claiming a full demo |
 
 Creating a Neon project establishes the database service. It does not create PantryPulse's tables or connect the application automatically. A successful health response alone does not prove the database or allocation workflow works.
