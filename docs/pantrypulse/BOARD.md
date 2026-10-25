@@ -1,5 +1,7 @@
 # PantryPulse delivery board
 
+For new assignments, use the [V5 parallel backlog](PARALLEL-BACKLOG.md) and [GitHub dependency index #48](https://github.com/gbw30/PantryPulse/issues/48). They contain 40 scoped work packages with development prerequisites, integration gates and paused work explicitly identified. The PP-01–23 rows below remain historical; closed issues #1–6 are reused by the new backlog.
+
 Update after each integration. [Project specification V5](SPEC-V5.md) records the current implementation/branch state and acceptance. PP-01–23 retain the historical planning board and require reconciliation; PP-24–29 were merged through PR #7. This review-fix branch integrates the offline forecasting core from PR #49 for review; live API, database and worker acceptance remains open. No completed application is claimed.
 
 | ID | Outcome | Owner | Depends on | Exit evidence | Status |
