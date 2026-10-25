@@ -55,7 +55,7 @@ docker network inspect $net *> $null; if ($LASTEXITCODE -ne 0) { Invoke-Docker n
 $running = docker ps --filter "name=^pp-local-pg$" --format "{{.Names}}"
 if (-not $running) {
   docker rm -f pp-local-pg *> $null
-  Invoke-Docker run -d --name pp-local-pg --network $net -p "127.0.0.1:${DbPort}:5432" -v pp-local-pgdata:/var/lib/postgresql/data `
+  Invoke-Docker run -d --restart unless-stopped --name pp-local-pg --network $net -p "127.0.0.1:${DbPort}:5432" -v pp-local-pgdata:/var/lib/postgresql/data `
     -e POSTGRES_USER=pp -e POSTGRES_PASSWORD=pp_local_only -e POSTGRES_DB=pp_local postgres:16 | Out-Null
 }
 for ($i = 0; $i -lt 60; $i++) { docker exec pp-local-pg pg_isready -U pp -d pp_local *> $null; if ($LASTEXITCODE -eq 0) { break }; Start-Sleep 1 }
@@ -99,9 +99,9 @@ $apiEnv = @(
 
 Step "API (127.0.0.1:$ApiPort) and worker"
 foreach ($name in "pp-local-worker", "pp-local-api") { docker rm -f $name *> $null }
-Invoke-Docker run -d --name pp-local-api --network $net -p "127.0.0.1:${ApiPort}:8000" @repoMount @apiEnv $image `
+Invoke-Docker run -d --restart unless-stopped --name pp-local-api --network $net -p "127.0.0.1:${ApiPort}:8000" @repoMount @apiEnv $image `
   uv run --frozen uvicorn app.main:app --host 0.0.0.0 --port 8000 | Out-Null
-Invoke-Docker run -d --name pp-local-worker --network $net @repoMount @apiEnv $image `
+Invoke-Docker run -d --restart unless-stopped --name pp-local-worker --network $net @repoMount @apiEnv $image `
   uv run --frozen python -m app.workers.supervisor --registry production --schema $schema | Out-Null
 $healthy = $false
 for ($i = 0; $i -lt 60; $i++) {
