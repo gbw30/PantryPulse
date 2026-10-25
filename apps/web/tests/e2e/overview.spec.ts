@@ -61,6 +61,25 @@ async function expectNoClippedText(scope: Locator, label: string) {
   expect(clipped, `${label}: clipped text`).toEqual([]);
 }
 
+function insetBox(rect: Box, inset: number): Box {
+  return { x: rect.x + inset, y: rect.y + inset, width: rect.width - inset * 2, height: rect.height - inset * 2 };
+}
+
+const BENEFICIARY_IDS = ["riverbend", "oak-terrace", "cedar-grove", "maple-crossing", "willow-creek", "pine-ridge"];
+
+// Supply links: exactly one hub -> pantry link per beneficiary; never pantry <-> pantry.
+async function expectSupplyLinks(page: Page) {
+  const links = page.locator("[data-supply-link]");
+  await expect(links).toHaveCount(6);
+  const pairs = await links.evaluateAll((paths) => paths.map((path) => [path.getAttribute("data-from"), path.getAttribute("data-supply-link")]));
+  for (const [from, to] of pairs) expect(from).toBe("gator-hub");
+  expect(pairs.map(([, to]) => to).sort()).toEqual([...BENEFICIARY_IDS].sort());
+}
+
+async function linkEmphasis(page: Page) {
+  return page.locator("[data-supply-link]").evaluateAll((paths) => Object.fromEntries(paths.map((path) => [path.getAttribute("data-supply-link"), path.getAttribute("data-emphasis")])));
+}
+
 const chipName = (name: string) => (name.includes("Hub") ? "Gator Hub" : name.replace(/ Pantry$/, ""));
 
 async function markerBoxes(page: Page) {
@@ -113,6 +132,31 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
     await expect(page.locator('[data-marker-role="hub"]')).toHaveCount(1);
     await expectMarkersInsideMap(page);
     await expectControlsClearOfMarkers(page);
+    await expectSupplyLinks(page);
+    const legendCard = page.locator("[data-legend-card]");
+    await expect(legendCard.getByText("Supply link", { exact: true })).toBeVisible();
+    await expect(legendCard).toContainText("the hub can send to this pantry; not a planned route or shipment");
+    if (desktop) {
+      // Polish: >= 24px between every pair of marker + label boxes; the legend card clears markers and links.
+      const boxes = [...(await markerBoxes(page)).entries()];
+      for (let i = 0; i < boxes.length; i += 1) {
+        for (let j = i + 1; j < boxes.length; j += 1) expect(overlaps(boxes[i][1], boxes[j][1], 24), `${boxes[i][0]} within 24px of ${boxes[j][0]}`).toBe(false);
+      }
+      const legendBox = await box(legendCard);
+      for (const [name, rect] of boxes) expect(overlaps(legendBox, rect), `legend covers ${name}`).toBe(false);
+      for (const link of await page.locator("[data-supply-link]").all()) expect(overlaps(legendBox, await box(link)), "legend covers a supply link").toBe(false);
+      // >= 24px between the header block, the site strip and the map.
+      const header = await box(page.locator("[data-atlas-header]"));
+      const strip = await box(page.locator("[data-site-strip]"));
+      const mapSection = await box(page.getByRole("region", { name: "Network map" }));
+      expect(strip.y - (header.y + header.height), "header to strip gap").toBeGreaterThanOrEqual(24);
+      expect(mapSection.y - (strip.y + strip.height), "strip to map gap").toBeGreaterThanOrEqual(24);
+    }
+    // Site chips keep >= 8px between neighbours.
+    const chipBoxes = await Promise.all((await page.getByRole("list", { name: "All sites" }).getByRole("button").all()).map((chip) => box(chip)));
+    for (let index = 1; index < chipBoxes.length; index += 1) {
+      if (Math.abs(chipBoxes[index].y - chipBoxes[index - 1].y) < 1) expect(chipBoxes[index].x - (chipBoxes[index - 1].x + chipBoxes[index - 1].width)).toBeGreaterThanOrEqual(8);
+    }
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 
     // Mobile first viewport: every legend state and the first two markers are visible together.
@@ -192,7 +236,10 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
         const popover = page.getByRole("dialog", { name });
         await expect(popover).toBeVisible();
         const popoverBox = await box(popover);
-        expect(inside(popoverBox, await box(page.locator("[data-atlas-map]"))), `${name} popover leaves the map`).toBe(true);
+        expect(inside(popoverBox, insetBox(await box(page.locator("[data-atlas-map]")), 16)), `${name} card within 16px of the map edge`).toBe(true);
+        const emphasis = await linkEmphasis(page);
+        if (name.includes("Hub")) expect(Object.values(emphasis).every((value) => value === "true"), "hub selected: every link emphasized").toBe(true);
+        else for (const [id, value] of Object.entries(emphasis)) expect(value, `${name}: link to ${id}`).toBe(id === slug(name) ? "true" : "false");
         expect(overlaps(popoverBox, await box(page.getByTestId("site-inspector"))), `${name} popover covers the inspector`).toBe(false);
         for (const [other, rect] of await markerBoxes(page)) expect(overlaps(popoverBox, rect), `${name} popover covers ${other}`).toBe(false);
         await expectNoClippedText(popover, `${width} ${name} card`);
@@ -210,7 +257,7 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
         const popover = page.getByRole("dialog", { name });
         await expect(popover).toBeVisible();
         const popoverBox = await box(popover);
-        expect(inside(popoverBox, await box(page.locator("[data-atlas-map]"))), `${name} card leaves the map`).toBe(true);
+        expect(inside(popoverBox, insetBox(await box(page.locator("[data-atlas-map]")), 16)), `${name} card within 16px of the map edge`).toBe(true);
         expect(overlaps(popoverBox, await box(marker(page, name))), `${name} card covers its own marker`).toBe(false);
         expect(overlaps(popoverBox, await box(page.getByRole("group", { name: "Map controls" }))), `${name} card covers the zoom controls`).toBe(false);
         const clear = [...(await markerBoxes(page)).values()].filter((rect) => !overlaps(popoverBox, rect));
@@ -444,6 +491,32 @@ test("product search offers a product and switches units", async ({ page }, test
   await search.fill("bottle");
   await search.press("Enter");
   await expect(product).toHaveText(/Bottled water \(bottles\)/);
+});
+
+test("first load animates supply links and markers, then settles", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/overview");
+  await page.locator("[data-supply-link]").first().waitFor({ state: "attached" });
+  const sample = () => page.evaluate(() => ({
+    links: [...document.querySelectorAll("[data-supply-link]")].map((path) => `${path.getAttribute("stroke-dasharray")}|${path.getAttribute("stroke-dashoffset")}`),
+    markers: [...document.querySelectorAll("[data-marker-role]")].map((marker) => `${getComputedStyle(marker).opacity}|${getComputedStyle(marker).transform}`),
+    running: document.getAnimations().filter((animation) => animation.playState === "running").length,
+  }));
+  const first = await sample();
+  await page.waitForTimeout(120);
+  const second = await sample();
+  expect(first.links.some((value, index) => value !== second.links[index]), "supply links draw in").toBe(true);
+  expect(first.markers.some((value, index) => value !== second.markers[index]) || first.running > 0, "markers animate in").toBe(true);
+  // Everything settles: final opacity 1, links fully drawn, and nothing changes between frames.
+  await page.waitForTimeout(1500);
+  const settled = await sample();
+  await page.waitForTimeout(250);
+  const later = await sample();
+  expect(later).toEqual(settled);
+  for (const value of settled.markers) expect(value.split("|")[0]).toBe("1");
+  for (const value of settled.links) expect(Number.parseFloat(value.split("|")[0].split(/[ ,]/)[0])).toBeGreaterThanOrEqual(0.999);
+  expect(settled.running).toBe(0);
 });
 
 test("loading keeps the legend and a stable skeleton", async ({ page }) => {
