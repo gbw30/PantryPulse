@@ -264,12 +264,9 @@ async function expectComparisonResults(page: Page) {
   for (const text of ["household", "$", "equity score", ...MOCKUP_ONLY]) await expect(page.getByText(text, { exact: false })).toHaveCount(0);
 }
 
-// The full freeze/compare/reload journey runs at desktop widths only: at 390px it hangs past 4 min
-// in CI (not yet root-caused; tracked as a follow-up). 390px steps and axe are covered by the other specs.
-for (const [width, height] of [[1440, 900], [1280, 720]]) {
+for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
   test(`presenter freezes and compares once, the job resolves and survives reload at ${width}x${height}`, async ({ page }, testInfo) => {
-    // ~8 axe scans plus a reload: about 60s locally at 390px, slower on the CI runner.
-    test.setTimeout(240_000);
+    test.setTimeout(90_000);
     const calls = await mockApi(page);
     const errors = await open(page, width, height);
     await showStep(page, width, 1);
