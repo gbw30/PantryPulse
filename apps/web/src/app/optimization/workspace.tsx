@@ -11,6 +11,8 @@ type Assumptions = Schema["AssumptionsResult"];
 type Scenario = Schema["ScenarioResult"];
 type Comparison = Schema["SavedComparison"];
 type Job = Schema["ForecastJob"];
+type VideoScene = { number: string; title: string; description: string; source_id: string; forecast_id: string; scenario_id: string; comparison_id: string };
+type VideoData = { version: number; demo_date: string; scenes: VideoScene[]; labels: Record<string, string> };
 type Active = { id: string; kind: "forecasts" | "comparisons" };
 const terminal = new Set(["SUCCEEDED", "FAILED", "TIMED_OUT", "INTERRUPTED", "CANCELLED", "EXPIRED"]);
 const rational = (x: { numerator: number; denominator: number } | null | undefined) => x ? (x.numerator / x.denominator).toLocaleString(undefined, { maximumFractionDigits: 5 }) : "Unavailable";
@@ -37,6 +39,17 @@ export default function Workspace() {
   const [comparison, setComparison] = useState<Comparison | null>(null);
   const [active, setActive] = useState<Active | null>(null);
   const [job, setJob] = useState<Job | null>(null);
+  const [videoData, setVideoData] = useState<VideoData | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch("/demo-video.json", { cache: "no-store", signal: controller.signal })
+      .then(async (response) => response.ok ? response.json() : null)
+      .then((value: VideoData | null) => {
+        if (!controller.signal.aborted && value?.version === 1 && Array.isArray(value.scenes) && value.labels) setVideoData(value);
+      }).catch(() => { /* A video manifest is optional; ordinary workflows use the catalog. */ });
+    return () => controller.abort();
+  }, []);
 
   const showError = useCallback((value: unknown) => {
     if (value instanceof ApiError && value.status === 401) setSignedIn(false);
@@ -151,8 +164,12 @@ export default function Workspace() {
     const value = await api<Comparison>(`comparisons/${id}`);
     const saved = await api<Scenario>(`scenarios/${value.scenario_id}`);
     setComparison(value); setScenario(saved);
+    setForecastId(saved.forecast_run_id); setMode(saved.payload.transfer_mode); setDays(saved.payload.planning_days);
+    await selectAssumptions(saved.assumptions_id);
   }
   const running = active && (!job || !terminal.has(job.state));
+  const videoScenes = videoData?.scenes.filter((scene) => catalog?.comparisons.some((item) => item.id === scene.comparison_id) && network?.sources.some((source) => source.id === scene.source_id)) ?? [];
+  const videoLabel = (id: string) => videoData?.labels[id];
   const siteName = (id: string) => scenario?.payload.package.sites.find((s) => s.id === id)?.name ?? id;
   const productName = (id: string) => network?.products.find((p) => p.id === id)?.name ?? id;
 
@@ -170,9 +187,20 @@ export default function Workspace() {
         <button disabled={busy} type="submit">Sign in</button>
       </form><p>Use the presenter credentials configured for your isolated demo.</p>
     </section> : <>
+      {videoScenes.length > 0 && <section className={styles.card} aria-label="Prepared video datasets">
+        <h2>Video demo · Choose a scene</h2>
+        <p>Simulated datasets · {videoData?.demo_date}. Forecasts and verified comparisons were computed in advance and saved.</p>
+        <div className={styles.grid}>{videoScenes.map((scene) => <article key={scene.number}>
+          <h3>{scene.number} · {scene.title}</h3><p>{scene.description}</p>
+          <button disabled={busy || !!running} onClick={() => void perform(async () => {
+            setActive(null); setJob(null); await loadComparison(scene.comparison_id); setSourceId(scene.source_id);
+            const url = new URL(window.location.href); url.searchParams.set("job", scene.comparison_id); url.searchParams.set("kind", "comparisons"); window.history.replaceState(null, "", url);
+          })}>Open scene {scene.number}</button>
+        </article>)}</div>
+      </section>}
       <div className={styles.grid}>
         <section className={styles.card}><h2>1 · Select a forecast</h2>
-          <label>Saved planning-ready forecast<select disabled={busy} value={forecastId} onChange={(e) => setForecastId(e.target.value)}><option value="">Choose a forecast</option>{catalog?.forecasts.map((r) => <option key={r.id} value={r.id}>{new Date(r.recorded_at).toLocaleString()} · {r.id.slice(0, 8)}</option>)}</select></label>
+          <label>Saved planning-ready forecast<select disabled={busy} value={forecastId} onChange={(e) => setForecastId(e.target.value)}><option value="">Choose a forecast</option>{catalog?.forecasts.map((r) => <option key={r.id} value={r.id}>{videoLabel(r.id) ? `${videoLabel(r.id)} · ` : ""}{new Date(r.recorded_at).toLocaleString()} · {r.id.slice(0, 8)}</option>)}</select></label>
           <label>Fictional history source<select disabled={busy} value={sourceId} onChange={(e) => setSourceId(e.target.value)}><option value="">Choose a source</option>{network?.sources.filter((s) => s.classification === "SIMULATED").map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
           <button disabled={busy || !!running || !sourceId} onClick={() => void perform(generateForecast)}>Generate forecast</button>
           <p>Seven days from yesterday’s cutoff, using seasonal naive with an explicitly enabled moving-average fallback. Donation predictions never become stock.</p>
@@ -211,12 +239,13 @@ export default function Workspace() {
           })}>Save new assumptions version</button></>}
       </details>
       <section className={styles.card}><h2>Saved work</h2><div className={styles.row}>
-        <label>Read a saved scenario<select disabled={busy} value={scenario?.id ?? ""} onChange={(e) => void perform(async () => { viewRevision.current += 1; const saved = await api<Scenario>(`scenarios/${e.target.value}`); setScenario(saved); setComparison(null); setForecastId(saved.forecast_run_id); setMode(saved.payload.transfer_mode); setDays(saved.payload.planning_days); await selectAssumptions(saved.assumptions_id); })}><option value="" disabled>Choose scenario</option>{catalog?.scenarios.map((r) => <option key={r.id} value={r.id}>{new Date(r.recorded_at).toLocaleString()} · {r.id.slice(0, 8)}</option>)}</select></label>
-        <label>Read a saved comparison<select disabled={busy} value={comparison?.id ?? ""} onChange={(e) => void perform(() => loadComparison(e.target.value))}><option value="" disabled>Choose comparison</option>{catalog?.comparisons.map((r) => <option key={r.id} value={r.id}>{r.label} · {new Date(r.recorded_at).toLocaleString()} · {r.id.slice(0, 8)}</option>)}</select></label></div>
+        <label>Read a saved scenario<select disabled={busy} value={scenario?.id ?? ""} onChange={(e) => void perform(async () => { viewRevision.current += 1; const saved = await api<Scenario>(`scenarios/${e.target.value}`); setScenario(saved); setComparison(null); setForecastId(saved.forecast_run_id); setMode(saved.payload.transfer_mode); setDays(saved.payload.planning_days); await selectAssumptions(saved.assumptions_id); })}><option value="" disabled>Choose scenario</option>{catalog?.scenarios.map((r) => <option key={r.id} value={r.id}>{videoLabel(r.id) ? `${videoLabel(r.id)} · ` : ""}{new Date(r.recorded_at).toLocaleString()} · {r.id.slice(0, 8)}</option>)}</select></label>
+        <label>Read a saved comparison<select disabled={busy} value={comparison?.id ?? ""} onChange={(e) => void perform(() => loadComparison(e.target.value))}><option value="" disabled>Choose comparison</option>{catalog?.comparisons.map((r) => <option key={r.id} value={r.id}>{videoLabel(r.id) ?? r.label} · {new Date(r.recorded_at).toLocaleString()} · {r.id.slice(0, 8)}</option>)}</select></label></div>
         <button disabled={busy} onClick={() => void perform(async () => { await refresh(); })}>Refresh saved work</button>
         {catalog?.next_before && <button disabled={busy} onClick={() => void perform(async () => { setCatalog(await api<Catalog>(`planning-catalog?before=${encodeURIComponent(catalog.next_before!)}&before_id=${catalog.next_before_id}`)); })}>Load older saved work</button>}
       </section>
       {comparison && scenario && <section className={styles.card}><h2>Comparison results · {comparison.result.outcome}</h2>
+        {videoLabel(comparison.id) && <p><strong>{videoLabel(comparison.id)}</strong></p>}
         <p>{comparison.stale ? "STALE: source records changed since this scenario was frozen. " : "Sources match this saved snapshot. "}{comparison.historical && "HISTORICAL: this scenario’s planning date is no longer today. "}Saved results never change when sources change.</p>
         <p>{scenario.payload.package.first_planning_date} · {scenario.payload.planning_days}-day allocation window · 7-day inventory projection · {comparison.settings.search_milliseconds as number / 1000}s search per method.</p>
         <div className={styles.methods}>{comparison.result.methods.map((method) => <article className={styles.method} key={method.method}>
