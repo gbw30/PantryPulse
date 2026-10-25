@@ -8,6 +8,8 @@
 
 **Decision record:** Published [main checkpoint at a0ad11f](https://github.com/gbw30/PantryPulse/blob/a0ad11f45bb15a3c3158ed6678f9522652d2a723/docs/pantrypulse/BACKEND-DESIGN-CHECKPOINT.md), BD-01 through BD-40 and OPEN-01 through OPEN-36, plus BD-41 below. The [checkpoint](BACKEND-DESIGN-CHECKPOINT.md) retains the decision history. V5 reconciles these records and branch experiments without closing unresolved domain contracts.
 
+**Review-fix integration:** This branch includes the [offline forecasting core](forecasting/IMPLEMENTATION.md) from PR #49 with the existing BE-01–06 helpers. Internal experiments do not finalize public contracts, database publication, durable jobs or full scenario persistence. The original main evidence above remains historical.
+
 ## 0. Start here: what can be built now
 
 This revision restores main's published specification into the older local checkout. It adds the user's explicit selection of both transfer modes and turns settled behavior into bounded implementation tasks. It does not choose unresolved supplier, forecasting, inventory, authentication, or objective policies. Internal helper names, signatures, validation, and test cases below are technical elaborations for this documentation request; they do not finalize the surrounding public API or database schemas.

@@ -1,0 +1,38 @@
+{
+  "schema_version": "forecast-fixture-spec-v1",
+  "classification": "SIMULATED",
+  "dataset_name": "forecasting-core-demo-v1",
+  "start_date": "2026-07-26",
+  "history_days": 90,
+  "timezone": "America/New_York",
+  "sites": [
+    {"name": "Riverbend Pantry", "role": "BENEFICIARY", "required_targets": ["DEMAND", "DONATION"], "ineligible_targets": []},
+    {"name": "Oak Terrace Pantry", "role": "BENEFICIARY", "required_targets": ["DEMAND", "DONATION"], "ineligible_targets": []},
+    {"name": "Cedar Grove Pantry", "role": "BENEFICIARY", "required_targets": ["DEMAND", "DONATION"], "ineligible_targets": []},
+    {"name": "Maple Crossing Pantry", "role": "BENEFICIARY", "required_targets": ["DEMAND", "DONATION"], "ineligible_targets": []},
+    {"name": "Willow Creek Pantry", "role": "BENEFICIARY", "required_targets": ["DEMAND", "DONATION"], "ineligible_targets": []},
+    {"name": "Pine Ridge Pantry", "role": "BENEFICIARY", "required_targets": ["DEMAND", "DONATION"], "ineligible_targets": []},
+    {"name": "Gator Distribution Hub", "role": "HUB", "required_targets": ["DONATION"], "ineligible_targets": ["DEMAND"]}
+  ],
+  "products": [
+    {"name": "Shelf-stable meals", "unit": "meal"},
+    {"name": "Bottled water", "unit": "bottle"}
+  ],
+  "optional_series": [],
+  "evaluation_origin_offsets": [61, 68, 75, 82],
+  "policy": {
+    "policy_version": "demo-proposal-14d-3samples-v1",
+    "sparse_window_days": 14,
+    "sparse_min_samples": 3,
+    "allow_fallback": true,
+    "allow_fulfilled_proxy": false,
+    "allow_mixed_proxy_history": false
+  },
+  "notes": [
+    "Fictional data; numerical evaluation does not establish real-world accuracy.",
+    "Hub demand is explicitly ineligible; all 26 designated series are required.",
+    "Deliberate early gaps, an unknown requested-demand day, distinct same-day receipts, and a late receipt correction exercise provenance.",
+    "Reporting coverage supplies genuine zero-receipt days; it is deliberately absent on day 32 at Riverbend.",
+    "Sparse-history thresholds are demo proposals, not adopted public defaults."
+  ]
+}

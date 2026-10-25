@@ -141,6 +141,8 @@ Branch: [`forecasting` at `bed08544e3dc9b00499224806d92dd8f437f0644`](https://gi
 
 These modules do not implement public endpoints, database publication, stock posting, complete operational scenarios, durable jobs, deadlines, authentication or allocation. `ready_for_publication` is computational completeness; it is not committed `planning_ready`.
 
+**Review-fix candidate:** The `codex/pr49-pr50-review-fixes` branch combines PR #49 and PR #50 with review corrections. Its [PP-30 packet](tasks/PP-30-pr-review-fixes.md) records current verification. The original main/branch evidence below remains the consolidation baseline, not a claim that this candidate has already merged.
+
 ### 3.3 Evidence at consolidation
 
 | Check | Result | What it establishes |
@@ -604,6 +606,8 @@ Required states include loading, empty, insufficient data, explicit proxy/qualit
 ### 14.2 Accepted libraries and proposed visual direction
 
 The accepted stack is **Tailwind, shadcn/ui with Radix, Recharts, Motion and Lucide**, plus selected Watermelon/Kokonut source components through configured registries. Component configuration/installation is not evidence of a finished component catalog. Three.js/React Three Fiber, React Spring and Bklit are deferred/excluded from the present stack; Godly/Variant are references.
+
+**Subsequent user decision (October 24, 2026):** Three.js is permitted only in the optional `/design-lab` prototype, retaining a default 2D view, on-demand 3D loading, accessible location selection, reduced motion and visible simulated provenance. [ADR 0004](../architecture/0004-design-lab-3d-exception.md) records the added dependency/rendering-maintenance tradeoff. This is not approval for production-dashboard 3D or a final design selection.
 
 The art-direction proposal is a calm operations desk: chalk/white surfaces, navy text, dark teal actions, stable risk/caution/forecast semantics, readable tabular numbers and a dimensional 2D resource network. IBM Plex typography and motion timings are proposed design choices pending rendered/human acceptance, not implemented brand facts.
 
