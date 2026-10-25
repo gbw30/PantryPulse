@@ -272,5 +272,5 @@ test("connected: CSV import, receipt post and adjustment against the seeded API"
   test.skip(process.env.PP_RUN_CONNECTED !== "1", "Requires isolated seeded PostgreSQL and API");
   // Covered by the packet's connected plan; exercised when PP_RUN_CONNECTED=1 with the demo launcher.
   await page.goto("/data/inputs");
-  await expect(page.getByRole("heading", { level: 1, name: "Data input" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Data input" })).toBeVisible();
 });

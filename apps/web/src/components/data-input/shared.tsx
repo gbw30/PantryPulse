@@ -1,46 +1,24 @@
 "use client";
 
-import Link from "next/link";
 import { AlertTriangle, CheckCircle2, LockKeyhole } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { usePresenter } from "@/components/shell/presenter-session";
+import { DataExplorerHeader } from "@/components/data-explorer/header";
 import type { ImportFeedback } from "./api";
 
-// Provisional Data Explorer header for the data-input subviews. At integration the lead swaps the tab
-// strip for the Data Explorer's shared header (PP-53) so all subviews use one component.
-const TABS = [
-  { key: "dashboard", label: "Dashboard", href: "/data" },
-  { key: "pulse", label: "Seven-Day Pulse", href: "/data/pulse" },
-  { key: "operations", label: "Operations Board", href: "/data/operations" },
-  { key: "inventory", label: "Inventory & Lots", href: "/data/inventory" },
-  { key: "inputs", label: "Data input", href: "/data/inputs", presenterOnly: true },
-] as const;
-
+// The shared Data Explorer chrome (PP-53) carries the tab strip; each data-input subview adds its
+// own section heading under it.
 export function DataInputHeader({ active, title, description }: { active: "inventory" | "inputs"; title: string; description: string }) {
-  const { state } = usePresenter();
   return (
-    <header className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3">
+      <DataExplorerHeader active={active} />
       <div>
-        <p className="font-condensed text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Forecasts &amp; inventory</p>
-        <h1 className="text-[26px] leading-tight font-semibold tracking-tight md:text-[28px]">{title}</h1>
+        <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
-      <nav aria-label="Data Explorer views" className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
-        <ul className="flex min-w-max gap-1 border-b border-border">
-          {TABS.filter((tab) => !("presenterOnly" in tab) || state === "presenter").map((tab) => (
-            <li key={tab.key}>
-              <Link href={tab.href} aria-current={tab.key === active ? "page" : undefined}
-                className={`inline-flex h-10 items-center border-b-2 px-3 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring ${tab.key === active ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
-                {tab.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
-    </header>
+    </div>
   );
 }
 

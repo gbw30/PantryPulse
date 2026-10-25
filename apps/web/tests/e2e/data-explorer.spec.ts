@@ -230,14 +230,13 @@ for (const viewport of WIDTHS) {
     await expect(page.getByText(LIVE_PILL, { exact: true }).first()).toBeVisible();
     await expect(page.getByText(FIXTURE_LABEL)).toHaveCount(0);
 
-    // Header: tabs from one config; unbuilt tabs disabled; Data input only for presenters.
+    // Header: tabs from one config; all five built since PP-56 integration; Data input only for presenters.
     const tabs = page.getByRole("navigation", { name: "Data Explorer views" });
     await expect(tabs.getByRole("link", { name: "Dashboard" })).toHaveAttribute("aria-current", "page");
     await expect(tabs.getByRole("link", { name: "Seven-Day Pulse" })).toHaveAttribute("href", /\/data\/pulse/);
     await expect(tabs.getByRole("link", { name: "Operations Board" })).toHaveAttribute("href", /\/data\/operations/);
-    await expect(tabs.getByText(/Inventory & Lots \(not built yet\)/)).toHaveCount(1);
-    await expect(tabs.getByText(/Data input \(not built yet\)/)).toHaveCount(1);
-    await expect(tabs.getByRole("link", { name: /Inventory|Data input/ })).toHaveCount(0);
+    await expect(tabs.getByRole("link", { name: "Inventory & Lots" })).toHaveAttribute("href", /\/data\/inventory/);
+    await expect(tabs.getByRole("link", { name: "Data input" })).toHaveAttribute("href", /\/data\/inputs/);
     // Forecast-run chip: id prefix, recorded time and provider.
     const chip = page.locator("[data-run-chip]");
     await expect(chip).toContainText(FORECAST.slice(0, 8));
@@ -380,7 +379,7 @@ for (const viewport of WIDTHS) {
     const cedar = page.locator("[data-site-card]").filter({ has: page.getByRole("heading", { name: "Cedar Grove Pantry" }) });
     await expect(cedar.locator('[data-product-panel]').filter({ hasText: "Bottled water" })).toContainText("Expired: 1 lot · 12 bottles");
     await expect(page.locator('[data-site-card][data-role="HUB"]')).toContainText("Hub · source");
-    await expect(page.getByText(/Inventory & Lots \(not built yet\)/).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: "Inventory & Lots" }).first()).toBeVisible();
     await expectNoSeriousA11yViolations(page, testInfo, `data explorer operations ${width}x${height}`);
     await page.screenshot({ path: testInfo.outputPath(`data-explorer-operations-${width}.png`), fullPage: true });
     expect(pageErrors).toEqual([]);
