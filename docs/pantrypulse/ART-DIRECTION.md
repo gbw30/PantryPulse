@@ -44,3 +44,18 @@ Keyboard walkthrough must reach filters, site details, chart data alternative, p
 Generate two or three composition sketches within 20 minutes, choose one with the human, then freeze tokens and component vocabulary. If the human is unavailable, implement this default and record the assumption; human visual acceptance remains pending. Capture the real seeded app at 1440x900, 1280x720 and 390x844. Send screenshots and interaction observations to ux-critic. Maximum five findings per round with viewport, region, severity and acceptance check. Fix comprehension/accessibility blockers first. One focused repair cycle per milestone; the human decides subjective taste disagreements.
 
 Target: identify at-risk site/first deficit/action in ten seconds and explain the transfer within thirty seconds during rehearsal. These are usability goals to measure, not established results. A source-code-only critic cannot declare visual QA passed.
+
+## User decisions (October 25, 2026)
+
+This section adds to the guidance above without rewriting it. Where the two conflict, these dated decisions take precedence for their stated scope. SPEC-V5 §14.2 records the same decisions.
+
+**On main since PR #87 (`600fdd0`):** IBM Plex Sans/Condensed and the blueprint `--pp-*` palette are global. The Overview / Network Atlas follows the light chalk/white/navy/teal direction. Its motion does not loop and stops under reduced motion. Human visual acceptance is still pending.
+
+**Decided, not yet on main:** these are being built on branch `pp/overview-motion`.
+- **Always-on supply-link flow.** All hub→pantry supply links on the Overview get a continuous flowing animation that is always on. This is an explicit user override of the motion contract's "Avoid infinite beams…" and of the frontend blueprint's §3 "no perpetual moving dots". Its scope:
+  - The override covers supply links only.
+  - Links keep the label "the hub can send to this pantry; not a planned route or shipment".
+  - The OS reduced-motion setting still stops it.
+- **Spring motion** taken from the design lab.
+- **Dark/light theme toggle.** Dark tokens are taken from the design-lab palette. The light direction above remains one of the two themes.
+- **Draggable nodes and panels.** Map nodes and the floating panels (legend, inspector, selection card) become draggable. Positions are saved per browser, and a reset restores the defaults.

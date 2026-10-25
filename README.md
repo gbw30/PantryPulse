@@ -35,6 +35,8 @@ The [connected integration guide](docs/optimization/CONNECTED-INTEGRATION.md) re
 
 The production [worker](docs/setup/WORKER-QUEUE.md) supports `forecast.v1` and `or-comparison.v2`, with one active operation and two waiting jobs. PR #77 supplies [bounded local compute](docs/setup/LOCAL-COMPUTE.md), persistent model storage and prepared [Fly configuration](docs/setup/FLY.md). Full pinned Chronos-2 has passed real standalone CPU inference and synthetic timing checks; the application provider remains baseline-only. Representative forecast accuracy, integrated Chronos, supplier planning, visitor access, general imports and real operational actions remain separate work.
 
+The first designed screen, the Overview / Network Atlas, is at `/overview`, and `/` redirects there (PRs #87/#88). It shares a navigation shell with `/optimization`. Presenters see live simulated data. Visitors see a clearly labelled static fixture, which also appears when live data cannot be loaded. Data Explorer, Recommendations and Scenario Lab are not built yet, and the human design sign-off is pending.
+
 The demo is planned around simulated data and institution-level indicators. It will not purchase supplies or dispatch real deliveries.
 
 ## Project foundation
@@ -58,4 +60,4 @@ V5 consolidates V4, later accepted decisions and actual implementation evidence.
 
 The optional `/design-lab` route is an illustrative dashboard experiment, with a default 2D network and a [bounded optional 3D exception](docs/architecture/0004-design-lab-3d-exception.md). It does not connect to allocation APIs or represent committed transfers.
 
-A [frontend-only Vercel preview of `/design-lab`](https://pantrypulse-prototype-preview-git-codex-e82088-gbw30s-projects.vercel.app/design-lab) is available from `codex/vercel-prototype-preview`. That older deployment has no API/database/presenter connection; main now redirects its root to `/optimization`. The [Vercel record](docs/setup/VERCEL.md) explains the branch-specific build policy. Merging main does not refresh that preview or establish a hosted release.
+A [frontend-only Vercel preview of `/design-lab`](https://pantrypulse-prototype-preview-git-codex-e82088-gbw30s-projects.vercel.app/design-lab) is available from `codex/vercel-prototype-preview`. That older deployment has no API/database/presenter connection; main now redirects its root to `/overview`. The [Vercel record](docs/setup/VERCEL.md) explains the branch-specific build policy. Merging main does not refresh that preview or establish a hosted release.

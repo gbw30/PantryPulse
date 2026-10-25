@@ -64,3 +64,12 @@ PR #77 reconciles local/Fly compute configuration and current documentation, wit
 
 [PP-50](tasks/PP-50-vp-api-review.md) prepares VP API convergence on main, preserving
 canonical planning and original migration histories. See [review/evidence](VP-API-INTEGRATION.md).
+
+| ID | Outcome | Owner | Exit evidence | Status |
+|---|---|---|---|---|
+| [PP-51](tasks/PP-51.md) | Overview / Network Atlas at `/overview`, the shared AppShell, blueprint tokens with global IBM Plex, and `/optimization` inside the shell | Frontend-engineer builder; the lead owned tokens, primitives, lockfile, contracts and integration | ux-critic repair rounds, verifier fix round, local production e2e, CI `verify` | MERGED in PR #87 (`600fdd0`) |
+| [PP-51](tasks/PP-51.md) (live) | Typed `DashboardSummary`/`ShortageProjection` and live presenter data with the labelled fixture fallback | Same | Isolated Docker API suite 1213 passed / 0 skipped; local production e2e 56 passed ×2; CI `verify` incl. connected browser journey | MERGED in PR #88 (`e1c6663`) |
+| PP-51 follow-ups | Five open items: ux-critic/verifier re-review of the final live UI; human keyboard/taste sign-off; newest *usable* forecast run in the dashboard summary; more plain-language fallback reasons; Data Explorer intake | Lead | See the packet's "Merged to main" section | OPEN |
+| PP-51 next round | Draggable nodes/panels, design-lab spring motion, dark/light theme toggle, always-on supply-link flow (user decisions, 2026-10-25) | Frontend-engineer, branch `pp/overview-motion` | Not yet reviewed | IN PROGRESS, not on main |
+
+PP-51 was drafted as PP-46, then renumbered PP-50 and finally PP-51 on October 25. Main's own [PP-46](tasks/PP-46.md) (connected OR) and [PP-50](tasks/PP-50-vp-api-review.md) (VP API review) are different tasks. Overview commits up to merge `b537a59` still say PP-46, and some later ones say PP-50.

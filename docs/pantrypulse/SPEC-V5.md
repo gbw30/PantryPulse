@@ -187,6 +187,27 @@ Fresh Windows/Python 3.12/PostgreSQL 16 review evidence: **950 backend tests pas
 
 The opt-in local/Fly compute configuration uses the frozen forecast extra and persistent model storage. Full pinned Chronos-2 has passed a separate real CPU smoke and ten warm synthetic predictions; application model-handler integration, representative accuracy/calibration and public hosting remain unqualified. [Local compute](../setup/LOCAL-COMPUTE.md) distinguishes initial laptop evidence from later current-main review. No running image/database is updated by a source merge. Local stop grace is 725 seconds for the supervisor's 720-second drain; Fly's 300-second window requires a previously drained/idle lane before deployment.
 
+### 3.7 Overview / Network Atlas — PRs #87 and #88 (October 25)
+
+Main at `e1c6663` adds the first blueprint screen, packet [PP-51](tasks/PP-51.md). PR #78 (`5add760`) had already merged the VP operational APIs; the migration head is now `ppvp_0007`, which supersedes the `ppor_0005` statement in §3.6.
+
+| Area | On main (checked in code) | Source |
+|---|---|---|
+| Routes | `/` redirects to `/overview` (`apps/web/src/app/page.tsx:4`). `/optimization` is still the connected workspace, reached from the sidebar link "Workspaces → Optimization workspace" | PR #87, merge `600fdd0` |
+| Shared shell | `apps/web/src/components/shell`. The sidebar has Overview built, while Data Explorer, Recommendations, Scenario Lab and Settings are visible but disabled. The top bar has site/product search, a "Simulated network" pill and the horizon. The footer shows "No account · read-only demo". `/optimization` renders inside the shell | PR #87 |
+| Tokens and type | Blueprint `--pp-*` palette mapped onto the shadcn variables (`apps/web/src/app/globals.css`); IBM Plex Sans/Condensed global through `next/font` (`layout.tsx`). Light theme only: no dark tokens or theme toggle | PR #87 |
+| Primitives | shadcn `sidebar select popover tabs sheet badge button tooltip scroll-area separator input skeleton`, plus the new runtime dependency `radix-ui` 1.8.1 | PR #87 |
+| Overview screen | The schematic map, labelled "illustrative layout, not geography", shows six beneficiaries and one hub. Hub→pantry supply links carry the legend line "the hub can send to this pantry; not a planned route or shipment". It also has the status legend, a docked selection card, and a Network/Demand inspector with chart, text summary and table. Motion is non-looping and runs under `MotionConfig reducedMotion="user"`. The canvas pans; nodes and panels cannot be dragged | PR #87 |
+| Data | Data comes through the `OverviewDataSource` adapter. Presenters get live data from `/dashboard/summary`, `/forecast-catalog` and `/shortages/{forecast_run_id}` through the same-origin proxy (`apps/web/src/lib/overview-api.ts`, `apps/web/src/components/overview/live-source.ts`). 401/403 shows the labelled static fixture as "visitor view". Any other failure shows the fixture as "live data unavailable", with Retry. The six known shortage 409 codes each map to their own notice. A fallback forecast is flagged per site, with its reason. Live and fixture numbers are never mixed | PR #88, merge `e1c6663` |
+| Contracts | `DashboardSummary` and `ShortageProjection` response models (`apps/api/app/schemas/dashboard_api.py`). `ShortageSeries` adds `fallback_used`/`fallback_reason`. Day quantities are integer strings with no digit cap. `packages/contracts` regenerated | PR #88 |
+
+The live shortage projection covers demand against physical eligible stock only, so live views show the donation outlook as "Not in this projection". Evidence is recorded in PP-51 from the PR descriptions and GitHub checks:
+- isolated Docker API suite: 1213 passed, 0 skipped;
+- local production-build e2e: 56 passed ×2, with connected tests skipped locally;
+- CI `verify`, including the connected browser journey: passed on both PR heads and on both main merges.
+
+Human sign-off and a re-review of the final UI are still open (§19). The October 25 frontend decisions in §14.2 are not implemented on main.
+
 ## 4. Architecture and ownership boundaries
 
 ### Local implementation update — issues #8 and #19, October 24
@@ -584,13 +605,13 @@ Pydantic/FastAPI OpenAPI is authoritative for the implemented baseline forecast/
 | Interface family under `/api/v1` | Intended behavior | Status |
 |---|---|---|
 | `GET /health` | Cheap process liveness, exact existing response | IMPLEMENTED — MAIN |
-| Dashboard/sites/site inventory/history | Saved scoped data, units, dates, lot exclusions and provenance | PP-50 candidate: authenticated inventory/dashboard reads with exact quantities and expiry exclusions |
+| Dashboard/sites/site inventory/history | Saved scoped data, units, dates, lot exclusions and provenance | PP-50 candidate: authenticated inventory/dashboard reads with exact quantities and expiry exclusions; merged in PR #78. `GET /dashboard/summary` is typed as `DashboardSummary` in PR #88 (presenter only) |
 | Demand/donation imports, receipt posting, corrections | Validated history and authorized, audited transactional stock operations | PP-50 candidate: bounded atomic JSON/CSV imports with row feedback/counts; audited posting/reconciliation and supply/lot commands |
 | Forecast submission/status/points | Durable 202 acceptance; saved per-series outcomes and committed points | Implemented in PR #75: `/forecasts`, `/jobs/{job_id}`, `/forecasts/{job_id}`; baseline only; Linux live execution unverified in review |
 | Presenter/catalog | Session lifecycle, origin/CSRF checks, authenticated source/site/product IDs | Implemented in PR #75; visitor access remains deferred; OR connected subset implemented in PP-46 |
 | Scenario creation/read | Required mode and fully frozen input package | Implemented scenario-v2 immutable database capture/read; approved bounded source/expiry validation |
 | Plan/comparison submission/read | Durable jobs against the selected scenario; independent method outcomes | Implemented POST /comparisons (202), GET /comparisons/{id}; partial results retained |
-| Shortages/policy/methodology/audit | Saved projections, policy explanation, research attribution, versions and safe diagnostics | Not implemented |
+| Shortages/policy/methodology/audit | Saved projections, policy explanation, research attribution, versions and safe diagnostics | `GET /shortages/{forecast_run_id}` is implemented (PR #78; presenter only; demand against physical eligible stock) and typed as `ShortageProjection` in PR #88. A `GET /allocation-methodology` route exists on main; its content was not reviewed in this update. Policy and audit reads: not verified |
 | Review/reset | Presenter-controlled review with no stock effect; isolated deterministic reset | PP-50 candidate: append-only simulation review; general reset API remains separate |
 | Readiness/capabilities/job retry | Cheap readiness/availability and explicit attempt operations | Forecast job retry/cancel implemented; public readiness/capability catalog remains open |
 
@@ -679,6 +700,16 @@ Use backend-generated types and one client/proxy path. Preserve displayed snapsh
 
 Required states include loading, empty, insufficient data, explicit proxy/quality warning, fallback, queued/running, failed/interrupted with manual retry, partial comparison, unavailable method, FEASIBLE, UNKNOWN/MODEL_INVALID, validation failure, stale recommendation, 409 conflict and network failure. No missing vector should animate as a successful allocation. “Mark reviewed — simulation” has no stock, purchase or dispatch effect.
 
+**Status on main (October 25, 2026):** Of the views above, only the Overview is built as a blueprint page: `/overview`, from PRs #87/#88 (see §3.7). It provides:
+- product/unit and local-day selection;
+- eligible stock now and at horizon end;
+- the demand outlook;
+- the next deficit;
+- expiring eligible lots;
+- source and provenance labels.
+
+A donation outlook appears only in the static fixture; live data shows "Not in this projection". Implemented states are loading, empty, insufficient data, fallback forecast, not planning-ready, stale and other shortage 409 notices, visitor view, and unavailable with Retry. Method comparison remains in the `/optimization` workspace. Data Explorer, Recommendations and Scenario Lab are disabled sidebar entries (`apps/web/src/components/shell/app-sidebar.tsx:20-25`).
+
 ### 14.2 Accepted libraries and proposed visual direction
 
 The accepted stack is **Tailwind, shadcn/ui with Radix, Recharts, Motion and Lucide**, plus selected Watermelon/Kokonut source components through configured registries. Component configuration/installation is not evidence of a finished component catalog. Three.js/React Three Fiber, React Spring and Bklit are deferred/excluded from the present stack; Godly/Variant are references.
@@ -688,6 +719,17 @@ The accepted stack is **Tailwind, shadcn/ui with Radix, Recharts, Motion and Luc
 The art-direction proposal is a calm operations desk: chalk/white surfaces, navy text, dark teal actions, stable risk/caution/forecast semantics, readable tabular numbers and a dimensional 2D resource network. IBM Plex typography and motion timings are proposed design choices pending rendered/human acceptance, not implemented brand facts.
 
 Charts require category/unit/date labels, a historical/forecast boundary, an honest interval legend, a text explanation and an accessible table. Use text/shape with color. Keyboard navigation, focus restoration/containment, visible focus, labeled controls, contrast, touch targets and reduced motion are mandatory. Animate actual completed result changes only; avoid endless decorative effects and intermediate-number screen-reader announcements.
+
+**Implementation status (October 25, 2026):** PR #87 made IBM Plex Sans/Condensed and the blueprint `--pp-*` palette global on main. For typography and palette, the "not implemented brand facts" wording above is therefore historical. Rendered human acceptance is still pending. The Overview's motion on main does not loop and stops under reduced motion.
+
+**Subsequent user decisions (October 25, 2026), decided but not on main:** These are being built on branch `pp/overview-motion`. None is implemented at `e1c6663`.
+1. Map nodes and the floating panels (legend, inspector, selection card) become draggable. Positions are saved per browser, with a reset.
+2. Spring motion from the design lab.
+3. A dark/light theme toggle, with dark tokens taken from the design-lab palette.
+4. A continuous flowing animation on all supply links, always on. This is an explicit user override of "avoid endless decorative effects" above, of [ART-DIRECTION.md](ART-DIRECTION.md)'s ban on perpetual motion and of blueprint §3's "no perpetual moving dots". Its scope:
+   - Supply links keep the label "the hub can send to this pantry; not a planned route or shipment".
+   - The OS reduced-motion setting still stops the animation.
+   - The override covers supply links only.
 
 Review the real app at 1440×900, 1280×720 and 390×844 with keyboard/reduced-motion observations. A source-only review cannot establish visual acceptance.
 
@@ -867,6 +909,8 @@ Stable IDs preserve the interview history. Detailed requirements appear in the s
 | BD-50 | October 24 issue #11 user selection: one simulated transfer batch on the first day of an explicit 1–3-day allocation window; shared planning timezone and whole-day route delays | 8–9, 19 |
 | BD-51 | October 24 issue #11 user selection: transferred units must contribute to additional service within the allocation window; no surplus/later-window stocking | 9, 19 |
 
+**Frontend user decisions (October 25, 2026):** §14.2 records four decisions, alongside the earlier dated frontend decisions and without new BD IDs: draggable nodes and panels with per-browser positions, design-lab spring motion, a dark/light theme toggle, and always-on supply-link flow. The last is a scoped override of the no-perpetual-motion guidance. All four are decided but not implemented on main.
+
 ## 19. Open, deferred and paused work
 
 This register preserves every original OPEN topic. It is not a list of 36 new human questions: some require a choice, others technical elaboration and proof. Implemented internal experiments can inform resolution but do not close a public/operational gate.
@@ -911,6 +955,14 @@ This register preserves every original OPEN topic. It is not a list of 36 new hu
 | OPEN-36 | PARTIAL | Branch/docs reconciliation, migrations, generated-contract workflow and integration handoff |
 
 No accepted parameter is reopened merely because details remain. Conversely, no illustrative buffer, coverage period, capacity coefficient, currency, auth scheme or solver coefficient becomes a default because documentation needs an example. Keep supplier design paused; local backend/model preparation is resumed only within §15.4's explicit scope. Public deployment and integrated provider qualification remain separate.
+
+**Overview follow-ups (PP-51, October 25, 2026):**
+1. ux-critic and verifier re-review of the final live UI. Neither has reviewed PR #88's final commit `4a56062`.
+2. Human keyboard/reduced-motion walkthrough and taste sign-off (V5-A17).
+3. `GET /dashboard/summary` should pick the newest *usable* forecast run. It currently takes the newest run by `recorded_at` without checking job success or `planning_ready` (`apps/api/app/routers/dashboard.py:75-90`). The Overview then shows Not evaluated when that run is not planning-ready (`apps/web/src/components/overview/live-source.ts:137`).
+4. Plain-language copy for more fallback reasons. Only `INSUFFICIENT_DATA`, `INVALID_PROVIDER_OUTPUT` and `PROVIDER_UNAVAILABLE` have it (`apps/web/src/components/overview/forecast-method.tsx:12-16`); other codes are shown verbatim.
+5. Data Explorer design intake.
+6. Implement the §14.2 October 25 decisions (branch `pp/overview-motion`).
 
 ## 20. Reconciled conflicts
 

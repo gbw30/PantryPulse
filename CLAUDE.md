@@ -20,7 +20,7 @@ Build the Gator Hack V MVP: at least six fictional beneficiaries plus hub(s), tw
 ## Repository map
 The repository root is this folder and the only Git repo. Do not create or run from nested copies; the history of a former nested copy is the `legacy/main` ref.
 - apps/web: Next.js 16 app (src/app, src/lib, tests/e2e, Playwright). It is the only npm workspace; the root package-lock.json owns the lock.
-- apps/api: FastAPI presenter, forecast and planning routers; ORM/repositories; migration head ppor_0005; production forecast.v1/or-comparison.v2 workers; bounded allocation core and independent verifier. Chronos remains a standalone exercise. uv.lock owns Python dependencies.
+- apps/api: FastAPI presenter, forecast and planning routers; ORM/repositories; migration head ppvp_0007 (PR #78); production forecast.v1/or-comparison.v2 workers; bounded allocation core and independent verifier. Chronos remains a standalone exercise. uv.lock owns Python dependencies.
 - packages/contracts: generated OpenAPI and TypeScript output, plus regeneration instructions.
 - docs/pantrypulse: product contract, protocol, plans. docs/architecture: ADRs.
 - scripts/quality: gate runner and hook tests. scripts/*-windows.ps1: setup and doctor. data/demo: golden fixtures. .claude: agents, hooks, rules, skills and quality-gate.json.
