@@ -51,7 +51,20 @@ def wait_for(predicate, timeout=90):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--compare-methods",
+        action="store_true",
+        help="Also qualify the saved fallback forecast through both real OR methods",
+    )
+    parser.add_argument(
+        "--or-search-seconds",
+        type=int,
+        default=15,
+        help="Equal native search budget for the optional downstream smoke (1–300)",
+    )
     args = parser.parse_args()
+    if not 1 <= args.or_search_seconds <= 300:
+        parser.error("--or-search-seconds must be between 1 and 300")
     url = os.environ.get("PP_TEST_DATABASE_URL")
     if not url or not (make_url(url).database or "").endswith("_test"):
         parser.error("PP_TEST_DATABASE_URL must select a dedicated *_test database")
@@ -266,6 +279,74 @@ def main():
                 "frozen": True,
                 "provider": "MOVING_AVERAGE",
             }
+
+            if args.compare_methods:
+                comparison = post(
+                    "comparisons",
+                    {"scenario_id": scenario["id"], "search_seconds": args.or_search_seconds},
+                    202,
+                )
+                comparison_state = wait_for(
+                    lambda: terminal(comparison),
+                    timeout=2 * (args.or_search_seconds + 30) + 35,
+                )
+                assert comparison_state["state"] == "SUCCEEDED", comparison_state
+                comparison_response = client.get(comparison["result_url"])
+                assert comparison_response.status_code == 200, comparison_response.text
+                checked = comparison_response.json()
+                methods = checked["result"]["methods"]
+                assert checked["scenario_id"] == scenario["id"]
+                assert checked["result"]["outcome"] == "SUCCEEDED", checked["result"]
+                assert {row["method"] for row in methods} == {
+                    "CLASSICAL_GP",
+                    "EGP_PI_INSPIRED",
+                }
+                assert all(
+                    row["outcome"] == "VERIFIED"
+                    and row["verification"]["passed"]
+                    and row["native_status"] in {"OPTIMAL", "FEASIBLE"}
+                    and row["operational_hash"] == scenario["payload"]["operational_hash"]
+                    and row["policy_hash"] == scenario["payload"]["policy_hash"]
+                    and row["verification"]["candidate_hash"] is not None
+                    for row in methods
+                )
+                assert len({row["settings_hash"] for row in methods}) == 1
+                assert checked["settings"]["search_milliseconds"] == (args.or_search_seconds * 1000)
+                assert client.get(comparison["result_url"]).json() == checked
+                summary["downstream_comparison"] = {
+                    "job_id": comparison["job_id"],
+                    "scenario_id": scenario["id"],
+                    "forecast_actual_provider": "MOVING_AVERAGE",
+                    "requested_forecast_strategy": "CHRONOS2",
+                    "state": comparison_state["state"],
+                    "outcome": checked["result"]["outcome"],
+                    "operational_hash": scenario["payload"]["operational_hash"],
+                    "policy_hash": scenario["payload"]["policy_hash"],
+                    "settings": checked["settings"],
+                    "saved_replay_equal": True,
+                    "methods": [
+                        {
+                            key: row[key]
+                            for key in (
+                                "method",
+                                "outcome",
+                                "native_status",
+                                "operational_hash",
+                                "policy_hash",
+                                "settings_hash",
+                                "objective",
+                                "native_bound",
+                                "gap",
+                                "total_seconds",
+                            )
+                        }
+                        | {
+                            "independent_verification_passed": row["verification"]["passed"],
+                            "candidate_hash": row["verification"]["candidate_hash"],
+                        }
+                        for row in methods
+                    ],
+                }
 
             # Stop only this smoke's worker; completed reuse and saved reads stay available.
             worker_stop.set()

@@ -1,6 +1,12 @@
 # Forecast evaluation data sources
 
 Research date: October 25, 2026. Owner: @GestebanFalcon.
+
+This document records the FC-02/03 source checkpoint. Subsequent validation and
+one serialized FC-07 final opening are in [the qualification dossier](QUALIFICATION.md).
+Statements below that final values were unread describe source preparation;
+the final week has now been evaluated and is no longer an untouched tuning holdout.
+
 Execution: [FC-02 / #81](https://github.com/gbw30/PantryPulse/issues/81), then
 [FC-03 / #82](https://github.com/gbw30/PantryPulse/issues/82), under existing
 [#38](https://github.com/gbw30/PantryPulse/issues/38).

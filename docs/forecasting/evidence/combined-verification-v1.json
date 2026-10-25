@@ -1,0 +1,63 @@
+{
+  "backend": {
+    "errors": 0,
+    "failures": 0,
+    "junit_path": "/tmp/pantrypulse-forecast-final-backend.xml",
+    "junit_sha256": "5da03e88d9a640557a1d420417c2e941b8b7adfee0b9661ec9acd09d8c1f8bc6",
+    "seconds": 276.368,
+    "skipped": 0,
+    "tests": 1312
+  },
+  "base_main": "5add76008faddae08a969514c2e827299bc84d50",
+  "branch": "feat/forecasting-next",
+  "configuration": {
+    "archive_sha256": "ddbc4a2d113bbd46d283cfedcbcd117a70caefd7673f41f2b4e0000badf103bc",
+    "failures": 0,
+    "portable_powershell": "7.6.6",
+    "skips": 0,
+    "source": "https://github.com/PowerShell/PowerShell/releases/tag/v7.6.6",
+    "system_installation": false,
+    "tests": 18
+  },
+  "documentation": {
+    "json_files": 11,
+    "links_fences_and_markdown_whitespace": "PASSED",
+    "local_links": 131,
+    "markdown_files": 14
+  },
+  "downstream_smoke": {
+    "both_independent_verifiers_passed": true,
+    "evidence": "chronos-or-qualification-smoke.json",
+    "native_search_seconds_per_method": 15,
+    "passed": true,
+    "same_frozen_scenario": true,
+    "schema_removed": true,
+    "seconds": 59.31444652000209
+  },
+  "final_holdout": {
+    "evidence": "final-qualification-v1.json",
+    "freeze_hash": "62054d6c13ce60c02f6ca9e88f459a048cfb1cf868aef4742ae5e3ec5e443784",
+    "one_serialized_opening": true,
+    "qualification": "INSUFFICIENT_EVIDENCE"
+  },
+  "frontend": {
+    "browser_e2e": "NOT_RERUN_FOR_THIS_FORECASTING_CANDIDATE",
+    "build": "PASSED_IN_FC05",
+    "contracts": "PASSED_IN_FC05",
+    "lint": "PASSED_IN_FC05",
+    "node": "v24.14.0",
+    "npm": "11.9.0",
+    "proxy_unit": "PASSED_IN_FC05",
+    "typecheck": "PASSED_IN_FC05"
+  },
+  "implementation_checkpoint": "d0c813a",
+  "ruff": "PASSED",
+  "schema_version": "forecast-combined-verification-v1",
+  "scope_limits": [
+    "All new runtime work used disposable schemas in an existing isolated test database",
+    "No existing runtime was stopped or restarted and no live database was migrated",
+    "Chronos remains opt-in/experimental; defaults were not changed",
+    "Real pantry demand/donation accuracy and fitted interval calibration remain unqualified"
+  ],
+  "whitespace": "PASSED"
+}

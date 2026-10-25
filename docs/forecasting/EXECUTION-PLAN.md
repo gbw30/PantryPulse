@@ -2,7 +2,8 @@
 
 Updated October 25, 2026. Owner: **@GestebanFalcon**. Inspected baseline:
 `main` at `5add76008faddae08a969514c2e827299bc84d50` (through PR #78).
-Status: **implementation in progress** on `feat/forecasting-next`. The user
+Status: **local implementation and qualification decision complete** on
+`feat/forecasting-next`, pending review/publication. The user
 authorized two coordinated agents through #86. [Protocol v1](QUALIFICATION-PROTOCOL.md)
 freezes the shared contracts. Local implementation and measured acceptance remain
 distinct from merged/deployed status and predictive qualification.
@@ -63,9 +64,15 @@ without rewriting immutable historical evidence.
 | [FC-02 / #81](https://github.com/gbw30/PantryPulse/issues/81) | Qualify pantry sources and FreshRetailNet fallback | FC-01 for final acceptance; source reconnaissance can start now | Retail proxy sample/files qualified locally; pantry/donation gap remains |
 | [FC-03 / #82](https://github.com/gbw30/PantryPulse/issues/82) | Versioned dataset adapters, cohorts and split manifests | FC-01, FC-02 | Local 100-series pilot/manifests; 25 tests passed; final truth sealed |
 | [FC-04 / #83](https://github.com/gbw30/PantryPulse/issues/83) | Implement pinned Chronos adapter | FC-01; existing synthetic fixture is sufficient to start | Local implementation and real smoke; agent stopped |
-| [FC-05 / #84](https://github.com/gbw30/PantryPulse/issues/84) | Connect Chronos to jobs/API and qualify containment | FC-01, FC-04; coordinate #29 and #44 owners | Local integration and real contained HTTP/PostgreSQL smoke passed; owner stopped |
-| [FC-06 / #85](https://github.com/gbw30/PantryPulse/issues/85) | Extend rolling evaluation and publish comparable reports | FC-01, FC-03; actual Chronos report also needs FC-04 | Data/evaluation agent resumed; validation only |
-| [FC-07 / #86](https://github.com/gbw30/PantryPulse/issues/86) | Final holdout, operational acceptance and scoped model decision | FC-02, FC-03, FC-05, FC-06 | Backlog |
+| [FC-05 / #84](https://github.com/gbw30/PantryPulse/issues/84) | Connect Chronos to jobs/API and qualify containment | FC-01, FC-04; coordinate #29 and #44 owners | Local integration and actual contained HTTP/PostgreSQL/downstream OR checks passed |
+| [FC-06 / #85](https://github.com/gbw30/PantryPulse/issues/85) | Extend rolling evaluation and publish comparable reports | FC-01, FC-03; actual Chronos report also needs FC-04 | Implemented; frozen 100-series/four-fold real validation executed |
+| [FC-07 / #86](https://github.com/gbw30/PantryPulse/issues/86) | Final holdout, operational acceptance and scoped model decision | FC-02, FC-03, FC-05, FC-06 | One final opening completed; experimental / insufficient evidence, defaults unchanged |
+
+See [the final dossier](QUALIFICATION.md) for exact evidence and limits: 1,312
+backend tests passed with zero skips; actual jobs/fallback/OR handoff passed;
+final retail availability was 92%, below the predeclared qualification threshold.
+Completing these implementation milestones does not qualify full-scope Chronos
+planning, representative pantry/donation accuracy, calibration or deployment.
 
 The data track (FC-02 → FC-03 → baseline FC-06) and model track
 (FC-04 → FC-05) can proceed independently after FC-01. They join at FC-07.

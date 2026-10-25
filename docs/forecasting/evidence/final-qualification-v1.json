@@ -1,0 +1,1582 @@
+{
+  "application_jobs_verified": true,
+  "artifacts": {
+    "directory": "/tmp/pantrypulse-forecast-final-v1",
+    "opening_journal_sha256": "412db97429dad4f7af286a1c0a2ad1b365384227c3d3e75f6bc2ba3394d4d8a7",
+    "raw_predictions": {
+      "canonical_content_hash": "c18919ae8f609e515381c2ec2beb15f760a490a3cfa3dcefd2369c1336ee4ecc",
+      "filename": "raw-predictions.json",
+      "records": 2100,
+      "sha256": "4ce3180c921b5891f7896e6af8f2c0d8bad4ed1acc96ba471f2ebbb697b95900"
+    },
+    "report_sha256": "2d8ee3132e43cf5a474de886a119c00fe0da12f14ee1f7875297eee03b1ee905"
+  },
+  "dataset": {
+    "cohort_hash": "da94665734fc68a0917b47781541fb9f3e63075f72e3a5e57efe710b2d382908",
+    "eval_sha256": "1b118840664280c6b88bffc84c80ee1f54c05d911e354b7599e5da10995e960e",
+    "manifest_hash": "012d609c4760d62063f7d3a8018e95f758c380cf8e5c0613405e67cba595ba19",
+    "source_id": "Dingdong-Inc/FreshRetailNet-50K",
+    "source_revision": "c374e85975c82816c495acfa904cc55ab14a47d3",
+    "train_sha256": "6706832db892bbae4969c19d87e07975d2543d2ba7d7d4756360654785de5a3d"
+  },
+  "decision": {
+    "automatic_provider_or_default_switch": false,
+    "comparison": {
+      "baseline": "MOVING_AVERAGE",
+      "baseline_mae": 0.4220789707187223,
+      "bootstrap": {
+        "confidence": 0.95,
+        "lower": -0.0552087662470227,
+        "method": "SERIES_CLUSTER_POOLED_POINT_MAE",
+        "replicates": 500,
+        "seed": 20261025,
+        "upper": -0.0002838116283821846
+      },
+      "mae_difference": -0.0277837801722689,
+      "model_mae": 0.3942951905464534,
+      "paired_count": 644,
+      "relative_mae": 0.9341739766732319,
+      "series_cluster_count": 92,
+      "strategy": "CHRONOS2"
+    },
+    "donation_accuracy": "UNQUALIFIED_NO_REPRESENTATIVE_SOURCE",
+    "interval_calibration": "UNQUALIFIED_RAW_DIAGNOSTICS_ONLY",
+    "operational_qualified": false,
+    "pantry_demand_accuracy": "UNQUALIFIED_NO_REPRESENTATIVE_SOURCE",
+    "protocol": "forecasting-qualification-v1",
+    "quality_decision": "INSUFFICIENT_EVIDENCE",
+    "scoped_model_decision": "EXPERIMENTAL_RUNTIME_UNQUALIFIED",
+    "thresholds": {
+      "max_relative_mae": 1.05,
+      "min_availability": 0.99,
+      "min_series": 100
+    }
+  },
+  "deployment_performed": false,
+  "execution": {
+    "process_peak_rss_kib": 988328,
+    "total_provider_wall_seconds": 9.439402463918668,
+    "wall_seconds": 10.23757296000258
+  },
+  "final_fold": [
+    {
+      "cutoff": "2024-06-25",
+      "name": "upstream-final-week",
+      "split": "final_holdout",
+      "truth_dates": [
+        "2024-06-26",
+        "2024-06-27",
+        "2024-06-28",
+        "2024-06-29",
+        "2024-06-30",
+        "2024-07-01",
+        "2024-07-02"
+      ]
+    }
+  ],
+  "final_holdout_consulted": true,
+  "limitations": [
+    "Normalized retail sales are not latent demand, pantry requested need or donations",
+    "Uncensored diagnostics condition on realized availability; not population accuracy",
+    "Short history; model pretraining overlap unknown; no fitted interval calibration",
+    "Missing/failure coverage is disclosed alongside paired intersections"
+  ],
+  "metrics_hash": "4b9d840744747cd0701d4503615f764ec7dc74ec2e5166fdf399f42a62c1dc60",
+  "model_file_sha256": {
+    "config.json": "ef1143bfdc9c0376d9a056eefca46cb4b1ec3d0ffacd541ff56feb40fb708031",
+    "model.safetensors": "ddcda3c7508bf2528087723e98a20707cc04b7f370ae275a9fd88078ddba4f42"
+  },
+  "model_profile": {
+    "adapter_version": "chronos2-univariate-cpu-f32-v1",
+    "checkpoint_revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
+    "context_length": 366,
+    "cross_learning": false,
+    "device": "cpu",
+    "dtype": "float32",
+    "model_id": "amazon/chronos-2",
+    "package_version": "2.3.2",
+    "quantiles": [
+      0.1,
+      0.5,
+      0.9
+    ],
+    "threads": 2
+  },
+  "one_time_opening": {
+    "freeze_hash": "62054d6c13ce60c02f6ca9e88f459a048cfb1cf868aef4742ae5e3ec5e443784",
+    "opened_at": "2026-10-25T17:50:48.527539+00:00",
+    "output_dir": "/tmp/pantrypulse-forecast-final-v1",
+    "selected_baseline": "MOVING_AVERAGE"
+  },
+  "operational_flag_explanation": "False means the complete required Chronos model scope remains invalid; real job wiring, containment, explicit fallback and downstream OR were verified separately.",
+  "paired": {
+    "common_keys_hash": "62ee9e87e717ff276349f3ee2ab06399b7377fac99a22449d280ac4fbab55d6c",
+    "common_scored_count": 644,
+    "metrics": {
+      "CHRONOS2": {
+        "bias": -0.09372092434004968,
+        "mae": 0.3942951905464534,
+        "scored_count": 644,
+        "wape": 0.36691395200686067
+      },
+      "MOVING_AVERAGE": {
+        "bias": -0.09913664596273292,
+        "mae": 0.4220789707187223,
+        "scored_count": 644,
+        "wape": 0.3927683292072745
+      },
+      "SEASONAL_NAIVE": {
+        "bias": -0.021970496894409944,
+        "mae": 0.4396444099378882,
+        "scored_count": 644,
+        "wape": 0.40911396282686885
+      }
+    },
+    "strategies": [
+      "SEASONAL_NAIVE",
+      "MOVING_AVERAGE",
+      "CHRONOS2"
+    ]
+  },
+  "production_defaults_changed": false,
+  "required_full_chronos_scope_planning_ready": false,
+  "runtime": {
+    "git_head": "d0c813a647a4d4f91e8f157686642eb56d46ec90",
+    "packages": {
+      "chronos-forecasting": "2.3.2",
+      "numpy": "2.5.4",
+      "pyarrow": "22.0.0",
+      "pydantic": "2.14.1",
+      "torch": "2.14.1+cpu",
+      "transformers": "5.20.2"
+    },
+    "platform": "Linux-7.0.0-38-generic-x86_64-with-glibc2.39",
+    "python": "3.12.13 (main, Aug  7 2026, 02:25:39) [Clang 22.1.3 ]",
+    "source_files_hashed_separately": true
+  },
+  "schema_version": "forecast-final-qualification-v1",
+  "scope": "RETAIL_OBSERVED_SALES_PROXY_ONLY",
+  "source_code": {
+    "code_hash": "625f46dbfcfe2a01ea2fc4bd3d06ea99f4d5b45f3674e92d5f3f5b3fb20931f3",
+    "files": {
+      "apps/api/app/services/forecasting/adapters/base.py": "4d6684220b85362e1ce4a441d61fcf95b07d111498debc65fb74c2d181e01965",
+      "apps/api/app/services/forecasting/adapters/chronos2.py": "83efe880ed295c6e71b0fce4ad50406acaf597a18f7821b09ce120d3da6773dc",
+      "apps/api/app/services/forecasting/adapters/moving_average.py": "da0267aaa7da79dcca650aef5743d73b64f5cd1c11662be82f0efe62cf6c5c59",
+      "apps/api/app/services/forecasting/adapters/seasonal_naive.py": "32e5e33a138cb7e9f91a97864a0baf2efa17c0ceb6140b7ea39403c49fcc0c0c",
+      "apps/api/app/services/forecasting/benchmark_data.py": "887bd2cdf2d3aa98574cde60b6b0afec76cc36b89ae0354c976536ecbcf2a223",
+      "apps/api/app/services/forecasting/benchmark_evaluation.py": "e330efca18d6061f3564b2e0062d20a2fbe9db739d8db30b62fa75c4b5770ca7",
+      "apps/api/app/services/forecasting/evaluation.py": "edb6aeaa1f649005c77a304e6ed5b2f874df5d7de4ccce55f65981bc06645518",
+      "apps/api/app/services/forecasting/schemas.py": "e63734e3f50a9d37a5abc1bd89926d111f8caef57c1ee257c334f0672e544eb0",
+      "apps/api/scripts/evaluate_retail_forecasting.py": "d0913fc9b5a123e7f0f01017793305b4d2aa9882228b7aa35cabea02af4958da",
+      "apps/api/scripts/forecasting_data.py": "5149a951bf27adfcc2ec8e75a542056bed31d08faabee18471ce06f1de667a3a",
+      "docs/forecasting/QUALIFICATION-PROTOCOL.md": "6514a3dc202d09e3b77e1b469a8993310c8b8c07b84f0c0b30a1f4e926b7d5e1"
+    }
+  },
+  "strategies": {
+    "CHRONOS2": {
+      "availability_fraction": 0.92,
+      "available_prediction_count": 644,
+      "basis_mismatch_count": 0,
+      "by_horizon": {
+        "1": {
+          "availability_fraction": 0.92,
+          "available_prediction_count": 92,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 36,
+          "expected_count": 100,
+          "failure_point_counts": {
+            "INVALID_PROVIDER_OUTPUT": 8
+          },
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": -0.00032620849816694544,
+            "mae": 0.3228043731917506,
+            "scored_count": 92,
+            "wape": 0.34182783533196426
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 8,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": 0.7717391304347826,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": 1.0559251326257768,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": 0.06509108600603498,
+              "p50": 0.1614021865958753,
+              "p90": 0.07294196557221204
+            },
+            "scored_count": 92
+          },
+          "unavailable_prediction_count": 8,
+          "uncensored_actual_count": 64,
+          "unknown_censoring_count": 0
+        },
+        "2": {
+          "availability_fraction": 0.92,
+          "available_prediction_count": 92,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 34,
+          "expected_count": 100,
+          "failure_point_counts": {
+            "INVALID_PROVIDER_OUTPUT": 8
+          },
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": -0.03912525110918543,
+            "mae": 0.3743466260510942,
+            "scored_count": 92,
+            "wape": 0.3864006462100378
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 8,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": 0.7934782608695652,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": 1.1143712409488533,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": 0.06942600937187672,
+              "p50": 0.1871733130255471,
+              "p90": 0.10212866511163501
+            },
+            "scored_count": 92
+          },
+          "unavailable_prediction_count": 8,
+          "uncensored_actual_count": 66,
+          "unknown_censoring_count": 0
+        },
+        "3": {
+          "availability_fraction": 0.92,
+          "available_prediction_count": 92,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 34,
+          "expected_count": 100,
+          "failure_point_counts": {
+            "INVALID_PROVIDER_OUTPUT": 8
+          },
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": -0.008132506285024736,
+            "mae": 0.3160818914356439,
+            "scored_count": 92,
+            "wape": 0.32549288126347925
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 8,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": 0.7391304347826086,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": 1.1553905889715836,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": 0.071594430907265,
+              "p50": 0.15804094571782196,
+              "p90": 0.07189822887337724
+            },
+            "scored_count": 92
+          },
+          "unavailable_prediction_count": 8,
+          "uncensored_actual_count": 66,
+          "unknown_censoring_count": 0
+        },
+        "4": {
+          "availability_fraction": 0.92,
+          "available_prediction_count": 92,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 31,
+          "expected_count": 100,
+          "failure_point_counts": {
+            "INVALID_PROVIDER_OUTPUT": 8
+          },
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": -0.29358856109173403,
+            "mae": 0.5205272815668065,
+            "scored_count": 92,
+            "wape": 0.3892741822804926
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 8,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": 0.7717391304347826,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": 1.207543094035076,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": 0.0916394621503094,
+              "p50": 0.26026364078340325,
+              "p90": 0.16604977040705474
+            },
+            "scored_count": 92
+          },
+          "unavailable_prediction_count": 8,
+          "uncensored_actual_count": 69,
+          "unknown_censoring_count": 0
+        },
+        "5": {
+          "availability_fraction": 0.92,
+          "available_prediction_count": 92,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 54,
+          "expected_count": 100,
+          "failure_point_counts": {
+            "INVALID_PROVIDER_OUTPUT": 8
+          },
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": -0.2624273344874382,
+            "mae": 0.48275870130113935,
+            "scored_count": 92,
+            "wape": 0.36584679176033624
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 8,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": 0.7065217391304348,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": 1.2193542819308198,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": 0.09319328911278559,
+              "p50": 0.24137935065056967,
+              "p90": 0.11974418614221656
+            },
+            "scored_count": 92
+          },
+          "unavailable_prediction_count": 8,
+          "uncensored_actual_count": 46,
+          "unknown_censoring_count": 0
+        },
+        "6": {
+          "availability_fraction": 0.92,
+          "available_prediction_count": 92,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 42,
+          "expected_count": 100,
+          "failure_point_counts": {
+            "INVALID_PROVIDER_OUTPUT": 8
+          },
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": 0.058638993929261744,
+            "mae": 0.2803795604472575,
+            "scored_count": 92,
+            "wape": 0.3051930852005169
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 8,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": 0.8369565217391305,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": 1.1988562658105208,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": 0.07674454065574253,
+              "p50": 0.14018978022362874,
+              "p90": 0.08273885759840839
+            },
+            "scored_count": 92
+          },
+          "unavailable_prediction_count": 8,
+          "uncensored_actual_count": 58,
+          "unknown_censoring_count": 0
+        },
+        "7": {
+          "availability_fraction": 0.92,
+          "available_prediction_count": 92,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 43,
+          "expected_count": 100,
+          "failure_point_counts": {
+            "INVALID_PROVIDER_OUTPUT": 8
+          },
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": -0.11108560283806013,
+            "mae": 0.4631678998314816,
+            "scored_count": 92,
+            "wape": 0.4358380139358724
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 8,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": 0.6847826086956522,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": 1.1993609287816545,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": 0.08883581346558488,
+              "p50": 0.2315839499157408,
+              "p90": 0.1309602381027263
+            },
+            "scored_count": 92
+          },
+          "unavailable_prediction_count": 8,
+          "uncensored_actual_count": 57,
+          "unknown_censoring_count": 0
+        }
+      },
+      "censored_actual_count": 274,
+      "censoring_diagnostics": {
+        "False": {
+          "availability_fraction": 0.9131455399061033,
+          "available_prediction_count": 389,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 0,
+          "expected_count": 426,
+          "failure_point_counts": {
+            "INVALID_PROVIDER_OUTPUT": 37
+          },
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": -0.09799814639238588,
+            "mae": 0.40535353049459677,
+            "scored_count": 389,
+            "wape": 0.3729491398096924
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 37,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": 0.7686375321336761,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": 1.2146303094061603,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": 0.0772244652974575,
+              "p50": 0.20267676524729838,
+              "p90": 0.12374639378439797
+            },
+            "scored_count": 389
+          },
+          "unavailable_prediction_count": 37,
+          "uncensored_actual_count": 426,
+          "unknown_censoring_count": 0
+        },
+        "True": {
+          "availability_fraction": 0.9306569343065694,
+          "available_prediction_count": 255,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 274,
+          "expected_count": 274,
+          "failure_point_counts": {
+            "INVALID_PROVIDER_OUTPUT": 19
+          },
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": -0.08719606403276033,
+            "mae": 0.3774258013706581,
+            "scored_count": 255,
+            "wape": 0.3574373443865328
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 19,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": 0.7411764705882353,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": 1.0877747085748934,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": 0.08298019259957708,
+              "p50": 0.18871290068532906,
+              "p90": 0.08053783805557325
+            },
+            "scored_count": 255
+          },
+          "unavailable_prediction_count": 19,
+          "uncensored_actual_count": 0,
+          "unknown_censoring_count": 0
+        }
+      },
+      "expected_count": 700,
+      "failure_point_counts": {
+        "INVALID_PROVIDER_OUTPUT": 56
+      },
+      "fallback_prediction_count": 0,
+      "metrics": {
+        "bias": -0.09372092434004968,
+        "mae": 0.3942951905464534,
+        "scored_count": 644,
+        "wape": 0.36691395200686067
+      },
+      "missing_actual_count": 0,
+      "quantile_diagnostics": {
+        "empirical_interval_coverage": 0.7577639751552795,
+        "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+        "mean_interval_width": 1.1644002190148979,
+        "nominal_interval_coverage": 0.8,
+        "pinball_loss": {
+          "p10": 0.07950351880994273,
+          "p50": 0.1971475952732267,
+          "p90": 0.1066374159725186
+        },
+        "scored_count": 644
+      },
+      "training_cohorts": {
+        "training_has_censoring": {
+          "True": {
+            "availability_fraction": 0.92,
+            "available_prediction_count": 644,
+            "basis_mismatch_count": 0,
+            "censored_actual_count": 274,
+            "expected_count": 700,
+            "failure_point_counts": {
+              "INVALID_PROVIDER_OUTPUT": 56
+            },
+            "fallback_prediction_count": 0,
+            "metrics": {
+              "bias": -0.09372092434004968,
+              "mae": 0.3942951905464534,
+              "scored_count": 644,
+              "wape": 0.36691395200686067
+            },
+            "missing_actual_count": 0,
+            "primary_failure_point_count": 56,
+            "quantile_diagnostics": {
+              "empirical_interval_coverage": 0.7577639751552795,
+              "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+              "mean_interval_width": 1.1644002190148979,
+              "nominal_interval_coverage": 0.8,
+              "pinball_loss": {
+                "p10": 0.07950351880994273,
+                "p50": 0.1971475952732267,
+                "p90": 0.1066374159725186
+              },
+              "scored_count": 644
+            },
+            "unavailable_prediction_count": 56,
+            "uncensored_actual_count": 426,
+            "unknown_censoring_count": 0
+          }
+        },
+        "training_has_missing": {
+          "False": {
+            "availability_fraction": 0.92,
+            "available_prediction_count": 644,
+            "basis_mismatch_count": 0,
+            "censored_actual_count": 274,
+            "expected_count": 700,
+            "failure_point_counts": {
+              "INVALID_PROVIDER_OUTPUT": 56
+            },
+            "fallback_prediction_count": 0,
+            "metrics": {
+              "bias": -0.09372092434004968,
+              "mae": 0.3942951905464534,
+              "scored_count": 644,
+              "wape": 0.36691395200686067
+            },
+            "missing_actual_count": 0,
+            "primary_failure_point_count": 56,
+            "quantile_diagnostics": {
+              "empirical_interval_coverage": 0.7577639751552795,
+              "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+              "mean_interval_width": 1.1644002190148979,
+              "nominal_interval_coverage": 0.8,
+              "pinball_loss": {
+                "p10": 0.07950351880994273,
+                "p50": 0.1971475952732267,
+                "p90": 0.1066374159725186
+              },
+              "scored_count": 644
+            },
+            "unavailable_prediction_count": 56,
+            "uncensored_actual_count": 426,
+            "unknown_censoring_count": 0
+          }
+        },
+        "training_has_zero": {
+          "False": {
+            "availability_fraction": 1.0,
+            "available_prediction_count": 224,
+            "basis_mismatch_count": 0,
+            "censored_actual_count": 100,
+            "expected_count": 224,
+            "failure_point_counts": {},
+            "fallback_prediction_count": 0,
+            "metrics": {
+              "bias": -0.20941638939614807,
+              "mae": 0.41604278521346194,
+              "scored_count": 224,
+              "wape": 0.3044149209113983
+            },
+            "missing_actual_count": 0,
+            "primary_failure_point_count": 0,
+            "quantile_diagnostics": {
+              "empirical_interval_coverage": 0.7366071428571429,
+              "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+              "mean_interval_width": 1.1436300511205835,
+              "nominal_interval_coverage": 0.8,
+              "pinball_loss": {
+                "p10": 0.08171077495680325,
+                "p50": 0.20802139260673097,
+                "p90": 0.09333890212859426
+              },
+              "scored_count": 224
+            },
+            "unavailable_prediction_count": 0,
+            "uncensored_actual_count": 124,
+            "unknown_censoring_count": 0
+          },
+          "True": {
+            "availability_fraction": 0.8823529411764706,
+            "available_prediction_count": 420,
+            "basis_mismatch_count": 0,
+            "censored_actual_count": 174,
+            "expected_count": 476,
+            "failure_point_counts": {
+              "INVALID_PROVIDER_OUTPUT": 56
+            },
+            "fallback_prediction_count": 0,
+            "metrics": {
+              "bias": -0.032016676310130526,
+              "mae": 0.3826964733907155,
+              "scored_count": 420,
+              "wape": 0.41649288794824957
+            },
+            "missing_actual_count": 0,
+            "primary_failure_point_count": 56,
+            "quantile_diagnostics": {
+              "empirical_interval_coverage": 0.7690476190476191,
+              "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+              "mean_interval_width": 1.1754776418918655,
+              "nominal_interval_coverage": 0.8,
+              "pinball_loss": {
+                "p10": 0.07832631553161712,
+                "p50": 0.19134823669535775,
+                "p90": 0.11372995668927828
+              },
+              "scored_count": 420
+            },
+            "unavailable_prediction_count": 56,
+            "uncensored_actual_count": 302,
+            "unknown_censoring_count": 0
+          }
+        }
+      },
+      "unavailable_prediction_count": 56,
+      "uncensored_actual_count": 426,
+      "unknown_censoring_count": 0
+    },
+    "MOVING_AVERAGE": {
+      "availability_fraction": 1.0,
+      "available_prediction_count": 700,
+      "basis_mismatch_count": 0,
+      "by_horizon": {
+        "1": {
+          "availability_fraction": 1.0,
+          "available_prediction_count": 100,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 36,
+          "expected_count": 100,
+          "failure_point_counts": {},
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": 0.04179285714285715,
+            "mae": 0.3699928571428571,
+            "scored_count": 100,
+            "wape": 0.396222806963865
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 0,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": null,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": null,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": null,
+              "p50": null,
+              "p90": null
+            },
+            "scored_count": 0
+          },
+          "unavailable_prediction_count": 0,
+          "uncensored_actual_count": 64,
+          "unknown_censoring_count": 0
+        },
+        "2": {
+          "availability_fraction": 1.0,
+          "available_prediction_count": 100,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 34,
+          "expected_count": 100,
+          "failure_point_counts": {},
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": -0.03470714285714287,
+            "mae": 0.4482642857142857,
+            "scored_count": 100,
+            "wape": 0.44369423509282957
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 0,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": null,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": null,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": null,
+              "p50": null,
+              "p90": null
+            },
+            "scored_count": 0
+          },
+          "unavailable_prediction_count": 0,
+          "uncensored_actual_count": 66,
+          "unknown_censoring_count": 0
+        },
+        "3": {
+          "availability_fraction": 1.0,
+          "available_prediction_count": 100,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 34,
+          "expected_count": 100,
+          "failure_point_counts": {},
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": 0.03319285714285713,
+            "mae": 0.3463357142857143,
+            "scored_count": 100,
+            "wape": 0.3675039413048751
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 0,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": null,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": null,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": null,
+              "p50": null,
+              "p90": null
+            },
+            "scored_count": 0
+          },
+          "unavailable_prediction_count": 0,
+          "uncensored_actual_count": 66,
+          "unknown_censoring_count": 0
+        },
+        "4": {
+          "availability_fraction": 1.0,
+          "available_prediction_count": 100,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 31,
+          "expected_count": 100,
+          "failure_point_counts": {},
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": -0.3276071428571429,
+            "mae": 0.5190214285714285,
+            "scored_count": 100,
+            "wape": 0.3982669034464615
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 0,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": null,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": null,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": null,
+              "p50": null,
+              "p90": null
+            },
+            "scored_count": 0
+          },
+          "unavailable_prediction_count": 0,
+          "uncensored_actual_count": 69,
+          "unknown_censoring_count": 0
+        },
+        "5": {
+          "availability_fraction": 1.0,
+          "available_prediction_count": 100,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 54,
+          "expected_count": 100,
+          "failure_point_counts": {},
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": -0.3064071428571429,
+            "mae": 0.5216642857142858,
+            "scored_count": 100,
+            "wape": 0.40691441943392026
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 0,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": null,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": null,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": null,
+              "p50": null,
+              "p90": null
+            },
+            "scored_count": 0
+          },
+          "unavailable_prediction_count": 0,
+          "uncensored_actual_count": 46,
+          "unknown_censoring_count": 0
+        },
+        "6": {
+          "availability_fraction": 1.0,
+          "available_prediction_count": 100,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 42,
+          "expected_count": 100,
+          "failure_point_counts": {},
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": 0.051392857142857136,
+            "mae": 0.34786428571428574,
+            "scored_count": 100,
+            "wape": 0.37639502890530807
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 0,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": null,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": null,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": null,
+              "p50": null,
+              "p90": null
+            },
+            "scored_count": 0
+          },
+          "unavailable_prediction_count": 0,
+          "uncensored_actual_count": 58,
+          "unknown_censoring_count": 0
+        },
+        "7": {
+          "availability_fraction": 1.0,
+          "available_prediction_count": 100,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 43,
+          "expected_count": 100,
+          "failure_point_counts": {},
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": -0.10609714285714286,
+            "mae": 0.5246171428571429,
+            "scored_count": 100,
+            "wape": 0.4849976821983589
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 0,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": null,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": null,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": null,
+              "p50": null,
+              "p90": null
+            },
+            "scored_count": 0
+          },
+          "unavailable_prediction_count": 0,
+          "uncensored_actual_count": 57,
+          "unknown_censoring_count": 0
+        }
+      },
+      "censored_actual_count": 274,
+      "censoring_diagnostics": {
+        "False": {
+          "availability_fraction": 1.0,
+          "available_prediction_count": 426,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 0,
+          "expected_count": 426,
+          "failure_point_counts": {},
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": -0.09117974513749162,
+            "mae": 0.4441086519114688,
+            "scored_count": 426,
+            "wape": 0.416536112396297
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 0,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": null,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": null,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": null,
+              "p50": null,
+              "p90": null
+            },
+            "scored_count": 0
+          },
+          "unavailable_prediction_count": 0,
+          "uncensored_actual_count": 426,
+          "unknown_censoring_count": 0
+        },
+        "True": {
+          "availability_fraction": 1.0,
+          "available_prediction_count": 274,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 274,
+          "expected_count": 274,
+          "failure_point_counts": {},
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": -0.09489572471324297,
+            "mae": 0.43279457768508867,
+            "scored_count": 274,
+            "wape": 0.4039573316722792
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 0,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": null,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": null,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": null,
+              "p50": null,
+              "p90": null
+            },
+            "scored_count": 0
+          },
+          "unavailable_prediction_count": 0,
+          "uncensored_actual_count": 0,
+          "unknown_censoring_count": 0
+        }
+      },
+      "expected_count": 700,
+      "failure_point_counts": {},
+      "fallback_prediction_count": 0,
+      "metrics": {
+        "bias": -0.09263428571428572,
+        "mae": 0.43968,
+        "scored_count": 700,
+        "wape": 0.4115978543889141
+      },
+      "missing_actual_count": 0,
+      "quantile_diagnostics": {
+        "empirical_interval_coverage": null,
+        "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+        "mean_interval_width": null,
+        "nominal_interval_coverage": 0.8,
+        "pinball_loss": {
+          "p10": null,
+          "p50": null,
+          "p90": null
+        },
+        "scored_count": 0
+      },
+      "training_cohorts": {
+        "training_has_censoring": {
+          "True": {
+            "availability_fraction": 1.0,
+            "available_prediction_count": 700,
+            "basis_mismatch_count": 0,
+            "censored_actual_count": 274,
+            "expected_count": 700,
+            "failure_point_counts": {},
+            "fallback_prediction_count": 0,
+            "metrics": {
+              "bias": -0.09263428571428572,
+              "mae": 0.43968,
+              "scored_count": 700,
+              "wape": 0.4115978543889141
+            },
+            "missing_actual_count": 0,
+            "primary_failure_point_count": 0,
+            "quantile_diagnostics": {
+              "empirical_interval_coverage": null,
+              "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+              "mean_interval_width": null,
+              "nominal_interval_coverage": 0.8,
+              "pinball_loss": {
+                "p10": null,
+                "p50": null,
+                "p90": null
+              },
+              "scored_count": 0
+            },
+            "unavailable_prediction_count": 0,
+            "uncensored_actual_count": 426,
+            "unknown_censoring_count": 0
+          }
+        },
+        "training_has_missing": {
+          "False": {
+            "availability_fraction": 1.0,
+            "available_prediction_count": 700,
+            "basis_mismatch_count": 0,
+            "censored_actual_count": 274,
+            "expected_count": 700,
+            "failure_point_counts": {},
+            "fallback_prediction_count": 0,
+            "metrics": {
+              "bias": -0.09263428571428572,
+              "mae": 0.43968,
+              "scored_count": 700,
+              "wape": 0.4115978543889141
+            },
+            "missing_actual_count": 0,
+            "primary_failure_point_count": 0,
+            "quantile_diagnostics": {
+              "empirical_interval_coverage": null,
+              "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+              "mean_interval_width": null,
+              "nominal_interval_coverage": 0.8,
+              "pinball_loss": {
+                "p10": null,
+                "p50": null,
+                "p90": null
+              },
+              "scored_count": 0
+            },
+            "unavailable_prediction_count": 0,
+            "uncensored_actual_count": 426,
+            "unknown_censoring_count": 0
+          }
+        },
+        "training_has_zero": {
+          "False": {
+            "availability_fraction": 1.0,
+            "available_prediction_count": 224,
+            "basis_mismatch_count": 0,
+            "censored_actual_count": 100,
+            "expected_count": 224,
+            "failure_point_counts": {},
+            "fallback_prediction_count": 0,
+            "metrics": {
+              "bias": -0.24553571428571427,
+              "mae": 0.43977678571428575,
+              "scored_count": 224,
+              "wape": 0.32178088456261844
+            },
+            "missing_actual_count": 0,
+            "primary_failure_point_count": 0,
+            "quantile_diagnostics": {
+              "empirical_interval_coverage": null,
+              "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+              "mean_interval_width": null,
+              "nominal_interval_coverage": 0.8,
+              "pinball_loss": {
+                "p10": null,
+                "p50": null,
+                "p90": null
+              },
+              "scored_count": 0
+            },
+            "unavailable_prediction_count": 0,
+            "uncensored_actual_count": 124,
+            "unknown_censoring_count": 0
+          },
+          "True": {
+            "availability_fraction": 1.0,
+            "available_prediction_count": 476,
+            "basis_mismatch_count": 0,
+            "censored_actual_count": 174,
+            "expected_count": 476,
+            "failure_point_counts": {},
+            "fallback_prediction_count": 0,
+            "metrics": {
+              "bias": -0.02068067226890757,
+              "mae": 0.4396344537815126,
+              "scored_count": 476,
+              "wape": 0.4738609525405383
+            },
+            "missing_actual_count": 0,
+            "primary_failure_point_count": 0,
+            "quantile_diagnostics": {
+              "empirical_interval_coverage": null,
+              "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+              "mean_interval_width": null,
+              "nominal_interval_coverage": 0.8,
+              "pinball_loss": {
+                "p10": null,
+                "p50": null,
+                "p90": null
+              },
+              "scored_count": 0
+            },
+            "unavailable_prediction_count": 0,
+            "uncensored_actual_count": 302,
+            "unknown_censoring_count": 0
+          }
+        }
+      },
+      "unavailable_prediction_count": 0,
+      "uncensored_actual_count": 426,
+      "unknown_censoring_count": 0
+    },
+    "SEASONAL_NAIVE": {
+      "availability_fraction": 1.0,
+      "available_prediction_count": 700,
+      "basis_mismatch_count": 0,
+      "by_horizon": {
+        "1": {
+          "availability_fraction": 1.0,
+          "available_prediction_count": 100,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 36,
+          "expected_count": 100,
+          "failure_point_counts": {},
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": 0.0655,
+            "mae": 0.4023,
+            "scored_count": 100,
+            "wape": 0.43082030413364747
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 0,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": null,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": null,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": null,
+              "p50": null,
+              "p90": null
+            },
+            "scored_count": 0
+          },
+          "unavailable_prediction_count": 0,
+          "uncensored_actual_count": 64,
+          "unknown_censoring_count": 0
+        },
+        "2": {
+          "availability_fraction": 1.0,
+          "available_prediction_count": 100,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 34,
+          "expected_count": 100,
+          "failure_point_counts": {},
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": -0.1543,
+            "mae": 0.5211,
+            "scored_count": 100,
+            "wape": 0.5157873898841928
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 0,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": null,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": null,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": null,
+              "p50": null,
+              "p90": null
+            },
+            "scored_count": 0
+          },
+          "unavailable_prediction_count": 0,
+          "uncensored_actual_count": 66,
+          "unknown_censoring_count": 0
+        },
+        "3": {
+          "availability_fraction": 1.0,
+          "available_prediction_count": 100,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 34,
+          "expected_count": 100,
+          "failure_point_counts": {},
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": 0.14139999999999997,
+            "mae": 0.473,
+            "scored_count": 100,
+            "wape": 0.5019100169779287
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 0,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": null,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": null,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": null,
+              "p50": null,
+              "p90": null
+            },
+            "scored_count": 0
+          },
+          "unavailable_prediction_count": 0,
+          "uncensored_actual_count": 66,
+          "unknown_censoring_count": 0
+        },
+        "4": {
+          "availability_fraction": 1.0,
+          "available_prediction_count": 100,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 31,
+          "expected_count": 100,
+          "failure_point_counts": {},
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": -0.1376,
+            "mae": 0.5424,
+            "scored_count": 100,
+            "wape": 0.41620626151012896
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 0,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": null,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": null,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": null,
+              "p50": null,
+              "p90": null
+            },
+            "scored_count": 0
+          },
+          "unavailable_prediction_count": 0,
+          "uncensored_actual_count": 69,
+          "unknown_censoring_count": 0
+        },
+        "5": {
+          "availability_fraction": 1.0,
+          "available_prediction_count": 100,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 54,
+          "expected_count": 100,
+          "failure_point_counts": {},
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": -0.01700000000000002,
+            "mae": 0.533,
+            "scored_count": 100,
+            "wape": 0.4157566302652107
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 0,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": null,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": null,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": null,
+              "p50": null,
+              "p90": null
+            },
+            "scored_count": 0
+          },
+          "unavailable_prediction_count": 0,
+          "uncensored_actual_count": 46,
+          "unknown_censoring_count": 0
+        },
+        "6": {
+          "availability_fraction": 1.0,
+          "available_prediction_count": 100,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 42,
+          "expected_count": 100,
+          "failure_point_counts": {},
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": -0.009200000000000003,
+            "mae": 0.3148,
+            "scored_count": 100,
+            "wape": 0.34061891365505303
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 0,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": null,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": null,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": null,
+              "p50": null,
+              "p90": null
+            },
+            "scored_count": 0
+          },
+          "unavailable_prediction_count": 0,
+          "uncensored_actual_count": 58,
+          "unknown_censoring_count": 0
+        },
+        "7": {
+          "availability_fraction": 1.0,
+          "available_prediction_count": 100,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 43,
+          "expected_count": 100,
+          "failure_point_counts": {},
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": -0.05329,
+            "mae": 0.52971,
+            "scored_count": 100,
+            "wape": 0.4897059231387921
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 0,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": null,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": null,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": null,
+              "p50": null,
+              "p90": null
+            },
+            "scored_count": 0
+          },
+          "unavailable_prediction_count": 0,
+          "uncensored_actual_count": 57,
+          "unknown_censoring_count": 0
+        }
+      },
+      "censored_actual_count": 274,
+      "censoring_diagnostics": {
+        "False": {
+          "availability_fraction": 1.0,
+          "available_prediction_count": 426,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 0,
+          "expected_count": 426,
+          "failure_point_counts": {},
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": -0.03621830985915493,
+            "mae": 0.46368779342723004,
+            "scored_count": 426,
+            "wape": 0.4348996805365049
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 0,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": null,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": null,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": null,
+              "p50": null,
+              "p90": null
+            },
+            "scored_count": 0
+          },
+          "unavailable_prediction_count": 0,
+          "uncensored_actual_count": 426,
+          "unknown_censoring_count": 0
+        },
+        "True": {
+          "availability_fraction": 1.0,
+          "available_prediction_count": 274,
+          "basis_mismatch_count": 0,
+          "censored_actual_count": 274,
+          "expected_count": 274,
+          "failure_point_counts": {},
+          "fallback_prediction_count": 0,
+          "metrics": {
+            "bias": -0.0037226277372262896,
+            "mae": 0.4894160583941606,
+            "scored_count": 274,
+            "wape": 0.45680610437389285
+          },
+          "missing_actual_count": 0,
+          "primary_failure_point_count": 0,
+          "quantile_diagnostics": {
+            "empirical_interval_coverage": null,
+            "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+            "mean_interval_width": null,
+            "nominal_interval_coverage": 0.8,
+            "pinball_loss": {
+              "p10": null,
+              "p50": null,
+              "p90": null
+            },
+            "scored_count": 0
+          },
+          "unavailable_prediction_count": 0,
+          "uncensored_actual_count": 0,
+          "unknown_censoring_count": 0
+        }
+      },
+      "expected_count": 700,
+      "failure_point_counts": {},
+      "fallback_prediction_count": 0,
+      "metrics": {
+        "bias": -0.023498571428571435,
+        "mae": 0.4737585714285715,
+        "scored_count": 700,
+        "wape": 0.4434998442011397
+      },
+      "missing_actual_count": 0,
+      "quantile_diagnostics": {
+        "empirical_interval_coverage": null,
+        "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+        "mean_interval_width": null,
+        "nominal_interval_coverage": 0.8,
+        "pinball_loss": {
+          "p10": null,
+          "p50": null,
+          "p90": null
+        },
+        "scored_count": 0
+      },
+      "training_cohorts": {
+        "training_has_censoring": {
+          "True": {
+            "availability_fraction": 1.0,
+            "available_prediction_count": 700,
+            "basis_mismatch_count": 0,
+            "censored_actual_count": 274,
+            "expected_count": 700,
+            "failure_point_counts": {},
+            "fallback_prediction_count": 0,
+            "metrics": {
+              "bias": -0.023498571428571435,
+              "mae": 0.4737585714285715,
+              "scored_count": 700,
+              "wape": 0.4434998442011397
+            },
+            "missing_actual_count": 0,
+            "primary_failure_point_count": 0,
+            "quantile_diagnostics": {
+              "empirical_interval_coverage": null,
+              "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+              "mean_interval_width": null,
+              "nominal_interval_coverage": 0.8,
+              "pinball_loss": {
+                "p10": null,
+                "p50": null,
+                "p90": null
+              },
+              "scored_count": 0
+            },
+            "unavailable_prediction_count": 0,
+            "uncensored_actual_count": 426,
+            "unknown_censoring_count": 0
+          }
+        },
+        "training_has_missing": {
+          "False": {
+            "availability_fraction": 1.0,
+            "available_prediction_count": 700,
+            "basis_mismatch_count": 0,
+            "censored_actual_count": 274,
+            "expected_count": 700,
+            "failure_point_counts": {},
+            "fallback_prediction_count": 0,
+            "metrics": {
+              "bias": -0.023498571428571435,
+              "mae": 0.4737585714285715,
+              "scored_count": 700,
+              "wape": 0.4434998442011397
+            },
+            "missing_actual_count": 0,
+            "primary_failure_point_count": 0,
+            "quantile_diagnostics": {
+              "empirical_interval_coverage": null,
+              "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+              "mean_interval_width": null,
+              "nominal_interval_coverage": 0.8,
+              "pinball_loss": {
+                "p10": null,
+                "p50": null,
+                "p90": null
+              },
+              "scored_count": 0
+            },
+            "unavailable_prediction_count": 0,
+            "uncensored_actual_count": 426,
+            "unknown_censoring_count": 0
+          }
+        },
+        "training_has_zero": {
+          "False": {
+            "availability_fraction": 1.0,
+            "available_prediction_count": 224,
+            "basis_mismatch_count": 0,
+            "censored_actual_count": 100,
+            "expected_count": 224,
+            "failure_point_counts": {},
+            "fallback_prediction_count": 0,
+            "metrics": {
+              "bias": -0.11392857142857145,
+              "mae": 0.45589285714285716,
+              "scored_count": 224,
+              "wape": 0.3335728751551578
+            },
+            "missing_actual_count": 0,
+            "primary_failure_point_count": 0,
+            "quantile_diagnostics": {
+              "empirical_interval_coverage": null,
+              "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+              "mean_interval_width": null,
+              "nominal_interval_coverage": 0.8,
+              "pinball_loss": {
+                "p10": null,
+                "p50": null,
+                "p90": null
+              },
+              "scored_count": 0
+            },
+            "unavailable_prediction_count": 0,
+            "uncensored_actual_count": 124,
+            "unknown_censoring_count": 0
+          },
+          "True": {
+            "availability_fraction": 1.0,
+            "available_prediction_count": 476,
+            "basis_mismatch_count": 0,
+            "censored_actual_count": 174,
+            "expected_count": 476,
+            "failure_point_counts": {},
+            "fallback_prediction_count": 0,
+            "metrics": {
+              "bias": 0.019056722689075625,
+              "mae": 0.4821659663865546,
+              "scored_count": 476,
+              "wape": 0.5197036359395768
+            },
+            "missing_actual_count": 0,
+            "primary_failure_point_count": 0,
+            "quantile_diagnostics": {
+              "empirical_interval_coverage": null,
+              "interpretation": "UNCALIBRATED_MODEL_QUANTILES",
+              "mean_interval_width": null,
+              "nominal_interval_coverage": 0.8,
+              "pinball_loss": {
+                "p10": null,
+                "p50": null,
+                "p90": null
+              },
+              "scored_count": 0
+            },
+            "unavailable_prediction_count": 0,
+            "uncensored_actual_count": 302,
+            "unknown_censoring_count": 0
+          }
+        }
+      },
+      "unavailable_prediction_count": 0,
+      "uncensored_actual_count": 426,
+      "unknown_censoring_count": 0
+    }
+  },
+  "validation_freeze_hash": "62054d6c13ce60c02f6ca9e88f459a048cfb1cf868aef4742ae5e3ec5e443784",
+  "validation_selected_baseline": "MOVING_AVERAGE"
+}
