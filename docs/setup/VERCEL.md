@@ -1,5 +1,6 @@
 # Vercel Next.js setup
 
+> **Frontend prototype preview (October 24, 2026):** The user resumed Vercel setup only for the simulated `/design-lab` preview. The preview branch redirects `/` to `/design-lab` and does not contact the API, require Neon, or need a tunnel or `NEXT_PUBLIC_API_BASE_URL`. Configure the Vercel project with `apps/web` as root, access to source files outside that root, Node 24.x, and the root lockfile install below. Verify the live URL and its preview access policy before sharing. V5's same-origin Next.js proxy is still required for any later connected frontend; the direct browser-to-API instructions further down this guide are historical and must not be used to claim completed integration. Backend/model hosting remains paused.
 Purpose: optionally host the PantryPulse frontend for access from other devices. The backend runs on the laptop through an HTTPS tunnel as described in [EXTERNAL-SERVICES.md](../../EXTERNAL-SERVICES.md). Complete [GitHub](GITHUB.md), [Neon](NEON.md) and [local demo setup](LOCAL-DEMO.md) first. A presentation entirely in the laptop's browser does not require Vercel; [Fly.io](FLY.md) is only a hosted backend alternative.
 
 ## Manual account and import
