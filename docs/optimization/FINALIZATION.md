@@ -31,7 +31,7 @@ OR-Tools 9.15.6755, PostgreSQL 16 and Node 24.16.0.
 | Gate | Result |
 |---|---|
 | Complete backend, real Linux processes and isolated PostgreSQL | **1140 passed, zero skipped**, 217.54 seconds; [JUnit](evidence/connected-backend-v2.xml) |
-| Full Chromium suite against production build and actual proxy/API/database/worker | **9 passed, zero skipped**; [transcript](evidence/connected-browser-v2.txt) |
+| Full Chromium suite against production build and actual proxy/API/database/worker | **10 passed, zero skipped**; [transcript](evidence/connected-browser-v2.txt) |
 | TypeScript / ESLint / Ruff / production build | PASS |
 | Configuration / proxy unit tests | **17 / 3 passed** |
 | Generated OpenAPI and TypeScript contract drift | PASS |
@@ -51,7 +51,7 @@ and publication fencing; skipped Linux tests do not satisfy the gate.
 Review fixes include equal-timestamp catalog pagination, exact execution identity,
 explicit publication reserves, late offline replay handling, source history
 freshness, concurrent scenario command replay and independent invalid-partner
-isolation. A stale generated Next cache caused a local compiler subprocess failure;
+isolation, plus preventing late job responses from replacing newer presenter selections. A stale generated Next cache caused a local compiler subprocess failure;
 a clean production build passed. Existing Starlette/httpx and Node module-format
 warnings are non-blocking and are not concealed as test failures.
 

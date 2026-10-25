@@ -219,13 +219,13 @@
     "apps/web/src/app/layout.tsx": "3b0d1308d21c9da01f4b6159e4d284967f7c9d89c50cffe59f1e1eb33f95cafa",
     "apps/web/src/app/optimization/page.tsx": "62cda5f68e8e00d70f57ad29cfce5f1e020ccee574b10daa9289a86ee8128cb8",
     "apps/web/src/app/optimization/workspace.module.css": "22ed43a076a28f4ace25fa11c126fe7ecea72f01a5b92430a712b4e3b6ede875",
-    "apps/web/src/app/optimization/workspace.tsx": "066caa4d0c5b475cd641bdc357fdbffbb690e3b6b5857a76517f036a6baf5f6a",
+    "apps/web/src/app/optimization/workspace.tsx": "dada7873f3945a67422f7a10b1e0a9ad714f450a238759985cacfc001963387e",
     "apps/web/src/app/page.tsx": "a364a61c9531c8863ddd35490785367e9ca35d85e61ebe528884ca2c0446c68f",
     "apps/web/src/lib/planning-api.ts": "3a6e70c19cb31ad6175b276259952210711eab78e9ffc74e840537511e96cb91",
     "apps/web/src/lib/utils.ts": "6a8cb2784ad989e1328413fad3848976f38aae5262ba740a454ecf80ea21431d",
     "apps/web/tests/e2e/a11y.ts": "642298f483cbd09b6b0d27e364c34177a4dc812017c5692ad4d9202d0ba97324",
     "apps/web/tests/e2e/design-lab.spec.ts": "ed410b814a6f8ebd8015d7ebe1c2e165c4c8503ee0b1b3b4f94ca9f7bbf2214b",
-    "apps/web/tests/e2e/optimization.spec.ts": "eefa1f5a53251d3ac335285aba67747d95c7d4f303e5240351a1f0a474e8bb98",
+    "apps/web/tests/e2e/optimization.spec.ts": "9cfb076861a6e3b62ef687970346e14be9910d06a79416f8a590b85f6b53b198",
     "apps/web/tests/e2e/scaffold.spec.ts": "8334f2b054e80671bee4c5f3bf97302f565f6dfd0e706e8a54300be8fc4eae64",
     "apps/web/tests/forecast-proxy.test.mjs": "de916e40581eb71818abbb2206a00297957a5d96190e5545f4eff9c335ee881e",
     "apps/web/tsconfig.json": "60951de48664ecc336f0b5a8a0d2ff26b77c2ae142f8b610e50d32f91e609abc",
@@ -253,7 +253,7 @@
     "seconds": 217.54
   },
   "browser": {
-    "passed": 9,
+    "passed": 10,
     "skipped": 0,
     "frontend": "Next production build",
     "transport": "browser -> Next proxy -> Linux FastAPI -> PostgreSQL 16 -> Linux production worker"
@@ -274,6 +274,7 @@
     "Hosting, Chronos, supplier planning, visitor access and broader scenario support excluded"
   ],
   "review_notes": [
-    "Migration SQL trailing whitespace normalized after local tests; no statement changes. Remote CI validates the final PR tree."
+    "Migration SQL trailing whitespace normalized after local tests; no statement changes. Remote CI validates the final PR tree.",
+    "Final frontend rerun: 10 production browser tests, including delayed real response preserving a newly saved scenario; build/types/lint passed."
   ]
 }

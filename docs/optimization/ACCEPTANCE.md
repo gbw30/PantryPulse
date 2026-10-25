@@ -7,7 +7,7 @@ immutable versions and tenant isolation; both independently verified native meth
 actual Linux durable execution/cancellation/partial publication; presenter proxy/API
 journey with refresh and revisions; expiry/FEFO/donor/numerical regressions; accessible
 three-viewport rendering. [Finalization](FINALIZATION.md) records 1140 backend tests,
-9 browser tests, static gates and the complete source manifest. The [budget sweep](BUDGET-QUALIFICATION-V2.md)
+10 browser tests, static gates and the complete source manifest. The [budget sweep](BUDGET-QUALIFICATION-V2.md)
 records quality limitations. No hosted or real-world policy acceptance is claimed.
 
 ## Historical OR-only acceptance ledger

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { api, ApiError, localDay, type Schema } from "@/lib/planning-api";
 import styles from "./workspace.module.css";
@@ -16,6 +16,8 @@ const terminal = new Set(["SUCCEEDED", "FAILED", "TIMED_OUT", "INTERRUPTED", "CA
 const rational = (x: { numerator: number; denominator: number } | null | undefined) => x ? (x.numerator / x.denominator).toLocaleString(undefined, { maximumFractionDigits: 5 }) : "Unavailable";
 
 export default function Workspace() {
+  const viewRevision = useRef(0);
+  const actionPending = useRef(false);
   const [signedIn, setSignedIn] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -41,7 +43,7 @@ export default function Workspace() {
   }, []);
   const refresh = useCallback(async () => {
     const [list, net] = await Promise.all([api<Catalog>("planning-catalog"), api<Network>("forecast-catalog")]);
-    setCatalog(list); setNetwork(net); setSignedIn(true);
+    setCatalog(list); setNetwork(net);
     return { list, net };
   }, []);
   async function selectAssumptions(id: string) {
@@ -49,10 +51,13 @@ export default function Workspace() {
     setAssumptions(value); setPolicyText(JSON.stringify(value.payload, null, 2));
   }
   const perform = async (action: () => Promise<void>) => {
+    if (actionPending.current) return;
+    actionPending.current = true;
     setBusy(true); setError("");
-    try { await action(); } catch (e) { showError(e); } finally { setBusy(false); }
+    try { await action(); } catch (e) { showError(e); } finally { actionPending.current = false; setBusy(false); }
   };
   const track = (accepted: Schema["ForecastAccepted"], kind: Active["kind"]) => {
+    viewRevision.current += 1;
     setActive({ id: accepted.job_id, kind }); setJob(null);
     const url = new URL(window.location.href);
     url.searchParams.set("job", accepted.job_id); url.searchParams.set("kind", kind);
@@ -76,6 +81,7 @@ export default function Workspace() {
   useEffect(() => {
     if (!active || !signedIn) return;
     let stopped = false;
+    const selectedView = viewRevision.current;
     let timer: ReturnType<typeof setTimeout>;
     async function poll() {
       try {
@@ -86,11 +92,11 @@ export default function Workspace() {
           if (active!.kind === "comparisons") {
             const result = await api<Comparison>(`comparisons/${active!.id}`);
             const saved = await api<Scenario>(`scenarios/${result.scenario_id}`);
-            if (!stopped) { setComparison(result); setScenario(saved); }
+            if (!stopped && selectedView === viewRevision.current) { setComparison(result); setScenario(saved); }
           } else {
             const result = await api<Schema["ForecastResult"]>(`forecasts/${active!.id}`);
             if (!result.planning_ready) throw new Error("Forecast saved but not planning ready. Review history or choose another source.");
-            if (!stopped) setForecastId(active!.id);
+            if (!stopped && selectedView === viewRevision.current) setForecastId(active!.id);
           }
           await refresh();
           return;
@@ -106,6 +112,7 @@ export default function Workspace() {
   async function login(form: FormData) {
     await api("presenter/login", { username: form.get("username"), password: form.get("password") });
     const { list, net } = await refresh();
+    setSignedIn(true);
     setSourceId(net.sources.find((s) => s.classification === "SIMULATED")?.id ?? "");
     setForecastId(list.forecasts[0]?.id ?? "");
     if (list.assumptions[0]) await selectAssumptions(list.assumptions[0].id);
@@ -123,6 +130,7 @@ export default function Workspace() {
   }
   async function freeze() {
     if (!assumptions || !catalog || !mode) return;
+    viewRevision.current += 1;
     const request: Schema["ScenarioRequest"] = { forecast_run_id: forecastId, assumptions_id: assumptions.id,
       expected_source_revision: catalog.source_revision, transfer_mode: mode, planning_days: days,
       parent_id: scenario?.id ?? null, modifiers: assumptions.payload.reserves.map((r) => ({
@@ -130,8 +138,10 @@ export default function Workspace() {
     setScenario(await api<Scenario>("scenarios", request)); setComparison(null); await refresh();
   }
   async function loadComparison(id: string) {
+    viewRevision.current += 1;
     const value = await api<Comparison>(`comparisons/${id}`);
-    setComparison(value); setScenario(await api<Scenario>(`scenarios/${value.scenario_id}`));
+    const saved = await api<Scenario>(`scenarios/${value.scenario_id}`);
+    setComparison(value); setScenario(saved);
   }
   const running = active && (!job || !terminal.has(job.state));
   const siteName = (id: string) => scenario?.payload.package.sites.find((s) => s.id === id)?.name ?? id;
@@ -140,7 +150,7 @@ export default function Workspace() {
   return <main className={styles.workspace}>
     <header className={styles.header}><div><Link href="/">PantryPulse</Link><h1>Optimization workspace</h1></div>
       <span className={styles.pill}>Simulated network</span>
-      {signedIn && <button onClick={() => void perform(async () => { await api("presenter/logout", {}); setSignedIn(false); setActive(null); setScenario(null); setComparison(null); window.history.replaceState(null, "", "/optimization"); })}>Sign out</button>}
+      {signedIn && <button disabled={busy} onClick={() => void perform(async () => { viewRevision.current += 1; await api("presenter/logout", {}); setSignedIn(false); setActive(null); setScenario(null); setComparison(null); window.history.replaceState(null, "", "/optimization"); })}>Sign out</button>}
     </header>
     <p className={styles.intro}>Compare classical goal programming with the EGP-PI-inspired method on the same frozen inputs. This is a simulation; no stock is reserved or dispatched.</p>
     {error && <div role="alert" className={styles.error}>{error}. <button onClick={() => void perform(async () => { await refresh(); setActive((v) => v ? { ...v } : null); })}>Reconnect</button></div>}
@@ -153,16 +163,16 @@ export default function Workspace() {
     </section> : <>
       <div className={styles.grid}>
         <section className={styles.card}><h2>1 · Select a forecast</h2>
-          <label>Saved planning-ready forecast<select value={forecastId} onChange={(e) => setForecastId(e.target.value)}><option value="">Choose a forecast</option>{catalog?.forecasts.map((r) => <option key={r.id} value={r.id}>{new Date(r.recorded_at).toLocaleString()} · {r.id.slice(0, 8)}</option>)}</select></label>
-          <label>Fictional history source<select value={sourceId} onChange={(e) => setSourceId(e.target.value)}><option value="">Choose a source</option>{network?.sources.filter((s) => s.classification === "SIMULATED").map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
+          <label>Saved planning-ready forecast<select disabled={busy} value={forecastId} onChange={(e) => setForecastId(e.target.value)}><option value="">Choose a forecast</option>{catalog?.forecasts.map((r) => <option key={r.id} value={r.id}>{new Date(r.recorded_at).toLocaleString()} · {r.id.slice(0, 8)}</option>)}</select></label>
+          <label>Fictional history source<select disabled={busy} value={sourceId} onChange={(e) => setSourceId(e.target.value)}><option value="">Choose a source</option>{network?.sources.filter((s) => s.classification === "SIMULATED").map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
           <button disabled={busy || !!running || !sourceId} onClick={() => void perform(generateForecast)}>Generate forecast</button>
           <p>Seven days from yesterday’s cutoff, using seasonal naive with an explicitly enabled moving-average fallback. Donation predictions never become stock.</p>
         </section>
         <section className={styles.card}><h2>2 · Freeze a scenario</h2>
-          <label>Transfer mode (required)<select value={mode} onChange={(e) => setMode(e.target.value as typeof mode)}><option value="">Choose transfer mode</option><option value="HUB_ONLY">Hub to pantry only</option><option value="HUB_AND_PANTRY">Hub and pantry transfers</option></select></label>
-          <div className={styles.row}><label>Allocation window<select value={days} onChange={(e) => setDays(Number(e.target.value))}>{[1, 2, 3].map((d) => <option key={d} value={d}>{d} day{d > 1 ? "s" : ""}</option>)}</select></label>
+          <label>Transfer mode (required)<select disabled={busy} value={mode} onChange={(e) => setMode(e.target.value as typeof mode)}><option value="">Choose transfer mode</option><option value="HUB_ONLY">Hub to pantry only</option><option value="HUB_AND_PANTRY">Hub and pantry transfers</option></select></label>
+          <div className={styles.row}><label>Allocation window<select disabled={busy} value={days} onChange={(e) => setDays(Number(e.target.value))}>{[1, 2, 3].map((d) => <option key={d} value={d}>{d} day{d > 1 ? "s" : ""}</option>)}</select></label>
             <label>Demand multiplier<input type="number" min="0" max="3" step="0.01" value={multiplier} onChange={(e) => setMultiplier(e.target.value)} /></label></div>
-          <label>Assumptions version<select value={assumptions?.id ?? ""} onChange={(e) => void perform(() => selectAssumptions(e.target.value))}><option value="" disabled>Choose assumptions</option>{catalog?.assumptions.map((r) => <option key={r.id} value={r.id}>{r.label} · {r.id.slice(0, 8)}</option>)}</select></label>
+          <label>Assumptions version<select disabled={busy} value={assumptions?.id ?? ""} onChange={(e) => void perform(() => selectAssumptions(e.target.value))}><option value="" disabled>Choose assumptions</option>{catalog?.assumptions.map((r) => <option key={r.id} value={r.id}>{r.label} · {r.id.slice(0, 8)}</option>)}</select></label>
           <button disabled={busy || !forecastId || !mode || !assumptions} onClick={() => void perform(freeze)}>{scenario ? "Save revised scenario" : "Freeze scenario"}</button>
           <p>Dispatch on day one. Policy and scenario edits create new immutable versions.</p>
         </section>
@@ -192,8 +202,8 @@ export default function Workspace() {
           })}>Save new assumptions version</button></>}
       </details>
       <section className={styles.card}><h2>Saved work</h2><div className={styles.row}>
-        <label>Read a saved scenario<select value={scenario?.id ?? ""} onChange={(e) => void perform(async () => { const saved = await api<Scenario>(`scenarios/${e.target.value}`); setScenario(saved); setComparison(null); setForecastId(saved.forecast_run_id); setMode(saved.payload.transfer_mode); setDays(saved.payload.planning_days); await selectAssumptions(saved.assumptions_id); })}><option value="" disabled>Choose scenario</option>{catalog?.scenarios.map((r) => <option key={r.id} value={r.id}>{new Date(r.recorded_at).toLocaleString()} · {r.id.slice(0, 8)}</option>)}</select></label>
-        <label>Read a saved comparison<select value={comparison?.id ?? ""} onChange={(e) => void perform(() => loadComparison(e.target.value))}><option value="" disabled>Choose comparison</option>{catalog?.comparisons.map((r) => <option key={r.id} value={r.id}>{r.label} · {new Date(r.recorded_at).toLocaleString()} · {r.id.slice(0, 8)}</option>)}</select></label></div>
+        <label>Read a saved scenario<select disabled={busy} value={scenario?.id ?? ""} onChange={(e) => void perform(async () => { viewRevision.current += 1; const saved = await api<Scenario>(`scenarios/${e.target.value}`); setScenario(saved); setComparison(null); setForecastId(saved.forecast_run_id); setMode(saved.payload.transfer_mode); setDays(saved.payload.planning_days); await selectAssumptions(saved.assumptions_id); })}><option value="" disabled>Choose scenario</option>{catalog?.scenarios.map((r) => <option key={r.id} value={r.id}>{new Date(r.recorded_at).toLocaleString()} · {r.id.slice(0, 8)}</option>)}</select></label>
+        <label>Read a saved comparison<select disabled={busy} value={comparison?.id ?? ""} onChange={(e) => void perform(() => loadComparison(e.target.value))}><option value="" disabled>Choose comparison</option>{catalog?.comparisons.map((r) => <option key={r.id} value={r.id}>{r.label} · {new Date(r.recorded_at).toLocaleString()} · {r.id.slice(0, 8)}</option>)}</select></label></div>
         <button disabled={busy} onClick={() => void perform(async () => { await refresh(); })}>Refresh saved work</button>
         {catalog?.next_before && <button disabled={busy} onClick={() => void perform(async () => { setCatalog(await api<Catalog>(`planning-catalog?before=${encodeURIComponent(catalog.next_before!)}&before_id=${catalog.next_before_id}`)); })}>Load older saved work</button>}
       </section>

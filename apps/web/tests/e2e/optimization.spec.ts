@@ -105,3 +105,48 @@ test("cancel and retry a durable comparison through the real proxy", async ({ pa
   await expect(page.getByRole("heading", { name: "Comparison results · SUCCEEDED", exact: true })).toBeVisible({ timeout: 60_000 });
   await expect(page.getByText("2s search per method.", { exact: false })).toBeVisible();
 });
+
+test("a late real comparison response cannot replace a newly frozen scenario", async ({ page }) => {
+  test.skip(process.env.PP_RUN_CONNECTED !== "1", "Requires isolated connected demo");
+  test.setTimeout(120_000);
+  await page.goto("/optimization");
+  await page.getByLabel("Username", { exact: true }).fill(process.env.PP_E2E_USERNAME ?? "presenter");
+  await page.getByLabel("Password", { exact: true }).fill(process.env.PP_E2E_PASSWORD ?? "pantry-local-demo");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  const selector = page.getByLabel("Read a saved scenario");
+  await expect(selector.locator("option").nth(1)).toHaveAttribute("value", /.+/);
+  await selector.selectOption({ index: 1 });
+  await expect(page.getByRole("button", { name: "Compare frozen scenario", exact: true })).toBeEnabled();
+  const original = await selector.inputValue();
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  let received!: () => void;
+  const responseReady = new Promise<void>((resolve) => { received = resolve; });
+  await page.route("**/api/v1/comparisons/*", async (route) => {
+    const response = await route.fetch(); // Genuine committed output, only transport is delayed.
+    expect(response.status()).toBe(200);
+    received();
+    await gate;
+    await route.fulfill({ response });
+  });
+  try {
+    await page.getByLabel("Native search per method (seconds)").fill("4");
+    await page.getByRole("button", { name: "Compare frozen scenario", exact: true }).click();
+    await responseReady;
+    await page.getByLabel("Demand multiplier").fill("1.2");
+    const savedResponse = page.waitForResponse((response) => new URL(response.url()).pathname === "/api/v1/scenarios" && response.request().method() === "POST");
+    await page.getByRole("button", { name: "Save revised scenario", exact: true }).click();
+    const revised = (await (await savedResponse).json()).id;
+    expect(revised).not.toBe(original);
+    await expect(selector).toHaveValue(revised);
+    const returnedScenario = page.waitForResponse((response) => response.url().includes(`/api/v1/scenarios/${original}`));
+    release();
+    await returnedScenario;
+    await page.getByRole("button", { name: "Refresh saved work", exact: true }).click();
+    await expect(selector).toHaveValue(revised);
+    await expect(page.getByRole("heading", { name: /Comparison results/ })).toHaveCount(0);
+  } finally {
+    release();
+    await page.unrouteAll({ behavior: "wait" });
+  }
+});
