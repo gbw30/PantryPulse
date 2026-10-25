@@ -52,3 +52,19 @@ def test_malformed_and_non_object_output_are_classified():
         ).error_code
         == "OUTPUT_INVALID"
     )
+
+
+def test_a_late_programming_error_keeps_its_code_and_stays_ineligible():  # WQ-T16
+    err = ChildOutput(
+        stdout=b'{"status":"FAILED","error_code":"HANDLER_FAILED","fallback_eligible":false}',
+        stderr=b"",
+        overflow=False,
+        returncode=0,
+    )
+    outcome = step_outcome(
+        "primary", err, timed_out=False, overflowed=False, elapsed_s=270.02, hard_stop_s=270
+    )
+    assert outcome.status is StepStatus.FAILED
+    assert outcome.error_code == "HANDLER_FAILED"
+    assert outcome.fallback_eligible is False
+    assert outcome.details["cutoff_breach_s"] == 0.02

@@ -6,6 +6,7 @@ after its step was stopped is never treated as a publishable result.
 
 import json
 import re
+from dataclasses import replace
 
 from app.services.jobs.contracts import ReasonCode, StepOutcome, StepStatus
 from app.workers.process_driver import ChildOutput
@@ -30,18 +31,33 @@ def step_outcome(
     hard_stop_s: float,
 ) -> StepOutcome:
     """``elapsed_s`` is when the supervisor observed exit; past ``hard_stop_s`` it is a
-    recorded cutoff breach and the output, if any, is not publishable (spec §9.3)."""
-    elapsed = round(elapsed_s, 3)
+    recorded cutoff breach and the output, if any, is not publishable (spec §9.3).
+
+    A breach never upgrades a failure: a late programming error keeps its code and stays
+    ineligible for fallback (WQ-T16); only late *successful* output becomes a timeout.
+    """
+    outcome = _classify(
+        name, output, timed_out=timed_out, overflowed=overflowed, elapsed_s=elapsed_s
+    )
     breach = round(elapsed_s - hard_stop_s, 3)
-    if breach > 0:
+    if breach <= 0:
+        return outcome
+    if outcome.status is StepStatus.COMPLETED:
         return StepOutcome(
             name,
             StepStatus.TIMED_OUT,
             error_code=ReasonCode.STEP_DEADLINE_EXCEEDED.value,
             fallback_eligible=True,
-            elapsed_s=elapsed,
+            elapsed_s=outcome.elapsed_s,
             details={"cutoff_breach_s": breach},
         )
+    return replace(outcome, details={**outcome.details, "cutoff_breach_s": breach})
+
+
+def _classify(
+    name: str, output: ChildOutput, *, timed_out: bool, overflowed: bool, elapsed_s: float
+) -> StepOutcome:
+    elapsed = round(elapsed_s, 3)
     if timed_out:
         # Late raw output is discarded; a stopped primary may make fallback eligible.
         return StepOutcome(
