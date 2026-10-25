@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FlaskConical, GitCompareArrows, ListChecks, Map as MapIcon, Settings, Table2 } from "lucide-react";
+import { BookOpenText, FlaskConical, GitCompareArrows, ListChecks, Map as MapIcon, Settings, Table2 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -13,8 +13,9 @@ import {
 } from "@/components/ui/sidebar";
 import { PresenterFooter } from "./presenter-footer";
 
-// "optimization" is the connected presenter workspace (a utility destination, not a blueprint page).
-export type NavKey = "overview" | "data" | "recommendations" | "scenarios" | "optimization";
+// "optimization" (connected presenter workspace) and "methodology" (research and audit, blueprint §7) are
+// utility destinations, not one of the four blueprint pages.
+export type NavKey = "overview" | "data" | "recommendations" | "scenarios" | "optimization" | "methodology";
 
 // Proposed routes from the blueprint (§2). Only built destinations are links; the rest stay visible
 // but disabled so the shell geometry is identical on every page without linking to missing screens.
@@ -78,6 +79,18 @@ export function AppSidebar({ active }: { active: NavKey }) {
                     <Link href="/optimization" aria-current={active === "optimization" ? "page" : undefined}>
                       <GitCompareArrows className="size-[18px]" />
                       <span>Optimization workspace</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </nav>
+            <nav aria-label="Reference" className="mt-2">
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={active === "methodology"} className="h-10 gap-3 px-3 text-[15px]">
+                    <Link href="/methodology" aria-current={active === "methodology" ? "page" : undefined}>
+                      <BookOpenText className="size-[18px]" />
+                      <span>Methodology &amp; audit</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
