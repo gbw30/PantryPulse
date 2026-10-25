@@ -1,0 +1,63 @@
+# Prepared configuration only. Supply --app YOUR_APP for an existing/created app.
+# Region must match the selected demo DB and volume before deploying.
+primary_region = "iad"
+kill_signal = "SIGTERM"
+kill_timeout = 300
+
+[build]
+  dockerfile = "Dockerfile.compute"
+
+[env]
+  APP_ENV = "demo"
+  DEMO_MODE = "true"
+  PP_COOKIE_SECURE = "true"
+  HF_HOME = "/cache/huggingface"
+  CHRONOS_PIN_FILE = "/cache/model-pin.json"
+  CHRONOS_OUTPUT_DIR = "/cache/outputs"
+  TOKENIZERS_PARALLELISM = "false"
+  OMP_NUM_THREADS = "4"
+  MKL_NUM_THREADS = "4"
+  OPENBLAS_NUM_THREADS = "4"
+
+[processes]
+  api = "python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1"
+  # Fly supports 1/2/4/8/16 vCPUs, not 6: choose 4, below V5's ceiling.
+  worker = "python -m app.workers.supervisor --registry production --profile-json '{\"worker_cpu\":4,\"worker_memory_gib\":8}'"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["api"]
+
+  [[http_service.checks]]
+    grace_period = "30s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/api/v1/health"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "1gb"
+  processes = ["api"]
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 4
+  memory = "8gb"
+  processes = ["worker"]
+
+[[mounts]]
+  source = "chronos_cache"
+  destination = "/cache"
+  initial_size = "10gb"
+  processes = ["worker"]
+
+# Main's production registry runs baseline forecasts; Chronos is a standalone tool.
+# Configure the actual schema, presenter credentials/origins and trusted proxy token
+# through private Fly secrets. No automatic migration, seeding or model download.
+# Keep exactly one worker; inspect existing Machines before every deployment.
