@@ -16,13 +16,11 @@ import type { MarkerStatus, Site } from "./types";
 /** `statusLine` is the short visible status, e.g. "Watch · Oct 27". */
 export type MapMarker = { site: Site; status: MarkerStatus; statusLine: string; accessibleName: string };
 
-export type SelectionContext = {
-  point: { left: number; top: number };
-  /** The map area not covered by floating panels; popovers stay inside it. */
-  boundary: HTMLElement | null;
-  boundaryWidth: number;
-  boundaryHeight: number;
-};
+/**
+ * Where the selection card docks: a band along the bottom of the map that markers never enter
+ * (desktop), or a band above the zoom row (compact). `top` is the band's bottom edge in map pixels.
+ */
+export type SelectionContext = { left: number; top: number; width: number };
 
 export type NetworkMapProps = {
   markers: MapMarker[];
@@ -44,7 +42,9 @@ const ZOOM_MIN = 0.7;
 const ZOOM_MAX = 1.8;
 const PAD_X = 64;
 const PAD_TOP = 40;
-const PAD_BOTTOM = 60;
+// Desktop markers stay above a ~110px selection band along the bottom of the map.
+const PAD_BOTTOM = 168;
+const CAPTION_WIDTH = 232;
 // Leaves >= 8px between the bottom marker label (82px tall) and the 46px control row.
 const PAD_BOTTOM_COMPACT = 104;
 const MARKER_RISE = 36;
@@ -130,7 +130,6 @@ function AtlasMarker({ marker, point, selected, onSelect }: { marker: MapMarker;
 
 export function SchematicMapRenderer({ markers, positions, selectedId, onSelect, reserveRight, reserveTop = 0, compact = false, renderSelection, className }: NetworkMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const [boundary, setBoundary] = useState<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -197,8 +196,11 @@ export function SchematicMapRenderer({ markers, positions, selectedId, onSelect,
         if (!position) return null;
         return <AtlasMarker key={marker.site.id} marker={marker} point={project(position)} selected={marker.site.id === selectedId} onSelect={onSelect} />;
       })}
-      <div ref={setBoundary} aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0" style={{ right: reserveRight }} />
-      {ready && selectedPosition && renderSelection?.({ point: project(selectedPosition), boundary, boundaryWidth: size.width - reserveRight, boundaryHeight: size.height })}
+      {ready && selectedPosition && renderSelection?.(
+        compact
+          ? { left: 12, top: size.height - 64, width: size.width - 24 }
+          : { left: 60, top: size.height - 12, width: clamp(size.width - reserveRight - 60 - 12 - CAPTION_WIDTH, 280, 420) },
+      )}
       <div className={cn("absolute bottom-3 left-3 z-10 flex overflow-hidden rounded-lg border border-border bg-card shadow-sm", compact ? "flex-row" : "flex-col")} role="group" aria-label="Map controls">
         <Tooltip>
           <TooltipTrigger asChild>

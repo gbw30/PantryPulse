@@ -47,6 +47,21 @@ async function chooseProduct(page: Page, name: RegExp) {
 
 const marker = (page: Page, name: string) => page.getByRole("button", { name: new RegExp(`^${name}, `) });
 
+const SITES = ["Riverbend Pantry", "Oak Terrace Pantry", "Cedar Grove Pantry", "Maple Crossing Pantry", "Willow Creek Pantry", "Pine Ridge Pantry", "Gator Distribution Hub"];
+const slug = (name: string) => name.replace(/ (Pantry|Distribution Hub)$/, (match) => (match.includes("Hub") ? " hub" : "")).toLowerCase().replace(/ /g, "-");
+
+async function markerBoxes(page: Page) {
+  const boxes = new Map<string, Box>();
+  for (const name of SITES) boxes.set(name, await box(marker(page, name)));
+  return boxes;
+}
+
+// A scroll cue is visible whenever the inspector's content overflows it.
+async function expectScrollCueWhenOverflowing(inspector: Locator) {
+  const overflows = await inspector.evaluate((element) => element.scrollHeight > element.clientHeight + 1 && element.scrollTop + element.clientHeight < element.scrollHeight - 4);
+  if (overflows) await expect(inspector.getByText("More below")).toBeVisible();
+}
+
 for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
   test(`network atlas at ${width}x${height}`, async ({ page }, testInfo) => {
     const pageErrors: string[] = [];
@@ -92,7 +107,15 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
     await expect(page.getByRole("list", { name: "All sites" }).getByRole("button", { name: /Willow Creek Watch · Oct 29/ })).toBeVisible();
     if (desktop) {
       const deficits = page.getByRole("list", { name: "Projected deficits" });
-      await expect(deficits.getByRole("button")).toHaveText([/Riverbend · Sat, Oct 24 · 20 meals unmet/, /Oak Terrace · Tue, Oct 27 · 35 meals unmet/, /Willow Creek · Thu, Oct 29 · 36 meals unmet/]);
+      await expect(deficits.getByRole("button")).toHaveText([/Riverbend · Sat, Oct 24 · 20 meals unmet/, /Pine Ridge · Sat, Oct 24 · 14 meals unmet/, /Oak Terrace · Tue, Oct 27 · 35 meals unmet/, /Willow Creek · Thu, Oct 29 · 36 meals unmet/]);
+      // N3: every status count is visible inside the unselected inspector.
+      const inspectorPanel = page.getByTestId("site-inspector");
+      const panelBox = await box(inspectorPanel);
+      for (const state of ["Shortfall", "Watch", "Covered", "Not evaluated"]) {
+        const count = inspectorPanel.getByRole("definition").filter({ hasText: state });
+        expect(inside(await box(count), panelBox), `${state} count clipped`).toBe(true);
+      }
+      await expectScrollCueWhenOverflowing(inspectorPanel);
     }
 
     // The top bar carries no person, avatar or account identity.
@@ -106,7 +129,7 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
     await expectNoSeriousA11yViolations(page, testInfo, `overview ${width}x${height} default`);
 
     // Popovers open by keyboard, stay inside the map and clear of the inspector, and return focus on Esc.
-    for (const [name, slug, deficit] of [["Riverbend Pantry", "riverbend", "First deficit Sat, Oct 24 · 20 meals unmet"], ["Oak Terrace Pantry", "oak-terrace", "First deficit Tue, Oct 27 · 35 meals unmet"]]) {
+    for (const [name, slugName, deficit] of [["Riverbend Pantry", "riverbend", "Next deficit Sat, Oct 24 · 20 meals unmet"], ["Oak Terrace Pantry", "oak-terrace", "Next deficit Tue, Oct 27 · 35 meals unmet"]]) {
       const target = marker(page, name);
       await target.focus();
       await page.keyboard.press("Enter");
@@ -120,10 +143,33 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
       expect(inside(popoverBox, mapBox), `${name} popover leaves the map`).toBe(true);
       if (desktop) expect(overlaps(popoverBox, await box(page.getByTestId("site-inspector"))), `${name} popover covers the inspector`).toBe(false);
       expect(overlaps(popoverBox, await box(target)), `${name} popover covers its marker`).toBe(false);
-      await shot(`popover-${slug}`);
+      if (!desktop) {
+        // N2: the docked card clears the zoom controls and leaves at least four markers unobscured.
+        expect(overlaps(popoverBox, await box(page.getByRole("group", { name: "Map controls" }))), "popover covers the zoom controls").toBe(false);
+        const clear = [...(await markerBoxes(page)).values()].filter((rect) => !overlaps(popoverBox, rect));
+        expect(clear.length, "fewer than four markers stay visible").toBeGreaterThanOrEqual(4);
+      }
+      await shot(`popover-${slugName}`);
       await page.keyboard.press("Escape");
       await expect(popover).toBeHidden();
       await expect(target).toBeFocused();
+    }
+
+    if (desktop) {
+      for (const name of SITES) {
+        const target = marker(page, name);
+        await target.focus();
+        await page.keyboard.press("Enter");
+        const popover = page.getByRole("dialog", { name });
+        await expect(popover).toBeVisible();
+        const popoverBox = await box(popover);
+        expect(inside(popoverBox, await box(page.locator("[data-atlas-map]"))), `${name} popover leaves the map`).toBe(true);
+        expect(overlaps(popoverBox, await box(page.getByTestId("site-inspector"))), `${name} popover covers the inspector`).toBe(false);
+        for (const [other, rect] of await markerBoxes(page)) expect(overlaps(popoverBox, rect), `${name} popover covers ${other}`).toBe(false);
+        if (width === 1280 && (name === "Gator Distribution Hub" || name === "Maple Crossing Pantry")) await shot(`popover-${name.includes("Hub") ? "hub" : slug(name)}`);
+        await page.keyboard.press("Escape");
+        await expect(target).toBeFocused();
+      }
     }
 
     // Inspect site opens the inspector on the Network tab with the selected product's units.
@@ -140,6 +186,7 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
     await expect(inspector.getByText("Routes hidden — no saved plan")).toBeVisible();
     await expect(inspector.getByRole("button", { name: "Go to Site Details" })).toBeDisabled();
     await expect(page.locator("button.bg-primary:not([disabled]):visible")).toHaveCount(0);
+    await expectScrollCueWhenOverflowing(inspector);
     await shot("inspector-network");
     await expectNoSeriousA11yViolations(page, testInfo, `overview ${width}x${height} inspector network`);
 
@@ -159,6 +206,7 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]]) {
     expect(inside(await box(heading), await box(inspector)), "inspector header scrolled out of view").toBe(true);
     await expect(heading).toBeInViewport();
     await expectNoSeriousA11yViolations(page, testInfo, `overview ${width}x${height} inspector demand`);
+    await expectScrollCueWhenOverflowing(inspector);
     await shot("inspector-demand-table-open");
     await page.keyboard.press("Escape");
     await expect(riverbend).toBeFocused();
@@ -190,9 +238,18 @@ test("water product and hub views at 1440x900", async ({ page }, testInfo) => {
   const inspector = page.getByTestId("site-inspector");
   await expect(inspector).toContainText("Insufficient data");
   await expect(inspector).toContainText("96 bottles");
+  await expect(inspector).not.toContainText("A deficit here");
+  await expect(inspector).toContainText("No projection, so transfers can't be assessed.");
   await page.screenshot({ path: testInfo.outputPath("overview-1440-water-insufficient.png"), fullPage: true });
   await page.keyboard.press("Escape");
   await chooseProduct(page, /Shelf-stable meals/);
+  const cedar = marker(page, "Cedar Grove Pantry");
+  await cedar.focus();
+  await page.keyboard.press("Enter");
+  await page.getByRole("button", { name: "Inspect site" }).click();
+  await expect(inspector).not.toContainText("A deficit here");
+  await expect(inspector).toContainText("No projected deficit, so no transfer is needed in this view.");
+  await page.keyboard.press("Escape");
   const hub = marker(page, "Gator Distribution Hub");
   await hub.focus();
   await page.keyboard.press("Enter");
@@ -200,6 +257,49 @@ test("water product and hub views at 1440x900", async ({ page }, testInfo) => {
   await expect(inspector).toContainText("Hub · source");
   await expect(inspector).toContainText("the hub has no demand forecast");
   await page.screenshot({ path: testInfo.outputPath("overview-1440-hub.png"), fullPage: true });
+});
+
+test("next deficits follow the selected local day (Wed, Oct 28)", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/overview");
+  await page.getByRole("combobox", { name: "Local day" }).click();
+  await page.getByRole("option", { name: "Wed, Oct 28" }).click();
+  await expect(page.getByRole("combobox", { name: "Local day" })).toHaveText(/Wed, Oct 28/);
+  const DAY = /(?:Sat|Sun|Mon|Tue|Wed|Thu|Fri), Oct (\d+)|Oct (\d+)/g;
+  const datesIn = (text: string) => [...text.matchAll(DAY)].map((match) => Number(match[1] ?? match[2]));
+  const deficitDates = (text: string) => [...text.matchAll(/(?:next deficit|Next deficit) (?:Sat|Sun|Mon|Tue|Wed|Thu|Fri), Oct (\d+)/g)].map((match) => Number(match[1]));
+
+  for (const button of await page.getByRole("list", { name: "Projected deficits" }).getByRole("button").all()) {
+    for (const day of datesIn((await button.textContent()) ?? "")) expect(day).toBeGreaterThanOrEqual(28);
+  }
+  for (const chip of await page.getByRole("list", { name: "All sites" }).getByRole("button").all()) {
+    for (const day of datesIn((await chip.textContent()) ?? "")) expect(day).toBeGreaterThanOrEqual(28);
+  }
+  await page.screenshot({ path: testInfo.outputPath("overview-1440-day-oct28-unselected.png"), fullPage: true });
+
+  for (const name of SITES) {
+    const target = marker(page, name);
+    const accessibleName = (await target.getAttribute("aria-label")) ?? "";
+    for (const day of deficitDates(accessibleName)) expect(day, `${name} marker`).toBeGreaterThanOrEqual(28);
+    await target.focus();
+    await page.keyboard.press("Enter");
+    const popover = page.getByRole("dialog", { name });
+    await expect(popover).toBeVisible();
+    const text = (await popover.textContent()) ?? "";
+    for (const day of deficitDates(text)) expect(day, `${name} popover`).toBeGreaterThanOrEqual(28);
+    if (accessibleName.includes(", Covered,")) {
+      expect(deficitDates(text), `${name} is Covered but shows a deficit date`).toEqual([]);
+      await expect(popover).toContainText("No projected deficit");
+      await popover.getByRole("button", { name: "Inspect site" }).click();
+      const inspector = page.getByTestId("site-inspector");
+      expect(deficitDates((await inspector.textContent()) ?? ""), `${name} inspector`).toEqual([]);
+      await page.keyboard.press("Escape");
+    } else {
+      await page.keyboard.press("Escape");
+    }
+    await expect(target).toBeFocused();
+  }
 });
 
 test("site search filters the list and selects a match", async ({ page }) => {

@@ -123,9 +123,10 @@ const PROJECTIONS: Record<string, Record<string, SiteProductProjection>> = {
     [MEALS]: beneficiary({ lots: [{ units: 185, lastUsableDay: null }], demand: [35, 38, 36, 40, 42, 45, 40], donation: [5, 0, 5, 0, 5, 0, 5] }),
     [WATER]: beneficiary({ lots: [{ units: 48, lastUsableDay: 1 }, { units: 360, lastUsableDay: null }], demand: [45, 44, 46, 45, 47, 44, 45], donation: [0, 0, 0, 0, 0, 0, 0] }),
   },
-  // Meals: covered. Water: insufficient data — no projection, never shown as covered.
+  // Meals: shortfall on the first day only, then covered after a large donation (a later selected day
+  // must not show the earlier deficit). Water: insufficient data — no projection, never shown as covered.
   "pine-ridge": {
-    [MEALS]: beneficiary({ lots: [{ units: 20, lastUsableDay: 1 }, { units: 260, lastUsableDay: null }], demand: [32, 34, 30, 33, 35, 31, 30], donation: [0, 10, 0, 10, 0, 10, 0] }),
+    [MEALS]: beneficiary({ lots: [{ units: 10, lastUsableDay: 0 }, { units: 8, lastUsableDay: null }], demand: [32, 34, 30, 33, 35, 31, 30], donation: [0, 120, 0, 90, 0, 60, 0] }),
     [WATER]: {
       kind: "insufficient_data",
       reason: "Too few recent bottled-water demand observations to project this site.",

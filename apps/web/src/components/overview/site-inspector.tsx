@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DemandOutlookChart } from "./demand-outlook-chart";
 import { ProvenancePill } from "./provenance-pill";
 import { StatusGlyph } from "./status-glyph";
-import { firstDeficit, formatDay, formatUnits, roleLabel, STATUS_LABEL, statusFor } from "./status";
+import { formatDay, formatUnits, nextDeficitLine, roleLabel, STATUS_LABEL, statusFor } from "./status";
 import type { Product, Site, SiteProductProjection } from "./types";
 
 type Props = {
@@ -19,14 +19,21 @@ type Props = {
 
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="grid gap-0.5 border-b border-border py-2 last:border-b-0">
+    <div className="grid gap-0.5 border-b border-border py-1.5 last:border-b-0">
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className="text-sm font-medium text-foreground">{children}</dd>
     </div>
   );
 }
 
-function NetworkFacts({ site, product, projection, dates, dayIndex }: Omit<Props, "renderTitle">) {
+function routesNote(status: ReturnType<typeof statusFor>) {
+  if (status === "shortfall" || status === "watch") return "A deficit here has no proposed transfer.";
+  if (status === "covered") return "No projected deficit, so no transfer is needed in this view.";
+  if (status === "not_evaluated") return "No projection, so transfers can't be assessed.";
+  return "";
+}
+
+function NetworkFacts({ product, projection, dates, dayIndex }: Omit<Props, "renderTitle">) {
   const status = statusFor(projection, dayIndex);
   const day = formatDay(dates[dayIndex]);
   const end = formatDay(dates[dates.length - 1]);
@@ -54,15 +61,12 @@ function NetworkFacts({ site, product, projection, dates, dayIndex }: Omit<Props
       )}
       {projection?.kind === "projected" && (() => {
         const target = projection.targetUnits[dayIndex];
-        const deficit = firstDeficit(projection);
         return (
           <>
             <Fact label={`Served / target on ${day}`}>
               {target === 0 ? "N/A (target is 0)" : `${projection.servedUnits[dayIndex].toLocaleString("en-US")} / ${formatUnits(target, product)}`}
             </Fact>
-            <Fact label="First deficit">
-              {deficit ? `${formatDay(dates[deficit.dayIndex])} · ${formatUnits(deficit.unmetUnits, product)} unmet` : `No projected deficit through ${end}`}
-            </Fact>
+            <Fact label={`Next deficit from ${day}`}>{nextDeficitLine(projection, product, dates, dayIndex)}</Fact>
           </>
         );
       })()}
@@ -75,7 +79,7 @@ function NetworkFacts({ site, product, projection, dates, dayIndex }: Omit<Props
     </dl>
       <div className="mt-2 flex items-start gap-2 rounded-lg bg-muted px-2.5 py-2 text-xs">
         <Route className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-        <span><span className="font-medium">Routes hidden — no saved plan</span><span className="block text-muted-foreground">Transfers appear only after an allocation plan is saved. {site.role === "HUB" ? "" : "A deficit here has no proposed transfer."}</span></span>
+        <span><span className="font-medium">Routes hidden — no saved plan</span><span className="block text-muted-foreground">Transfers appear only after an allocation plan is saved. {routesNote(status)}</span></span>
       </div>
     </>
   );

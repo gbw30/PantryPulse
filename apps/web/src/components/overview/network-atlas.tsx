@@ -10,12 +10,12 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/
 import { Skeleton } from "@/components/ui/skeleton";
 import { resolveAtlasLayout } from "./atlas-layout";
 import { RiskLegend } from "./risk-legend";
-import { SchematicMapRenderer, type MapMarker, type SelectionContext } from "./schematic-map";
+import { SchematicMapRenderer, type MapMarker } from "./schematic-map";
 import { SiteInspector } from "./site-inspector";
 import { SiteList } from "./site-list";
 import { StatusGlyph } from "./status-glyph";
 import { overviewSourceFor, STATIC_FIXTURE_LABEL } from "./static-fixture";
-import { firstDeficit, formatDay, formatRange, formatUnits, markerAccessibleName, nextDeficitFrom, roleLabel, STATUS_LABEL, statusDetail, statusFor, statusLine } from "./status";
+import { formatDay, formatRange, formatUnits, markerAccessibleName, nextDeficitFrom, nextDeficitLine, roleLabel, STATUS_LABEL, statusDetail, statusFor, statusLine } from "./status";
 import type { BeneficiaryStatus, MarkerStatus, OverviewSnapshot } from "./types";
 
 type LoadState = { status: "loading" } | { status: "ready"; snapshot: OverviewSnapshot } | { status: "error"; message: string };
@@ -34,16 +34,30 @@ function useMediaQuery(query: string, serverValue: boolean) {
 
 const DOI_URL = "https://doi.org/10.1111/itor.70252";
 
-const POPOVER_WIDTH = 272;
-// Offsets clear the marker button (112px wide; 20px above and 58px below its point).
-const SIDE_GAP = 62;
+/** Tracks whether a scroll container has content below its visible area (drives the "More below" cue). */
+function useOverflowBelow(element: HTMLElement | null, contentKey: string) {
+  const [below, setBelow] = useState(false);
+  useEffect(() => {
+    if (!element) return;
+    const update = () => setBelow(element.scrollTop + element.clientHeight < element.scrollHeight - 4);
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    for (const child of element.children) observer.observe(child);
+    element.addEventListener("scroll", update, { passive: true });
+    return () => {
+      observer.disconnect();
+      element.removeEventListener("scroll", update);
+    };
+  }, [element, contentKey]);
+  return below;
+}
 
-/** Place the popover beside the marker when it fits inside the map area left of the inspector, otherwise above/below. */
-function popoverPlacement({ point, boundaryWidth, boundaryHeight }: SelectionContext) {
-  const pad = 12;
-  if (point.left + SIDE_GAP + POPOVER_WIDTH + pad <= boundaryWidth) return { side: "right" as const, offset: SIDE_GAP, align: point.top < boundaryHeight * 0.55 ? ("start" as const) : ("end" as const) };
-  if (point.left - SIDE_GAP - POPOVER_WIDTH - pad >= 0) return { side: "left" as const, offset: SIDE_GAP, align: point.top < boundaryHeight * 0.55 ? ("start" as const) : ("end" as const) };
-  return point.top < boundaryHeight * 0.5 ? { side: "bottom" as const, offset: 64, align: "center" as const } : { side: "top" as const, offset: 26, align: "center" as const };
+function ScrollCue({ className }: { className?: string }) {
+  return (
+    <div aria-hidden="true" className={`pointer-events-none sticky z-20 flex h-10 items-end justify-center bg-linear-to-t from-card via-card/90 to-transparent pb-1 ${className ?? ""}`}>
+      <span className="rounded-full border border-border bg-card px-2 py-0.5 text-[11px] text-foreground">More below</span>
+    </div>
+  );
 }
 
 export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
@@ -57,6 +71,9 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [query, setQuery] = useState("");
   const invokerRef = useRef<HTMLElement | null>(null);
+  const invokerSiteRef = useRef<string | null>(null);
+  const [inspectorPanel, setInspectorPanel] = useState<HTMLElement | null>(null);
+  const [sheetPanel, setSheetPanel] = useState<HTMLElement | null>(null);
   const afterPopoverClose = useRef<"invoker" | "inspector" | "none">("invoker");
   const inspectorHeadingRef = useRef<HTMLHeadingElement>(null);
   const [legend, setLegend] = useState<HTMLDivElement | null>(null);
@@ -94,7 +111,7 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
     return snapshot.sites.map((site) => {
       const projection = snapshot.projections[site.id]?.[product.id];
       const status = statusFor(projection, dayIndex);
-      const detail = statusDetail(projection, product, snapshot.dates);
+      const detail = statusDetail(projection, product, snapshot.dates, dayIndex);
       return { site, projection, status, detail, statusLine: statusLine(status, projection, dayIndex, snapshot.dates) };
     });
   }, [snapshot, product, dayIndex]);
@@ -107,8 +124,21 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
   const dayLabel = snapshot ? formatDay(snapshot.dates[dayIndex]) : null;
   const horizonLabel = snapshot ? `Next 7 days · ${formatRange(snapshot.dates)}` : undefined;
 
+  // Return focus to the control that opened the selection. If it was remounted (e.g. while other
+  // routes compile in development), fall back to the site's marker found by its stable id.
+  function restoreFocus() {
+    const invoker = invokerRef.current;
+    if (invoker?.isConnected) {
+      invoker.focus();
+      return;
+    }
+    const siteId = invokerSiteRef.current;
+    if (siteId) document.querySelector<HTMLElement>(`[data-site-id="${siteId}"]`)?.focus();
+  }
+
   function select(siteId: string, invoker: HTMLElement) {
     invokerRef.current = invoker;
+    invokerSiteRef.current = siteId;
     afterPopoverClose.current = "invoker";
     setSelectedId(siteId);
     setPopoverOpen(true);
@@ -119,7 +149,7 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
   function clearSelection() {
     setPopoverOpen(false);
     setSelectedId(null);
-    invokerRef.current?.focus();
+    restoreFocus();
   }
 
   function inspect() {
@@ -139,6 +169,9 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
     setAttempt((value) => value + 1);
   }
 
+  const contentKey = `${selectedId ?? "none"}-${product?.id ?? ""}-${dayIndex}`;
+  const inspectorBelow = useOverflowBelow(inspectorPanel, contentKey);
+  const sheetBelow = useOverflowBelow(sheetPanel, `${contentKey}-${sheetOpen}`);
   const markers: MapMarker[] = rows.map(({ site, status, detail, statusLine: line }) => ({ site, status, statusLine: line, accessibleName: markerAccessibleName(site, status, detail) }));
   const deficits = rows
     .map((row) => ({ row, next: nextDeficitFrom(row.projection, dayIndex) }))
@@ -242,7 +275,7 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
 
           {snapshot && <SiteList items={matches} selectedId={selectedId} query={query} onSelect={select} />}
 
-          <section aria-label="Network map" className="relative flex min-h-0 flex-col gap-3 lg:block lg:min-h-[460px] lg:flex-1">
+          <section aria-label="Network map" className="relative flex min-h-0 flex-col gap-3 lg:block lg:min-h-[520px] lg:flex-1">
             <RiskLegend
               ref={setLegend}
               context={legendContext}
@@ -250,19 +283,19 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
               style={isDesktop ? { right: reserveRight + 16 } : undefined}
             />
             {load.status === "loading" && (
-              <div role="status" className="relative grid h-[52svh] place-items-center overflow-hidden rounded-2xl border border-border bg-pp-surface-muted lg:h-full">
+              <div role="status" className="relative grid h-[54svh] place-items-center overflow-hidden rounded-2xl border border-border bg-pp-surface-muted lg:h-full">
                 <Skeleton className="absolute inset-6 rounded-xl bg-pp-border/50" />
                 <span className="relative rounded-md bg-card px-3 py-1.5 text-sm text-foreground">Loading network snapshot…</span>
               </div>
             )}
             {load.status === "error" && (
-              <div className="grid h-[52svh] place-items-center rounded-2xl border border-dashed border-border bg-pp-surface-muted p-6 text-center text-sm text-muted-foreground lg:h-full">
+              <div className="grid h-[54svh] place-items-center rounded-2xl border border-dashed border-border bg-pp-surface-muted p-6 text-center text-sm text-muted-foreground lg:h-full">
                 The map stays empty until a snapshot loads.
               </div>
             )}
             {snapshot && product && (
               <SchematicMapRenderer
-                className="h-[52svh] lg:h-full"
+                className="h-[54svh] lg:h-full"
                 compact={!isDesktop}
                 markers={markers}
                 positions={positions}
@@ -270,36 +303,35 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
                 onSelect={select}
                 reserveRight={reserveRight}
                 reserveTop={isDesktop && legendHeight > 0 ? 16 + legendHeight : 0}
-                renderSelection={(context) => selected && (() => {
-                  const placement = popoverPlacement(context);
-                  return (
+                renderSelection={(dock) => selected && (
+                  // Docked along the bottom of the map so the card never hides other sites (desktop) and
+                  // sits above the zoom row on narrow layouts.
                   <Popover open={popoverOpen} onOpenChange={(open) => { if (!open) setPopoverOpen(false); }}>
                     <PopoverAnchor asChild>
-                      <span aria-hidden="true" className="pointer-events-none absolute size-px" style={{ left: context.point.left, top: context.point.top }} />
+                      <span aria-hidden="true" className="pointer-events-none absolute h-0" style={{ left: dock.left, top: dock.top, width: dock.width }} />
                     </PopoverAnchor>
                     <PopoverContent
-                      side={placement.side}
-                      align={placement.align}
-                      sideOffset={placement.offset}
-                      collisionPadding={8}
-                      collisionBoundary={context.boundary}
+                      side="top"
+                      align="start"
+                      sideOffset={0}
+                      avoidCollisions={false}
                       aria-label={selected.site.name}
-                      className="motion-reduce:animate-none!"
-                      style={{ width: POPOVER_WIDTH }}
+                      className="p-3 motion-reduce:animate-none!"
+                      style={{ width: dock.width }}
                       onCloseAutoFocus={(event) => {
                         event.preventDefault();
-                        if (afterPopoverClose.current === "invoker") invokerRef.current?.focus();
+                        if (afterPopoverClose.current === "invoker") restoreFocus();
                       }}
                     >
                       <PopoverSummary row={selected} product={product} snapshot={snapshot} dayIndex={dayIndex} onInspect={inspect} />
                     </PopoverContent>
                   </Popover>
-                  );
-                })()}
+                )}
               />
             )}
             {snapshot && product && isDesktop && (
               <aside
+                ref={setInspectorPanel}
                 aria-label="Site inspector"
                 data-testid="site-inspector"
                 className="absolute top-4 right-4 bottom-4 z-10 overflow-y-auto rounded-xl border border-border bg-card p-4 shadow-sm"
@@ -313,10 +345,12 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
               >
                 {inspectorBody ?? (
                   <div className="grid gap-3 text-sm">
-                    <h2 className="text-base font-semibold">Site inspector</h2>
-                    <p className="text-muted-foreground">Select a site on the map or in the site list to see its stock, first deficit and outlook.</p>
+                    <div className="grid gap-0.5">
+                      <h2 className="text-base font-semibold">Site inspector</h2>
+                      <p className="text-[13px] text-muted-foreground">Select a site for stock, deficits and outlook.</p>
+                    </div>
                     <div className="grid gap-1.5">
-                      <h3 className="text-xs font-medium text-muted-foreground">Projected deficits from {dayLabel}, earliest first</h3>
+                      <h3 className="text-xs font-medium text-muted-foreground">Next deficits from {dayLabel}, earliest first</h3>
                       {deficits.length === 0 ? (
                         <p>No projected deficits from {dayLabel} through {formatDay(snapshot.dates[snapshot.dates.length - 1])}.</p>
                       ) : (
@@ -326,18 +360,21 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
                               <button
                                 type="button"
                                 onClick={(event) => selectFromList(row.site.id, event.currentTarget)}
-                                className="flex min-h-10 w-full items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-1.5 text-left outline-none hover:border-foreground/40 focus-visible:ring-2 focus-visible:ring-ring"
+                                className="flex min-h-10 w-full items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-1 text-left leading-tight outline-none hover:border-foreground/40 focus-visible:ring-2 focus-visible:ring-ring"
                               >
                                 <StatusGlyph status={row.status} />
-                                <span>{row.site.shortName} · {formatDay(snapshot.dates[next.dayIndex])} · {formatUnits(next.unmetUnits, product)} unmet</span>
+                                <span className="min-w-0">
+                                  <span className="block text-[13px] font-semibold">{row.site.shortName}<span className="sr-only"> · </span></span>
+                                  <span className="block text-xs">{formatDay(snapshot.dates[next.dayIndex])} · {formatUnits(next.unmetUnits, product)} unmet</span>
+                                </span>
                               </button>
                             </li>
                           ))}
                         </ul>
                       )}
                     </div>
-                    <dl className="grid gap-1.5 rounded-lg bg-muted px-3 py-2.5">
-                      <dt className="text-xs text-muted-foreground">{beneficiaryCount} pantries, {legendContext}</dt>
+                    <dl className="grid gap-1 rounded-lg bg-muted px-3 py-2">
+                      <dt className="text-xs text-muted-foreground">{beneficiaryCount} pantries on {dayLabel}</dt>
                       {(Object.keys(counts) as BeneficiaryStatus[]).map((status) => (
                         <dd key={status} className="flex items-center justify-between gap-2">
                           <span className="inline-flex items-center gap-2"><StatusGlyph status={status} />{STATUS_LABEL[status]}</span>
@@ -347,6 +384,7 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
                     </dl>
                   </div>
                 )}
+                {inspectorBelow && <ScrollCue className="-bottom-4 -mx-4 -mb-4 mt-2" />}
               </aside>
             )}
           </section>
@@ -354,16 +392,18 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
           {!isDesktop && (
             <Sheet open={sheetOpen && !!inspectorBody} onOpenChange={setSheetOpen}>
               <SheetContent
+                ref={setSheetPanel}
                 side="bottom"
                 data-testid="site-inspector"
                 className="max-h-[85svh] overflow-y-auto rounded-t-2xl bg-card p-4 [&>button:last-child]:z-20"
                 onCloseAutoFocus={(event) => {
                   event.preventDefault();
-                  invokerRef.current?.focus();
+                  restoreFocus();
                 }}
               >
                 <SheetDescription className="sr-only">Stock, first deficit and outlook for the selected site.</SheetDescription>
                 {inspectorBody}
+                {sheetBelow && <ScrollCue className="-bottom-4 -mx-4 -mt-4" />}
               </SheetContent>
             </Sheet>
           )}
@@ -386,27 +426,29 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
 type Row = { site: OverviewSnapshot["sites"][number]; projection: OverviewSnapshot["projections"][string][string] | undefined; status: MarkerStatus; detail: string };
 
 function PopoverSummary({ row, product, snapshot, dayIndex, onInspect }: { row: Row; product: OverviewSnapshot["products"][number]; snapshot: OverviewSnapshot; dayIndex: number; onInspect: () => void }) {
-  const deficit = firstDeficit(row.projection);
   const day = formatDay(snapshot.dates[dayIndex]);
   let deficitLine: string;
   if (row.status === "hub") deficitLine = "Hub has no demand forecast.";
   else if (row.projection?.kind === "insufficient_data") deficitLine = "Insufficient data: no projection.";
   else if (row.status === "not_evaluated") deficitLine = "Not evaluated: no projection.";
-  else deficitLine = deficit ? `First deficit ${formatDay(snapshot.dates[deficit.dayIndex])} · ${formatUnits(deficit.unmetUnits, product)} unmet` : "No projected deficit";
+  else {
+    const next = nextDeficitFrom(row.projection, dayIndex);
+    deficitLine = next ? `Next deficit ${nextDeficitLine(row.projection, product, snapshot.dates, dayIndex)}` : nextDeficitLine(row.projection, product, snapshot.dates, dayIndex);
+  }
 
   return (
-    <div className="grid gap-2.5">
-      <div>
-        <p className="text-[15px] font-semibold">{row.site.name}</p>
-        <p className="text-xs text-muted-foreground first-letter:uppercase">{roleLabel(row.site)}</p>
+    <div className="flex items-start gap-3">
+      <div className="grid min-w-0 flex-1 gap-0.5">
+        <p className="truncate text-sm font-semibold">
+          {row.site.name} <span className="text-xs font-normal text-muted-foreground">· {roleLabel(row.site)}</span>
+        </p>
+        <p className="flex items-center gap-1.5 text-[13px]">
+          <StatusGlyph status={row.status} />
+          <span><strong className="font-semibold">{STATUS_LABEL[row.status]}</strong>{row.status !== "hub" && <> on {day}</>} · {product.unitPlural}</span>
+        </p>
+        <p className="text-xs">{deficitLine}</p>
       </div>
-      <p className="inline-flex items-center gap-2 text-sm">
-        <StatusGlyph status={row.status} />
-        <span><strong className="font-semibold">{STATUS_LABEL[row.status]}</strong>{row.status !== "hub" && <> on {day}</>}</span>
-      </p>
-      <p className="text-xs text-muted-foreground">{product.name} ({product.unitPlural})</p>
-      <p className="text-sm">{deficitLine}</p>
-      <Button onClick={onInspect} className="w-full">
+      <Button onClick={onInspect} size="sm" className="shrink-0 max-md:h-11">
         Inspect site
       </Button>
     </div>

@@ -72,13 +72,20 @@ export function roleLabel(site: Site) {
 }
 
 /** One-line status detail used by markers, the site list and the popover. */
-export function statusDetail(projection: SiteProductProjection | undefined, product: Product, dates: string[]) {
+export function statusDetail(projection: SiteProductProjection | undefined, product: Product, dates: string[], dayIndex: number) {
   if (!projection || projection.kind === "not_evaluated") return "no projection";
   if (projection.kind === "insufficient_data") return "insufficient data";
   if (projection.kind === "hub") return `${formatUnits(projection.eligibleStockNow, product)} eligible now`;
-  const deficit = firstDeficit(projection);
-  if (!deficit) return "no projected deficit";
-  return `first deficit ${formatDay(dates[deficit.dayIndex])}: ${formatUnits(deficit.unmetUnits, product)} unmet`;
+  const next = nextDeficitFrom(projection, dayIndex);
+  if (!next) return `no projected deficit from ${formatDay(dates[dayIndex])}`;
+  return `next deficit ${formatDay(dates[next.dayIndex])}: ${formatUnits(next.unmetUnits, product)} unmet`;
+}
+
+/** Popover/inspector line for the next deficit on or after the selected day, with units. */
+export function nextDeficitLine(projection: SiteProductProjection | undefined, product: Product, dates: string[], dayIndex: number) {
+  const next = nextDeficitFrom(projection, dayIndex);
+  if (!next) return `No projected deficit from ${formatDay(dates[dayIndex])} through ${formatDay(dates[dates.length - 1])}`;
+  return `${formatDay(dates[next.dayIndex])} · ${formatUnits(next.unmetUnits, product)} unmet`;
 }
 
 export function markerAccessibleName(site: Site, status: MarkerStatus, detail: string) {
