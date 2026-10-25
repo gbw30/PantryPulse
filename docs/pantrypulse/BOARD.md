@@ -1,6 +1,6 @@
 # PantryPulse delivery board
 
-Update after each integration. [Project specification V5](SPEC-V5.md) records the current implementation/branch state and acceptance. PP-01–23 retain the historical planning board and require reconciliation; PP-24–29 were merged through PR #7. The offline forecasting core exists on a separate unmerged branch. No completed application is claimed.
+Update after each integration. [Project specification V5](SPEC-V5.md) records the current implementation/branch state and acceptance. PP-01–23 retain the historical planning board and require reconciliation; PP-24–29 were merged through PR #7. This review-fix branch integrates the offline forecasting core from PR #49 for review; live API, database and worker acceptance remains open. No completed application is claimed.
 
 | ID | Outcome | Owner | Depends on | Exit evidence | Status |
 |---|---|---|---|---|---|
@@ -35,3 +35,5 @@ Update after each integration. [Project specification V5](SPEC-V5.md) records th
 | PP-29 | BE-06 history alignment without imputation (#6) | Lead | none | Unit tests + verifier at a3f44c1 | MERGED; independent review pending |
 
 P1 reservations/completion are separate tickets only after all P0 rows are accepted. No worker may claim a shared foundational file without a lead assignment.
+
+Review-fix integration: PR #49 baseline core and PR #50 design lab are being reconciled with V5. See tasks/PP-30-pr-review-fixes.md for the bounded task and verification evidence.

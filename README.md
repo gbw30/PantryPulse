@@ -29,9 +29,9 @@ The goal of the reproducible demonstration is to show when these research-derive
 
 ## Current state
 
-**PantryPulse is in early development.** The repository contains the frontend foundation, a backend process-health endpoint, locked dependencies, and a Linux container environment for the optimization libraries. Backend primitives cover transfer modes, route eligibility, demand rounding, fixed-point arithmetic, solver outcomes and forecast-history alignment. The complete allocation engines, forecasting adapters, application database schema and interactive comparison workflow are not yet implemented. Equation-level research validation remains a prerequisite for complex solver work.
+**PantryPulse is in early development.** The repository contains the frontend foundation, a backend process-health endpoint, locked dependencies, and a Linux container environment for the optimization libraries. Backend primitives cover transfer modes, route eligibility, demand rounding, fixed-point arithmetic, solver outcomes and forecast-history alignment. The complete allocation engines, application database schema and interactive comparison workflow are not yet implemented. Equation-level research validation remains a prerequisite for complex solver work.
 
-The separate `forecasting` branch contains an offline preparation/baseline/evaluation core and pure projection, verified with 44 branch tests and a simulated 26-series evaluation. It is not merged into this main baseline. Its Chronos adapter remains unavailable pending actual model qualification; database, durable jobs and browser integration remain unfinished. V5 records the exact reviewed commits and experimental-policy boundaries.
+This review-fix branch includes the [offline forecasting core](docs/pantrypulse/forecasting/IMPLEMENTATION.md) from PR #49 alongside the existing backend primitives. It provides preparation, baselines, evaluation and pure projection; actual Chronos inference, database publication, durable jobs and browser integration remain unfinished. Run the synthetic evaluation with `uv run --frozen --directory apps/api python -m scripts.evaluate_forecasting`. The [forecasting roadmap](docs/forecasting/README.md) preserves the remaining integration gates.
 
 The demo is planned around simulated data and institution-level indicators. It will not purchase supplies or dispatch real deliveries.
 
@@ -53,3 +53,5 @@ For the presentation, the website and Python API can run on the presenter's comp
 - [Architecture and research validation](docs/architecture/0001-v4-research-first.md)
 
 V5 consolidates V4, later accepted decisions and actual implementation evidence. Older documents remain historical or detailed references where compatible.
+
+The optional `/design-lab` route is an illustrative dashboard experiment, with a default 2D network and a [bounded optional 3D exception](docs/architecture/0004-design-lab-3d-exception.md). It does not connect to allocation APIs or represent committed transfers.

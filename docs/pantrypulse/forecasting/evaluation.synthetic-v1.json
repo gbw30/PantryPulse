@@ -1,0 +1,536 @@
+{
+  "recorded_date": "2026-10-24",
+  "classification": "SIMULATED",
+  "qualification": {
+    "core": "OFFLINE_ONLY",
+    "postgres_api_jobs": "NOT_IMPLEMENTED",
+    "chronos": "UNQUALIFIED",
+    "solvers_research": "GATED"
+  },
+  "fixture": {
+    "beneficiaries": 6,
+    "hubs": 1,
+    "products": 2,
+    "required_series": 26,
+    "optional_series": 0,
+    "ineligible_series": "Hub DEMAND for both products"
+  },
+  "fixture_spec_sha256": "de73d30de70da9bf1bd946f070cd761922d0c7dec59454ce45ba321f1c6cabec",
+  "source_sha256": "1d3f40d8ebdc05e879c80adc4530fa7da6482bbc0c93fc7dacdb9630fa6ce738",
+  "source_hash_encoding": "SHA256 of sorted relative UTF8 paths + NUL + raw bytes + NUL",
+  "input_hash": "cc815438cc6e432f61bb46e8a777de40437d151f2a1a779653c1c0df9cb1f854",
+  "ready_for_publication": true,
+  "forecast_point_count": 182,
+  "reproduce": "uv run --frozen --directory apps/api python -m scripts.evaluate_forecasting --output /tmp/pantrypulse-forecast-evaluation.json",
+  "validation_environment": {
+    "python": "3.12.3",
+    "pydantic": "2.14.1",
+    "pytest": "9.1.1",
+    "ruff": "0.17.2",
+    "fastapi": "0.162.0",
+    "starlette": "1.9.0",
+    "httpx": "0.28.1",
+    "note": "Isolated /tmp venv; uv executable unavailable; listed libraries match uv.lock. Other optional backend dependencies were not installed or qualified."
+  },
+  "checks": {
+    "api_tests": {
+      "passed": 44,
+      "warnings": [
+        "Existing FastAPI/Starlette httpx TestClient deprecation"
+      ]
+    },
+    "ruff": "PASS"
+  },
+  "strategies": [
+    {
+      "requested_strategy": "SEASONAL_NAIVE",
+      "policy": {
+        "policy_version": "demo-proposal-14d-3samples-v1",
+        "sparse_window_days": 14,
+        "sparse_min_samples": 3,
+        "strategy": "SEASONAL_NAIVE",
+        "allow_fallback": true,
+        "allow_fulfilled_proxy": false,
+        "allow_mixed_proxy_history": false,
+        "preprocessing_version": "preserve-gaps-v1",
+        "postprocessing_version": "reject-invalid-v1",
+        "adapter_version": "core-v1",
+        "provider_package_version": null,
+        "checkpoint": null,
+        "checkpoint_revision": null
+      },
+      "truth_as_of": "2026-10-24T04:00:00Z",
+      "availability_semantics": "AS_OF_RECORDED",
+      "source_classifications": [
+        "SIMULATED"
+      ],
+      "aggregation": "POOLED_WITHIN_TARGET_PRODUCT_UNIT_BASIS",
+      "bias_sign": "POSITIVE_IS_OVERPREDICTION",
+      "folds": [
+        {
+          "origin": {
+            "data_cutoff_date": "2026-09-25",
+            "snapshot_as_of": "2026-09-26T04:00:00Z"
+          },
+          "input_hash": "d132ef378de9f6c36e4c2dd62171d31ea13d6bd9cbe9fc009a7127b2c25a9a1f",
+          "expected_count": 182,
+          "predicted_count": 182,
+          "unavailable_prediction_count": 0,
+          "missing_actual_count": 0,
+          "basis_mismatch_count": 0,
+          "fallback_series_count": 0,
+          "scored_count": 182
+        },
+        {
+          "origin": {
+            "data_cutoff_date": "2026-10-02",
+            "snapshot_as_of": "2026-10-03T04:00:00Z"
+          },
+          "input_hash": "93bbf204b484add680bd70dfd6c81f5f0c733ef3345d02b38c6c9074b68b4074",
+          "expected_count": 182,
+          "predicted_count": 182,
+          "unavailable_prediction_count": 0,
+          "missing_actual_count": 0,
+          "basis_mismatch_count": 0,
+          "fallback_series_count": 0,
+          "scored_count": 182
+        },
+        {
+          "origin": {
+            "data_cutoff_date": "2026-10-09",
+            "snapshot_as_of": "2026-10-10T04:00:00Z"
+          },
+          "input_hash": "1e0fdb6442aabf86acd513e3584f735e97eb10d209c66bda3e4d881d6c91ce18",
+          "expected_count": 182,
+          "predicted_count": 182,
+          "unavailable_prediction_count": 0,
+          "missing_actual_count": 0,
+          "basis_mismatch_count": 0,
+          "fallback_series_count": 0,
+          "scored_count": 182
+        },
+        {
+          "origin": {
+            "data_cutoff_date": "2026-10-16",
+            "snapshot_as_of": "2026-10-17T04:00:00Z"
+          },
+          "input_hash": "f13a29198aae5d5a7aaa4767693056f5d7d09cc3180b9e23f03c0a0389a06548",
+          "expected_count": 182,
+          "predicted_count": 182,
+          "unavailable_prediction_count": 0,
+          "missing_actual_count": 0,
+          "basis_mismatch_count": 0,
+          "fallback_series_count": 0,
+          "scored_count": 182
+        }
+      ],
+      "strategy_metrics": [
+        {
+          "target_type": "DEMAND",
+          "product_id": "268719bc-a6b5-597e-8093-42638f207a2f",
+          "unit": "bottle",
+          "actual_basis": "REQUESTED",
+          "actual_provider": null,
+          "metrics": {
+            "scored_count": 168,
+            "mae": 0.25,
+            "bias": -0.25,
+            "wape": 0.005718954248366013
+          }
+        },
+        {
+          "target_type": "DEMAND",
+          "product_id": "f0967f6c-7af6-51fa-9d82-45146628eb59",
+          "unit": "meal",
+          "actual_basis": "REQUESTED",
+          "actual_provider": null,
+          "metrics": {
+            "scored_count": 168,
+            "mae": 0.25,
+            "bias": -0.25,
+            "wape": 0.007
+          }
+        },
+        {
+          "target_type": "DONATION",
+          "product_id": "268719bc-a6b5-597e-8093-42638f207a2f",
+          "unit": "bottle",
+          "actual_basis": "RECEIVED",
+          "actual_provider": null,
+          "metrics": {
+            "scored_count": 196,
+            "mae": 0.0,
+            "bias": 0.0,
+            "wape": 0.0
+          }
+        },
+        {
+          "target_type": "DONATION",
+          "product_id": "f0967f6c-7af6-51fa-9d82-45146628eb59",
+          "unit": "meal",
+          "actual_basis": "RECEIVED",
+          "actual_provider": null,
+          "metrics": {
+            "scored_count": 196,
+            "mae": 0.0,
+            "bias": 0.0,
+            "wape": 0.0
+          }
+        }
+      ],
+      "actual_provider_metrics": [
+        {
+          "target_type": "DEMAND",
+          "product_id": "268719bc-a6b5-597e-8093-42638f207a2f",
+          "unit": "bottle",
+          "actual_basis": "REQUESTED",
+          "actual_provider": "SEASONAL_NAIVE",
+          "metrics": {
+            "scored_count": 168,
+            "mae": 0.25,
+            "bias": -0.25,
+            "wape": 0.005718954248366013
+          }
+        },
+        {
+          "target_type": "DEMAND",
+          "product_id": "f0967f6c-7af6-51fa-9d82-45146628eb59",
+          "unit": "meal",
+          "actual_basis": "REQUESTED",
+          "actual_provider": "SEASONAL_NAIVE",
+          "metrics": {
+            "scored_count": 168,
+            "mae": 0.25,
+            "bias": -0.25,
+            "wape": 0.007
+          }
+        },
+        {
+          "target_type": "DONATION",
+          "product_id": "268719bc-a6b5-597e-8093-42638f207a2f",
+          "unit": "bottle",
+          "actual_basis": "RECEIVED",
+          "actual_provider": "SEASONAL_NAIVE",
+          "metrics": {
+            "scored_count": 196,
+            "mae": 0.0,
+            "bias": 0.0,
+            "wape": 0.0
+          }
+        },
+        {
+          "target_type": "DONATION",
+          "product_id": "f0967f6c-7af6-51fa-9d82-45146628eb59",
+          "unit": "meal",
+          "actual_basis": "RECEIVED",
+          "actual_provider": "SEASONAL_NAIVE",
+          "metrics": {
+            "scored_count": 196,
+            "mae": 0.0,
+            "bias": 0.0,
+            "wape": 0.0
+          }
+        }
+      ],
+      "common_paired_metrics": [
+        {
+          "target_type": "DEMAND",
+          "product_id": "268719bc-a6b5-597e-8093-42638f207a2f",
+          "unit": "bottle",
+          "actual_basis": "REQUESTED",
+          "actual_provider": null,
+          "metrics": {
+            "scored_count": 168,
+            "mae": 0.25,
+            "bias": -0.25,
+            "wape": 0.005718954248366013
+          }
+        },
+        {
+          "target_type": "DEMAND",
+          "product_id": "f0967f6c-7af6-51fa-9d82-45146628eb59",
+          "unit": "meal",
+          "actual_basis": "REQUESTED",
+          "actual_provider": null,
+          "metrics": {
+            "scored_count": 168,
+            "mae": 0.25,
+            "bias": -0.25,
+            "wape": 0.007
+          }
+        },
+        {
+          "target_type": "DONATION",
+          "product_id": "268719bc-a6b5-597e-8093-42638f207a2f",
+          "unit": "bottle",
+          "actual_basis": "RECEIVED",
+          "actual_provider": null,
+          "metrics": {
+            "scored_count": 196,
+            "mae": 0.0,
+            "bias": 0.0,
+            "wape": 0.0
+          }
+        },
+        {
+          "target_type": "DONATION",
+          "product_id": "f0967f6c-7af6-51fa-9d82-45146628eb59",
+          "unit": "meal",
+          "actual_basis": "RECEIVED",
+          "actual_provider": null,
+          "metrics": {
+            "scored_count": 196,
+            "mae": 0.0,
+            "bias": 0.0,
+            "wape": 0.0
+          }
+        }
+      ]
+    },
+    {
+      "requested_strategy": "MOVING_AVERAGE",
+      "policy": {
+        "policy_version": "demo-proposal-14d-3samples-v1",
+        "sparse_window_days": 14,
+        "sparse_min_samples": 3,
+        "strategy": "MOVING_AVERAGE",
+        "allow_fallback": true,
+        "allow_fulfilled_proxy": false,
+        "allow_mixed_proxy_history": false,
+        "preprocessing_version": "preserve-gaps-v1",
+        "postprocessing_version": "reject-invalid-v1",
+        "adapter_version": "core-v1",
+        "provider_package_version": null,
+        "checkpoint": null,
+        "checkpoint_revision": null
+      },
+      "truth_as_of": "2026-10-24T04:00:00Z",
+      "availability_semantics": "AS_OF_RECORDED",
+      "source_classifications": [
+        "SIMULATED"
+      ],
+      "aggregation": "POOLED_WITHIN_TARGET_PRODUCT_UNIT_BASIS",
+      "bias_sign": "POSITIVE_IS_OVERPREDICTION",
+      "folds": [
+        {
+          "origin": {
+            "data_cutoff_date": "2026-09-25",
+            "snapshot_as_of": "2026-09-26T04:00:00Z"
+          },
+          "input_hash": "809652be5fc1e2a4bdb848fbfbe0ab2102568c69ce8d5b2f81a80b4af165ba8a",
+          "expected_count": 182,
+          "predicted_count": 182,
+          "unavailable_prediction_count": 0,
+          "missing_actual_count": 0,
+          "basis_mismatch_count": 0,
+          "fallback_series_count": 0,
+          "scored_count": 182
+        },
+        {
+          "origin": {
+            "data_cutoff_date": "2026-10-02",
+            "snapshot_as_of": "2026-10-03T04:00:00Z"
+          },
+          "input_hash": "54117e5e7283e7d12fefe69888c19e54b3c43b69323b618ca215646e1320e487",
+          "expected_count": 182,
+          "predicted_count": 182,
+          "unavailable_prediction_count": 0,
+          "missing_actual_count": 0,
+          "basis_mismatch_count": 0,
+          "fallback_series_count": 0,
+          "scored_count": 182
+        },
+        {
+          "origin": {
+            "data_cutoff_date": "2026-10-09",
+            "snapshot_as_of": "2026-10-10T04:00:00Z"
+          },
+          "input_hash": "a3264e52eb64f2ca22b48f54c233a382bbd4c30e7d80e77de2391878e186a991",
+          "expected_count": 182,
+          "predicted_count": 182,
+          "unavailable_prediction_count": 0,
+          "missing_actual_count": 0,
+          "basis_mismatch_count": 0,
+          "fallback_series_count": 0,
+          "scored_count": 182
+        },
+        {
+          "origin": {
+            "data_cutoff_date": "2026-10-16",
+            "snapshot_as_of": "2026-10-17T04:00:00Z"
+          },
+          "input_hash": "a4b3753b6c59e0e05c4b65b854d3c0456c68853794600c216136eaf102683e0d",
+          "expected_count": 182,
+          "predicted_count": 182,
+          "unavailable_prediction_count": 0,
+          "missing_actual_count": 0,
+          "basis_mismatch_count": 0,
+          "fallback_series_count": 0,
+          "scored_count": 182
+        }
+      ],
+      "strategy_metrics": [
+        {
+          "target_type": "DEMAND",
+          "product_id": "268719bc-a6b5-597e-8093-42638f207a2f",
+          "unit": "bottle",
+          "actual_basis": "REQUESTED",
+          "actual_provider": null,
+          "metrics": {
+            "scored_count": 168,
+            "mae": 3.4515306122448983,
+            "bias": -0.374999999999999,
+            "wape": 0.07895658263305323
+          }
+        },
+        {
+          "target_type": "DEMAND",
+          "product_id": "f0967f6c-7af6-51fa-9d82-45146628eb59",
+          "unit": "meal",
+          "actual_basis": "REQUESTED",
+          "actual_provider": null,
+          "metrics": {
+            "scored_count": 168,
+            "mae": 3.4515306122448983,
+            "bias": -0.3749999999999993,
+            "wape": 0.09664285714285714
+          }
+        },
+        {
+          "target_type": "DONATION",
+          "product_id": "268719bc-a6b5-597e-8093-42638f207a2f",
+          "unit": "bottle",
+          "actual_basis": "RECEIVED",
+          "actual_provider": null,
+          "metrics": {
+            "scored_count": 196,
+            "mae": 4.489795918367347,
+            "bias": 3.6252180395923476e-17,
+            "wape": 1.4285714285714286
+          }
+        },
+        {
+          "target_type": "DONATION",
+          "product_id": "f0967f6c-7af6-51fa-9d82-45146628eb59",
+          "unit": "meal",
+          "actual_basis": "RECEIVED",
+          "actual_provider": null,
+          "metrics": {
+            "scored_count": 196,
+            "mae": 3.2653061224489797,
+            "bias": 0.0,
+            "wape": 1.4285714285714286
+          }
+        }
+      ],
+      "actual_provider_metrics": [
+        {
+          "target_type": "DEMAND",
+          "product_id": "268719bc-a6b5-597e-8093-42638f207a2f",
+          "unit": "bottle",
+          "actual_basis": "REQUESTED",
+          "actual_provider": "MOVING_AVERAGE",
+          "metrics": {
+            "scored_count": 168,
+            "mae": 3.4515306122448983,
+            "bias": -0.374999999999999,
+            "wape": 0.07895658263305323
+          }
+        },
+        {
+          "target_type": "DEMAND",
+          "product_id": "f0967f6c-7af6-51fa-9d82-45146628eb59",
+          "unit": "meal",
+          "actual_basis": "REQUESTED",
+          "actual_provider": "MOVING_AVERAGE",
+          "metrics": {
+            "scored_count": 168,
+            "mae": 3.4515306122448983,
+            "bias": -0.3749999999999993,
+            "wape": 0.09664285714285714
+          }
+        },
+        {
+          "target_type": "DONATION",
+          "product_id": "268719bc-a6b5-597e-8093-42638f207a2f",
+          "unit": "bottle",
+          "actual_basis": "RECEIVED",
+          "actual_provider": "MOVING_AVERAGE",
+          "metrics": {
+            "scored_count": 196,
+            "mae": 4.489795918367347,
+            "bias": 3.6252180395923476e-17,
+            "wape": 1.4285714285714286
+          }
+        },
+        {
+          "target_type": "DONATION",
+          "product_id": "f0967f6c-7af6-51fa-9d82-45146628eb59",
+          "unit": "meal",
+          "actual_basis": "RECEIVED",
+          "actual_provider": "MOVING_AVERAGE",
+          "metrics": {
+            "scored_count": 196,
+            "mae": 3.2653061224489797,
+            "bias": 0.0,
+            "wape": 1.4285714285714286
+          }
+        }
+      ],
+      "common_paired_metrics": [
+        {
+          "target_type": "DEMAND",
+          "product_id": "268719bc-a6b5-597e-8093-42638f207a2f",
+          "unit": "bottle",
+          "actual_basis": "REQUESTED",
+          "actual_provider": null,
+          "metrics": {
+            "scored_count": 168,
+            "mae": 3.4515306122448983,
+            "bias": -0.374999999999999,
+            "wape": 0.07895658263305323
+          }
+        },
+        {
+          "target_type": "DEMAND",
+          "product_id": "f0967f6c-7af6-51fa-9d82-45146628eb59",
+          "unit": "meal",
+          "actual_basis": "REQUESTED",
+          "actual_provider": null,
+          "metrics": {
+            "scored_count": 168,
+            "mae": 3.4515306122448983,
+            "bias": -0.3749999999999993,
+            "wape": 0.09664285714285714
+          }
+        },
+        {
+          "target_type": "DONATION",
+          "product_id": "268719bc-a6b5-597e-8093-42638f207a2f",
+          "unit": "bottle",
+          "actual_basis": "RECEIVED",
+          "actual_provider": null,
+          "metrics": {
+            "scored_count": 196,
+            "mae": 4.489795918367347,
+            "bias": 3.6252180395923476e-17,
+            "wape": 1.4285714285714286
+          }
+        },
+        {
+          "target_type": "DONATION",
+          "product_id": "f0967f6c-7af6-51fa-9d82-45146628eb59",
+          "unit": "meal",
+          "actual_basis": "RECEIVED",
+          "actual_provider": null,
+          "metrics": {
+            "scored_count": 196,
+            "mae": 3.2653061224489797,
+            "bias": 0.0,
+            "wape": 1.4285714285714286
+          }
+        }
+      ]
+    }
+  ]
+}
