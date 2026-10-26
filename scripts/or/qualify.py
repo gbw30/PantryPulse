@@ -10,7 +10,6 @@ import gc
 import hashlib
 import json
 import platform
-import resource
 import sys
 import time
 from datetime import UTC, datetime, timedelta
@@ -18,7 +17,12 @@ from fractions import Fraction
 from pathlib import Path
 from uuid import UUID
 
-ROOT = Path(__file__).resolve().parents[2]
+try:
+    import resource
+except ImportError:  # POSIX-only; Windows reports peak RSS as unavailable.
+    resource = None
+
+ROOT =Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "apps/api"))
 
 import ortools
@@ -341,10 +345,11 @@ def measure(name, scenario, *, profile=False):
         },
         "bounded_pair_seconds": bounded_seconds,
         "pair_including_assembly_seconds": wall_seconds,
-        "child_peak_rss_bytes_since_process_start": resource.getrusage(
-            resource.RUSAGE_CHILDREN
-        ).ru_maxrss
-        * 1024,
+        "child_peak_rss_bytes_since_process_start": (
+            resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss * 1024
+            if resource is not None
+            else None
+        ),
         "profiles": profiles,
         "methods": [summarize(x) for x in outcomes],
         "common_differences": pair.common_differences,

@@ -43,12 +43,14 @@ from app.workers.registries import load_registry
 from scripts.forecasting_fixture import build_fixture
 
 REVISION = "a" * 40
+# Absolute on every platform; Windows needs a drive for operator_config() to accept it.
+CACHE = str(Path("/operator/cache").absolute())
 
 
 def enable(monkeypatch):
     monkeypatch.setenv("PP_CHRONOS_ENABLED", "1")
     monkeypatch.setenv("PP_CHRONOS_REVISION", REVISION)
-    monkeypatch.setenv("PP_CHRONOS_MODEL_CACHE", "/operator/cache")
+    monkeypatch.setenv("PP_CHRONOS_MODEL_CACHE", CACHE)
 
 
 def payload(monkeypatch, *, fallback=False):
@@ -365,5 +367,5 @@ def test_child_env_carries_only_trusted_model_configuration(monkeypatch):
     monkeypatch.setenv("HF_TOKEN", "must-not-escape")
     env = PosixProcessDriver(cwd=Path(__file__).parents[2])._child_env("test-nonce")
     assert env["PP_CHRONOS_REVISION"] == REVISION
-    assert env["PP_CHRONOS_MODEL_CACHE"] == "/operator/cache"
+    assert env["PP_CHRONOS_MODEL_CACHE"] == CACHE
     assert not {"DATABASE_URL", "PP_TEST_DATABASE_URL", "HF_TOKEN"}.intersection(env)

@@ -10,6 +10,8 @@ import pytest
 
 API = Path(__file__).resolve().parents[2]
 SNAPSHOT = API.parents[1] / "data/demo/or-v2/six-beneficiary-v2.snapshot.json"
+# Solving CLIs refuse to run without the Linux offline sandbox (see test_or_process.py).
+linux_only = pytest.mark.skipif(sys.platform != "linux", reason="Linux OR offline containment")
 
 
 def invoke(module, *args, env=None):
@@ -42,6 +44,7 @@ def test_validator_accepts_real_exact_fixture(tmp_path, suffix):
     assert json.loads(report.read_text())["valid"]
 
 
+@linux_only
 def test_single_method_cli_preserves_a_verified_zero_transfer_plan(tmp_path):
     output = tmp_path / "zero-plan.json"
     result = invoke(
@@ -69,6 +72,7 @@ def pair(tmp_path_factory):
     return folder, json.loads(output.read_text())
 
 
+@linux_only
 def test_real_offline_pair_has_verified_exact_objectives_and_shared_model(pair):
     _, saved = pair
     assert saved["execution"] == "OFFLINE"
@@ -81,6 +85,7 @@ def test_real_offline_pair_has_verified_exact_objectives_and_shared_model(pair):
     assert all(method["verification"]["passed"] for method in (first, second))
 
 
+@linux_only
 def test_cli_independent_verification_accepts_real_candidate_and_rejects_tamper(pair):
     folder, saved = pair
     candidate = saved["comparison"]["methods"][0]["candidate"]
