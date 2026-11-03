@@ -1,5 +1,8 @@
 # PR #75 — VP integration review
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This is a dated proposal/decision/review or checkpoint narrative; accepted decisions and historical evidence remain intact. Its future/local-only/scaffold or model-paused statements are not today's merged status. Read [current status](CURRENT-STATUS.md), [SPEC-V5 §3.6](SPEC-V5.md#36-current-integrated-source--through-pr-99) and the current generated API contract before following old route/setup examples.
+
 Candidate: VP `8a4d0696e6587ef3a4da0fd3a32aa5f54f72da0c` integrated with
 main `829262ab7485a5461ac693ec07cb9370fb76798f` at local merge `2803e76`.
 Review date: October 25, 2026. The final PR head includes the corrections below.

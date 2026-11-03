@@ -2,6 +2,9 @@
 
 # Provisional OR decision register
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This document retains its recorded OR scope, decisions and experiment/test boundaries. Later approved connected integration, inclusive-expiry v2, merged operational APIs/views/model jobs and up-to-eight-product contracts supersede implementation-absence or withdrawn-ownership claims for current main. Use [current status](../pantrypulse/CURRENT-STATUS.md) and [connected integration](CONNECTED-INTEGRATION.md); original two-product measurements remain scoped, not new eight-product qualification.
+
 Draft 1.1 / policy or-policy-v1 / schema or-input-v1 and or-scenario-v1. Owner: implementation lead; review state: provisional, adopted October 24, 2026. These choices do not resolve accepted backend OPEN records.
 
 The user narrowed ownership through execution revision 1.2. Mathematical choices

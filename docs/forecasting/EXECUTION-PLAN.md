@@ -1,5 +1,8 @@
 # Forecasting execution plan and backlog
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** Baseline/Chronos adapter, durable model jobs, Scenario Lab integration and the frozen retail-proxy experiment are merged in PR #93. Earlier task/branch/paused statements below retain their original planning/evidence scope. Chronos remains opt-in and experimentally unqualified for the complete pantry/donation scope. See [current status](../pantrypulse/CURRENT-STATUS.md) and [qualification](QUALIFICATION.md).
+
 Updated October 25, 2026. Owner: **@GestebanFalcon**. Inspected baseline:
 `main` at `5add76008faddae08a969514c2e827299bc84d50` (through PR #78).
 The implementation branch subsequently merged main `3251ca6` (through PR #90)

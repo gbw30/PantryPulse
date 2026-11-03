@@ -1,5 +1,8 @@
 # ADR 0003: Offline forecasting core and shared-contract boundary
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This ADR preserves the decision and evidence at its recorded checkpoint. Current implementation includes the merged views, presenter/limited visitor boundary, eight-product planning and opt-in experimental Chronos jobs; those operational facts are in [current status](../pantrypulse/CURRENT-STATUS.md). Historical missing-feature/paused statements do not override later accepted integrations.
+
 > **Current authority:** [Project specification V5](../pantrypulse/SPEC-V5.md). V5 supersedes conflicting V4-era instructions. BD-41 requires explicit `HUB_ONLY` or `HUB_AND_PANTRY` with no default in the full operational scenario; the forecast-only handoff does not select topology. Experimental policies and live integration gates remain open.
 
 Date: 2026-10-24. Accepted scope: provider-independent implementation only.

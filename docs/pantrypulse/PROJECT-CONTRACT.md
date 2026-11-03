@@ -1,5 +1,8 @@
 # PantryPulse project contract
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This is a dated proposal/decision/review or checkpoint narrative; accepted decisions and historical evidence remain intact. Its future/local-only/scaffold or model-paused statements are not today's merged status. Read [current status](CURRENT-STATUS.md), [SPEC-V5 §3.6](SPEC-V5.md#36-current-integrated-source--through-pr-99) and the current generated API contract before following old route/setup examples.
+
 > Historical contract. [Project specification V5](SPEC-V5.md) is the current source of truth and supersedes conflicting scope, proxy/job/scenario/provider policies and implementation-status statements below. Retain compatible invariants and historical rationale; do not adopt old numerical examples as new defaults.
 
 Status: proposed implementation contract derived from source spec v1.0 and the supplied orchestration research. Product requirements below come from the spec; details labeled decision resolve gaps for the 48-hour build. Record accepted changes in an ADR before changing shared schemas. D08–D09 and the status-code, shortage-response, schema-column and observability sections were added on 2026-10-23 after a source-spec audit. The HANDBOOK.md appendix copy predates them, so this file is authoritative.

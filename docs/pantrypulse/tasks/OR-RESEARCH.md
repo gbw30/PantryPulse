@@ -2,6 +2,9 @@
 
 # OR-RESEARCH
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This task packet preserves its original requirements, ownership and source-bound evidence. Its local/TODO/paused wording is not current merged status. See [current status](../CURRENT-STATUS.md), [the board](../BOARD.md) and [SPEC-V5](../SPEC-V5.md); do not infer new agent assignments or a fresh test pass from this record.
+
 Issues: 10, 38. Owner: research lane; lead integrates/reviews.
 Base: f3946c726e53fa546be1400d80ab717fcb2c3468; workspace: current repository, disjoint write boundaries for user-requested parallel work.
 Inputs: docs/optimization/01..03 Draft 1.1; V5.

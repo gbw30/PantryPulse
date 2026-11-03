@@ -1,5 +1,8 @@
 # Proposed Backend Data Flow and API Behavior
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This is a dated proposal/decision/review or checkpoint narrative; accepted decisions and historical evidence remain intact. Its future/local-only/scaffold or model-paused statements are not today's merged status. Read [current status](CURRENT-STATUS.md), [SPEC-V5 §3.6](SPEC-V5.md#36-current-integrated-source--through-pr-99) and the current generated API contract before following old route/setup examples.
+
 > **Current authority:** [Project specification V5](SPEC-V5.md). Explanatory reference. V5 supersedes conflicting target, transfer-mode, proxy/job, scenario and supplier policies and distinguishes implemented from planned behavior.
 
 The backend is proposed to take **records of stock, past demand, donations, and operating rules**, turn them into **estimates of future shortages**, and then calculate **feasible recommendations for moving resources between locations**.

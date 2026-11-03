@@ -1,5 +1,8 @@
 # PantryPulse source spec extraction
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This is a dated proposal/decision/review or checkpoint narrative; accepted decisions and historical evidence remain intact. Its future/local-only/scaffold or model-paused statements are not today's merged status. Read [current status](CURRENT-STATUS.md), [SPEC-V5 §3.6](SPEC-V5.md#36-current-integrated-source--through-pr-99) and the current generated API contract before following old route/setup examples.
+
 > Historical V1 extraction. [Project specification V5](SPEC-V5.md) is the current source of truth. The original [V4 snapshot](SPEC-V4.snapshot.txt) remains source history; its inherited examples must be read through V5's conflict resolutions and accepted decisions.
 
 Recovered from the attached Hackathon spec document.docx. Paragraph text is retained; source tables are linearized and formatting is not reproduced. Source version 1.0, dated October 23, 2026.

@@ -2,6 +2,9 @@
 
 # PantryPulse Backend Specification — Working Draft
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This is a dated proposal/decision/review or checkpoint narrative; accepted decisions and historical evidence remain intact. Its future/local-only/scaffold or model-paused statements are not today's merged status. Read [current status](CURRENT-STATUS.md), [SPEC-V5 §3.6](SPEC-V5.md#36-current-integrated-source--through-pr-99) and the current generated API contract before following old route/setup examples.
+
 > **Current authority:** [Project specification V5](SPEC-V5.md). This checkpoint preserves accepted decision history and pauses. V5 adds BD-41 reconciliation, current code/branch evidence and the consolidated OPEN register; historical resume/status text below does not override it.
 
 **Date:** October 24, 2026 (America/New_York)

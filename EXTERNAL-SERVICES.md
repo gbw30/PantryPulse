@@ -1,5 +1,8 @@
 # External services and deployment paths
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** Main `647f6a8` includes all four product screens, shared presenter/limited visitor reads, up to eight planning products and opt-in experimental Chronos jobs. Root opens `/overview`; `/optimization` redirects to `/scenarios`. Migrations have one head, `ppvp_0007`. Recorded commands/results for older installed runtimes remain source-bound. Follow [current status](docs/pantrypulse/CURRENT-STATUS.md) before adopting configuration; a merge is not a running-image upgrade or deployment.
+
 Updated October 25, 2026. [Current status](docs/pantrypulse/CURRENT-STATUS.md) and [SPEC-V5](docs/pantrypulse/SPEC-V5.md) distinguish source functionality, running images and deployment evidence. Local backend/Chronos preparation was explicitly resumed; supplier planning and public/paid deployment were not authorized by setup alone.
 
 ## Choose the environment
@@ -17,7 +20,7 @@ These paths can collide on loopback port 8000. Inspect existing tasks and ports;
 ## What runs where
 
 ```text
-Browser → Next.js /optimization and same-origin proxy
+Browser → Next.js Overview / Data Explorer / Recommendations / Scenario Lab and same-origin proxy
         → FastAPI presenter/CSRF validation
         → PostgreSQL saved inputs/jobs/results
         → one supervised forecast or sequential OR comparison
@@ -29,7 +32,7 @@ PostgreSQL stores durable state. It does not run Python/OR-Tools/Chronos; increa
 
 Follow [INSTALLATION.md](INSTALLATION.md), then [LOCAL-COMPUTE.md](docs/setup/LOCAL-COMPUTE.md). The opt-in API and worker share the locked compute image and use direct Python startup/health commands. The worker is capped at six CPU equivalents/eight GiB; the separate builder at two CPUs/three GiB. The helper preserves existing containers with `--no-recreate` and performs no automatic migration or seed.
 
-Current source includes presenter access, baseline forecasts, immutable scenarios, durable comparisons and the connected UI. The application policies still offer baselines, while real Chronos is a separate offline model exercise. Installing weights does not register a live model handler.
+Current source includes presenter access, baseline forecasts, immutable scenarios, durable comparisons and the connected UI. Baselines and opt-in experimental `forecast.chronos.v1` are implemented. Installing weights alone does not advertise model capability: API/worker pin/profile/cache settings must match. See [Chronos jobs](docs/forecasting/CHRONOS-JOBS.md).
 
 ## Hosted database and connected demo
 
@@ -55,4 +58,4 @@ Active [Linux CI](.github/workflows/pantrypulse-ci.yml) runs PostgreSQL/process-
 
 Forecast boundaries remain 270/300 seconds. Solver search defaults/maxima are 120/300 seconds, method walls 150/330, comparisons 330/690 and queue expiry 1,800. Local shutdown grace is 725 seconds. Fly's 300-second stop window requires an already-idle lane before deployment.
 
-Record the exact commit/image, schema, dataset/input hashes, model revision, solver settings, URLs and rollback pair without secrets. Follow [deployment/recovery](docs/pantrypulse/DEPLOYMENT.md). Venue-network readiness, representative forecast accuracy, integrated Chronos, supplier planning, visitor access and real operational dispatch remain separate gates.
+Record the exact commit/image, schema, dataset/input hashes, model revision, solver settings, URLs and rollback pair without secrets. Follow [deployment/recovery](docs/pantrypulse/DEPLOYMENT.md). Venue-network/public-target readiness, representative pantry accuracy/calibration, supplier planning, broader roles and real operational dispatch remain separate gates. Integrated Chronos and limited saved visitor reads are source functionality, not deployment claims.

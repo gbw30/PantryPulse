@@ -1,5 +1,8 @@
 # Cloudflare temporary tunnel for the laptop API
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** Main `647f6a8` includes all four product screens, shared presenter/limited visitor reads, up to eight planning products and opt-in experimental Chronos jobs. Root opens `/overview`; `/optimization` redirects to `/scenarios`. Migrations have one head, `ppvp_0007`. Recorded commands/results for older installed runtimes remain source-bound. Follow [current status](../pantrypulse/CURRENT-STATUS.md) before adopting configuration; a merge is not a running-image upgrade or deployment.
+
 Use this for API reachability checks or a separately authorized connected frontend using main's implemented same-origin proxy and presenter controls. The current [simulated Vercel preview](VERCEL.md) does not need a tunnel. The tunnel publishes the API, not the frontend or PostgreSQL.
 
 ## Install on the host's Windows computer

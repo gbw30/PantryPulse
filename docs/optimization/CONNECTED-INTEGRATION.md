@@ -1,5 +1,8 @@
 # Connected OR integration — approved October 25, 2026
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** Current source is main `647f6a8`: Scenario Lab replaces the legacy workspace, planning accepts up to eight products, and baseline/opt-in Chronos/single-method/paired jobs share the lane. The PR #76 evidence below remains bound to its original two-product checkpoint. See [current status](../pantrypulse/CURRENT-STATUS.md).
+
 This document records the user's approved scope expansion from the OR-only work
 to a connected, isolated simulated application. It supersedes conflicting
 OR-only ownership, no-proxy, storage-withdrawal and 15/25/60-second guidance for
@@ -44,7 +47,7 @@ v1 snapshots cannot pass v2 replay validation. Policy mathematics remains the
 branch's provisional research formulation. Its editable simulated preset is not
 evidence of real-world policy validity or social benefit.
 
-The supported core remains at most 12 beneficiaries, two hubs, two products,
+The supported core remains at most 12 beneficiaries, two hubs, eight products,
 256 lots/arrivals, seven projected dates, and one first-day dispatch batch within
 an explicit 1–3-day allocation window. Both transfer modes remain explicit.
 Unsupported shape, numerical precision/bounds, singleton relative-deprivation
@@ -54,7 +57,7 @@ beneficiaries). This is an adapter to the bounded core, not an expansion of it.
 
 ## Application and source authority
 
-`/optimization` connects presenter login, committed forecast selection/generation,
+`/scenarios` connects shared presenter login, committed forecast selection/generation,
 scenario capture, durable comparison, saved results and revised scenarios. The
 Next route remains a thin allowlisted transport; FastAPI owns tenant authentication,
 CSRF, validation and queue admission. OpenAPI and generated TypeScript are the
@@ -127,5 +130,4 @@ bound/gap, search/wall runtime, peak RSS, full scenario and code/settings hashes
 Results are machine/runtime-specific; longer time does not promise optimality.
 Final evidence and limitations are recorded in [FINALIZATION.md](FINALIZATION.md).
 
-Hosting, Chronos, supplier planning, visitor access, broad scenario support,
-general import/data-management UI and production resets remain outside this change.
+The original PR #76 excluded later Chronos, visitor and input-screen work; those integrations are now merged. Current limits and remaining supplier/hosting/release scope are in [CURRENT-STATUS.md](../pantrypulse/CURRENT-STATUS.md).

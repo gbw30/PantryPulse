@@ -2,6 +2,9 @@
 
 # Draft 1.1 local physical and numerical proofs
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** The numeric table below was derived for the original two-product domain (24 positive goals). Current contracts allow eight products (up to 96 positive beneficiary/product goals). Do not reuse 480000 or the two-product denominator factor as universal current bounds. `numerics.audit_model` computes every emitted activity and rejects magnitudes at/beyond 2^60 before native solve; exact LCM/GCD compilation is per input. Two-product oracle/budget evidence remains two-product evidence. See [current status](../pantrypulse/CURRENT-STATUS.md).
+
 OR-DEC-001–008/017–019 [PROVISIONAL], policy `or-policy-v1`, S=10000. Base `f3946c726e53fa546be1400d80ab717fcb2c3468`. These are proofs of the selected **local** formulation, independent of the paper. [Research mapping and checked gate evidence](RESEARCH-MAPPING.md).
 
 ## Loading, service, conservation and common feasibility
@@ -30,7 +33,7 @@ All signed activities must remain **strictly** below 2^60, not merely their fina
 
 | Family | Maximum under Draft 1.1 declared domain |
 |---|---|
-| Positive goals | 24 |
+| Positive goals (historical two-product derivation) | 24 |
 | Per-goal q / W sum | 20000 / 480000 |
 | RP N*q and sum(q), N<=12 | 240000 each; conservative difference activity 480000 |
 | AP/RP count excess magnitude | 120000 |
@@ -45,7 +48,7 @@ All signed activities must remain **strictly** below 2^60, not merely their fina
 
 Resource count applies jointly to original lots/confirmed arrivals. More array/route terms can widen naive domain intervals even when conservation constrains their feasible total. Therefore bounds must follow real emitted domains and shared residual chains; if conservative activities reach the limit, reject the instance rather than assuming conservation rescues numerical safety. Storage/capacity and source quantity fields also require explicit finite validated upper bounds; the table does not license unbounded BIGINTs.
 
-For `S*J`, coefficient denominators divide the product of the 1/10000 weight grid, a product-average divisor at most 2 and lcm(1,...,12)=27720. Thus 554400000 is a sufficient clearing factor. Find the actual coefficient-denominator LCM, multiply, then divide all integer coefficients by their GCD. Positive scaling preserves order and ties; record the exact rational conversion. The independent compiler test checks equivalence and a >=2^60 rejection. No floating objective or extra lexicographic shortage pass is permitted.
+For `S*J`, coefficient denominators divide the product of the 1/10000 weight grid, a product-average divisor at most 2 in that historical derivation (at most 8 in current source) and lcm(1,...,12)=27720. Thus 554400000 is a sufficient clearing factor. Find the actual coefficient-denominator LCM, multiply, then divide all integer coefficients by their GCD. Positive scaling preserves order and ties; record the exact rational conversion. The independent compiler test checks equivalence and a >=2^60 rejection. No floating objective or extra lexicographic shortage pass is permitted.
 
 The six-fixture oracle uses exact integer scoring with denominator 6000000, including the floor of `S*C/12`; all coefficients/values are integers. Its exhaustive optimum-count evidence is in [the saved report](evidence/oracle-six-beneficiary-v1.json). It is not an OR-Tools result, a physical-model validation or a runtime measurement.
 

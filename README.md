@@ -1,61 +1,59 @@
 # PantryPulse
 
-PantryPulse is a project for Gator Hack V, October 23–25, 2026, exploring how food banks and community organizations can share limited supplies more fairly.
+PantryPulse helps a food-bank coordinator forecast upcoming need and compare feasible allocations of limited supplies. It is a simulated planning application for Gator Hack V, October 23–25, 2026; it does not purchase, reserve or dispatch real stock.
 
-Start with [current source/runtime status](docs/pantrypulse/CURRENT-STATUS.md) and the [consolidated specification V5](docs/pantrypulse/SPEC-V5.md) for implemented scope, accepted requirements, remaining decisions and release acceptance.
+## Current implementation
 
-When several organizations need food at the same time, there may not be enough to meet every request. Sending the same amount to everyone can overlook differences in need. Sending supplies wherever delivery is easiest can leave vulnerable communities with larger shortages. Meanwhile, food can expire, storage space is limited, and organizations donating supplies still need enough for the people they already serve.
+Documentation was reconciled against main **`647f6a8`** on October 25, 2026, through PR #99. Start with [current status](docs/pantrypulse/CURRENT-STATUS.md), [local launch and troubleshooting](docs/setup/LOCAL-LAUNCH-GUIDE.md), and [SPEC-V5](docs/pantrypulse/SPEC-V5.md).
 
-PantryPulse aims to help a coordinator understand these trade-offs and compare possible allocation plans before making a decision.
+| Screen | Implemented behavior |
+| --- | --- |
+| [Overview](docs/design/reference/overview.md) — `/overview` | Live inventory/shortage Network Atlas, selected-product/date inspection, chart/table alternatives and explicit fixture/unavailable states |
+| [Data Explorer](docs/design/reference/data-explorer.md) — `/data` | Forecast/risk dashboard, Seven-Day Pulse, Operations Board, inventory/lots and presenter data entry |
+| [Recommendations](docs/design/reference/recommendations.md) — `/recommendations` | Saved verified plans/comparisons, transfer/impact information and simulation review |
+| [Scenario Lab](docs/design/reference/scenario-lab.md) — `/scenarios` | Forecast generation/selection, immutable assumptions/scenarios, both transfer modes, paired methods, saved results and cancel/retry |
+| Methodology — `/methodology` | Research and simulated-policy explanation |
 
-## How it is intended to work
+The root redirects to `/overview`. `/optimization` is a compatibility redirect to `/scenarios`; the former monolithic workspace is retired. The optional `/design-lab` remains an illustrative experiment, not live planning.
 
-The demonstration will use simulated inventory, requests and institution-level vulnerability indicators for six beneficiary organizations and one or two distribution hubs. It will:
+FastAPI owns authorization, historical imports, inventory/receipt/supply services, forecasting, scenario capture and result publication. A thin Next.js same-origin proxy carries selected credentials and intent. PostgreSQL stores the history, ledger, immutable snapshots, jobs and results. One Linux worker lane executes expensive operations sequentially.
 
-1. Estimate upcoming demand, with a simple seasonal forecast available when the more advanced forecasting model is unavailable.
-2. Calculate two allocation plans from exactly the same supplies, requests and operating limits.
-3. Show who receives supplies, which needs remain unmet, and how the plans differ in their treatment of shortages and vulnerability.
-4. Let the coordinator explore a changed scenario and see how the recommendations respond.
+The connected planner accepts up to **eight products**, at most twelve beneficiaries and two hubs, seven forecast dates and a one-to-three-day allocation window. The standard seed has six beneficiaries, one hub and two products; an explicit four-product fixture is also supplied. Do not combine meal, bottle or other unlike units into a single quantity.
 
-Both plans must respect the same practical rules: supplies cannot be created or counted twice, organizations cannot receive more than they can handle, donors must retain protected supplies, and eligible food that expires sooner must be used first.
+## Forecasting and comparison
 
-## What makes the comparison different
+Seasonal-naive and moving-average forecasting are integrated. **Chronos-2 is also integrated as an opt-in experimental provider**, with pinned identity, capability admission, contained execution, truthful fallback and saved provenance. It is disabled by default. The [qualification dossier](docs/forecasting/QUALIFICATION.md) reports insufficient evidence for general model qualification: retail-proxy availability was 92%, and the full synthetic donation scope produced invalid raw quantiles. A working model adapter is not a pantry-accuracy or calibration claim.
 
-The first method, **classical goal programming**, balances a set of allocation goals. The second, **EGP-PI-inspired allocation**, is intended to make vulnerability and deprivation central to that balance. Deprivation means both how far an organization falls short of its needs and how its shortage compares with those of its peers.
+Both **classical goal programming** and **EGP-PI-inspired allocation** operate on the same frozen inputs and constraints. Independent replay verifies proposed results. Constraints include conservation, donor protection, expiry/FEFO, routes and capacities; failed/partial methods remain visible. Simulated review does not move stock.
 
-The research basis is Rampazo et al., *An extended goal programming framework incorporating poverty measures: application to food bank logistics*, first published online September 11, 2026 ([research paper](https://doi.org/10.1111/itor.70252)). PantryPulse proposes a bounded adaptation using simulated vulnerability indicators. It does not claim to reproduce the complete published formulation.
+The research basis is Rampazo et al., *An extended goal programming framework incorporating poverty measures: application to food bank logistics* ([DOI](https://doi.org/10.1111/itor.70252)). This is a bounded adaptation with fixed simulated attributes, not a full-paper reproduction or proof of social benefit. Compare common service/unmet/cost/waste metrics rather than unlike native objective values.
 
-The goal of the reproducible demonstration is to show when these research-derived priorities change actual allocation decisions, and to make the resulting trade-offs visible. A different recommendation is evidence of different priorities; it does not by itself establish better real-world outcomes.
+## Run locally
 
-## Current state
+Install the pinned tools using [INSTALLATION.md](INSTALLATION.md). To resume the already prepared video demo, follow [section A of the launch guide](docs/setup/LOCAL-LAUNCH-GUIDE.md#a-reopen-the-existing-video-demo); its database, ports and saved scenes are separate from the standard developer stack.
 
-Main includes the connected simulated application: presenter access, persisted baseline forecasts, frozen scenarios, sequential classical/research-inspired comparisons, independent result verification and the `/optimization` workspace through a same-origin proxy. PR #75 integrated operational storage and baseline forecasting; PR #76 connected the bounded allocation workflow and active Linux/PostgreSQL/browser CI. These are simulated decisions, not operational dispatch or evidence of real-world policy effectiveness.
+For the tracked local launcher, after confirming its `pp-local-*` worker is idle and selected ports are free:
 
-The [connected integration guide](docs/optimization/CONNECTED-INTEGRATION.md) records the supported domain and explicit demo loader. The current migration head is `ppor_0005`; all predecessor revisions are preserved. [Stock services](docs/pantrypulse/STOCK-SERVICES.md), [inventory projection](docs/pantrypulse/INVENTORY-PROJECTION.md) and [migration instructions](apps/api/migrations/README.md) describe the persistence boundary. Deployment and any update of existing running images remain controlled operations.
+```powershell
+pwsh -File scripts/demo-local.ps1 -WebPort 3030 -ApiPort 8030 -DbPort 55434
+```
 
-The production [worker](docs/setup/WORKER-QUEUE.md) supports `forecast.v1` and `or-comparison.v2`, with one active operation and two waiting jobs. PR #77 supplies [bounded local compute](docs/setup/LOCAL-COMPUTE.md), persistent model storage and prepared [Fly configuration](docs/setup/FLY.md). Full pinned Chronos-2 has passed real standalone CPU inference and synthetic timing checks; the application provider remains baseline-only. Representative forecast accuracy, integrated Chronos, supplier planning, visitor access, general imports and real operational actions remain separate work.
+These are example ports, not automatic selection. The launcher recreates its own API/worker, preserves its database volume and generates credentials under ignored `artifacts/local-demo`. It enables saved visitor reads. **Do not use `-Reset` unless intentionally discarding that launcher's local demo data.** See [local demo procedures](docs/setup/LOCAL-DEMO.md) for restart and resource implications.
 
-The demo is planned around simulated data and institution-level indicators. It will not purchase supplies or dispatch real deliveries.
+## Validation and remaining work
 
-## Project foundation
+CI runs `verify` (two-minute static/unit merge check) and `full` (Linux/PostgreSQL backend, contract drift, build and connected Chromium, 25-minute ceiling) in parallel. A green `verify` alone does not establish a passing full application. See [testing](docs/testing/README.md) and [the workflow](.github/workflows/pantrypulse-ci.yml). Dated test counts remain evidence for their original source, not a fresh pass for main.
 
-The planned system uses a Next.js/React interface, a Python/FastAPI backend, OR-Tools for allocation calculations, and PostgreSQL for shared data. Charts will explain the results, while brief animations and clear loading states will help users follow calculations in progress. Chronos-2 is the preferred optional forecasting model, with a seasonal-naive fallback.
+Supplier proposals remain paused. Broader roles, operational reservation/completion, calibrated pantry forecasts, real dispatch and public hosting/release qualification remain unfinished. Product-source integration does not automatically rebuild running containers, migrate databases or refresh the historical Vercel preview.
 
-The website, API and worker can run on the laptop using an isolated local or Neon schema. A separate synthetic Vercel preview remains branch-scoped; a separately selected hosted connected frontend must configure and verify the implemented proxy/auth path against its actual API. Fly remains a prepared alternative; login, platform validation and deployment are pending. See [external services](EXTERNAL-SERVICES.md).
+## Documentation
 
-## Further reading
+- [Current source/runtime status](docs/pantrypulse/CURRENT-STATUS.md)
+- [Documentation map and audit](docs/pantrypulse/DOCUMENTATION-AUDIT-2026-10-25.md)
+- [Installation](INSTALLATION.md), [launch/troubleshooting](docs/setup/LOCAL-LAUNCH-GUIDE.md), [service/setup index](docs/setup/README.md)
+- [Specification V5](docs/pantrypulse/SPEC-V5.md), [delivery board](docs/pantrypulse/BOARD.md), [remaining plan](docs/pantrypulse/IMPLEMENTATION-PLAN.md)
+- [Forecasting](docs/forecasting/README.md), [Chronos jobs](docs/forecasting/CHRONOS-JOBS.md), [optimization](docs/optimization/README.md)
+- [Operational/API runbook](docs/pantrypulse/ALL-API-RUNBOOK.md), [contracts](packages/contracts/README.md), [migrations](apps/api/migrations/README.md)
+- [Demo narrative](docs/pantrypulse/DEMO.md), [release checklist](docs/pantrypulse/RELEASE-CHECKLIST.md), [external services](EXTERNAL-SERVICES.md)
 
-- [Project specification V5 — current source of truth](docs/pantrypulse/SPEC-V5.md)
-- [Original V4 source document](https://docs.google.com/document/d/1WcsV69YCE1mqW2pI7IyEFQBSuwQB_hMhVQKfU20ZFk8/edit?tab=t.951hp1xdarlq)
-- [Local development installation guide](INSTALLATION.md)
-- [External services installation guide](EXTERNAL-SERVICES.md)
-- [Personal-computer demo setup](docs/setup/LOCAL-DEMO.md)
-- [Run Chronos locally](CHRONOS-LOCAL.md)
-- [Prioritized implementation plan](docs/pantrypulse/IMPLEMENTATION-PLAN.md)
-- [Architecture and research validation](docs/architecture/0001-v4-research-first.md)
-
-V5 consolidates V4, later accepted decisions and actual implementation evidence. Older documents remain historical or detailed references where compatible.
-
-The optional `/design-lab` route is an illustrative dashboard experiment, with a default 2D network and a [bounded optional 3D exception](docs/architecture/0004-design-lab-3d-exception.md). It does not connect to allocation APIs or represent committed transfers.
-
-A [frontend-only Vercel preview of `/design-lab`](https://pantrypulse-prototype-preview-git-codex-e82088-gbw30s-projects.vercel.app/design-lab) is available from `codex/vercel-prototype-preview`. That older deployment has no API/database/presenter connection; main now redirects its root to `/optimization`. The [Vercel record](docs/setup/VERCEL.md) explains the branch-specific build policy. Merging main does not refresh that preview or establish a hosted release.
+Historical task packets, ADRs and experiments retain their source-bound evidence. V5 governs accepted product requirements; current source and generated contracts govern implemented behavior.

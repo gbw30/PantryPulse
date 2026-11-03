@@ -1,43 +1,36 @@
-# PantryPulse demo runbook
+# Presenting the current PantryPulse demo
 
-> **Current authority:** [Project specification V5](SPEC-V5.md). Historical demonstration runbook. Use the V5 research-first narrative, expanded population, paired methods, proxy/job architecture and current implementation limits.
+Updated October 25, 2026 for main `647f6a8`. Start/recover with [the launch guide](../setup/LOCAL-LAUNCH-GUIDE.md). The current product journey is Overview → Data Explorer → Scenario Lab → Recommendations; `/optimization` redirects to Scenario Lab. The old three-site/monolithic-workspace script is historical.
 
-Audience: Gator Hack V judges. Target length: 2–3 minutes, adjusted to the actual event limit. The official event deadline, eligibility, judging rubric, AI/tool disclosure, sponsor requirements, video length and submission format are not present in the source spec; confirm them from the organizer before the event. All hour numbers in this kit are relative to the actual start time.
+## Inputs versus actual calculation
 
-## Preconditions
+The explicit loader creates fictional institutions, 90-day history, stock and assumptions. The standard seed has six beneficiaries, one hub and two products; an explicit four-product fixture is also supplied. Contracts accept up to eight products. Forecasts and comparisons are computed by the real worker and saved; setup does not fabricate successful solver/model outputs.
 
-- Release SHA, deployed web/API URLs and dataset version recorded.
-- Demo organization explicitly simulated; no personal or real operational data.
-- Presenter reset protected and verified, or private seed reset ready.
-- Fixed demo date/timezone, 90-day dataset, forecast run and scenario configured.
-- Three sites and two categories; one projected shortage, one donor surplus, one reserve edge, capacity constrained.
-- Model/fallback/cache labels reflect what actually ran. Baseline comparison is computed on the same inputs.
-- Browser zoom/resolution, readable font sizes and no development overlays; backup recording available.
+Use the actual provider label. Seasonal-naive and moving-average are working baseline choices. Chronos is integrated but opt-in/experimental; complete donation output remains unqualified. A saved moving-average fallback is not a Chronos success. All vulnerability values and institution data are simulated.
 
-## Judge sequence
+## Rehearse before recording
 
-| Time | Action | What to communicate |
-|---|---|---|
-| 0:00–0:20 | Open seeded overview | Three pantries can look stocked today while demand creates a future shortage |
-| 0:20–0:45 | Select category/site, reveal forecast | First projected deficit, seven-day horizon, actual model and uncertainty method |
-| 0:45–1:15 | Generate/inspect transfer plan | Origin/destination/quantity, reserve and capacity constraints, solver status |
-| 1:15–1:35 | Compare same-horizon unmet demand | Read actual baseline and after values, with category/unit and simulated label |
-| 1:35–2:00 | Apply demand surge or supply reduction; Recalculate | The changed assumptions produce a new feasible plan/result while baseline stays intact |
-| 2:00–2:30 | Open explanation/evidence | Forecasting predicts need; deterministic projection finds risk; optimization chooses feasible actions |
-| 2:30–3:00 | Optional fallback/closing proof | Honest limitations, baseline fallback and reproducibility; finish with the operational value |
+1. Confirm actual source/image/schema/URLs, selected demo date and presenter access. Do not rebuild/reset the running demo immediately before recording.
+2. Generate a planning-ready baseline forecast. Freeze a scenario with explicit mode, assumptions, one-to-three-day allocation window and correct product units.
+3. Complete both methods and inspect independent verification, native statuses, unmet demand and per-site allocations. A pair can take several minutes; prepare genuine saved results first.
+4. Save a revised scenario, for example demand multiplier 1.2, and complete its pair. Keep the original unchanged.
+5. Record which institution/product illustrates a real difference. Equal results are valid; do not promise every policy change changes a plan.
 
-Suggested narrative: “PantryPulse helps a coordinator see a projected shortage early and evaluate feasible transfers. These results are from a simulated network. We can change assumptions, replan, and see which need remains unresolved.” Substitute actual site/date/quantity from the live seed. The research's 190→65 and 125-meal examples are illustrative, not validated app outcomes.
+Machine-local VIDEO 01 Normal Week, VIDEO 02 Demand Surge and VIDEO 03 Vulnerability Trade-off datasets were imported into the earlier prepared demo. Their saved database records are distinct from the retired workspace's local shortcut controls. Inspect the current frontend's catalog; do not promise those buttons after the route replacement. The exported CSV/JSON materials are reference copies, not a fresh-clone default seed.
 
-## Golden arithmetic rehearsal
+## Four-minute story
 
-For the two-day meals fixture only: North has 40 and needs 50 then 40. Central has 200, needs 30 then 30 and protects 40 at window end. South has 70, needs 30 then 30 and protects 10. Total handling budget is 40. Central sends North 40; unmet falls 50→10. With a North multiplier 1.25 and integer ceiling, need is 63 then 50 and unmet is 73→33. This fixture demonstrates the arithmetic; the seven-day live seed can contain different numbers. Do not hard-code these values into live UI cards.
+| Time | Show | Explain |
+| --- | --- | --- |
+| 0:00–0:30 | Overview, institution/product | Limited supplies can hide upcoming shortfalls |
+| 0:30–1:00 | Data Explorer projection/table and provenance | Forecasted need, actual inventory, dates/units and unresolved demand |
+| 1:00–2:00 | Scenario Lab saved comparison | Same frozen stock/demand/constraints; different allocation priorities |
+| 2:00–2:45 | Recommendations/per-site impact | Who receives supplies, unmet need, feasibility and independent checks |
+| 2:45–3:30 | Revised scenario with a demand increase | New assumptions create a new saved scenario, preserving the original |
+| 3:30–4:00 | Methodology and remaining trade-off | Bounded research-inspired planning, not real dispatch or proven social outcomes |
 
-## Five-run reliability checklist
+The differentiator is an inspectable comparison of priorities under the same constraints. Classical goal programming and EGP-PI-inspired allocation have unlike native objectives; use common service/unmet/cost/waste measures. Do not add meals and bottles or claim that a different allocation is universally better.
 
-For each run record reset result/dataset hash, start timestamp, model/run ID, baseline unmet, plan status, after unmet, changed scenario result, duration and observed issues. Exercise one cold start and one provider failure across the rehearsals. Each run starts with reset and ends with the full scenario change. A pass requires correct state change, honest labels, no stale-response overwrite and no hidden intervention outside the documented presenter workflow.
+## Release rehearsal record
 
-When live inference fails: show labeled baseline or the prepared cached run with timestamp; do not pretend it was recomputed. When backend fails: use the local release or clearly identified backup recording. When solver cannot resolve a case: show remaining shortage/status and limiting constraints, not a fake successful transfer.
-
-## Submission assets
-
-README includes problem, architecture, setup, command/env names without secrets, data/proxy/simulation provenance, forecasting limits, optimization scope, test commands, deployed URL and demo reset instructions. Include architecture diagram, primary screenshots, backup video, team attribution and license/source acknowledgements. Record third-party tools/AI usage as event rules require. Leave time to upload and verify playback. Only submit/publish to the event after the user's authorization and rules check.
+Complete five clean rehearsals, including cold startup and an honest failure/cancel/retry path. Record dataset/configuration/SHA, forecast/scenario/comparison IDs, native statuses, independent verification, per-product before/after values and duration. A saved result, backup recording or fallback must be labelled accurately. Human taste/accessibility review, organizer submission rules and the actual presentation target remain separate sign-offs. See [release checklist](RELEASE-CHECKLIST.md).

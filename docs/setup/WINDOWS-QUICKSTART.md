@@ -1,5 +1,8 @@
 # Windows setup and teammate connection
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** Main `647f6a8` includes all four product screens, shared presenter/limited visitor reads, up to eight planning products and opt-in experimental Chronos jobs. Root opens `/overview`; `/optimization` redirects to `/scenarios`. Migrations have one head, `ppvp_0007`. Recorded commands/results for older installed runtimes remain source-bound. Follow [current status](../pantrypulse/CURRENT-STATUS.md) before adopting configuration; a merge is not a running-image upgrade or deployment.
+
 Updated October 25, 2026. Use PowerShell from the repository root. [Current status](../pantrypulse/CURRENT-STATUS.md) describes the merged source; older running images and the separate Vercel preview may differ.
 
 ## Install and inspect
@@ -42,7 +45,7 @@ The backend token must match, its allowed origins must include the actual browse
 npm run dev:web
 ```
 
-Open `http://127.0.0.1:3000/optimization`. Main redirects `/` there. Log in, generate a real baseline forecast, create an explicit-mode frozen scenario and submit a durable comparison. Saved results show native status, verification, partial failures and provenance. This source path is implemented; environment variables alone do not prove that a particular runtime is correctly migrated/configured.
+Open `http://127.0.0.1:3000/scenarios` and use the sidebar presenter sign-in. Main redirects `/` to `/overview`; `/optimization` redirects to `/scenarios`. Log in, generate a real baseline forecast, create an explicit-mode frozen scenario and submit a durable comparison. Saved results show native status, verification, partial failures and provenance. This source path is implemented; environment variables alone do not prove that a particular runtime is correctly migrated/configured.
 
 ## Chronos tools
 
@@ -52,7 +55,7 @@ Open `http://127.0.0.1:3000/optimization`. Main redirects `/` there. Log in, gen
 ./scripts/compute-windows.ps1 Session
 ```
 
-Use only after the headroom/lane guards allow and the operator has excluded concurrent domain jobs. The full pinned model has standalone CPU evidence, but application forecasting remains baseline-only. Type `quit` to end your own interactive model session; persistent weights remain cached.
+Use only after the headroom/lane guards allow and the operator has excluded concurrent domain jobs. The full pinned model has standalone and integrated contained-job evidence; application Chronos is opt-in/experimental and requires the exact enabled worker capability. See [Chronos jobs](../forecasting/CHRONOS-JOBS.md). Type `quit` to end your own interactive model session; persistent weights remain cached.
 
 ## Remote access and checks
 

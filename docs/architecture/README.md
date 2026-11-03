@@ -1,5 +1,8 @@
 # Architecture decisions
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** For current source, use [CURRENT-STATUS.md](../pantrypulse/CURRENT-STATUS.md). ADR bodies preserve their original decisions/evidence; later integrations do not rewrite historical proof or establish deployment. See [documentation audit](../pantrypulse/DOCUMENTATION-AUDIT-2026-10-25.md) for the reconciled map.
+
 Start with [Project specification V5](../pantrypulse/SPEC-V5.md), the current source of truth for accepted requirements, main/branch implementation status and open work. [ADR 0001](0001-v4-research-first.md) preserves the research-first architecture and gate; its illustrative policies yield to later accepted decisions in V5. The older [implementation plan](../pantrypulse/IMPLEMENTATION-PLAN.md) is a historical roadmap.
 
 The finalized frontend libraries and component registry policy are recorded in [0002-ui-stack.md](0002-ui-stack.md).

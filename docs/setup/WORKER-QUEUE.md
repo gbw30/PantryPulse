@@ -1,7 +1,11 @@
 # Internal worker queue foundation
 
-The production registry contains `forecast.v1` and `or-comparison.v2`. Presenter API
-admission, immutable domain publication and `/optimization` use this shared lane.
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** Main `647f6a8` includes all four product screens, shared presenter/limited visitor reads, up to eight planning products and opt-in experimental Chronos jobs. Root opens `/overview`; `/optimization` redirects to `/scenarios`. Migrations have one head, `ppvp_0007`. Recorded commands/results for older installed runtimes remain source-bound. Follow [current status](../pantrypulse/CURRENT-STATUS.md) before adopting configuration; a merge is not a running-image upgrade or deployment.
+
+The production registry contains `forecast.v1`, opt-in experimental `forecast.chronos.v1`,
+paired `or-comparison.v2` and single-method `or-allocation.v2`. Presenter API
+admission, immutable domain publication and Scenario Lab (`/scenarios`) use this shared lane.
 See [approved connected integration](../optimization/CONNECTED-INTEGRATION.md).
 Native Windows cannot provide the Linux boundary and never reports compute READY.
 

@@ -1,5 +1,8 @@
 # Forecasting Proposal: Consolidated Evaluation
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This is a dated proposal/decision/review or checkpoint narrative; accepted decisions and historical evidence remain intact. Its future/local-only/scaffold or model-paused statements are not today's merged status. Read [current status](CURRENT-STATUS.md), [SPEC-V5 §3.6](SPEC-V5.md#36-current-integrated-source--through-pr-99) and the current generated API contract before following old route/setup examples.
+
 Design review, October 24, 2026. This note records proposed forecasting tables and service contracts discussed during planning; it is not an implemented schema or a replacement for V4. The table names below describe candidate structures. Reconcile them with the authoritative specification before implementation.
 
 The proposal’s overall structure is sound. **Keep the core tables and service contracts. Correct the claim about the model’s native input format, and specify the missing data rules before implementation.**

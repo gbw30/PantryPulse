@@ -1,5 +1,8 @@
 # PP-50 — VP API integration review
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This task packet preserves its original requirements, ownership and source-bound evidence. Its local/TODO/paused wording is not current merged status. See [current status](../CURRENT-STATUS.md), [the board](../BOARD.md) and [SPEC-V5](../SPEC-V5.md); do not infer new agent assignments or a fresh test pass from this record.
+
 User requested reviewing VP and preparing its APIs and related development for a
 clean merge into main on October 25, 2026. Lead/integrator owns this review on
 `codex/vp-api-integration`, based on main `9df7c51` and VP `35615a6`.

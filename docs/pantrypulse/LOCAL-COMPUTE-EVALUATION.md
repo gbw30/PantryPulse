@@ -1,5 +1,8 @@
 # Local demo compute evaluation
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This is a dated proposal/decision/review or checkpoint narrative; accepted decisions and historical evidence remain intact. Its future/local-only/scaffold or model-paused statements are not today's merged status. Read [current status](CURRENT-STATUS.md), [SPEC-V5 §3.6](SPEC-V5.md#36-current-integrated-source--through-pr-99) and the current generated API contract before following old route/setup examples.
+
 Date: October 24, 2026. Recommendation only: no model installation, inference benchmark, container restart, or application implementation was performed for this evaluation. V4 and the research-validation gate remain authoritative.
 
 Follow-up: [CHRONOS-LOCAL.md](../../CHRONOS-LOCAL.md) now documents a separate optional model runner for preparation, real synthetic-data inference, timing and shutdown. Its offline safeguards are checked; actual image/model execution and the application integration remain to be verified.

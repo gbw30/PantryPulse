@@ -1,9 +1,11 @@
 # Forecasting implementation and qualification decision
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** PR #93 merged this implementation; it is no longer an unmerged branch candidate. The recorded experiment and its INSUFFICIENT_EVIDENCE decision remain unchanged. Publication of source does not establish deployment or full model qualification. [Current source](../pantrypulse/CURRENT-STATUS.md).
+
 October 25, 2026. Workstream #80–#86, branch `feat/forecasting-next`, originally based on
 main `5add760` and now integrated with main `f7a921a` (through PRs #91–#92).
-Implementation through the qualification decision is complete
-locally; review/publication and deployment are separate. Chronos stays
+Implementation through the qualification decision was merged in PR #93; deployment and release acceptance are separate. Chronos stays
 **experimental / insufficient evidence**, with no provider-default change.
 
 ## What was implemented

@@ -1,5 +1,8 @@
 # Current OR assignment boundary
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This document retains its recorded OR scope, decisions and experiment/test boundaries. Later approved connected integration, inclusive-expiry v2, merged operational APIs/views/model jobs and up-to-eight-product contracts supersede implementation-absence or withdrawn-ownership claims for current main. Use [current status](../pantrypulse/CURRENT-STATUS.md) and [connected integration](CONNECTED-INTEGRATION.md); original two-product measurements remain scoped, not new eight-product qualification.
+
 The user approved a scope correction on October 24, 2026: implement only the
 research-centered OR allocation service and necessary Python schemas. Next.js is
 frontend only; no Next API routes/proxies. Frontend, FastAPI routes/auth, persistence,

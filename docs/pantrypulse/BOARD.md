@@ -1,8 +1,22 @@
-> **October 25, 2026 approved integration:** [Connected OR integration](../optimization/CONNECTED-INTEGRATION.md) supersedes conflicting OR-only/no-proxy guidance and earlier solver limits for the connected simulated application. Historical checkpoint evidence remains scoped to its original code and contracts.
-
 # PantryPulse delivery board
 
-Current source includes the baseline API/presenter flow (PR #75), connected OR comparisons/UI and executable Linux/browser CI (PR #76), plus the bounded compute setup reviewed in PR #77. See [CURRENT-STATUS.md](CURRENT-STATUS.md), [SPEC-V5](SPEC-V5.md) and [PR #77 review](PR-77-REVIEW.md). The planning/task rows below retain their recorded historical status and do not override subsequent integrated evidence.
+Updated October 25, 2026 for main `647f6a8`. This table records merged-source scope, not automatic closure of every historical issue or acceptance gate. See [current status](CURRENT-STATUS.md) and [remaining implementation plan](IMPLEMENTATION-PLAN.md).
+
+| Workstream | Current state | Evidence / next boundary |
+| --- | --- | --- |
+| Operational storage, ledger, stock/import APIs | Merged through #75/#78 and later product work | `ppvp_0007`, generated contracts, transactional tests and presenter inputs |
+| Native OR, frozen scenarios, durable publication | Merged through #76; up to eight products through #92 | Independent replay, both modes/methods, source-bound OR evidence |
+| Overview and visitor saved reads | Merged through #88/#90 and related work | Explicit visitor tenant; no visitor compute/mutation |
+| Data Explorer, Recommendations, Scenario Lab and input screens | Merged #91 | Task packets PP-53–56 and current routes/tests; `/optimization` redirects |
+| Product creation/eight-product contracts | Merged #92 | Presenter product command; standard launcher fixtures remain 2 or 4 |
+| Opt-in Chronos jobs and qualification experiment | Merged #93 | Experimental/insufficient evidence; baseline defaults unchanged |
+| CI split and connected mobile repair | Merged #95–97 | Fast verify and separate full job; 390px Scenario Lab journey retained |
+| Supplier proposals | Paused | Dependent decisions and implementation still required |
+| Release | Not complete | Current-SHA full QA, actual target, human review, five rehearsals and rollback/backup |
+
+## Historical task ledger
+
+Rows below preserve original packet statuses, counts and ownership. Their TODO/local-only wording is historical and does not override the merged table above. PP packet numbers and GitHub issue IDs are different namespaces; do not infer a global completion percentage from these rows.
 
 | ID | Outcome | Owner | Depends on | Exit evidence | Status |
 |---|---|---|---|---|---|

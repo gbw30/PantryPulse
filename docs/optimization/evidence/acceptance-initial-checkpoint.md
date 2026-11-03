@@ -8,9 +8,9 @@ incomplete; no GitHub implementation issue has been closed.
 Inputs are `data/demo/or-v1/*.snapshot.json`, with explicit SIMULATED provenance,
 policy/settings identities and OR-DEC metadata. The six-beneficiary/two-product
 window is H=3 with seven forecast dates. See
-[native model-bound evidence](evidence/model-bounds-six-beneficiary-v1.json) for
+[native model-bound evidence](model-bounds-six-beneficiary-v1.json) for
 exact operational/policy hashes and common physical fingerprints, and
-[independent enumeration](RESEARCH-MAPPING.md) for unique optimum evidence.
+[independent enumeration](../RESEARCH-MAPPING.md) for unique optimum evidence.
 
 ## Executed checks
 
@@ -46,7 +46,7 @@ required evidence; a written test, skipped test or compiled UI is not a browser 
 
 | ID | Status | Evidence and remaining boundary |
 |---|---|---|
-| OR-A01 | PASS | Verbatim adoption, current-ref/worker reconciliation, preserved forecasting/helper regressions; [baseline](BASELINE-RECONCILIATION.md) |
+| OR-A01 | PASS | Verbatim adoption, current-ref/worker reconciliation, preserved forecasting/helper regressions; [baseline](../BASELINE-RECONCILIATION.md) |
 | OR-A02 | PASS | Strict simulated inputs/scenarios, adapter, precision, hashes, tamper/replay and scope tests in `test_or_pure.py` and persistence tests; LIVE remains A12 |
 | OR-A03 | PASS | Independent packing/projection/checker, both modes, donor/expiry/handling cases and tiny CP feasible-set equivalence in `test_or_model_equivalence.py` |
 | OR-A04 | UNVERIFIED | Checked mapping, exact independent oracles, native optimum agreement and corrected emitted bounds pass; complete native boundary/sensitivity acceptance audit remains |

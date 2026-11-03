@@ -1,5 +1,8 @@
 # PantryPulse release checklist
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** The product views, imports, limited visitor reads, eight-product planning and experimental model jobs are implemented; unchecked items are release checks, not proof those features are absent. `verify` is a two-minute static/unit check and `full` separately runs complete Linux/backend/browser gates. Freeze the actual current SHA/runtime and require full, human review, five rehearsals, target smoke and rollback/backup. [Current status](CURRENT-STATUS.md).
+
 > **Current authority:** [Project specification V5](SPEC-V5.md). Use V5 for current scope, qualification and release acceptance. Unchecked historical steps below are not evidence of completion.
 
 Unchecked boxes remain work, not implied success.

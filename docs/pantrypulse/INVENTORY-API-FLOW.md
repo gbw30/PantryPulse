@@ -2,7 +2,7 @@
 
 # Inventory snapshot API (PP-46)
 
-Implemented on local VP. The snapshot GET inspects current physical inventory;
+Merged on main through PR #78; current Data Explorer/Inventory and presenter Data input consume these services. The snapshot GET inspects current physical inventory;
 the PP-47 adjustment POST below corrects existing lots with an audited command.
 Neither requires a forecast worker. GET never creates or adjusts stock.
 

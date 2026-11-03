@@ -1,5 +1,8 @@
 # Vercel Next.js setup
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** Main `647f6a8` includes all four product screens, shared presenter/limited visitor reads, up to eight planning products and opt-in experimental Chronos jobs. Root opens `/overview`; `/optimization` redirects to `/scenarios`. Migrations have one head, `ppvp_0007`. Recorded commands/results for older installed runtimes remain source-bound. Follow [current status](../pantrypulse/CURRENT-STATUS.md) before adopting configuration; a merge is not a running-image upgrade or deployment.
+
 > **Scope (October 24, 2026):** This guide records the live, simulated `/design-lab` preview. That historical deployment's root remains static. The preview does not contact the API, use Neon, require a tunnel, or need `NEXT_PUBLIC_API_BASE_URL`. Local backend/Chronos preparation is now resumed; the preview's scope remains unchanged. [Project specification V5](../pantrypulse/SPEC-V5.md) requires a thin same-origin Next.js proxy before any later connected frontend or product release.
 
 ## Connected prototype project

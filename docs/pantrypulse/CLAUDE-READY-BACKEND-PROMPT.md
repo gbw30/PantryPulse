@@ -1,5 +1,8 @@
 # Claude Code prompt: implement the six READY backend components
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This is a dated proposal/decision/review or checkpoint narrative; accepted decisions and historical evidence remain intact. Its future/local-only/scaffold or model-paused statements are not today's merged status. Read [current status](CURRENT-STATUS.md), [SPEC-V5 §3.6](SPEC-V5.md#36-current-integrated-source--through-pr-99) and the current generated API contract before following old route/setup examples.
+
 Paste the prompt below into a Claude Code session started at the repository root. It uses the configured orchestration (CLAUDE.md, TASK-PROTOCOL.md): the main session is the lead, solver-engineer and forecast-engineer build in isolated worktrees, and verifier reviews each lane. Section 13 of BACKEND-SPEC.md stays the component contract.
 
 ```text

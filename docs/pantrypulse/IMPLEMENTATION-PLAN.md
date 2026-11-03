@@ -1,34 +1,30 @@
-# V4 prioritized implementation plan
+# Current implementation plan and remaining work
 
-> **Current authority:** [Project specification V5](SPEC-V5.md). Historical V4 roadmap. Use V5 for the current dependency sequence, implemented main/branch work, explicit transfer modes and acceptance.
+Updated October 25, 2026 for main `647f6a8`. [SPEC-V5](SPEC-V5.md) governs accepted requirements; [current status](CURRENT-STATUS.md) records implementation. Earlier hour-based V4 plans are historical and do not describe today's unfinished backlog.
 
-See [architecture/research gate](../architecture/0001-v4-research-first.md). This scaffold is not a working allocation platform.
+## Delivered source
 
-| Priority / target | Deliverable | Exit evidence |
-|---|---|---|
-| 0 / foundation | Root apps, npm/uv locks, Windows scripts, health and web shell | Frozen install; lint/typecheck/build; pytest and Playwright smoke; database readiness separately |
-| 1 / hours 0–6 | Read paper 2.1.3/3 and Appendices A/C; policy, group, scale, threshold, FEFO contracts | Equation mapping, independent hand/enumerated oracle, overflow bounds |
-| 2 / hours 6–12 | Six-beneficiary/one-hub/two-category simulated fixture; required-mode/frozen-scenario schemas; ledger/FEFO; shared constraints for both modes; CLASSICAL_GP | Conservation, expiry/ETA/use, reserves, receiving/handling capacity and baseline objective tests |
-| 3 / hours 12–20 | EGP_PI_INSPIRED with active reified AP/RP, excess shares, W/Z blend and independent metrics | TEST-EGP-01–07, nonzero penalties, paired input hash/mode/feasibility for both modes, interpretable distinct seed, AP/RP ablations |
-| 4 / hours 20–26 | SQLAlchemy/Alembic, snapshots/policies/goals/metrics, deterministic reset, paired API and generated TS | PostgreSQL upgrade/downgrade, paired contracts, stale 409, isolated reset, replay |
-| 5 / hours 26–30 | Requested demand/donation seasonal baseline, CSV import, manual correction audit, seven-day projection | Missingness/leakage/fallback provenance tests; supply counted once; daily unmet arithmetic |
-| 6 / hours 30–40 | Paired comparison, six-beneficiary table, thresholds/attributes/AP-RP chart, donation-cancel replan | Method difference visible within first 30 seconds; accessible controls; stale prior plan |
-| 7 / hours 40–48 | Full solver/DB/API/Playwright journey, performance, deployment and recording | Measured runtime; deployed working comparison; reproducible backup demo and limits |
+- Operational schema/ledger, audited stock/receipt/supply services and bounded atomic history imports.
+- Baseline and opt-in experimental Chronos forecasts, frozen inputs, durable publication/reuse and actual-provider provenance.
+- Shared Linux lane, deadlines, cancellation/manual retry, partial results and ownership fencing.
+- Immutable planning scenarios, both transfer modes and both native allocation methods with independent replay.
+- Overview, Data Explorer/Inputs, Recommendations, Scenario Lab, Methodology, shared presenter controls and optional saved visitor reads.
+- Up to eight planning products, explicit product creation, standard two-product and optional four-product seed.
+- Generated contracts, single migration head, and separate CI verify/full jobs.
 
-Chronos is an optional dependency extra and follows research proof, with lazy loading, bounded inference and labeled fallback. Supplier proposal and no-action/greedy comparators follow the central comparison. Real purchasing/dispatch, maps, routing, production reservations, RL and advanced model ensembles are deferred.
+## Next work in order
 
-By hour 20 the research engine must execute; otherwise mark it incomplete and prioritize AP/RP. Do not drop CSV validation, controlled corrections or replay from supporting P0.
+| Priority | Work | Completion evidence |
+| --- | --- | --- |
+| Release blocker | Run full current-SHA QA rather than relying on static verify | No-skips Linux/PostgreSQL/backend and connected browser evidence, current production build/contracts |
+| Release blocker | Reconcile source with the intended running demo | Recorded image/mount/SHA/schema/ports/provider settings; controlled upgrade after idle, then real forecast→scenario→comparison smoke |
+| Release blocker | Human visual/accessibility review and five clean rehearsals | Three viewports, keyboard/reduced motion, cold/failure case, saved results and backup recording |
+| Release blocker | Freeze actual target, rollback/recovery and disclosures | Manifest, validated target URLs, backup and accurate simulated/model limitations |
+| Model follow-up | Qualify nonnegative-output policy and complete pantry/donation scope | Reviewed new experiment/holdout; failures/availability and baseline/fallback remain explicit |
+| Model follow-up | Pantry demand/donation data and interval calibration | Representative licensed data, temporal leakage controls, complete expected/scored sets and measured coverage |
+| Paused accepted scope | Supplier proposals and dependent offer/budget/lifecycle decisions | Explicit resumption/decisions, implementation and acceptance; do not quietly remove scope |
+| Deferred P1 | Broader roles, reservations/completion, richer routing and research fidelity | Separate approved contracts, concurrency/stock-conservation and domain evidence |
 
-| V4 requirement | Planned evidence |
-|---|---|
-| FR-21/28 | Same snapshot, paired runs, comparison UI |
-| FR-22 | Normalization/weights/provenance oracle |
-| FR-23 | Fulfillment ledger and zero-demand semantics |
-| FR-24/25 | AP/RP reification, equality/group cases, share penalties |
-| FR-26 | Scaled W/Z objective decomposition |
-| FR-27 | Per-beneficiary metrics and explanations; distinguish proven binding constraints from inferred bottlenecks |
-| FR-29 | DOI/date attribution and inspired-subset limits |
-| FR-30 | Explicit research method-unavailable; no silent classical substitution |
+Chronos's merged integration does not change its experimental qualification or baseline defaults. The completed retail-proxy study is not proof of pantry accuracy; do not tune against its already inspected final holdout. Simulation reviews do not reserve or dispatch stock.
 
-Before solver code: confirm full-text mapping, freeze quantization/thresholds and int64 bounds, choose category aggregation, validate the six-beneficiary seed and AP/RP ablations, and finalize hard FEFO prefix/eligibility constraints. ADR defaults allow validation to proceed without a preference questionnaire; they remain pending mathematical verification.
-
+For original task/decision provenance use [the board](BOARD.md), [research/architecture](../architecture/README.md), [forecasting dossier](../forecasting/QUALIFICATION.md), [OR evidence](../optimization/FINALIZATION.md) and [release checklist](RELEASE-CHECKLIST.md).

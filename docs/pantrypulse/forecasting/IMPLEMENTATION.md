@@ -1,5 +1,8 @@
 # Forecasting core implementation
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This forecasting baseline/plan retains its original experiment and proposal scope. Actual pinned adapter, opt-in model jobs, Scenario Lab integration and a frozen retail-proxy qualification are now merged. Use [current status](../CURRENT-STATUS.md), [Chronos jobs](../../forecasting/CHRONOS-JOBS.md) and [qualification](../../forecasting/QUALIFICATION.md); no current model-default, calibration or pantry-accuracy change is implied.
+
 > **Current authority:** [Project specification V5](../SPEC-V5.md). V5 supersedes conflicting V4-era instructions. BD-41 requires explicit `HUB_ONLY` or `HUB_AND_PANTRY` with no default in the full operational scenario; the forecast-only handoff does not select topology. Experimental policies and live integration gates remain open.
 
 Date: 2026-10-24. Scope confirmed by the user: implement the forecasting core and

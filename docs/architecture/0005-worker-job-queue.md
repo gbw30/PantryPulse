@@ -2,6 +2,9 @@
 
 # ADR 0005: Worker and job queue foundation decisions
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This ADR preserves the decision and evidence at its recorded checkpoint. Current implementation includes the merged views, presenter/limited visitor boundary, eight-product planning and opt-in experimental Chronos jobs; those operational facts are in [current status](../pantrypulse/CURRENT-STATUS.md). Historical missing-feature/paused statements do not override later accepted integrations.
+
 > **Authority:** [Project specification V5](../pantrypulse/SPEC-V5.md) §§12–13 and BD-11/12/30/31/34–38 remain the accepted requirements. This ADR records the lead's review of the technical proposals in [WORKER-JOB-QUEUE-SPEC.md](../pantrypulse/WORKER-JOB-QUEUE-SPEC.md) (WQ-D01–D11) for the internal foundation packages WQ-01–06 only. It does not close OPEN-29/30/31/33/35, expose public routes or select deployment.
 
 Date: 2026-10-24. Base: main `04df41ced650896bd4f4a4cd10de1354b406d216`. Status: accepted for the internal foundation; items marked **USER CONFIRM** stay provisional until the user confirms them.

@@ -1,5 +1,8 @@
 # Forecast API: implemented flow and verification (PP-45 / #29)
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** Main `647f6a8` includes all four product screens, shared presenter/limited visitor reads, up to eight planning products and opt-in experimental Chronos jobs. Root opens `/overview`; `/optimization` redirects to `/scenarios`. Migrations have one head, `ppvp_0007`. Recorded commands/results for older installed runtimes remain source-bound. Follow [current status](CURRENT-STATUS.md) before adopting configuration; a merge is not a running-image upgrade or deployment.
+
 This is the bounded baseline implementation merged through PR #75, based on V5 §§4–7/12–13 and
 the accepted operational contract. It supersedes older **implementation-status**
 statements saying health is the only route. It does not close all V5 acceptance,

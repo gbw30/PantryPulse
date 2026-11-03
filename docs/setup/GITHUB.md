@@ -1,5 +1,8 @@
 # GitHub setup
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** Main `647f6a8` includes all four product screens, shared presenter/limited visitor reads, up to eight planning products and opt-in experimental Chronos jobs. Root opens `/overview`; `/optimization` redirects to `/scenarios`. Migrations have one head, `ppvp_0007`. Recorded commands/results for older installed runtimes remain source-bound. Follow [current status](../pantrypulse/CURRENT-STATUS.md) before adopting configuration; a merge is not a running-image upgrade or deployment.
+
 Purpose: keep PantryPulse source, reviewed changes and test evidence available to the team and deployment providers. Start here; then continue with [Neon](NEON.md). Local prerequisites are in [INSTALLATION.md](../../INSTALLATION.md).
 
 ## Account and access

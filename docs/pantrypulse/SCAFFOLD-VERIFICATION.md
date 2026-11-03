@@ -1,5 +1,8 @@
 # Scaffold verification — 2026-10-23
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This is a dated proposal/decision/review or checkpoint narrative; accepted decisions and historical evidence remain intact. Its future/local-only/scaffold or model-paused statements are not today's merged status. Read [current status](CURRENT-STATUS.md), [SPEC-V5 §3.6](SPEC-V5.md#36-current-integrated-source--through-pr-99) and the current generated API contract before following old route/setup examples.
+
 Current connected source, active CI and bounded compute evidence are indexed by [CURRENT-STATUS.md](CURRENT-STATUS.md). The original scaffold checks below remain a dated historical record and do not describe today's implemented API/UI or running image readiness.
 
 

@@ -2,6 +2,9 @@
 
 # OR reviewed testing milestone — October 24, 2026
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This document retains its recorded OR scope, decisions and experiment/test boundaries. Later approved connected integration, inclusive-expiry v2, merged operational APIs/views/model jobs and up-to-eight-product contracts supersede implementation-absence or withdrawn-ownership claims for current main. Use [current status](../pantrypulse/CURRENT-STATUS.md) and [connected integration](CONNECTED-INTEGRATION.md); original two-product measurements remain scoped, not new eight-product qualification.
+
 Base: `e49e360d23e46b43542b0a2e9b5f6277d5f840d5`, plus the working tree.
 The user requested thorough verification before continuing and a stop at substantial
 milestones so they can commit. No commit, push, deployment or issue closure is made.

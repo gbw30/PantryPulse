@@ -2,6 +2,9 @@
 
 # OR checkpoint review fixes
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This task packet preserves its original requirements, ownership and source-bound evidence. Its local/TODO/paused wording is not current merged status. See [current status](../CURRENT-STATUS.md), [the board](../BOARD.md) and [SPEC-V5](../SPEC-V5.md); do not infer new agent assignments or a fresh test pass from this record.
+
 Base: e49e360d23e46b43542b0a2e9b5f6277d5f840d5. User resumed work and
 required thorough testing first. All original 873 API/PostgreSQL tests pass;
 independent review and actual browser execution identified additional regressions.

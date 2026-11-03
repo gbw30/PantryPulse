@@ -2,6 +2,9 @@
 
 # OR saved-result explanation milestone — October 24, 2026
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This document retains its recorded OR scope, decisions and experiment/test boundaries. Later approved connected integration, inclusive-expiry v2, merged operational APIs/views/model jobs and up-to-eight-product contracts supersede implementation-absence or withdrawn-ownership claims for current main. Use [current status](../pantrypulse/CURRENT-STATUS.md) and [connected integration](CONNECTED-INTEGRATION.md); original two-product measurements remain scoped, not new eight-product qualification.
+
 Base: `46ff0cd` on `or_pipeline`, plus the working tree. The user requested actual
 team-facing backlog issues before more implementation, then a stop at the next
 substantial tested milestone for their commit.

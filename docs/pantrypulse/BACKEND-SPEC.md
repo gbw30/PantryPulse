@@ -2,6 +2,9 @@
 
 # PantryPulse Backend Specification and Build Readiness
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This is a dated proposal/decision/review or checkpoint narrative; accepted decisions and historical evidence remain intact. Its future/local-only/scaffold or model-paused statements are not today's merged status. Read [current status](CURRENT-STATUS.md), [SPEC-V5 §3.6](SPEC-V5.md#36-current-integrated-source--through-pr-99) and the current generated API contract before following old route/setup examples.
+
 October 24 local #11 update: [scenario-v1](SCENARIO-CONTRACT.md) now defines the
 internal operational snapshot/identity, replay/current freshness and transfer
 feasibility contract. Explicit selections BD-49/50/51 protect donor service over

@@ -1,5 +1,8 @@
 # PP-09/10/11: Forecasting core (V4 workstream Task 03)
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This task packet preserves its original requirements, ownership and source-bound evidence. Its local/TODO/paused wording is not current merged status. See [current status](../CURRENT-STATUS.md), [the board](../BOARD.md) and [SPEC-V5](../SPEC-V5.md); do not infer new agent assignments or a fresh test pass from this record.
+
 Date: 2026-10-24. Owner: lead implementation session.
 Base: `a0ad11f45bb15a3c3158ed6678f9522652d2a723`; canonical outer workspace.
 

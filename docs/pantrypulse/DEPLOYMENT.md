@@ -1,6 +1,9 @@
 # Deployment and recovery
 
-Updated October 25, 2026. [Current status](CURRENT-STATUS.md), [SPEC-V5](SPEC-V5.md), [connected integration](../optimization/CONNECTED-INTEGRATION.md) and [external services](../../EXTERNAL-SERVICES.md) define the implemented scope and target-specific procedures. Source includes baseline forecasts, authenticated scenarios/comparisons, verified methods and `/optimization`; it is no longer a process-only scaffold.
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** Main `647f6a8` includes all four product screens, shared presenter/limited visitor reads, up to eight planning products and opt-in experimental Chronos jobs. Root opens `/overview`; `/optimization` redirects to `/scenarios`. Migrations have one head, `ppvp_0007`. Recorded commands/results for older installed runtimes remain source-bound. Follow [current status](CURRENT-STATUS.md) before adopting configuration; a merge is not a running-image upgrade or deployment.
+
+Updated October 25, 2026. [Current status](CURRENT-STATUS.md), [SPEC-V5](SPEC-V5.md), [connected integration](../optimization/CONNECTED-INTEGRATION.md) and [external services](../../EXTERNAL-SERVICES.md) define the implemented scope and target-specific procedures. Source includes baseline forecasts, authenticated scenarios/comparisons, verified methods and the four product views (`/optimization` redirects to `/scenarios`); it is no longer a process-only scaffold.
 
 ## Separate source, runtime and deployment evidence
 
@@ -29,7 +32,7 @@ Local backend/model preparation and the merge of PR #77 are authorized. No new p
 
 ## Chronos and release claims
 
-Pinned full Chronos-2 CPU inference and synthetic timings have been measured separately. The application forecast policy remains baseline-only; model-handler admission, fallback/deadline/publication integration, representative accuracy and calibration remain separate qualification. A cached checkpoint or fresh heartbeat is not an integrated forecast result. Keep raw quantiles and simulated/donation provenance explicit.
+Pinned full Chronos-2 CPU inference and synthetic timings have been measured separately. Opt-in `forecast.chronos.v1` admission/containment/fallback/publication is merged. Its retail-proxy study ended INSUFFICIENT_EVIDENCE; full pantry/donation predictive accuracy and calibrated intervals remain unqualified. A cached checkpoint or fresh heartbeat is not an integrated forecast result. Keep raw quantiles and simulated/donation provenance explicit.
 
 ## Manifest and rollback
 

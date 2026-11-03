@@ -1,5 +1,8 @@
 # Fly.io compute configuration — prepared October 25, 2026
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** Main `647f6a8` includes all four product screens, shared presenter/limited visitor reads, up to eight planning products and opt-in experimental Chronos jobs. Root opens `/overview`; `/optimization` redirects to `/scenarios`. Migrations have one head, `ppvp_0007`. Recorded commands/results for older installed runtimes remain source-bound. Follow [current status](../pantrypulse/CURRENT-STATUS.md) before adopting configuration; a merge is not a running-image upgrade or deployment.
+
 The user resumed local compute setup and requested Fly hosting configuration. The checked-in `apps/api/fly.toml` and `Dockerfile.compute` now define separate API and worker process groups. No app, paid Machine, volume, secret or deployment has been created. [V5](../pantrypulse/SPEC-V5.md#154-pauses-and-release-controls) and [local compute setup](LOCAL-COMPUTE.md) define the current authorization and remaining product gates.
 
 ## Current configuration

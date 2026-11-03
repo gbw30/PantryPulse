@@ -1,5 +1,8 @@
 # PP-30: PR #49/#50 review fixes
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This task packet preserves its original requirements, ownership and source-bound evidence. Its local/TODO/paused wording is not current merged status. See [current status](../CURRENT-STATUS.md), [the board](../BOARD.md) and [SPEC-V5](../SPEC-V5.md); do not infer new agent assignments or a fresh test pass from this record.
+
 Owner: lead integration session. User requested fixes and one pull request.
 Review workspace base: local main 04df41ced650896bd4f4a4cd10de1354b406d216. Published change targets remote main ca5909b1277c86d9f8569886e2ee4fa7589a0f84; the unrelated local worker-spec commit is excluded.
 Worktree: C:/Users/gabri/.codex/worktrees/pr49-pr50-fixes/PantryPulse.

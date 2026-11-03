@@ -1,5 +1,8 @@
 # Environment record
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** Main `647f6a8` includes all four product screens, shared presenter/limited visitor reads, up to eight planning products and opt-in experimental Chronos jobs. Root opens `/overview`; `/optimization` redirects to `/scenarios`. Migrations have one head, `ppvp_0007`. Recorded commands/results for older installed runtimes remain source-bound. Follow [current status](CURRENT-STATUS.md) before adopting configuration; a merge is not a running-image upgrade or deployment.
+
 ## Current source/environment summary — October 25, 2026
 
 See [CURRENT-STATUS.md](CURRENT-STATUS.md) for the supported source/runtime distinction. Node 24.16.0, npm 11.13.0, uv 0.11.15 and Python 3.12.13 remain pinned. Active `.github/workflows/pantrypulse-ci.yml` runs Linux/PostgreSQL and connected browser gates; the template/Node-22 remarks below are historical. The opt-in local compute configuration, persistent model cache and real standalone Chronos evidence are in [LOCAL-COMPUTE.md](../setup/LOCAL-COMPUTE.md). Existing running images are not replaced by a source merge.

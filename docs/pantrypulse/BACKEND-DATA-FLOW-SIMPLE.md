@@ -1,5 +1,8 @@
 # Proposed Backend Behavior in Simple Terms
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This is a dated proposal/decision/review or checkpoint narrative; accepted decisions and historical evidence remain intact. Its future/local-only/scaffold or model-paused statements are not today's merged status. Read [current status](CURRENT-STATUS.md), [SPEC-V5 §3.6](SPEC-V5.md#36-current-integrated-source--through-pr-99) and the current generated API contract before following old route/setup examples.
+
 > **Current authority:** [Project specification V5](SPEC-V5.md). Plain-language historical explanation. V5 governs accepted behavior, review-only plans, explicit transfer modes and the actual main/forecasting-branch state.
 
 PantryPulse is meant to help someone running a food-distribution network answer three questions:

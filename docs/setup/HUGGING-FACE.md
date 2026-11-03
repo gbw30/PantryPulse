@@ -1,5 +1,8 @@
 # Optional Hugging Face / Chronos-2 setup
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** Main `647f6a8` includes all four product screens, shared presenter/limited visitor reads, up to eight planning products and opt-in experimental Chronos jobs. Root opens `/overview`; `/optimization` redirects to `/scenarios`. Migrations have one head, `ppvp_0007`. Recorded commands/results for older installed runtimes remain source-bound. Follow [current status](../pantrypulse/CURRENT-STATUS.md) before adopting configuration; a merge is not a running-image upgrade or deployment.
+
 Purpose: obtain versioned Amazon Chronos-2 model artifacts. Full pinned standalone CPU inference and a synthetic ten-run benchmark have been executed on the laptop; see [current compute evidence](LOCAL-COMPUTE.md). This is optional. The research allocation engine and seasonal-naive forecast path must not depend on a hosted model API.
 
 **For this Windows laptop, start with [CHRONOS-LOCAL.md](../../CHRONOS-LOCAL.md).** It provides the separate model-enabled Docker image and runnable preparation/session/benchmark commands. The native commands below remain a reference for compatible hosts; they are not the recommended path for the original machine's blocked native libraries.

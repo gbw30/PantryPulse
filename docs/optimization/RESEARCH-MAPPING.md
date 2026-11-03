@@ -1,5 +1,8 @@
 # Draft 1.1 research mapping and pre-solver gate
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This document retains its recorded OR scope, decisions and experiment/test boundaries. Later approved connected integration, inclusive-expiry v2, merged operational APIs/views/model jobs and up-to-eight-product contracts supersede implementation-absence or withdrawn-ownership claims for current main. Use [current status](../pantrypulse/CURRENT-STATUS.md) and [connected integration](CONNECTED-INTEGRATION.md); original two-product measurements remain scoped, not new eight-product qualification.
+
 Checked October 24, 2026 America/New_York, at base `f3946c726e53fa546be1400d80ab717fcb2c3468` plus this task's working tree. Research lane for [#10](https://github.com/gbw30/PantryPulse/issues/10)/[#38](https://github.com/gbw30/PantryPulse/issues/38). OR-DEC-019 remains SELECTED_FOR_DRAFT_1.
 
 The [Wiley full text](https://onlinelibrary.wiley.com/doi/full/10.1111/itor.70252) was actually accessible and inspected, including §2.1.1–3 equations 1–20, §3 equations 21–38, Appendix A tables A.1–6, Appendix C equations C.8–19 and publisher publication metadata (September 11, 2026). No equation fidelity was inferred from an abstract. The mapping below records checked locations and **local** meanings; it is not a reproduction claim. Publisher HTML equations and prose leave aggregation/linkage and boundary details requiring an explicit local contract; no assertion that the paper supplies our physical formulation is made.

@@ -2,6 +2,9 @@
 
 # Current OR-v2 qualification
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This document retains its recorded OR scope, decisions and experiment/test boundaries. Later approved connected integration, inclusive-expiry v2, merged operational APIs/views/model jobs and up-to-eight-product contracts supersede implementation-absence or withdrawn-ownership claims for current main. Use [current status](../pantrypulse/CURRENT-STATUS.md) and [connected integration](CONNECTED-INTEGRATION.md); original two-product measurements remain scoped, not new eight-product qualification.
+
 The [dense budget sweep](BUDGET-QUALIFICATION-V2.md) records both methods at 15/30/60/120/300 seconds under inclusive expiry. All twenty outcomes passed independent replay; none proved optimality.
 
 ## Historical OR-v1 qualification — October 25, 2026

@@ -1,38 +1,41 @@
-# Laptop demo: local compute with isolated data
+# Laptop demo: choose and preserve the correct runtime
 
-Updated October 25, 2026. The selected compute host remains the laptop; Fly is optional. Source now includes the connected baseline forecast/OR workflow at `/optimization`, presenter/CSRF controls, same-origin proxy and durable jobs. See [current status](../pantrypulse/CURRENT-STATUS.md). Existing running images and the old Vercel preview are separate from this source state.
+Updated October 25, 2026 for main `647f6a8`. The connected application has `/overview`, `/data`, `/recommendations`, `/scenarios` and `/methodology`. `/optimization` redirects to Scenario Lab. Shared presenter sign-in is in the sidebar. For exact machine-specific video paths, restart commands and recovery, use [LOCAL-LAUNCH-GUIDE.md](LOCAL-LAUNCH-GUIDE.md).
 
-## Preserve existing work
+## Existing video demo
 
-Inspect Docker/services and loopback ports before choosing an environment. Do not stop a running API/worker, overwrite its private environment, migrate its database or clear a queue merely to follow this guide. A new image needs a later controlled adoption after active work finishes; the opt-in helper uses `--no-recreate`.
+Resume the prepared `presenter_demo_20261025_135726` project using its saved `compose.yaml` and website launcher. At the recorded setup its web/API URLs were 3020/8021; read `project.json` rather than assuming ports. It contains three added VIDEO datasets and saved genuine computations. Its earlier copied API image is not automatically upgraded with current main, and its retired `/optimization` video-shortcut component is not an active route on current main.
 
-Use [LOCAL-COMPUTE.md](LOCAL-COMPUTE.md) for the bounded local API/worker image, resource checks and standalone Chronos tools. Use `compose.forecast.yaml` with explicitly selected private `apps/api/.env` for the laptop-to-Neon path. `compose.demo.yaml` is an API/database probe and does not start a worker.
+Do not create a new demo or import CSVs merely to resume its database. Do not mix credentials/proxy settings from the older `133505` environment. Saved data can outlive its video labels or its planning date; historical results must remain labelled.
 
-## Prepare a new isolated connected demo
+## Tracked local launcher
 
-1. Choose the dedicated local or Neon database and direct migration connection. Preserve provider TLS settings. Do not reset an existing schema.
-2. Run the deliberate `load_optimization_demo.py --schema ppor_demo_YOUR_NAME --output PRIVATE_PATH` procedure in [CONNECTED-INTEGRATION.md](../optimization/CONNECTED-INTEGRATION.md). It creates a new migrated schema and fictional history, stock and assumptions; it never fabricates forecast/comparison results.
-3. Configure the exact schema and fictional organization in private API settings. Set presenter username/password hash, allowed origins and a matching trusted proxy token. See [forecast/auth flow](../pantrypulse/FORECAST-API-FLOW.md).
-4. Configure `apps/web/.env.local` using the tracked example: server-only `PANTRYPULSE_API_ORIGIN` and `PP_TRUSTED_PROXY_TOKEN`. No secret or backend URL is needed in `NEXT_PUBLIC_API_BASE_URL`.
-5. Start only that selected API/worker environment. Its production registry contains `forecast.v1` and `or-comparison.v2`; Linux capability version 2 is required. Configure/review ports so existing work stays running.
-6. Open `/optimization`, log in, generate a real baseline forecast, freeze an explicit-mode scenario and submit a paired comparison. Review native statuses, independent verification, partial outcomes and immutable provenance. Editing assumptions requires a new saved version/scenario.
+After installing dependencies, inspect Docker and selected ports. When the `pp-local-*` lane is idle:
 
-Windows native library restrictions on this computer are handled by Linux containers, not by weakening security policy. Demo-loading scripts read repository fixtures; when running them in Docker, mount the complete checkout and run from `/repo/apps/api`, as in the compute runbook.
+```powershell
+pwsh -File scripts/demo-local.ps1 -WebPort 3030 -ApiPort 8030 -DbPort 55434
+```
 
-## Resource and shutdown policy
+Those ports are examples and must be free. The launcher uses its own network, PostgreSQL volume and API/worker, explicitly seeds once, generates private presenter credentials, enables saved visitor reads, and queues a baseline forecast unless `-NoForecast` is selected. `-NoWeb` omits website startup. `-Products 4` selects the supplied four-product fixture; default 2. Planner contracts accept at most eight products, not an eight-product launcher switch.
 
-The local worker ceiling is six CPU equivalents/eight GiB, separate from API/database needs. Model tools run only when the queue/operator checks allow, and never concurrently with active domain work. Source defaults are 120 seconds native search, 150 seconds per method and 330 seconds per comparison; maxima are 300/330/690. Queue expiry is 1,800 seconds, with one active and two waiting operations.
+**Operational behavior:** the launcher rebuilds its image and removes/recreates its own API/worker every invocation. The database volume persists. `--restart unless-stopped` preserves container startup behavior. Do not rerun during active work. `-Reset` deletes this launcher's database volume and credentials and is only for an intentional disposable-demo reset, never port cleanup.
 
-SIGTERM drains without claiming another job. Supervisor drain allows up to 720 seconds; local container grace is 725 seconds. Never use broad process kills, delete data volumes or clear ownership rows to force availability. Follow [worker recovery](WORKER-QUEUE.md).
+## Explicit compute/Neon alternative
 
-## Chronos and public access
+Use `compose.yaml` + `compose.compute.yaml` for the bounded local compute image/worker and local PostgreSQL; use `compose.forecast.yaml` with selected private `apps/api/.env` for an isolated Neon schema. `compose.demo.yaml` is only an API/database probe and does not start a worker. The opt-in compute helper uses `--no-recreate`; it intentionally may preserve older running images. These procedures have different adoption semantics from `demo-local.ps1`.
 
-The pinned full Chronos-2 model has passed a separate real CPU smoke and ten warm synthetic runs; see the dated [compute evidence](LOCAL-COMPUTE.md#verification-record). It remains outside the application provider registry. Raw quantiles are not calibrated intervals, synthetic timings are not predictive-accuracy evidence, and donation predictions are not physical stock.
+The explicit loader `apps/api/scripts/load_optimization_demo.py` requires direct `DATABASE_URL_UNPOOLED`, a new `ppor_demo_*` schema, and an output path. `--spec` may select a checked-in fixture, including the four-product example. It migrates and loads fictional history/stock/assumptions; never fake forecast/solver output. API/worker must select that exact schema and organization. Current migration head: `ppvp_0007`.
 
-The existing `/design-lab` Vercel preview needs no API/tunnel. A separately authorized connected release can use the implemented proxy and [Cloudflare tunnel](CLOUDFLARE.md), after actual target/origin/cookie checks. Do not expose PostgreSQL. [Fly](FLY.md) remains configuration-only and requires login/platform validation/deployment.
+For manual configuration set presenter username/hash/organization, Origin/CSRF/proxy settings, optional visitor organization, and matching Next server-only API origin/token. For local HTTP use loopback and `PP_COOKIE_SECURE=false`; hosted HTTPS requires secure cookies. Existing schemas are not migrated or reset by startup.
 
-## Offline alternative: existing local PostgreSQL
+## Forecasts and model qualification
 
-Use the local database and a newly seeded isolated demo schema while venue network is unavailable. Preparing a local schema does not copy Neon automatically. Keep dependencies and weights cached before the event; an offline model exercise does not make every application operation model-backed.
+Baselines require no optional model packages. Chronos application jobs are integrated under `forecast.chronos.v1` but disabled by default and experimental. They need explicit pin/profile/cache and live matching worker capability; follow [CHRONOS-JOBS.md](../forecasting/CHRONOS-JOBS.md). Standalone model tools are separate. Invalid donation quantiles are rejected; an explicitly permitted whole-batch moving-average fallback can be planning-ready and is labelled as such. The [retail experiment](../forecasting/QUALIFICATION.md) does not establish pantry accuracy or calibration.
 
-Verify process health, database/schema, fresh worker capability, authenticated browser actions, real forecast publication and sequential comparison on that exact runtime. Preserve a release manifest, backup recording and rollback plan. See [deployment/recovery](../pantrypulse/DEPLOYMENT.md). Supplier planning, broad import UI, visitor access, production reset and real purchasing/dispatch remain outside this demo.
+## Verification, shutdown and offline use
+
+Verify process health, schema/catalog, presenter access, real forecast publication and a verified paired scenario. Optional visitors can read only the saved catalog/dashboard/shortage subset. Health alone does not qualify a worker/model or a release.
+
+The shared lane allows one active and two waiting jobs. Default solver/method/comparison ceilings are 120/150/330 seconds; maxima 300/330/690. Forecast ceilings are 270/300. Wait for work to finish, stop only this website with Ctrl+C, and stop only the selected demo containers. Worker grace is 725 seconds. Preserve volumes and schema.
+
+Cache dependencies/images and seed a local database before an offline event; using local PostgreSQL does not copy Neon. Record commit/image/schema/dataset/settings, confirm current date and save a backup recording. Five clean rehearsals, human visual acceptance and actual presentation-target checks remain release requirements. Supplier planning and real purchasing/reservation/dispatch remain separate.

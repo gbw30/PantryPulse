@@ -1,5 +1,8 @@
 # Operational, forecast and planning migrations
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** Current single source head is `ppvp_0007`, preserving both earlier planning histories. `ppor_0005` adds canonical frozen planning, `pp49_0005/0006` retain operational/legacy history, and `ppvp_0007` converges canonical plans/reviews. Chronos and eight-product follow-ups add no migration. Older revision/table-count paragraphs below describe those checkpoints, not today's head. See [current status](../../../docs/pantrypulse/CURRENT-STATUS.md).
+
 Integration candidate head: `ppvp_0007`, joining main `ppor_0005` and VP `pp49_0006` without rewriting either history. It adds canonical plans and append-only simulation reviews. See the [VP review](../../../docs/pantrypulse/VP-API-INTEGRATION.md). PR #75 integrated operational/worker/forecast histories; PR #76 added four immutable planning tables. Earlier revisions and dated application records below are preserved. See [current status](../../../docs/pantrypulse/CURRENT-STATUS.md).
 
 `pp19_0001` implements [operational-v1](../../../docs/pantrypulse/OPERATIONAL-CONTRACT.md)

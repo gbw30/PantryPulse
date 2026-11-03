@@ -1,5 +1,8 @@
 # PR #77 review and main documentation reconciliation
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This is a dated proposal/decision/review or checkpoint narrative; accepted decisions and historical evidence remain intact. Its future/local-only/scaffold or model-paused statements are not today's merged status. Read [current status](CURRENT-STATUS.md), [SPEC-V5 §3.6](SPEC-V5.md#36-current-integrated-source--through-pr-99) and the current generated API contract before following old route/setup examples.
+
 Reviewed October 25, 2026. The original compute candidate `9c7775a` was integrated
 with main `1e713c9` (connected OR PR #76) at `6fe77ac`. This review concerns local/Fly
 configuration and current documentation; it does not deploy services or qualify

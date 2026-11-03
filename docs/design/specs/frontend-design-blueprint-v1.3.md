@@ -1,5 +1,8 @@
 # PantryPulse — Frontend Design Blueprint
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** Overview, Data Explorer/Inputs, Recommendations, Scenario Lab, Methodology and shared presenter controls have landed. Two-product examples below describe the original standard fixture; current contracts allow eight and the supplied extended seed has four. Distinguish design targets/unimplemented optional features from the actual route/API inventory in [current status](../../pantrypulse/CURRENT-STATUS.md).
+
 **Document:** `PantryPulse_Frontend_Design_Blueprint.md`  
 **Updated:** 2026-10-25  
 **Status:** **Finalized frontend design revision 1.3** — October 25, 2026 decisions select the Collage 2 sidebar and Recommendations page, a numbered Scenario Lab wizard and results/comparison panels, and a single consistent top navigation without a duplicated profile icon. Overview and Data Explorer selections from v1.1 remain in force. **This is a UI design companion, not a replacement for the authoritative V5 product specification.**  

@@ -1,5 +1,8 @@
 # Windows development
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** Main `647f6a8` includes all four product screens, shared presenter/limited visitor reads, up to eight planning products and opt-in experimental Chronos jobs. Root opens `/overview`; `/optimization` redirects to `/scenarios`. Migrations have one head, `ppvp_0007`. Recorded commands/results for older installed runtimes remain source-bound. Follow [current status](CURRENT-STATUS.md) before adopting configuration; a merge is not a running-image upgrade or deployment.
+
 For first-time setup, use the complete [installation guide](../../INSTALLATION.md), including manual tool installation and optional dependency decisions. This document is a command reference.
 
 Run from the OUTER Git root, not PantryPulse/. PowerShell 5.1/7 supported.
@@ -47,7 +50,7 @@ node --test scripts/quality/tests/*.test.cjs
 
 These validate the scaffold, offline helpers and configured tests, not the complete product. Full quality gates still expect future public contracts and domain integration. Worker PostgreSQL tests need `PP_TEST_DATABASE_URL`; Linux containment tests skip on native Windows. See the [worker runbook](../setup/WORKER-QUEUE.md). Consult the checked-in quality configuration for hook enforcement rather than assuming every gate is enabled or complete.
 
-Tracked API example: `apps/api/.env.example`. Copy it to `apps/api/.env` only when local API configuration is needed; do not overwrite an existing private file. No web environment example is tracked. The current health/static shell and simulated Vercel preview need no environment file. API settings loading and the selected same-origin Next.js proxy are not implemented yet. No secrets belong in `NEXT_PUBLIC_` variables.
+Tracked API example: `apps/api/.env.example`. Copy it to `apps/api/.env` only when local API configuration is needed; do not overwrite an existing private file. A web environment example is tracked at `apps/web/.env.example`. Process health and the historical illustrative Vercel preview need no domain configuration; the connected app requires the selected database/schema and proxy/presenter settings. The same-origin Next.js proxy and explicit runtime environment loading are implemented; match server-only API/proxy values with backend origin/cookie settings. No secrets belong in `NEXT_PUBLIC_` variables.
 
 ## Database
 
@@ -75,4 +78,3 @@ This installs large ML libraries; it does not download a checkpoint or implement
 Intentional updates: npm install at root and uv lock --project apps/api; review locks and rerun frozen checks. Normal setup uses npm ci and uv sync --frozen.
 
 Missing Docker named pipe: start Docker Desktop and await Linux engine readiness. Sandbox registry DNS/cache permission errors: use authorized network access or approved writable cache. Never copy nested node_modules as environment setup. Keep caches/.venv/.next/reports ignored.
-

@@ -2,6 +2,9 @@
 
 # OR saved-result explanation milestone
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This task packet preserves its original requirements, ownership and source-bound evidence. Its local/TODO/paused wording is not current merged status. See [current status](../CURRENT-STATUS.md), [the board](../BOARD.md) and [SPEC-V5](../SPEC-V5.md); do not infer new agent assignments or a fresh test pass from this record.
+
 Base: `46ff0cd` on `or_pipeline`. Product backlog #59–#61; bounded verification #62.
 Related technical issues #37/#43 and safe scenario reads #32. All implementation
 issues are assigned to GestebanFalcon. Preserve pre-existing quality-gate/workflow

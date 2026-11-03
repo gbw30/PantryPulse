@@ -1,24 +1,21 @@
-# External service documentation
+# Setup and operations documentation
 
-> **Current authority:** [Project specification V5](../pantrypulse/SPEC-V5.md). Use these guides for scoped procedures. V5 controls product contracts and current branch status. On October 25, 2026, the user resumed local backend/Chronos setup and preparation of Fly compute configuration while preserving running tasks; see [local compute setup](LOCAL-COMPUTE.md). Paid resources/public deployment and full product release qualification remain separate gates. Main includes the baseline forecast API/presenter controls and a thin same-origin Next.js proxy; configure and qualify them on the actual deployment target.
+Updated October 25, 2026 for main `647f6a8`. [Current status](../pantrypulse/CURRENT-STATUS.md) separates implemented source, installed runtime and release evidence. All four product views and opt-in Chronos jobs are integrated; a source merge does not update a container or deploy a website.
 
-Start with the [Windows installation and remote connection quickstart](WINDOWS-QUICKSTART.md) for dependency installation, hosting the local API and connecting through Cloudflare from another computer.
+| Need | Guide |
+| --- | --- |
+| Reopen the existing laptop video demo; Docker/ports/PowerShell fixes | [Local launch and troubleshooting](LOCAL-LAUNCH-GUIDE.md) |
+| Install pinned dependencies | [Installation](../../INSTALLATION.md), [Windows quickstart](WINDOWS-QUICKSTART.md) |
+| Start the tracked pp-local launcher or choose an isolated runtime | [Local demo](LOCAL-DEMO.md) |
+| Bounded compute images/model cache | [Local compute](LOCAL-COMPUTE.md), [standalone Chronos tools](../../CHRONOS-LOCAL.md) |
+| Opt-in application Chronos jobs and qualification limits | [Chronos jobs](../forecasting/CHRONOS-JOBS.md), [dossier](../forecasting/QUALIFICATION.md) |
+| Jobs, cancellation and recovery | [Worker queue](WORKER-QUEUE.md) |
+| Hosted database or optional hosting/tunnel | [External-service map](../../EXTERNAL-SERVICES.md), [Neon](NEON.md), [Cloudflare](CLOUDFLARE.md), [Fly](FLY.md), [Vercel](VERCEL.md) |
+| Accounts/source/model preparation | [GitHub](GITHUB.md), [Hugging Face](HUGGING-FACE.md) |
+| Migration, API and test acceptance | [Migrations](../../apps/api/migrations/README.md), [API runbook](../pantrypulse/ALL-API-RUNBOOK.md), [testing](../testing/README.md) |
 
-For a later integrated demo/presentation, follow the [personal-computer demo guide](LOCAL-DEMO.md): the laptop replaces Fly.io. The hosted backend alternative remains **GitHub → Neon → Fly.io → Vercel**, with optional Hugging Face model downloads. These are future procedures, not prerequisites for the [live simulated Vercel preview](VERCEL.md).
+The tracked `scripts/demo-local.ps1` uses explicit ports and recreates its own API/worker. The earlier ignored `artifacts/demo-recipe/setup_demo.py` automatically chooses free ports for a separate new demo; it is machine-local and absent from fresh clones. Its `presenter_demo_*` database and credentials differ from `pp-local-*`.
 
-Use the separate [external services installation guide](../../EXTERNAL-SERVICES.md) for the complete setup workflow. Local tools and dependencies are covered in [INSTALLATION.md](../../INSTALLATION.md).
+Visitor reads require `PP_VISITOR_ORGANIZATION_ID`; presenter authentication remains mandatory for compute, jobs, planning and mutations. Optional model jobs require the selected checkpoint/profile and a real compatible worker; raw model intervals are uncalibrated.
 
-Supplementary references:
-
-- [Personal-computer demo](LOCAL-DEMO.md)
-- [Bounded local backend and compute setup](LOCAL-COMPUTE.md)
-- [Cloudflare tunnel installation and operation](CLOUDFLARE.md)
-- [Step-by-step local Chronos model guide](../../CHRONOS-LOCAL.md)
-- [GitHub](GITHUB.md)
-- [Neon](NEON.md)
-- [Fly.io guide location](FLY.md)
-- [Vercel](VERCEL.md)
-- [Internal worker queue foundation](WORKER-QUEUE.md)
-- [Optional Hugging Face / Chronos-2](HUGGING-FACE.md)
-
-The laptop demo remains the selected full-product presentation path. The current Vercel preview is a public, synthetic UI prototype and does not establish backend, database or release readiness.
+Keep private `.env` files, presenter access, model tokens and URLs with credentials out of Git. Do not reset volumes, migrate a different schema, kill all containers or change global security policy as routine setup. Hosting, supplier proposals and release qualification remain separate from local operation.

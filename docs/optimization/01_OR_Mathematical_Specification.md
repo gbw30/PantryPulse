@@ -1,5 +1,8 @@
 # PantryPulse OR mathematical specification
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** Current planning schemas accept up to eight products; the original 24-goal bounds and six-beneficiary/two-product oracle below retain their original derivation scope. Runtime exact coefficient/activity checks govern accepted inputs. Inclusive expiry was versioned in OR-v2. The bounded executable formulation is implemented; this historical mathematical draft is not a claim of full-paper fidelity. [Current integration](CONNECTED-INTEGRATION.md).
+
 **Draft 1.1 • repository refresh October 24, 2026 America/New_York • proposed implementation contract**
 
 Revision scope: repository status and integration provenance only. The equations, provisional mathematical choices, numerical bounds and independently enumerated expected results are unchanged from Draft 1.

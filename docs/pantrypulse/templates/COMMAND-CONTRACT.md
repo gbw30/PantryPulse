@@ -1,5 +1,8 @@
 # Scaffold command contract
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This is a reusable example/template, not an executable current-source gate or runtime configuration. Use root package scripts, `.claude/quality-gate.json`, tracked environment examples and [testing](../../testing/README.md) for the actual commands. Historical placeholder paths do not establish a pass.
+
 Merge scripts into the existing web manifest; install compatible versions and commit its lockfile. Do not execute a fragment as an application. The optional `contracts:check` command needs an implementation before it can pass; create scripts/contracts/check.cjs in the target app.
 
 ## Expected application entry points

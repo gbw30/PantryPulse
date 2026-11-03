@@ -1,6 +1,9 @@
 # Integrated operational and planning APIs
 
-The reviewed VP candidate converges on current main. See
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** Only forecast-catalog, dashboard/summary and shortages use the optional visitor read scope; operational/planning reads, jobs and all mutations still require a presenter. The current frontend routes are `/data`, `/recommendations` and `/scenarios`. See [current status](CURRENT-STATUS.md).
+
+PR #78 merged the reviewed VP convergence; later main adds visitor saved reads, product creation and opt-in Chronos jobs. See
 [VP API integration](VP-API-INTEGRATION.md) for decisions, migration compatibility,
 contract replacements and exact evidence. Generated OpenAPI is the request/response
 authority; the old raw VP planning endpoints are superseded.
@@ -15,6 +18,8 @@ uses audited stock commands; it does not reset an existing database.
 | Area | `/api/v1` routes |
 |---|---|
 | Catalog | GET operational-catalog, forecast-catalog, planning-catalog |
+| Products | POST products (presenter; current eight-product cap) |
+| Forecasts | POST forecasts; GET forecasts/{job_id}; baseline and opt-in experimental Chronos |
 | Inventory | GET inventory/sites/{site_id}/products/{product_id}; POST same path /adjustments |
 | Receipt history | POST receipts; GET receipts/{id}; POST receipts/{id}/revisions |
 | Receipt stock | POST receipts/{id}/post or /reconcile; POST inventory/lots/{id}/declarations |
@@ -41,8 +46,7 @@ sources. Plan/compare submits return durable 202 acceptance. Poll jobs and read 
 results; retry keeps the same frozen input/settings. Search defaults to 120 seconds
 per method and accepts 1–300 seconds. A new budget means a new computation.
 
-Review records simulation decisions only. Main's connected workspace remains
-supported; no general stock/import management screen is introduced here. Forecast
+Review records simulation decisions only. Scenario Lab, Recommendations and Data Explorer/Inputs now consume these APIs; `/optimization` redirects to `/scenarios`. Forecast
 provenance, OPTIMAL/FEASIBLE, bounds/gaps, partial failures and stale/historical labels
 remain honest. Outstanding confirmed supply without declared expiry is explicitly
 unsupported by the connected allocation adapter.

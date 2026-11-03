@@ -1,5 +1,8 @@
 # ADR 0002: Frontend UI libraries
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This ADR preserves the decision and evidence at its recorded checkpoint. Current implementation includes the merged views, presenter/limited visitor boundary, eight-product planning and opt-in experimental Chronos jobs; those operational facts are in [current status](../pantrypulse/CURRENT-STATUS.md). Historical missing-feature/paused statements do not override later accepted integrations.
+
 > **Current authority:** [Project specification V5](../pantrypulse/SPEC-V5.md). This ADR retains the accepted UI stack. V5 consolidates project status, integration boundaries, UI requirements and unresolved work.
 
 Date: 2026-10-23. Status: accepted for the MVP dependency stack.

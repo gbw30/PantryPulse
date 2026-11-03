@@ -2,6 +2,9 @@
 
 # Optimization service
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** Current integrated entry is `/scenarios` with a thin same-origin proxy, persisted scenarios/results and actual Linux jobs. Up to eight products are accepted, while original OR-v1/v2 fixtures/benchmarks retain two-product scope. Use [current status](../pantrypulse/CURRENT-STATUS.md), [connected integration](CONNECTED-INTEGRATION.md) and [testing](../testing/README.md); old withdrawn ownership is historical.
+
 **Start with [current ownership](SCOPE.md) and [execution revision 1.2](03_OR_Codex_Execution_Spec.md).**
 The user corrected the scope to the research-centered OR pipeline and necessary
 Python schemas. Frontend, FastAPI routes, auth, database and shared-worker integration

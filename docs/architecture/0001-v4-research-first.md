@@ -1,5 +1,8 @@
 # ADR 0001: V4 research-first architecture
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This ADR preserves the decision and evidence at its recorded checkpoint. Current implementation includes the merged views, presenter/limited visitor boundary, eight-product planning and opt-in experimental Chronos jobs; those operational facts are in [current status](../pantrypulse/CURRENT-STATUS.md). Historical missing-feature/paused statements do not override later accepted integrations.
+
 > **Current authority:** [Project specification V5](../pantrypulse/SPEC-V5.md). Retain the research gate and compatible architecture. V5 incorporates later accepted proxy/job/scenario/mode/runtime decisions and current implementation evidence; illustrative mathematical values below remain gated.
 
 Date: 2026-10-23. Accepted for scaffold; mathematical implementation remains gated.
@@ -89,4 +92,3 @@ With gamma_AP=1 and gamma_RP=0.1 research favors a=2; gamma_RP=1 favors a=1. Cla
 Gate before solver work: full-paper mapping; independent enumeration; coefficient/scaling/category policy; FEFO encoding; same-feasibility proof; AP/RP-specific ablations; deterministic research fixture.
 
 Replay stores dataset hash/version, as-of date, horizon, forecast source/cutoff, inventory version, eligible lots, attributes/provenance, groups, policy/scales, solver/package versions, seed, one worker, limits, vector and metrics. Record method separately from shared operational input hash. One worker/seed improves repeatability; it does not promise identical ties across solver versions.
-

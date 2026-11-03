@@ -1,5 +1,8 @@
 # Work remaining for a complete PantryPulse MVP
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** Baseline/Chronos adapter, durable model jobs, Scenario Lab integration and the frozen retail-proxy experiment are merged in PR #93. Earlier task/branch/paused statements below retain their original planning/evidence scope. Chronos remains opt-in and experimentally unqualified for the complete pantry/donation scope. See [current status](../pantrypulse/CURRENT-STATUS.md) and [qualification](QUALIFICATION.md).
+
 **Historical October 24 planning baseline.** Baseline API/persistence, production jobs, connected comparisons/UI and active CI have since landed. Use [current status](../pantrypulse/CURRENT-STATUS.md) and [connected integration](../optimization/CONNECTED-INTEGRATION.md) for current delivery gaps; the old future-work sequence below is retained as history.
 
 

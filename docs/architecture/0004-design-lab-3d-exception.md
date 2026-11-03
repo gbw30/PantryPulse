@@ -1,5 +1,8 @@
 # ADR 0004: Optional 3D in the isolated design lab
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This ADR preserves the decision and evidence at its recorded checkpoint. Current implementation includes the merged views, presenter/limited visitor boundary, eight-product planning and opt-in experimental Chronos jobs; those operational facts are in [current status](../pantrypulse/CURRENT-STATUS.md). Historical missing-feature/paused statements do not override later accepted integrations.
+
 Date: October 24, 2026. Status: accepted prototype exception by explicit user decision.
 
 The user chose: “Keep 3D only in /design-lab and document an explicit prototype exception.” This follows review of PR #50 against V5 section 14.2 and ADR 0002.

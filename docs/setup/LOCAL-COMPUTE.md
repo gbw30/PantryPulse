@@ -1,5 +1,8 @@
 # Local backend and Chronos compute
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** Main `647f6a8` includes all four product screens, shared presenter/limited visitor reads, up to eight planning products and opt-in experimental Chronos jobs. Root opens `/overview`; `/optimization` redirects to `/scenarios`. Migrations have one head, `ppvp_0007`. Recorded commands/results for older installed runtimes remain source-bound. Follow [current status](../pantrypulse/CURRENT-STATUS.md) before adopting configuration; a merge is not a running-image upgrade or deployment.
+
 User-authorized setup resumed October 25, 2026; [V5 section 15.4](../pantrypulse/SPEC-V5.md#154-pauses-and-release-controls) records the scope. Existing running tasks must remain running. No Windows security policy, global WSL configuration, power setting, firewall rule or other application's runtime is changed by these files.
 
 ## Configuration

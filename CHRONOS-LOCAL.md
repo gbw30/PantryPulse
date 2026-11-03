@@ -1,5 +1,8 @@
 # Run Chronos-2 on your Windows laptop
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** Main `647f6a8` includes all four product screens, shared presenter/limited visitor reads, up to eight planning products and opt-in experimental Chronos jobs. Root opens `/overview`; `/optimization` redirects to `/scenarios`. Migrations have one head, `ppvp_0007`. Recorded commands/results for older installed runtimes remain source-bound. Follow [current status](docs/pantrypulse/CURRENT-STATUS.md) before adopting configuration; a merge is not a running-image upgrade or deployment.
+
 > **Current authority:** [Project specification V5](docs/pantrypulse/SPEC-V5.md). Standalone model-exercise guide, not an integrated forecast service. Current standalone execution evidence and the explicit local-setup resumption are recorded in [LOCAL-COMPUTE.md](docs/setup/LOCAL-COMPUTE.md); its measured model exercise is separate from the application provider.
 
 **October 25, 2026 follow-up:** the user explicitly resumed local backend/Chronos preparation and Fly configuration, with existing tasks preserved. Use [the bounded compute setup and current evidence](docs/setup/LOCAL-COMPUTE.md) for this computer; it reuses one compute image and the persistent model cache. The dated verification record below remains historical. The standalone runner still does not constitute an integrated forecasting API.

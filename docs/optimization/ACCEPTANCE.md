@@ -2,6 +2,9 @@
 
 # Current connected OR-v2 acceptance
 
+<!-- current-source-audit-2026-10-25 -->
+> **Source audit — October 25, 2026:** This document retains its recorded OR scope, decisions and experiment/test boundaries. Later approved connected integration, inclusive-expiry v2, merged operational APIs/views/model jobs and up-to-eight-product contracts supersede implementation-absence or withdrawn-ownership claims for current main. Use [current status](../pantrypulse/CURRENT-STATUS.md) and [connected integration](CONNECTED-INTEGRATION.md); original two-product measurements remain scoped, not new eight-product qualification.
+
 PASS for the approved simulated subset: coherent committed-source capture,
 immutable versions and tenant isolation; both independently verified native methods;
 actual Linux durable execution/cancellation/partial publication; presenter proxy/API
