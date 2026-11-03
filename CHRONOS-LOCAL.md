@@ -2,6 +2,8 @@
 
 > **Current authority:** [Project specification V5](docs/pantrypulse/SPEC-V5.md). Standalone model-exercise guide, not an integrated forecast service. V5 records its unverified execution status, distinct scope and setup pause; reading this guide does not resume heavy model work.
 
+**October 25, 2026 follow-up:** the user explicitly resumed local backend/Chronos preparation and Fly configuration, with existing tasks preserved. Use [the bounded compute setup and current evidence](docs/setup/LOCAL-COMPUTE.md) for this computer; it reuses one compute image and the persistent model cache. The dated verification record below remains historical. The standalone runner still does not constitute an integrated forecasting API.
+
 A step-by-step guide for PantryPulse · Updated October 24, 2026
 
 **What you will get:** real Chronos-2 forecasts running on your CPU, a reusable model download, an interactive session that keeps the model loaded, and saved forecasts/timing records.

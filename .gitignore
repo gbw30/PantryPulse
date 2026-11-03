@@ -12,6 +12,7 @@
 .worktrees/
 node_modules/
 .next/
+.next-e2e/
 .venv/
 __pycache__/
 .pytest_cache/

@@ -1,0 +1,39 @@
+# Disposable PostgreSQL and Linux test processes. No published ports, demo data,
+# model downloads or shared database volumes. Does not use compose.yaml's project.
+name: pantrypulse-tests
+services:
+  postgres-test:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: pantrypulse
+      POSTGRES_PASSWORD: test_only
+      POSTGRES_DB: pantrypulse_test
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pantrypulse -d pantrypulse_test"]
+      interval: 1s
+      timeout: 5s
+      retries: 30
+  api-tests:
+    build:
+      context: ./apps/api
+    image: pantrypulse-test-api:local
+    working_dir: /workspace/apps/api
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    environment:
+      PP_TEST_DATABASE_URL: postgresql+psycopg://pantrypulse:test_only@postgres-test:5432/pantrypulse_test
+      UV_PROJECT_ENVIRONMENT: /app/.venv
+    volumes:
+      - ./apps/api/app:/workspace/apps/api/app:ro
+      - ./apps/api/tests:/workspace/apps/api/tests:ro
+      - ./apps/api/scripts:/workspace/apps/api/scripts:ro
+      - ./apps/api/migrations:/workspace/apps/api/migrations:ro
+      - ./apps/api/pyproject.toml:/workspace/apps/api/pyproject.toml:ro
+      - ./apps/api/uv.lock:/workspace/apps/api/uv.lock:ro
+      - ./apps/api/alembic.ini:/workspace/apps/api/alembic.ini:ro
+      - ./data/demo:/workspace/data/demo:ro
+      - ./artifacts/testing:/reports
+    command: ["uv", "run", "--frozen", "pytest", "-q", "--require-no-skips", "--junitxml=/reports/api-linux.xml", "-o", "cache_dir=/tmp/pytest-cache"]

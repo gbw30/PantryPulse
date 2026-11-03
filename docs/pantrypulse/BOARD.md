@@ -1,5 +1,26 @@
 # PantryPulse delivery board
 
+## Current branch and GitHub status — October 24, 2026
+
+The [branch audit](BRANCH-STATUS-AUDIT-2026-10-24.md) supersedes historical TODO/readiness rows below. It inspected committed code on `main` (`873d356`), `VP` (`6f3d04e`) and `or_pipeline` (`46ff0cd`) and reran 1,072 focused test cases successfully.
+
+| Work | GitHub disposition | Next boundary |
+| --- | --- | --- |
+| Helpers #1–6 | Previously closed; unchanged | Preserve regression coverage |
+| Worker foundation #13–18 and baseline core #20 | Closed: delivered on main | Domain integration remains in its owning issues |
+| VP contracts/storage/stock/projection #8/#19/#21/#23 | Implemented on branch; open | Independent review and combined integration |
+| OR math/constraints/checker/metrics/engines/jobs/auth #10/#24–28/#31/#33 | Implemented on branch; open | Preserve provisional scope; integrate and accept the combined candidate |
+| Database/audit and operational-policy convergence #67/#68 | New P0 blockers | Incompatible audit tables/migration heads and expiry semantics |
+| Imports/committed forecasts/authoritative adapters #22/#29/#64–66 | Blocked | Reuse existing foundations; complete committed-source composition |
+| Saved assumptions/mobile/explanations #59–61 | Ready | Bounded UI follow-ups, then #62 acceptance |
+| CI and decision/evidence reconciliation #41/#63 | Partial | Commit real workflow and correct missing full-gate commands/tests |
+| Supplier #45 and Chronos #46 | Paused | Explicit resumption remains required |
+| Later operations/forecasting/roles/research/routing #69–73 | New deferred P1 tickets | Do not schedule ahead of P0 acceptance |
+
+The complete issue matrix, immutable code links and fresh-versus-historical evidence are in the audit report. GitHub issue IDs are authoritative for tracking: historical PP packet numbers below collide with later backlog package numbers and must not be treated as unique issue IDs.
+
+## Historical packet board
+
 Update after each integration. [Project specification V5](SPEC-V5.md) records the current implementation/branch state and acceptance. PP-01–23 retain the historical planning board and require reconciliation; PP-24–29 were merged through PR #7. PR #51 integrated the offline forecasting core and design lab; live domain API/database acceptance remains open. PP-31–36 (worker/job queue foundation, [ADR 0005](../architecture/0005-worker-job-queue.md)) are delivered by PR #52; they use test handlers only. No completed application is claimed.
 
 | ID | Outcome | Owner | Depends on | Exit evidence | Status |
@@ -40,6 +61,6 @@ Update after each integration. [Project specification V5](SPEC-V5.md) records th
 | PP-35 | WQ-05 fenced publication and commit reconciliation | Lead | PP-32 | PostgreSQL tests (WQ-T18–T20) | PR #52 foundation; reviewed and regression-tested (see PP-31 packet) |
 | PP-36 | WQ-06 PostgreSQL + supervisor + test-job vertical slice | Lead | PP-32–35 | Linux slice with real supervisor SIGKILL (WQ-T10–T15, T21, T22) | PR #52 foundation; reviewed and regression-tested (see PP-31 packet) |
 
-P1 reservations/completion are separate tickets only after all P0 rows are accepted. No worker may claim a shared foundational file without a lead assignment.
+P1 reservations/completion and other documented later features are now tracked in deferred issues #69–73 at the user's request. Implementation remains deferred until P0 acceptance and explicit scheduling. No worker may claim a shared foundational file without a lead assignment.
 
 Review-fix integration: PR #51 integrated the PR #49 baseline core and PR #50 design lab with V5 corrections. See tasks/PP-30-pr-review-fixes.md for the bounded task and verification evidence.

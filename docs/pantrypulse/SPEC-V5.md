@@ -4,6 +4,8 @@
 **Purpose:** the project source of truth for product scope, accepted decisions, implementation status, contracts, unresolved work and acceptance.  
 **Status:** consolidated specification with explicit implementation gates. The complete product is not implemented or release-ready.
 
+**Latest development evidence:** The [October 24 branch/backlog audit](BRANCH-STATUS-AUDIT-2026-10-24.md) supersedes historical implementation-status rows where noted. It inspects `main` at `873d356`, `VP` at `6f3d04e` and `or_pipeline` at `46ff0cd`; requirements and accepted decisions below retain their authority. Branch implementation is separate from main integration and full release acceptance.
+
 **Code baseline:** `main` / `origin/main` at `5d2012e`; merged backend primitives entered through PR #7 at `0244ef1`. **Additional reviewed work:** `origin/forecasting` at `bed08544e3dc9b00499224806d92dd8f437f0644`, not merged into this main baseline. Their common ancestor is `a0ad11f45bb15a3c3158ed6678f9522652d2a723`. The forecasting branch was inspected and tested in an isolated copy, without modifying or integrating it.
 
 **Authority and reading copy:** This repository Markdown file is the source of truth. The [Google Docs v5 tab](https://docs.google.com/document/d/1WcsV69YCE1mqW2pI7IyEFQBSuwQB_hMhVQKfU20ZFk8/edit?tab=t.phiita8avpoe) is a reading copy; proposed changes there must be reconciled into this file before they change the project specification. The tab was empty at the original consolidation inspection. Source material includes [V4 and working tabs 00–07](https://docs.google.com/document/d/1WcsV69YCE1mqW2pI7IyEFQBSuwQB_hMhVQKfU20ZFk8/edit?tab=t.951hp1xdarlq).
@@ -98,6 +100,8 @@ Chronos-2 is preferred where demonstrated feasible and qualified separately. A l
 
 P1 includes operational approval/reservation/completion, fuller multi-period research fidelity and endogenous weighting, roles beyond the demo boundary, calibrated intervals, evaluated ensembles, richer routing, discrepancy/reliability automation and production operational workflows. Real procurement/payment/dispatch, live partner integrations and food-safety assurance are outside P0.
 
+Deferred tracking now exists for [operational transactions #69](https://github.com/gbw30/PantryPulse/issues/69), [qualified forecast improvements #70](https://github.com/gbw30/PantryPulse/issues/70), [roles #71](https://github.com/gbw30/PantryPulse/issues/71), [research extensions #72](https://github.com/gbw30/PantryPulse/issues/72) and [richer routing #73](https://github.com/gbw30/PantryPulse/issues/73). These tickets record existing later scope; they do not resume implementation or adopt new policy.
+
 The Google Doc's **Q-Discuss** tab proposes one planning agent using Microsoft Agent Framework and Gemini to invoke backend tools. It is a discussion proposal, not an accepted dependency or implemented capability. Any later assistant may explain or submit authorized tool requests; it must not replace forecasts/OR-Tools, approve purchases, bypass presenter permissions or directly alter stock. No framework/model selection is adopted by V5.
 
 ## 3. What exists today
@@ -159,6 +163,21 @@ Sandbox-only test stalls/temporary Git permission failures were resolved by auth
 ### 3.4 Worker foundation review (PR #52)
 
 WQ-01–06 implement the internal durable queue, jobs-only Alembic revision, admission and idempotency rules, Linux process containment, heartbeat, deadlines, cancellation, recovery and fenced publication. [ADR 0005](../architecture/0005-worker-job-queue.md), the [PP-31–36 packet](tasks/PP-31.md) and the [worker runbook](../setup/WORKER-QUEUE.md) record the scope and test evidence. The production registry is empty; test handlers publish only test infrastructure artifacts. These changes do not implement public job routes, authentication, forecast/allocation handlers, measured CPU/memory enforcement or a deployed compute service. A1/A7 remain provisional for deployment.
+
+### 3.5 Current cross-branch audit and issue reconciliation
+
+The [full audit](BRANCH-STATUS-AUDIT-2026-10-24.md) records exact SHAs, code links, all issue dispositions and six fresh test commands totaling **1,072 passing cases**. Main's worker and offline baseline deliveries close #13–18/#20; #1–6 remain closed. Branch-only deliveries remain open with `status:branch-implemented`.
+
+| Area | Audited implementation | Remaining acceptance |
+| --- | --- | --- |
+| Main | Corrected offline forecast core, six helpers, illustrative UI and shared durable worker foundation | Public domain routes/handlers and connected application remain absent |
+| VP | Operational-v1 storage/stock transactions, projection-v1, scenario-v1 freeze/freshness helpers; 159 focused and 38 real PostgreSQL cases pass | Public imports, source adapters, independent review and main integration |
+| OR pipeline | Real classical/research native solvers, metrics/checker, saved simulated package/scenario/results, OR worker/API/proxy/UI; 104 optimization and 40 PostgreSQL/HTTP cases pass | OR-A11 comprehension/visual follow-up and OR-A12 committed authoritative sources |
+| Combined database | Separate branches pass migration tests | Both create incompatible `audit_events` tables; no combined successor to VP `pp_merge_0003` and OR `0005_or_active_dedup` exists; #67 blocks combined deployment |
+| Operational policy | VP records inclusive expiry and later BD decisions; OR has provisional exclusive expiry | Reconcile/version schemas, SQL, projection, constraints, verifier and fixtures under #68; provisional OR choices cannot silently override accepted decisions |
+| CI | Local test code and recorded gate artifacts exist | All three refs retain only a workflow template and full-gate references to missing commands/tests; #41/#63 remain incomplete |
+
+Historical statements in §§3.1–3.4 and §16 describe their recorded baseline, not today's union of branch functionality. No audit pass changes a product requirement or retrospectively accepts a provisional decision. Existing supplier/model/hosting pauses remain; no source merge or hosted migration was performed.
 
 ## 4. Architecture and ownership boundaries
 
@@ -662,6 +681,8 @@ The standalone model cache is a persistent Docker volume, while outputs under `a
 Hosting/model setup remains paused after the user's reported step 2. No specific later guide step is inferred complete. Do not start containers, build heavy images, download checkpoints or benchmark models until the user resumes that work. Documentation review and offline baseline/helper tests do not resume it.
 
 **Subsequent user decision (October 24, 2026):** Resume only a Vercel-hosted frontend prototype preview from an isolated feature branch. The [live `/design-lab` preview](https://pantrypulse-prototype-preview-git-codex-e82088-gbw30s-projects.vercel.app/design-lab) is simulated and has no API, database, tunnel or presenter controls. This does not resume backend/model hosting or satisfy V5 release acceptance. [Preview setup](../setup/VERCEL.md) records the deployment boundary and account checks.
+
+**Subsequent user decision (October 25, 2026):** Resume local backend/computer configuration and Chronos compute preparation, and prepare Fly.io compute hosting configuration. Preserve every already-running task; do not stop/restart unrelated workloads or change global WSL/security/power settings. This authorizes bounded local image/model setup and verification, superseding the setup pause for this scope. It does not select unresolved domain/authentication contracts, resume supplier planning, create paid Fly resources or establish a public product release. [Local server setup](../setup/LOCAL-COMPUTE.md) records configuration, measured evidence and remaining gates; [Fly setup](../setup/FLY.md) records the prepared hosted alternative.
 
 Before any later release, select the exact target, apply reviewed migrations as one controlled step, seed only the isolated demo, verify proxy/auth/DB/compute behavior, record a release manifest and test rollback/local fallback. The static preview is not a hosted product release; no operational order/payment or dispatch is established by this spec. Provider account menus/limits in older guides must be rechecked when actually used.
 

@@ -1,0 +1,90 @@
+{
+  "authority": "docs/pantrypulse/SPEC-V5.md",
+  "scope": "design/overview-intake at a4573b5 plus uncommitted kit; not latest origin/main. See docs/testing/BRANCH-DIAGNOSTICS-2026-10-25.md for upstream implementations.",
+  "note": "Coverage inventory, not execution results. Partial means prototype/helper evidence only. V5 overrides historical topology and workflow semantics.",
+  "stories": [
+    {
+      "id": "US-01", "title": "Network Overview", "source": "docs/pantrypulse/SOURCE-SPEC.md", "acceptance": ["V5-A15", "V5-A17"], "status": "partial",
+      "e2e": ["apps/web/tests/e2e/user-stories.spec.ts", "apps/web/tests/e2e/overview.spec.ts", "apps/web/tests/e2e/controls.spec.ts"],
+      "unit": ["apps/web/tests/unit/status.test.ts", "apps/web/tests/unit/network-atlas.test.tsx", "apps/web/tests/unit/atlas-layout.test.ts"],
+      "gap": "Six beneficiaries and hub, product quantities, status, search and inspector work on a static fixture. Live inventory/projections and a full site-detail page are not connected."
+    },
+    {
+      "id": "US-02", "title": "Inventory Adjustment", "source": "docs/pantrypulse/SOURCE-SPEC.md", "acceptance": ["V5-A03"], "status": "blocked",
+      "e2e": ["apps/web/tests/e2e/user-stories.spec.ts"], "unit": [],
+      "gap": "Disabled navigation only is tested. Need adjustment UI/API/ledger, reasons/timestamps, negative rejection, stale-plan 409 and atomic competing-version tests."
+    },
+    {
+      "id": "US-03", "title": "Historical Demand Import", "source": "docs/pantrypulse/SOURCE-SPEC.md", "acceptance": ["V5-A02", "V5-A03"], "status": "blocked",
+      "e2e": ["apps/web/tests/e2e/user-stories.spec.ts"],
+      "unit": ["apps/api/tests/forecasting/test_validation.py", "apps/api/tests/forecasting/test_history.py", "apps/api/tests/forecasting/test_receipts.py"],
+      "gap": "Offline revision/gap/leakage validation exists. Need real CSV upload, row/header errors, duplicate policy, provenance, persistence and proof that import never posts stock."
+    },
+    {
+      "id": "US-04", "title": "Demand Forecast", "source": "docs/pantrypulse/SOURCE-SPEC.md", "acceptance": ["V5-A04", "V5-A05", "V5-A07"], "status": "partial",
+      "e2e": ["apps/web/tests/e2e/user-stories.spec.ts"],
+      "unit": ["apps/api/tests/forecasting/test_core.py", "apps/api/tests/forecasting/test_expanded_fixture.py", "apps/web/tests/unit/outlook-chart.test.tsx", "apps/web/tests/unit/site-inspector.test.tsx"],
+      "gap": "Static seven-day readout and offline forecast core are tested separately. Need live submit/job/publication/readout with actual model/run metadata and fallback identity."
+    },
+    {
+      "id": "US-05", "title": "Shortage Alerts", "source": "docs/pantrypulse/SOURCE-SPEC.md", "acceptance": ["V5-A09"], "status": "partial",
+      "e2e": ["apps/web/tests/e2e/user-stories.spec.ts"],
+      "unit": ["apps/web/tests/unit/status.test.ts", "apps/web/tests/unit/static-fixture.test.ts", "apps/api/tests/forecasting/test_handoff.py", "apps/api/tests/forecasting/test_projection_invariants.py"],
+      "gap": "Selected-date warnings and offline lot projection are tested. Need saved live forecast/stock inputs to dated shortage results and API/UI integration."
+    },
+    {
+      "id": "US-06", "title": "Uncertainty Visibility", "source": "docs/pantrypulse/SOURCE-SPEC.md", "acceptance": ["V5-A05", "V5-A08", "V5-A16"], "status": "partial",
+      "e2e": ["apps/web/tests/e2e/user-stories.spec.ts"],
+      "unit": ["apps/api/tests/forecasting/test_validation.py", "apps/api/tests/forecasting/test_handoff.py", "apps/api/tests/test_demand_targets.py"],
+      "gap": "No-interval labels and pure central/conservative policies exist. Need real planning-mode interaction, actual quantile provenance and unsupported probability rejection."
+    },
+    {
+      "id": "US-07", "title": "Generate Transfer Plan", "source": "docs/pantrypulse/SOURCE-SPEC.md", "acceptance": ["V5-A09", "V5-A10", "V5-A11"], "status": "blocked",
+      "e2e": ["apps/web/tests/e2e/user-stories.spec.ts", "apps/web/tests/e2e/api.spec.ts"],
+      "unit": ["apps/api/tests/test_transfer_modes.py", "apps/api/tests/test_fixed_point.py", "apps/api/tests/test_solver_outcomes.py"],
+      "gap": "API 404 and disabled controls are tested, not allocation. Need solver and independent checker in both explicit transfer modes, donor/reserve/capacity/FEFO/conservation/cost/status assertions."
+    },
+    {
+      "id": "US-08", "title": "Inspect Recommendations", "source": "docs/pantrypulse/SOURCE-SPEC.md", "acceptance": ["V5-A11", "V5-A15"], "status": "partial",
+      "e2e": ["apps/web/tests/e2e/user-stories.spec.ts"], "unit": ["apps/web/tests/unit/outlook.test.ts"],
+      "gap": "Design lab explains an illustrative 80-meal proposal and 40-meal residual. Need saved real plan source/destination, donor effect, assumptions and simulated review with no dispatch or stock change."
+    },
+    {
+      "id": "US-09", "title": "Compare Scenarios", "source": "docs/pantrypulse/SOURCE-SPEC.md", "acceptance": ["V5-A08", "V5-A11"], "status": "blocked",
+      "e2e": ["apps/web/tests/e2e/user-stories.spec.ts"], "unit": ["apps/api/tests/forecasting/test_handoff.py"],
+      "gap": "Disabled scenario view and pure frozen forecast handoff only. Need immutable operational scenario, validated changes/new ID, paired rerun, before/after and replay after source mutations."
+    },
+    {
+      "id": "US-10", "title": "Handle Impossible Plans", "source": "docs/pantrypulse/SOURCE-SPEC.md", "acceptance": ["V5-A09", "V5-A11"], "status": "partial",
+      "e2e": ["apps/web/tests/e2e/user-stories.spec.ts"], "unit": ["apps/api/tests/test_solver_outcomes.py", "apps/web/tests/unit/outlook.test.ts"],
+      "gap": "Illustrative residual unmet and native status gates only. Need real scarcity/partial feasibility, contradictory constraints, UNKNOWN/MODEL_INVALID, one-method failure and independent no-invented-stock checks."
+    },
+    {
+      "id": "US-11", "title": "Reproducible Demo", "source": "docs/pantrypulse/SOURCE-SPEC.md", "acceptance": ["V5-A15", "V5-A18"], "status": "partial",
+      "e2e": ["apps/web/tests/e2e/user-stories.spec.ts"], "unit": ["apps/web/tests/unit/static-fixture.test.ts"],
+      "gap": "Reload repeats only the static fixture. Need authorized demo-only database reset, audit, stock/history restoration, complete shortage-to-plan flow and five rehearsals."
+    },
+    {
+      "id": "US-12", "title": "Model Transparency", "source": "docs/pantrypulse/SOURCE-SPEC.md", "acceptance": ["V5-A06", "V5-A16"], "status": "partial",
+      "e2e": ["apps/web/tests/e2e/user-stories.spec.ts"],
+      "unit": ["apps/api/tests/forecasting/test_evaluation.py", "apps/api/tests/forecasting/test_core.py", "apps/web/tests/unit/status.test.ts"],
+      "gap": "Simulated labels, absent intervals, hub semantics and offline provenance/evaluation exist. Need visible saved actual-provider/checkpoint/run/fallback/evaluation metadata."
+    },
+    {
+      "id": "US-15", "title": "Paired conventional and EGP-PI comparison", "source": "docs/pantrypulse/SPEC-V4.snapshot.txt", "acceptance": ["V5-A10", "V5-A11"], "status": "blocked", "e2e": [], "unit": [],
+      "gap": "Need both real methods on identical frozen inputs, both modes, simultaneous allocations, conserved category units and highlighted differences. Research gate remains required."
+    },
+    {
+      "id": "US-16", "title": "Vulnerability evidence and normalization", "source": "docs/pantrypulse/SPEC-V4.snapshot.txt", "acceptance": ["V5-A10", "V5-A16"], "status": "blocked", "e2e": [], "unit": [],
+      "gap": "Need inspectable attribute sources, simulated/observed classification, normalized weights, score decomposition and policy version."
+    },
+    {
+      "id": "US-17", "title": "Tune deprivation thresholds and equity weight", "source": "docs/pantrypulse/SPEC-V4.snapshot.txt", "acceptance": ["V5-A10", "V5-A11"], "status": "blocked", "e2e": [], "unit": [],
+      "gap": "Need validated AP/RP/weight inputs, new scenario, real recalculation, objective decomposition and explained changes."
+    },
+    {
+      "id": "US-18", "title": "Demonstrate research-derived allocation difference", "source": "docs/pantrypulse/SPEC-V4.snapshot.txt", "acceptance": ["V5-A10", "V5-A11", "V5-A15"], "status": "blocked", "e2e": [], "unit": [],
+      "gap": "Need a hand-verified AP/RP-active fixture, feasible changed allocation, objective/benchmark metrics and honest computational failure reporting."
+    }
+  ]
+}

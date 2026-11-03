@@ -1,5 +1,7 @@
 # Presentation backend on a personal computer
 
+> **Current demo:** use the shorter [launch guide](LOCAL-LAUNCH-GUIDE.md) and [two-minute walkthrough](../pantrypulse/DEMO.md). Vercel now reaches the laptop API/worker and local PostgreSQL through Cloudflare Tunnel. The Neon/scaffold procedure below is an older alternative.
+
 Reviewed October 24, 2026. This is the selected demo-only alternative to Fly.io. The same backend container runs on the presenter's computer. No Fly account or compute is required. The current app is still a scaffold: domain features, CORS and frontend API integration remain pending.
 
 For installing, starting, benchmarking and stopping the optional Chronos model itself, use [CHRONOS-LOCAL.md](../../CHRONOS-LOCAL.md). That standalone runner does not require the database or API integration described here.

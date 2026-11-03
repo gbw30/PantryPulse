@@ -2,7 +2,7 @@
 
 PantryPulse is a project for Gator Hack V, October 23–25, 2026, exploring how food banks and community organizations can share limited supplies more fairly.
 
-Start with the [consolidated project specification V5](docs/pantrypulse/SPEC-V5.md) for accepted requirements, the current main and forecasting-branch state, unresolved decisions and release acceptance.
+Start with the [consolidated project specification V5](docs/pantrypulse/SPEC-V5.md) for accepted requirements and release acceptance. The [October 24 branch and backlog audit](docs/pantrypulse/BRANCH-STATUS-AUDIT-2026-10-24.md) records current code on `main`, `VP` and `or_pipeline`, fresh verification, issue status and remaining integration work.
 
 When several organizations need food at the same time, there may not be enough to meet every request. Sending the same amount to everyone can overlook differences in need. Sending supplies wherever delivery is easiest can leave vulnerable communities with larger shortages. Meanwhile, food can expire, storage space is limited, and organizations donating supplies still need enough for the people they already serve.
 
@@ -29,7 +29,9 @@ The goal of the reproducible demonstration is to show when these research-derive
 
 ## Current state
 
-**PantryPulse is in early development.** The repository contains the frontend foundation, a backend process-health endpoint, locked dependencies, and a Linux container environment for the optimization libraries. Backend primitives cover transfer modes, route eligibility, demand rounding, fixed-point arithmetic, solver outcomes and forecast-history alignment. The complete allocation engines, application database schema and interactive comparison workflow are not yet implemented. Equation-level research validation remains a prerequisite for complex solver work.
+**PantryPulse is in early development.** Audited `main` contains the frontend foundation, a backend process-health endpoint, locked dependencies, and a Linux container environment for the optimization libraries. Backend primitives cover transfer modes, route eligibility, demand rounding, fixed-point arithmetic, solver outcomes and forecast-history alignment. The complete allocation engines, operational database schema and connected comparison workflow are not integrated into `main`.
+
+The `VP` branch adds operational storage, audited stock services, projection and scenario contracts. The `or_pipeline` branch adds native allocation engines, simulated scenario/result persistence, OR workers, authorization/API/proxy and a saved comparison UI. Fresh focused checks across the three branches passed 1,072 test cases. The branches still need database and operational-policy reconciliation; committed-source forecasting/stock adapters and full product acceptance remain unfinished. See the [audit report](docs/pantrypulse/BRANCH-STATUS-AUDIT-2026-10-24.md) for exact commits and test boundaries.
 
 The [offline forecasting core](docs/pantrypulse/forecasting/IMPLEMENTATION.md), integrated through PR #51, provides preparation, baselines, evaluation and pure projection. PR #52 adds the [durable job foundation](docs/setup/WORKER-QUEUE.md): PostgreSQL admission, Linux supervision, deadlines, cancellation and recovery, with test handlers only. Actual Chronos inference, forecast/domain publication, production job handlers and browser integration remain unfinished. Run the synthetic evaluation with `uv run --frozen --directory apps/api python -m scripts.evaluate_forecasting`. The [forecasting roadmap](docs/forecasting/README.md) preserves the remaining integration gates.
 
@@ -46,6 +48,7 @@ For a future integrated presentation, the website and Python API can run on the 
 - [Project specification V5 — current source of truth](docs/pantrypulse/SPEC-V5.md)
 - [Original V4 source document](https://docs.google.com/document/d/1WcsV69YCE1mqW2pI7IyEFQBSuwQB_hMhVQKfU20ZFk8/edit?tab=t.951hp1xdarlq)
 - [Local development installation guide](INSTALLATION.md)
+- [Testing kit: unit, browser, PostgreSQL/Linux and user-story coverage](docs/testing/README.md)
 - [External services installation guide](EXTERNAL-SERVICES.md)
 - [Personal-computer demo setup](docs/setup/LOCAL-DEMO.md)
 - [Run Chronos locally](CHRONOS-LOCAL.md)

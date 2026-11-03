@@ -1,0 +1,30 @@
+# Shared CPU compute image for the local supervisor, model exercise and Fly worker.
+# Keep the default API image small; install exactly the existing forecast lock here.
+FROM ghcr.io/astral-sh/uv:0.11.15 AS uv
+FROM python:3.12.13-slim AS dependencies
+COPY --from=uv /uv /uvx /bin/
+WORKDIR /app
+ENV UV_LINK_MODE=copy PYTHONUNBUFFERED=1 PATH="/app/.venv/bin:$PATH" \
+    UV_CONCURRENT_DOWNLOADS=2 UV_CONCURRENT_INSTALLS=2 UV_CONCURRENT_BUILDS=1 \
+    HF_HOME=/cache/huggingface CHRONOS_PIN_FILE=/cache/model-pin.json \
+    CHRONOS_OUTPUT_DIR=/cache/outputs TOKENIZERS_PARALLELISM=false \
+    OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --extra forecast --no-dev
+COPY app ./app
+COPY alembic.ini ./
+COPY migrations ./migrations
+COPY scripts ./scripts
+# Leave uv's download/unpack cache in the build stage. Fly has an 8 GB rootfs
+# limit; keeping a second copy of the large locked ML dependencies would exceed it.
+FROM python:3.12.13-slim
+COPY --from=uv /uv /uvx /bin/
+COPY --from=dependencies /app /app
+WORKDIR /app
+ENV PYTHONUNBUFFERED=1 PATH="/app/.venv/bin:$PATH" \
+    HF_HOME=/cache/huggingface CHRONOS_PIN_FILE=/cache/model-pin.json \
+    CHRONOS_OUTPUT_DIR=/cache/outputs TOKENIZERS_PARALLELISM=false \
+    OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4
+# No ENTRYPOINT: Fly process groups and Compose can select the supervisor or CLI.
+# Direct Python preserves the installed optional extra (uv run can remove it).
+CMD ["python", "-m", "app.workers.supervisor", "--registry", "production"]
