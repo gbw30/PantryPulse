@@ -4,6 +4,24 @@
 
 Current source includes the baseline API/presenter flow (PR #75), connected OR comparisons/UI and executable Linux/browser CI (PR #76), plus the bounded compute setup reviewed in PR #77. See [CURRENT-STATUS.md](CURRENT-STATUS.md), [SPEC-V5](SPEC-V5.md) and [PR #77 review](PR-77-REVIEW.md). The planning/task rows below retain their recorded historical status and do not override subsequent integrated evidence.
 
+## v1 waves (current, 2026-11-04)
+
+The plan is [docs/plans/v1/](../plans/v1/README.md), which implements [V1-SPEC](V1-SPEC.md). Protocol: [ORCHESTRATION.md](../plans/v1/ORCHESTRATION.md). The orchestrator (lead) keeps this table current. Lanes report only through their own `docs/plans/v1/status/<lane>.md`.
+
+| Wave | Lanes (at most 3) | Mode | Tasks | Acceptance IDs | Status |
+|---|---|---|---|---|---|
+| W0 Foundation | orchestrator (spikes S1, S4 in-session) | orchestrator + A | W0-01…W0-10 | A02, A04, A21, A22 (+ S1/S3/S4 findings) | NOT STARTED |
+| W1 | `w1-data`, `w1-solver`, `w1-web` | B | W1-D01…D09, W1-S01…S07, W1-W01…W08 | A06–A11, A13–A17, A20, A21, A23 | NOT STARTED |
+| W2 Integrate W1 | orchestrator | orchestrator + A | W2-01…W2-06 | A22 + backend journey | NOT STARTED |
+| W3 | `w3-forecast`, `w3-samples`, `w3-web` | B | W3-F01…F06, W3-P01…P04, W3-W01…W03 | A02, A05, A06, A08, A12, A13, A17, A20, A23 | NOT STARTED |
+| W4 Integrate W3 | orchestrator | orchestrator + A | W4-01…W4-04 | full connected journey, A20 review | NOT STARTED |
+| W5 | `w5-polish`, `w5-packaging` | B | W5-UI01…UI03, W5-PK01…PK05 | A03, A04, A09, A17–A21, A24 | NOT STARTED |
+| W6 Release | orchestrator + Gabriel | orchestrator + A | W6-01…W6-06 | A01, A18, A22, A24 | NOT STARTED |
+
+Gates: Gabriel approves each wave start, every change request, every merge into `v1-local`, and every release action. The re-plan gate is W0-10.
+
+## Historical rows
+
 | ID | Outcome | Owner | Depends on | Exit evidence | Status |
 |---|---|---|---|---|---|
 | PP-01 | Confirm repo, rules, deadline and P0 | Lead/human | none | Scope and decision log | TODO |
