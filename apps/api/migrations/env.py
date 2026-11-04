@@ -11,14 +11,16 @@ from app.database import database_engine
 from app.models import (
     forecasts,  # noqa: F401 — register additive operational metadata
     http_commands,  # noqa: F401
+    networks,  # noqa: F401 - v1 networks (tenant tables join Base.metadata)
     optimization,  # noqa: F401
     or_records,  # noqa: F401 - retained legacy VP records
 )
 from app.models.jobs import metadata as job_metadata
+from app.models.networks import install_metadata
 from app.models.operational import Base
 
 config = context.config
-metadata = [Base.metadata, job_metadata]
+metadata = [Base.metadata, job_metadata, install_metadata]
 
 
 def run(connection):
