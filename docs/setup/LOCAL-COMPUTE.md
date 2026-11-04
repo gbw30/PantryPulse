@@ -9,7 +9,7 @@ From the repository root, use the opt-in `compose.compute.yaml` overlay with `co
 | Component | CPU ceiling | RAM ceiling | Address/storage |
 |---|---:|---:|---|
 | API | 1 | 1 GiB | `http://127.0.0.1:8000`, process health `/api/v1/health` |
-| Development PostgreSQL 16 | 1 | 1 GiB | `127.0.0.1:55432`; existing `pantrypulse_pgdata` |
+| Development PostgreSQL 16 | 1 | 1 GiB | `127.0.0.1:55432`; `compose.dev.yaml` volume (project `pantrypulse-dev`) |
 | Supervisor | 6 | 8 GiB | No public port; durable queue in `pantrypulse_dev` |
 | Standalone model tools | 6 | 8 GiB | No public port; shared persistent model cache, ignored local outputs |
 | Separate image builder | 2 | 3 GiB | `pantrypulse-compute-build`; existing default builder is unchanged |

@@ -115,7 +115,7 @@ Agent role: `solver-engineer` scope "solver/data" (CLAUDE.md), working under `.c
 
 **Files:** create `apps/api/app/services/enrichment/distance.py`; test `apps/api/tests/enrichment/test_distance.py`.
 
-**Plan call (confirm at W0-10):** `travel_days = max(1, ceil(road_hours / 24))`, where `road_miles = haversine_miles × 1.3` and `road_hours = road_miles / 45`. A same-region transfer arrives the next day, as in V1-SPEC's example "ship on Nov 6, arrives Nov 7".
+**Plan call (confirmed by Gabriel 2026-11-04):** `travel_days = max(1, ceil(road_hours / 24))`, where `road_miles = haversine_miles × 1.3` and `road_hours = road_miles / 45`. A same-region transfer arrives the next day, as in V1-SPEC's example "ship on Nov 6, arrives Nov 7".
 
 - [ ] **Step 1:** write the failing tests:
   - `test_haversine_hand_value`: Tallahassee (30.4383, −84.2807) to Gainesville (29.6516, −82.3248) is about 130 miles straight-line → road ≈ 169 miles → `travel_days == 1`.

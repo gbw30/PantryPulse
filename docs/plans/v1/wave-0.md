@@ -217,7 +217,7 @@ The schema must hold (table names are decided here):
   - S4 decides the shape of W1-D04 and W1-D05.
   - S3 decides any packaging notes.
   - Edit `wave-1.md`, `wave-3.md`, the README interfaces and the prompts wherever names changed. List every change in the gate report.
-- [ ] **Step 2:** Confirm the plan call on `travel_days` in W1-D07 (`max(1, ceil(road_hours / 24))`) with Gabriel.
+- [x] **Step 2:** Confirm the plan call on `travel_days` in W1-D07 (`max(1, ceil(road_hours / 24))`) with Gabriel. Confirmed 2026-11-04.
 - [ ] **Step 3:** Open the `w0/foundation` PR. Get the verifier's review (requirements + diff + tests). Run `/devkit:ship-check`. With Gabriel's OK, merge into `v1-local`. Then run `node scripts/quality/run.cjs full` and the connected e2e (`PP_RUN_CONNECTED=1`) on `v1-local`. Expected: PASS, 0 skipped.
 - [ ] **Step 4:** Set up the three wave-1 worktrees ([ORCHESTRATION.md §3](ORCHESTRATION.md#3-wave-lifecycle)), fill in `{{BASE_SHA}}` in `prompts/w1-*.md`, and update BOARD.md.
 - [ ] **Step 5:** Verify whether a lane session opened in `~/code/PantryPulse-data` appears in `ListAgents`. Record the result in ORCHESTRATION.md §2.
