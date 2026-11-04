@@ -1,0 +1,150 @@
+{
+  "source": "docs/pantrypulse/V1-SPEC.md §13",
+  "note": "Coverage comes from @V1-Axx e2e title tags and # covers: / // covers: test headers (scripts/testing/story-coverage.cjs). Put non-test evidence (recorded runs) in tests.",
+  "stories": [
+    {
+      "id": "V1-A01",
+      "criterion": "Clean install: on a clean Windows 11 and Ubuntu 24.04 machine with only Docker and git, `git clone` + `docker compose up` reaches a working login page with no other step",
+      "evidence": "Recorded run per OS: commit, Docker version, elapsed time, screenshot",
+      "tests": []
+    },
+    {
+      "id": "V1-A02",
+      "criterion": "Only the web port is published; changing `PP_WEB_PORT` works; restarting keeps data; a second `up` doesn't duplicate the seed",
+      "evidence": "Compose inspection + restart test",
+      "tests": []
+    },
+    {
+      "id": "V1-A03",
+      "criterion": "No paid keys: after install (image pull or build), the full journey (A07–A16) completes with no keys configured and no outbound calls except Census lookups for user-imported addresses",
+      "evidence": "Journey run with egress logged",
+      "tests": []
+    },
+    {
+      "id": "V1-A04",
+      "criterion": "Local login: generated credentials work; the password never appears in logs, Git or the browser bundle; backend auth and CSRF stay enforced",
+      "evidence": "Log/bundle grep test + existing auth tests",
+      "tests": []
+    },
+    {
+      "id": "V1-A05",
+      "criterion": "Seed: both sample networks load on first start, are labeled fictional, contain no real brand names, and need no network access",
+      "evidence": "Offline first start",
+      "tests": []
+    },
+    {
+      "id": "V1-A06",
+      "criterion": "Templates: each template has a blank copy, an example generated from the sample data, and an in-app guide for every column",
+      "evidence": "e2e + example files validate clean",
+      "tests": []
+    },
+    {
+      "id": "V1-A07",
+      "criterion": "Import validation: malformed, duplicate, negative, fractional, unknown-ID, missing-expiry and over-envelope rows are each rejected with file/line/column/reason, and nothing is saved",
+      "evidence": "API + e2e tests per error class",
+      "tests": []
+    },
+    {
+      "id": "V1-A08",
+      "criterion": "Import truth: blank demand stays missing (never zero); `basis=sales` is labeled wherever it's shown; batch quantities and expiry round-trip exactly",
+      "evidence": "Round-trip test",
+      "tests": []
+    },
+    {
+      "id": "V1-A09",
+      "criterion": "Bulk import: a maximum-envelope dataset (100 × 500 × 90 days) imports as a durable job with progress, within a measured time recorded in the README",
+      "evidence": "Timed run on reference hardware",
+      "tests": []
+    },
+    {
+      "id": "V1-A10",
+      "criterion": "Enrichment: geocoding and ACS attributes are stored with source/year; unmatched addresses and outages are reported with retry; EGP stays blocked until unknown attributes are resolved or explicitly excluded",
+      "evidence": "Tests with recorded Census responses + one live run",
+      "tests": []
+    },
+    {
+      "id": "V1-A11",
+      "criterion": "Distance: the straight-line default produces labeled routes; with a user key, Google distances are cached and labeled, and the key never reaches logs or the browser; `routes.csv` overrides both",
+      "evidence": "Tests with a recorded Google response + one live keyed run",
+      "tests": []
+    },
+    {
+      "id": "V1-A12",
+      "criterion": "Forecast: every eligible series gets seven dated points with actual provider/fallback; the backtest shows WAPE/bias on the same scored set, or \"accuracy not evaluated\" under 35 days",
+      "evidence": "API + e2e",
+      "tests": []
+    },
+    {
+      "id": "V1-A13",
+      "criterion": "Atlas: the danger ranking matches an independent calculation on a fixture; never sums units across products; has a text/table alternative",
+      "evidence": "Unit + e2e + axe",
+      "tests": []
+    },
+    {
+      "id": "V1-A14",
+      "criterion": "Pantry comparison: all five methods run on one frozen scenario in both transfer modes; every published result passes the independent verifier; method failures show honestly",
+      "evidence": "Integration + e2e",
+      "tests": []
+    },
+    {
+      "id": "V1-A15",
+      "criterion": "Retail comparison: all three methods run in units and USD (USD unavailable with reason when prices are missing); the optimized method matches the hand-derived oracle fixtures",
+      "evidence": "Oracle + integration + e2e",
+      "tests": []
+    },
+    {
+      "id": "V1-A16",
+      "criterion": "Decisions: each action shows action/why/effect; the effect equals an independent remove-one re-projection; the non-additive label is visible; export CSV/print contains the scenario hash and \"simulated plan\" text; no stock changes",
+      "evidence": "Unit + e2e + DB unchanged check",
+      "tests": []
+    },
+    {
+      "id": "V1-A17",
+      "criterion": "Scale: a 100 × 500 forecast and a full comparison per mode finish within the ceilings in force (or the documented raised ceilings), with peak RAM/CPU recorded",
+      "evidence": "Benchmark artifact",
+      "tests": []
+    },
+    {
+      "id": "V1-A18",
+      "criterion": "README: a person who has never seen the repo follows only the README on Windows 11 and on Linux and completes install → sample → import own template (including `inbound.csv` and `donation_history.csv`) → forecast → compare → export",
+      "evidence": "Observed run notes per OS",
+      "tests": []
+    },
+    {
+      "id": "V1-A19",
+      "criterion": "Hardware: README requirements come from the measured runs in A09/A17",
+      "evidence": "Measurement artifact linked from README",
+      "tests": []
+    },
+    {
+      "id": "V1-A20",
+      "criterion": "Accessibility: the new import, decisions and atlas-ranking screens pass keyboard, axe and reduced-motion checks at 1440×900, 1280×720 and 390×844",
+      "evidence": "e2e",
+      "tests": []
+    },
+    {
+      "id": "V1-A21",
+      "criterion": "Test kit: Vitest unit tests (group A) and `npm run test:docker` (group B) run in CI; story-coverage maps every V1-A ID to at least one test",
+      "evidence": "CI run",
+      "tests": []
+    },
+    {
+      "id": "V1-A22",
+      "criterion": "Regression: the existing backend, config, full and connected e2e gates stay green, with zero skips",
+      "evidence": "CI run",
+      "tests": []
+    },
+    {
+      "id": "V1-A23",
+      "criterion": "Inbound and donations: confirmed `inbound.csv` arrivals enter the projection once on their date; out-of-horizon rows are listed; donation history keeps 0 vs missing distinct; donation forecasts are shown labeled \"not confirmed\" and change no allocation or danger score",
+      "evidence": "API + projection golden test + e2e",
+      "tests": []
+    },
+    {
+      "id": "V1-A24",
+      "criterion": "Images: `docker compose up --build` works from a clean clone. After the user-authorized release, plain `docker compose up` on a clean Windows 11 and Ubuntu machine pulls the published images and needs no local build. First-run time is recorded for both paths in the README",
+      "evidence": "Release workflow run + clean-machine runs for both paths",
+      "tests": []
+    }
+  ]
+}
