@@ -10,7 +10,7 @@ skills:
   - superpowers:systematic-debugging
   - superpowers:verification-before-completion
   - superpowers:receiving-code-review
-  - frontend-design:frontend-design
+  - jmo-workflow:better-ui
   - research-claims-check
 ---
 

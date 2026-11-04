@@ -1,11 +1,12 @@
 # PantryPulse
 
-Current authority (2026-10-25): Start with [CURRENT-STATUS.md](docs/pantrypulse/CURRENT-STATUS.md) and [SPEC-V5.md](docs/pantrypulse/SPEC-V5.md). Main includes the baseline API/presenter flow, connected OR comparisons and Linux/browser CI; PR #77 supplies bounded compute/Fly configuration and standalone Chronos evidence. Preserve six beneficiaries plus hub(s), hard FEFO, both explicit transfer modes with no default, frozen scenarios, durable jobs, the Next.js proxy and the research gate. Local backend/model preparation is resumed; supplier planning and public/paid deployment remain separate. Historical notes below do not undo newer accepted decisions.
+Current authority (2026-11-04): Start with [V1-SPEC.md](docs/pantrypulse/V1-SPEC.md) and the v1 plan [docs/plans/v1/](docs/plans/v1/README.md) (protocol: [ORCHESTRATION.md](docs/plans/v1/ORCHESTRATION.md)). V1-SPEC overrides [SPEC-V5.md](docs/pantrypulse/SPEC-V5.md) where they conflict; V5 governs the rest. Preserve hard FEFO, explicit transfer mode with no default, frozen scenarios, durable jobs, the Next.js proxy, independent verification, provenance and the research gate (V1-SPEC §4). Supplier planning is v2; public/paid deployment remains separate. Historical notes below do not undo newer accepted decisions.
 
-Build the Gator Hack V MVP: at least six fictional beneficiaries plus hub(s), two products, seven-day forecasts and a 1–3-day simulated allocation window. Preserve the current repository, user changes and running tasks.
+Build PantryPulse v1: a stranger installs it locally with one start command (Docker, Windows 11 and Linux) and imports their own Pantry or Retail network (~100 locations, ~500 products, 90 days of history) from our CSV templates. The fictional sample networks keep the fixture role. Preserve the current repository, user changes and running tasks.
 
 ## Read first
-- docs/pantrypulse/SPEC-V5.md: current project source of truth, code/branch status, accepted decisions, unresolved contracts and acceptance.
+- docs/pantrypulse/V1-SPEC.md and docs/plans/v1/: current scope, decisions V1-D01–D18, waves, ownership and frozen interfaces.
+- docs/pantrypulse/SPEC-V5.md: prior source of truth, still binding where V1-SPEC is silent.
 - docs/pantrypulse/PROJECT-CONTRACT.md: scope, units, forecast and solver contracts.
 - docs/pantrypulse/INVARIANTS.md: quantitative truth conditions.
 - docs/pantrypulse/ART-DIRECTION.md: approved visual direction.
@@ -20,7 +21,7 @@ Build the Gator Hack V MVP: at least six fictional beneficiaries plus hub(s), tw
 ## Repository map
 The repository root is this folder and the only Git repo. Do not create or run from nested copies; the history of a former nested copy is the `legacy/main` ref.
 - apps/web: Next.js 16 app (src/app, src/lib, tests/e2e, Playwright). It is the only npm workspace; the root package-lock.json owns the lock.
-- apps/api: FastAPI presenter, forecast and planning routers; ORM/repositories; migration head ppor_0005; production forecast.v1/or-comparison.v2 workers; bounded allocation core and independent verifier. Chronos remains a standalone exercise. uv.lock owns Python dependencies.
+- apps/api: FastAPI presenter, forecast and planning routers; ORM/repositories; migration head ppvp_0007 (merges ppor_0005 and pp49_0006); production forecast.v1/or-comparison.v2 workers; bounded allocation core and independent verifier. Chronos runs in the production worker registry as forecast.chronos.v1, gated by PP_CHRONOS_ENABLED=1. uv.lock owns Python dependencies.
 - packages/contracts: generated OpenAPI and TypeScript output, plus regeneration instructions.
 - docs/pantrypulse: product contract, protocol, plans. docs/architecture: ADRs.
 - scripts/quality: gate runner and hook tests. scripts/*-windows.ps1: setup and doctor. data/demo: golden fixtures. .claude: agents, hooks, rules, skills and quality-gate.json.
@@ -58,7 +59,8 @@ When a skill conflicts with a project constraint, keep the project rule and use 
 ## Other plugins and domain skills
 - `context7`: look up docs for the versions pinned in package-lock.json and apps/api/uv.lock (Next 16, React 19, Tailwind 4, shadcn 4, OR-Tools 9.15, Chronos 2.3, SQLAlchemy 2). Retrieved docs don't override the repo's locked versions, contracts or tests. Queries go to Upstash, so never include secrets or data.
 - `pyright-lsp`, `typescript-lsp`: diagnostics and navigation. They add to the quick gate; they don't replace it.
-- `frontend-design`: method only. ART-DIRECTION.md and ADR 0002 decide the visual direction and component stack.
+- devkit `stack-web` (jmo-workflow): `better-ui` and `animate` are method only, used after the feature works. ART-DIRECTION.md and ADR 0002 decide the visual direction and component stack. Specs use Superpowers `brainstorming`, never jmo `interview` (one planner per task). `codex` and `agentation` only on the user's request.
+- devkit `ship-check`: in step 2 (local review) use the project `verifier` agent instead of ponytail-review. The other steps run as written.
 - Project skills: `egp-pi-model` and `cpsat-patterns` for any solver work, `research-claims-check` before any text about the research, and `verify-solver`/`verify-forecast` at gates.
 
 ## Product truth
@@ -82,8 +84,8 @@ Gate commands are declared in .claude/quality-gate.json. Active .github/workflow
 
 ## Operating limits
 - Two materially different failed fixes: return a minimal failing case to the lead.
-- A council is one proposal, one critique, one domain check and one lead decision, capped at 10 minutes.
-- Feature freeze at hour 41; only demonstrated P0 blockers afterward.
+- A council is one proposal, one critique, one domain check and one lead decision.
+- Release freeze: after the candidate SHA is chosen in W6, only demonstrated blockers land.
 - Keep secrets out of prompts, logs, fixtures and client bundles. Use only dedicated demo/test databases.
 - Do not bypass permission controls. Writes outside the named repository, destructive operations, new paid services, production changes and submission need the user's corresponding authorization.
 - Do not edit another worktree, force-push, reset away work, or remove a dirty worktree.
