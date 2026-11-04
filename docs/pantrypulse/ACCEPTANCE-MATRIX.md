@@ -2,7 +2,65 @@
 
 # PantryPulse acceptance matrix
 
-> **Current authority:** [Project specification V5](SPEC-V5.md). Historical planning matrix. V5 section 16 is the consolidated acceptance matrix and distinguishes main helpers, unmerged experiments and unimplemented live workflows.
+> **Current authority (2026-11-04):** [V1-SPEC](V1-SPEC.md) §13 defines v1 acceptance; [SPEC-V5](SPEC-V5.md) §16 still governs everything V1-SPEC does not change. The FR/SPEC rows further down are the historical planning matrix, kept for traceability; the v1 disposition table says what happens to each.
+
+## V1 acceptance (current)
+
+Full criteria and evidence are in [V1-SPEC §13](V1-SPEC.md#13-acceptance-criteria). Every row starts at NOT RUN. PASS needs evidence for the exact commit and environment. Skipped, mocked or fixture-only checks don't count.
+
+| ID | Requirement (short) | Suggested owner | Status | Replaces / traces |
+|---|---|---|---|---|
+| V1-A01 | Clean `git clone` + `docker compose up` on Windows 11 and Ubuntu 24.04 reaches login | Lead/human | NOT RUN | V5-A18 |
+| V1-A02 | Only web port published; `PP_WEB_PORT`; data survives restart; seed not duplicated | Lead | NOT RUN | — |
+| V1-A03 | Full journey with no keys; only Census egress after install | Lead/verifier | NOT RUN | — |
+| V1-A04 | Generated local login; password never in logs/Git/bundle; auth + CSRF enforced | Lead | NOT RUN | V5-A13 |
+| V1-A05 | Two fictional Florida sample networks, offline, no real brands, freshly dated | Solver/data | NOT RUN | FR-01, FR-14 (seed part) |
+| V1-A06 | Every template: blank copy, example from sample, in-app column guide | Frontend/data | NOT RUN | — |
+| V1-A07 | Import rejects each error class with file/line/column/reason; nothing saved | Lead/data | NOT RUN | FR-02, FR-03 |
+| V1-A08 | Blank demand stays missing; `sales` basis labeled; exact batch round-trip | Forecast/data | NOT RUN | V5-A02 |
+| V1-A09 | Max-envelope bulk import as durable job with progress; measured time | Lead/data | NOT RUN | — |
+| V1-A10 | Census geocode + ACS attributes with source/year; outage/unmatched handling; EGP blocked on unknowns | Lead/data | NOT RUN | — |
+| V1-A11 | Straight-line default; BYO Google key cached/labeled/never exposed; `routes.csv` override | Lead/data | NOT RUN | — |
+| V1-A12 | Seven dated points with provider/fallback; backtest WAPE/bias or "not evaluated" | Forecast | NOT RUN | FR-04, FR-05, FR-08, FR-18, V5-A04–A06 |
+| V1-A13 | Danger ranking equals independent calculation; no cross-unit sums; table alternative | Frontend/forecast | NOT RUN | FR-07 |
+| V1-A14 | Pantry: five methods, both transfer modes, verifier on every result | Solver/verifier | NOT RUN | FR-10, FR-12, FR-13, SPEC-11.6 (D08), V5-A09–A11 |
+| V1-A15 | Retail: three methods in units and USD; optimized matches hand oracles | Solver/verifier | NOT RUN | — (new objective) |
+| V1-A16 | Action/why/effect; effect equals remove-one re-projection; export with hash; no stock change | Frontend/solver | NOT RUN | FR-11, FR-15, OPEN-02 |
+| V1-A17 | 100 × 500 forecast + comparison per mode within ceilings; peak RAM/CPU recorded | Solver/forecast | NOT RUN | V5-A12 |
+| V1-A18 | Newcomer completes the README journey on Windows 11 and Linux | Lead/human | NOT RUN | V5-A15 |
+| V1-A19 | README hardware requirements come from measured runs | Lead | NOT RUN | — |
+| V1-A20 | New screens pass keyboard/axe/reduced motion at three viewports | Frontend/ux-critic | NOT RUN | V5-A17 |
+| V1-A21 | Vitest (group A) and `test:docker` (group B) in CI; story coverage maps every V1-A ID | Lead | NOT RUN | — |
+| V1-A22 | Existing backend/config/full/connected e2e gates green, zero skips | Verifier | NOT RUN | V5-A01, V5-A07, V5-A08 |
+| V1-A23 | `inbound.csv` arrivals counted once; donations 0 vs missing; donation forecast shown, not used as supply | Forecast/solver | NOT RUN | V5-A02, V5-A03 |
+| V1-A24 | `--build` from clean clone; after authorized release, plain `up` pulls images; first-run times recorded | Lead/human | NOT RUN | — |
+
+## Historical rows: v1 disposition
+
+| Historical row | v1 disposition |
+|---|---|
+| FR-01 sites (three named sites) | Superseded: user-imported networks plus sample networks → V1-A05/A07 |
+| FR-02, FR-03 | Covered by V1-A07 (template import replaces general CSV import) |
+| FR-04–FR-08 | Covered by V1-A12/A13 |
+| FR-09, FR-15 | Retained via V1-A22 (existing scenario/replay gates) and V1-A16 |
+| FR-10, FR-12, FR-13 | Covered by V1-A14/A15 |
+| FR-11 | Covered by V1-A16; OPEN-02 resolved for v1 as a remove-one counterfactual |
+| FR-14 reset | v1 "start over" = `docker compose down -v` (V1-SPEC §7); scoped in-app reset deferred |
+| FR-16, FR-17 (P1 approval/completion) | Deferred to v2 or later (V1-D02: plan export only) |
+| FR-18 evaluation | Partly in v1 as the per-network backtest (V1-A12); model selection deferred |
+| FR-19 roles | Deferred; single local presenter (V1-A04) |
+| FR-20 integrations | Deferred |
+| SPEC-11.6 baselines (D08) | In v1: no-transfer, equal-share, most-urgent-first (Pantry) and soonest-expiry-first (Retail) → V1-A14/A15 |
+| SPEC-9.7 model selection (D09) | Deferred (V1-SPEC §11) |
+| SPEC-13.5 observability/audit | Unchanged requirement; not a v1 gate beyond V1-A04's log check |
+| SPEC-8.1 status codes | Retained via V1-A22 |
+| SPEC-8.6 shortage response | Superseded for v1 by V1-A13 (danger ranking + first deficit) |
+| SPEC-7 schema columns | Superseded; v1 schema follows V1-SPEC §6.1 templates |
+| V5-A14 supplier proposals | Deferred to v2 by V1-D07 (scope amendment) |
+
+## Historical matrix (V4/V5 era)
+
+> Historical planning matrix. V5 section 16 is the consolidated V5 acceptance matrix.
 
 Initial status for every row: NOT RUN. Suggested test names are implementation targets; the kit does not claim those app tests already exist. Keep the final matrix in Git with evidence links/commit IDs.
 
