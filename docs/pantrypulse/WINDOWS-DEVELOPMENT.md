@@ -32,7 +32,7 @@ On this host Windows Application Control rejected a pandas DLL imported by OR-To
 ```powershell
 npm run test:api:docker
 npm run check:runtime:docker
-docker compose stop api
+docker compose -f compose.dev.yaml stop api
 ```
 
 The container runtime smoke runs a trivial CP-SAT model and a read-only database query; it is not allocation validation. The API health itself remains process-only. Container DATABASE_URL uses postgres:5432; native example uses 127.0.0.1:55432. Neither changes production data.
@@ -52,10 +52,10 @@ Tracked API example: `apps/api/.env.example`. Copy it to `apps/api/.env` only wh
 ## Database
 
 ```powershell
-docker compose up -d --wait postgres
-docker compose exec -T postgres pg_isready -U pantrypulse -d pantrypulse_dev
-docker compose exec -T postgres psql -U pantrypulse -d pantrypulse_test -c "SELECT current_database();"
-docker compose stop postgres
+docker compose -f compose.dev.yaml up -d --wait postgres
+docker compose -f compose.dev.yaml exec -T postgres pg_isready -U pantrypulse -d pantrypulse_dev
+docker compose -f compose.dev.yaml exec -T postgres psql -U pantrypulse -d pantrypulse_test -c "SELECT current_database();"
+docker compose -f compose.dev.yaml stop postgres
 ```
 
 Local URL: postgresql+psycopg://pantrypulse:local_dev_only@127.0.0.1:55432/pantrypulse_dev. Tests use pantrypulse_test. These isolated local credentials come from existing Compose config and must never be reused for hosting. Init SQL runs only on a fresh named volume. Investigate existing volumes without deleting them.

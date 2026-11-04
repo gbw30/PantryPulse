@@ -6,6 +6,19 @@ This guide targets Windows x64 with PowerShell 5.1 or 7. [Current status](docs/p
 
 **Current state:** presenter-protected baseline forecasts, persisted scenarios/comparisons, two bounded allocation methods and independent verification, connected `/optimization`/same-origin proxy, migrations through `ppor_0005`, and active Linux/PostgreSQL/browser CI. Use [local compute](docs/setup/LOCAL-COMPUTE.md) for the opt-in resource-bounded image/model tools and [connected setup](docs/optimization/CONNECTED-INTEGRATION.md) for deliberate synthetic loading. Existing running containers are preserved; a source merge does not upgrade them. Chronos has standalone CPU evidence but is not the application provider.
 
+## v1 local stack (one start command)
+
+`compose.yaml` is the v1 install: PostgreSQL, a one-shot `migrate` and `seed`, the API, the worker and the web app. Only the web app is published, at `http://127.0.0.1:3000` (set `PP_WEB_PORT` in a root `.env` to change it; see `.env.example`).
+
+```bash
+docker compose up --build -d --wait   # contributors: build the images from this checkout
+docker compose up -d --wait           # after a published release: pull the images instead
+docker compose down                   # stop; data stays in the stack's `db` volume
+docker compose down -v                # start over: deletes this install's data
+```
+
+Everything below is the contributor setup. Its dev database (127.0.0.1:55432) and `api` profile now live in `compose.dev.yaml`, a separate Compose project (`pantrypulse-dev`) with its own fresh volume. The opt-in `compose.compute.yaml` overlays `compose.dev.yaml`; `compose.forecast.yaml`, `compose.chronos.yaml` and `compose.demo.yaml` are unchanged.
+
 ## 1. Install these prerequisites manually
 
 The setup script deliberately does not install system tools, enable virtualization, change security policy, or create cloud accounts.
@@ -58,7 +71,7 @@ Set-Location PantryPulse
 git rev-parse --show-toplevel
 ```
 
-If the repository is already cloned, open that checkout instead. The root contains `package.json`, `compose.yaml`, `apps/` and `scripts/`. A pre-existing nested `PantryPulse/` copy on the original host is preserved historical work; do not install or run the project from it.
+If the repository is already cloned, open that checkout instead. The root contains `package.json`, `compose.yaml`, `compose.dev.yaml`, `apps/` and `scripts/`. A pre-existing nested `PantryPulse/` copy on the original host is preserved historical work; do not install or run the project from it.
 
 `.node-version` documents the Node pin but does not switch your installed Node automatically. Root `package-lock.json` owns the npm workspace; `apps/api/uv.lock` owns Python. Keep both lockfiles in Git.
 
@@ -160,7 +173,7 @@ Native alternative on hosts with working allowed Python DLLs: run `npm run dev:a
 Stop the web/native API with Ctrl+C in its terminal. Stop project containers without deleting data:
 
 ```powershell
-docker compose stop api postgres
+docker compose -f compose.dev.yaml stop api postgres
 ```
 
 The named PostgreSQL volume survives. Startup SQL creates pantrypulse_dev and pantrypulse_test plus existing lane databases only when the volume is first initialized. Do not delete a volume as a routine setup fix. There are no Alembic domain revisions yet; migration validation will be added after the research contract gate.

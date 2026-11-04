@@ -1,0 +1,16 @@
+# Build context for apps/web/Dockerfile (repository root). Keep it small and secret-free.
+**/node_modules
+**/.next
+**/.next-e2e
+**/.venv
+**/__pycache__
+.git
+.claude
+.pantrypulse
+artifacts
+**/test-results
+**/playwright-report
+**/*.tsbuildinfo
+**/.env
+**/.env.*
+!**/.env.example

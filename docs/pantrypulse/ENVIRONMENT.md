@@ -45,7 +45,7 @@ Recorded 2026-10-23 when the Claude Code kit was installed. Update this file whe
 
 ## Local development services
 
-`docker compose up -d --wait` from the repo root starts `postgres:16`, matching CI, on **127.0.0.1:55432**. Ports 5432, 5433 and 15432 are already used by other Postgres instances on this machine. Local-only credentials: user `pantrypulse`, password `local_dev_only`.
+`docker compose -f compose.dev.yaml up -d --wait` from the repo root starts `postgres:16`, matching CI, on **127.0.0.1:55432**. Ports 5432, 5433 and 15432 are already used by other Postgres instances on this machine. Local-only credentials: user `pantrypulse`, password `local_dev_only`.
 
 | Database | Used by |
 |---|---|
@@ -55,4 +55,4 @@ Recorded 2026-10-23 when the Claude Code kit was installed. Update this file whe
 
 Local DATABASE_URL form, no TLS: `postgresql+psycopg://pantrypulse:local_dev_only@127.0.0.1:55432/pantrypulse_dev`. Put it in `apps/api/.env` yourself when the API exists; the PreToolUse guard blocks agents from writing `.env` files. The `api.env.example` template's `sslmode=require` URL is for hosted Neon.
 
-The init script in `scripts/db/init/` runs only on a fresh volume. Use `docker compose down` to stop. `docker compose down -v` also destroys the local data, so ask the lead first.
+The init script in `scripts/db/init/` runs only on a fresh volume. Use `docker compose -f compose.dev.yaml down` to stop. `docker compose -f compose.dev.yaml down -v` also destroys the local data, so ask the lead first.

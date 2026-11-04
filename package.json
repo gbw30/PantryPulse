@@ -25,9 +25,9 @@
     "test:api": "uv run --frozen --directory apps/api pytest",
     "test:e2e": "npm run test:e2e --workspace @pantrypulse/web",
     "check": "npm run typecheck && npm run lint && uv run --frozen --directory apps/api ruff check . && npm run test:api",
-    "dev:api:docker": "docker compose --profile api up -d --build --wait api",
-    "test:api:docker": "docker compose exec -T api uv run --frozen pytest",
-    "check:runtime:docker": "docker compose exec -T api uv run --frozen python scripts/check_runtime.py --database",
+    "dev:api:docker": "docker compose -f compose.dev.yaml --profile api up -d --build --wait api",
+    "test:api:docker": "docker compose -f compose.dev.yaml exec -T api uv run --frozen pytest",
+    "check:runtime:docker": "docker compose -f compose.dev.yaml exec -T api uv run --frozen python scripts/check_runtime.py --database",
     "test:docker": "node scripts/testing/docker-tests.cjs",
     "test:stories": "node scripts/testing/story-coverage.cjs"
   }
