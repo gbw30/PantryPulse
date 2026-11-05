@@ -10,7 +10,7 @@ The plan is [docs/plans/v1/](../plans/v1/README.md), which implements [V1-SPEC](
 
 | Wave | Lanes (at most 3) | Mode | Tasks | Acceptance IDs | Status |
 |---|---|---|---|---|---|
-| W0 Foundation | orchestrator (spikes S1, S4 in-session) | orchestrator + A | W0-01…W0-10 | A02, A04, A21, A22 (+ S1/S3/S4 findings) | IN PROGRESS on local `w0/foundation` (base `7067b0b`, unpushed): done W0-01/02/03/04/07/09; next W0-05 → W0-08 → W0-06 (Gabriel's Windows run) → W0-10 |
+| W0 Foundation | orchestrator (spikes S1, S4 in-session) | orchestrator + A | W0-01…W0-10 | A02, A04, A21, A22 (+ S1/S3/S4 findings) | IN PROGRESS on local `w0/foundation` (base `7067b0b`, unpushed): done W0-01/02/03/04/05/07/09; next W0-08 → W0-06 (Gabriel's Windows run) → W0-10 |
 | W1 | `w1-data`, `w1-solver`, `w1-web` | B | W1-D01…D09, W1-S01…S07, W1-W01…W08 | A06–A11, A13–A17, A20, A21, A23 | NOT STARTED |
 | W2 Integrate W1 | orchestrator | orchestrator + A | W2-01…W2-06 | A22 + backend journey | NOT STARTED |
 | W3 | `w3-forecast`, `w3-samples`, `w3-web` | B | W3-F01…F06, W3-P01…P04, W3-W01…W03 | A02, A05, A06, A08, A12, A13, A17, A20, A23 | NOT STARTED |
@@ -20,7 +20,7 @@ The plan is [docs/plans/v1/](../plans/v1/README.md), which implements [V1-SPEC](
 
 W0 handoff (2026-11-04):
 - **Decisions:** `docs/plans/v1/decisions/` (network model and login table, per-product optimizer). Spike reports: `docs/plans/v1/spikes/` (S1, S4).
-- **W0-05:** store the login hash in `local_logins` (schema `ppv1_0008`).
+- **W0-05 (done, `9e14797`):** login hash in `local_logins`, password only in `.pantrypulse/local-login.txt`; proxy token via a shared read-only volume (`PP_TRUSTED_PROXY_TOKEN_FILE`). Also fixed: the insecure-cookie guard now checks the verified browser origin (compose login returned 503).
 - **W0-08:**
   - add a per-product solve status and gap field;
   - add per-product labeling;
