@@ -170,3 +170,30 @@ test("planning proxy allowlist preserves bounded catalog paging and rejects arbi
   }
   assert.equal(fetchMock.mock.calls.length, 4);
 });
+
+test("local install reads the proxy token from the shared file, never the client", async (t) => {
+  const { mkdtemp, writeFile, rm } = await import("node:fs/promises");
+  const { join } = await import("node:path");
+  const { tmpdir } = await import("node:os");
+  const dir = await mkdtemp(join(tmpdir(), "pp-proxy-token-"));
+  const file = join(dir, "proxy-token");
+  await writeFile(file, "file-proxy-secret\n");
+  process.env.PANTRYPULSE_API_ORIGIN = "http://127.0.0.1:8000";
+  process.env.PP_TRUSTED_PROXY_TOKEN_FILE = file;
+  t.after(async () => {
+    delete process.env.PANTRYPULSE_API_ORIGIN;
+    delete process.env.PP_TRUSTED_PROXY_TOKEN_FILE;
+    await rm(dir, { recursive: true, force: true });
+  });
+  const fetchMock = t.mock.method(globalThis, "fetch", async (url, options) => {
+    assert.equal(options.headers.get("x-pp-proxy-token"), "file-proxy-secret");
+    return Response.json({ status: "ok" });
+  });
+  const request = () => GET(new Request("http://localhost:3000/api/v1/health", {
+    headers: { "X-PP-Proxy-Token": "spoof" },
+  }));
+  assert.equal((await request()).status, 200);
+  await rm(file);
+  assert.equal((await request()).status, 503);
+  assert.equal(fetchMock.mock.calls.length, 1);
+});

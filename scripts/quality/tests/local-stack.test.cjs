@@ -63,3 +63,39 @@ test('.gitattributes keeps shell scripts, Dockerfiles and entrypoint scripts LF'
     assert.ok(text.split('\n').some((line) => line.trim() === rule), `missing: ${rule}`);
   }
 });
+
+test('seed generates the login and proxy token into files; no env var or shell carries them', () => {
+  const { services, volumes } = config({ PP_WEB_PORT: '3555' });
+  assert.deepEqual(services.seed.command, ['uv', 'run', '--frozen', 'python', 'scripts/local_bootstrap.py']);
+  assert.equal(services.seed.environment.PP_WEB_PORT, '3555');
+  for (const [name, s] of Object.entries(services)) {
+    const argv = [...(s.entrypoint ?? []), ...(s.command ?? [])].join(' ');
+    assert.doesNotMatch(argv, /\beval\b|\bsh -c\b/, `${name} runs no shell`);
+    for (const key of ['PP_TRUSTED_PROXY_TOKEN', 'PP_PRESENTER_PASSWORD_HASH']) {
+      assert.ok(!(key in (s.environment ?? {})), `${name} has no ${key}`);
+    }
+  }
+  const tokenFile = services.seed.environment.PP_TRUSTED_PROXY_TOKEN_FILE;
+  assert.ok(tokenFile);
+  const tokenDir = path.posix.dirname(tokenFile);
+  for (const name of ['seed', 'api', 'web']) {
+    assert.equal(services[name].environment.PP_TRUSTED_PROXY_TOKEN_FILE, tokenFile, name);
+    const mount = services[name].volumes?.find((v) => v.target === tokenDir);
+    assert.equal(mount?.type, 'volume', `${name} mounts the token volume`);
+    assert.ok(mount.source in volumes, `${name} token volume is declared`);
+    assert.equal(Boolean(mount.read_only), name !== 'seed', `${name} read_only`);
+  }
+  const loginFile = services.seed.environment.PP_LOCAL_LOGIN_FILE;
+  const login = services.seed.volumes?.find((v) => v.target === path.posix.dirname(loginFile));
+  assert.equal(login?.type, 'bind');
+  assert.equal(login.source, path.join(root, '.pantrypulse'));
+  for (const name of ['api', 'web', 'worker', 'migrate']) {
+    assert.ok(!services[name].volumes?.some((v) => v.target === login.target), `${name} cannot see the login file`);
+  }
+  // The folder ships in the repo so Docker never creates it as root on Linux.
+  assert.ok(fs.existsSync(path.join(root, '.pantrypulse', '.gitkeep')));
+  const orgId = fs.readFileSync(path.join(root, 'apps/api/scripts/seed_local.py'), 'utf8')
+    .match(/LOCAL_ORGANIZATION_ID = UUID\("([0-9a-f-]+)"\)/)[1];
+  assert.equal(services.api.environment.PP_PRESENTER_ORGANIZATION_ID, orgId);
+  assert.equal(services.api.environment.PP_PRESENTER_USERNAME, 'local');
+});

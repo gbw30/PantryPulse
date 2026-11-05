@@ -25,4 +25,5 @@ test-results/
 **/next-env.d.ts
 .venv-tools/
 .neon
-.pantrypulse/
+.pantrypulse/*
+!.pantrypulse/.gitkeep

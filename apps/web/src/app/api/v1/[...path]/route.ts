@@ -1,4 +1,12 @@
 /** Thin same-origin transport. FastAPI owns authentication, validation and admission. */
+import { readFile } from "node:fs/promises";
+
+/** The proxy secret from the environment, or from the file the local install's seed generated. */
+async function proxyToken() {
+  const file = process.env.PP_TRUSTED_PROXY_TOKEN_FILE;
+  if (process.env.PP_TRUSTED_PROXY_TOKEN || !file) return process.env.PP_TRUSTED_PROXY_TOKEN;
+  return (await readFile(file, "utf8").catch(() => "")).trim() || undefined;
+}
 
 function failure(code: string, status: number) {
   const requestId = crypto.randomUUID();
@@ -47,7 +55,7 @@ async function proxy(request: Request) {
     return failure("ORIGIN_FORBIDDEN", 403);
   }
   const base = process.env.PANTRYPULSE_API_ORIGIN;
-  const proxySecret = process.env.PP_TRUSTED_PROXY_TOKEN;
+  const proxySecret = await proxyToken();
   if (!base || !proxySecret) return failure("BACKEND_NOT_CONFIGURED", 503);
   let target: URL;
   try {

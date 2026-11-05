@@ -14,6 +14,10 @@ x-api: &api
     DATABASE_URL_UNPOOLED: postgresql+psycopg://pantrypulse:local_stack_only@postgres:5432/pantrypulse
     PP_ALLOWED_ORIGINS: http://127.0.0.1:${PP_WEB_PORT:-3000},http://localhost:${PP_WEB_PORT:-3000}
     PP_COOKIE_SECURE: "false"
+    # Local login: the seed stores only the scrypt hash in local_logins; the API reads it there.
+    PP_PRESENTER_USERNAME: local
+    PP_PRESENTER_ORGANIZATION_ID: 6f0c5a52-4c2e-5d1b-9a57-0b1f4c7d2e01
+    PP_TRUSTED_PROXY_TOKEN_FILE: /run/pantrypulse/proxy-token
 
 x-long-running: &long-running
   # `docker compose restart` stops Postgres alongside the others; reconnect instead of staying down.
@@ -50,7 +54,15 @@ services:
 
   seed:
     <<: *api
-    command: ["uv", "run", "--frozen", "python", "scripts/seed_local.py"]
+    command: ["uv", "run", "--frozen", "python", "scripts/local_bootstrap.py"]
+    environment:
+      <<: *api-env
+      PP_WEB_PORT: ${PP_WEB_PORT:-3000}
+      PP_LOCAL_LOGIN_FILE: /host/.pantrypulse/local-login.txt
+    volumes:
+      # The only service that sees the host folder holding the generated password.
+      - ./.pantrypulse:/host/.pantrypulse
+      - proxy-token:/run/pantrypulse
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -58,6 +70,8 @@ services:
   api:
     <<: [*api, *long-running]
     depends_on: *after-setup
+    volumes:
+      - proxy-token:/run/pantrypulse:ro
     healthcheck:
       test: ["CMD", "uv", "run", "--frozen", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')"]
       interval: 5s
@@ -84,6 +98,9 @@ services:
       dockerfile: apps/web/Dockerfile
     environment:
       PANTRYPULSE_API_ORIGIN: http://api:8000
+      PP_TRUSTED_PROXY_TOKEN_FILE: /run/pantrypulse/proxy-token
+    volumes:
+      - proxy-token:/run/pantrypulse:ro
     ports:
       - "127.0.0.1:${PP_WEB_PORT:-3000}:3000"
     depends_on:
@@ -97,3 +114,5 @@ services:
 
 volumes:
   db:
+  # The trusted proxy token, generated once by seed; never published to the host.
+  proxy-token:
