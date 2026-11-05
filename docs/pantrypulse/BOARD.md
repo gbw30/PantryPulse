@@ -10,13 +10,26 @@ The plan is [docs/plans/v1/](../plans/v1/README.md), which implements [V1-SPEC](
 
 | Wave | Lanes (at most 3) | Mode | Tasks | Acceptance IDs | Status |
 |---|---|---|---|---|---|
-| W0 Foundation | orchestrator (spikes S1, S4 in-session) | orchestrator + A | W0-01…W0-10 | A02, A04, A21, A22 (+ S1/S3/S4 findings) | NOT STARTED |
+| W0 Foundation | orchestrator (spikes S1, S4 in-session) | orchestrator + A | W0-01…W0-10 | A02, A04, A21, A22 (+ S1/S3/S4 findings) | IN PROGRESS on local `w0/foundation` (base `7067b0b`, unpushed): done W0-01/02/03/04/07/09; next W0-05 → W0-08 → W0-06 (Gabriel's Windows run) → W0-10 |
 | W1 | `w1-data`, `w1-solver`, `w1-web` | B | W1-D01…D09, W1-S01…S07, W1-W01…W08 | A06–A11, A13–A17, A20, A21, A23 | NOT STARTED |
 | W2 Integrate W1 | orchestrator | orchestrator + A | W2-01…W2-06 | A22 + backend journey | NOT STARTED |
 | W3 | `w3-forecast`, `w3-samples`, `w3-web` | B | W3-F01…F06, W3-P01…P04, W3-W01…W03 | A02, A05, A06, A08, A12, A13, A17, A20, A23 | NOT STARTED |
 | W4 Integrate W3 | orchestrator | orchestrator + A | W4-01…W4-04 | full connected journey, A20 review | NOT STARTED |
 | W5 | `w5-polish`, `w5-packaging` | B | W5-UI01…UI03, W5-PK01…PK05 | A03, A04, A09, A17–A21, A24 | NOT STARTED |
 | W6 Release | orchestrator + Gabriel | orchestrator + A | W6-01…W6-06 | A01, A18, A22, A24 | NOT STARTED |
+
+W0 handoff (2026-11-04):
+- **Decisions:** `docs/plans/v1/decisions/` (network model and login table, per-product optimizer). Spike reports: `docs/plans/v1/spikes/` (S1, S4).
+- **W0-05:** store the login hash in `local_logins` (schema `ppv1_0008`).
+- **W0-08:**
+  - add a per-product solve status and gap field;
+  - add per-product labeling;
+  - add the S4 streamed upload route plus a streaming proxy branch.
+- **W0-10:**
+  - verifier review of the branch and of the S1 capacity split;
+  - reword W1-S05's "decomposed equals monolithic" test;
+  - before the merge, a doc pass against `7067b0b` (no bloat, better agent context retrieval) that also removes the personal vault references from the committed plan and prompts.
+- **Test environment:** `PP_TEST_DATABASE_URL` and `PP19_TEST_DATABASE_URL` set to `postgresql+psycopg://pantrypulse:isolated_test_only@127.0.0.1:55433/pantrypulse_test`, with `PP19_TEST_SCHEMA_ISOLATION=1`.
 
 Gates: Gabriel approves each wave start, every change request, every merge into `v1-local`, and every release action. The re-plan gate is W0-10.
 
