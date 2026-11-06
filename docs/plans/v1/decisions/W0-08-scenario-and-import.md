@@ -27,7 +27,12 @@ Source: [S4-bulk-import.md](../spikes/S4-bulk-import.md), recommendations 1, 2 a
 - **Phases and units** follow `IMPORT_PHASES` (`apps/api/app/models/networks.py:19`): bytes while `uploading`, rows while `staging`, checks while `validating`, rows while `committing`. At most 1,000 errors are reported, and `errors_truncated` says whether there were more.
 - **API boundary:** `RequestBoundary` (`apps/api/app/main.py:54`) exempts exactly the file route. That route enforces its own byte cap. Every other path keeps the 64 KB limit.
 - **Proxy:** a dedicated streaming branch for the file route only. It passes the body through (`duplex: "half"`), counts bytes against the same cap, and has no 20 s timeout. Origin, CSRF and proxy-token handling stay as they are. The current proxy buffers bodies and caps them at 64 KB (`apps/web/src/app/api/v1/[...path]/route.ts:83-107`).
-- **First test (open risk):** S4 never checked whether Next 16's own server buffers route-handler bodies. W0-08 starts with a failing test that streams a near-cap body through the real Next server and requires flat memory. If Next buffers, the fallback is a same-origin path from `web` straight to the API for this one route, decided with Gabriel.
+- **Next 16 streaming risk: resolved, 2026-11-06.** S4 never checked whether Next's own server buffers route-handler bodies. `apps/web/scripts/check-upload-streaming.mjs` runs the real standalone server (`NEXT_OUTPUT=standalone`, as in `apps/web/Dockerfile`) against a byte-counting sink in place of the API, at S4's 20 MiB/s.
+  - The sink got its first byte after the client had sent 1 MiB, in both a 50 MiB and a 150 MiB run. Next does not buffer.
+  - All 150 MiB arrived in 7.6–7.7 s.
+  - Server RSS grew 38.4 MiB for 50 MiB and 46.6 / 56.6 MiB for 150 MiB. That's bounded garbage, not buffering: tripling the body added only 8–18 MiB.
+  - An unthrottled loopback run (0.22 s) peaked at +96.9 MiB. That's uncollected garbage at about 680 MB/s; the sink again got its first byte at 1 MiB.
+  - Single runs on one WSL laptop. The check passes under a 64 MiB growth limit.
 
 **Consequences, owned by W1-D05:**
 - An abandoned import leaves a network with no dataset version. The network list shows it as "import not finished".

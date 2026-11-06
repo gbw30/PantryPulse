@@ -8,6 +8,10 @@ async function proxyToken() {
   return (await readFile(file, "utf8").catch(() => "")).trim() || undefined;
 }
 
+// W0-08 decision: 143 MB maximum-envelope history file plus headroom, counted while streaming.
+const UPLOAD_CAP = 160 * 1024 * 1024;
+const TEMPLATE_FILES = "locations|products|inventory|demand_history|routes|inbound|donation_history";
+
 function failure(code: string, status: number) {
   const requestId = crypto.randomUUID();
   return Response.json({ error: { code, message: code.toLowerCase().replaceAll("_", " "),
@@ -20,20 +24,23 @@ async function proxy(request: Request) {
   const incoming = new URL(request.url);
   const path = incoming.pathname.slice("/api/v1/".length);
   const uuid = "[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}";
-  const allowed = request.method === "GET"
+  const upload = request.method === "POST" &&
+    new RegExp(`^imports/${uuid}/files/(${TEMPLATE_FILES})$`).test(path);
+  const allowed = upload || (request.method === "GET"
     ? ["health", "forecast-catalog", "planning-catalog", "operational-catalog", "supplies", "scenarios", "dashboard/summary", "allocation-methodology"].includes(path) ||
-      new RegExp(`^(jobs|forecasts|scenarios|comparisons|planning-assumptions|receipts|supplies|plans|shortages)/${uuid}$`).test(path) ||
+      new RegExp(`^(jobs|forecasts|scenarios|comparisons|planning-assumptions|receipts|supplies|plans|shortages|imports)/${uuid}$`).test(path) ||
       new RegExp(`^inventory/sites/${uuid}/products/${uuid}$`).test(path) ||
       new RegExp(`^allocation-jobs/${uuid}/results$`).test(path) ||
       new RegExp(`^legacy-planning/(scenarios|plans|comparisons)/${uuid}$`).test(path)
-    : request.method === "POST" && (["forecasts", "scenarios", "comparisons", "planning-assumptions", "presenter/login", "presenter/logout", "receipts", "supplies", "products", "imports/demand", "imports/demand/csv", "imports/donation-coverage"].includes(path) ||
+    : request.method === "POST" && (["forecasts", "scenarios", "comparisons", "planning-assumptions", "presenter/login", "presenter/logout", "receipts", "supplies", "products", "imports/demand", "imports/demand/csv", "imports/donation-coverage", "imports"].includes(path) ||
+      new RegExp(`^imports/${uuid}/commit$`).test(path) ||
       new RegExp(`^jobs/${uuid}/(retry|cancel)$`).test(path) ||
       new RegExp(`^receipts/${uuid}/(revisions|post|reconcile)$`).test(path) ||
       new RegExp(`^inventory/lots/${uuid}/declarations$`).test(path) ||
       new RegExp(`^supplies/${uuid}/confirmation$`).test(path) ||
       new RegExp(`^scenarios/${uuid}/(plans|compare-methods)$`).test(path) ||
       new RegExp(`^plans/${uuid}/review$`).test(path) ||
-      new RegExp(`^inventory/sites/${uuid}/products/${uuid}/adjustments$`).test(path));
+      new RegExp(`^inventory/sites/${uuid}/products/${uuid}/adjustments$`).test(path)));
   const paging = path === "planning-catalog" && request.method === "GET" &&
     [...incoming.searchParams.keys()].every((key) => ["before", "before_id"].includes(key)) &&
     incoming.searchParams.getAll("before").length <= 1 &&
@@ -67,7 +74,8 @@ async function proxy(request: Request) {
   } catch {
     return failure("BACKEND_NOT_CONFIGURED", 503);
   }
-  const contentType = path === "imports/demand/csv" ? request.headers.get("content-type") ?? "" : "application/json";
+  const contentType = path === "imports/demand/csv" || upload ? request.headers.get("content-type") ?? "" : "application/json";
+  if (upload && !/^text\/csv\s*(;|$)/i.test(contentType)) return failure("INVALID_UPLOAD_CONTENT_TYPE", 422);
   if (path === "imports/demand/csv" && !/^multipart\/form-data;\s*boundary=/i.test(contentType)) {
     return failure("INVALID_UPLOAD_CONTENT_TYPE", 422);
   }
@@ -81,7 +89,21 @@ async function proxy(request: Request) {
     .map((value) => value.trim()).filter((value) => /^(pp_presenter|pp_csrf)=/.test(value));
   if (cookies.length) headers.set("cookie", cookies.join("; "));
   let body: Uint8Array | undefined;
-  if (request.method === "POST") {
+  let stream: ReadableStream<Uint8Array> | undefined;
+  let tooLarge = false;
+  if (upload) {
+    // Pass the file through without buffering; the API enforces the same cap itself.
+    if (Number(request.headers.get("content-length") ?? 0) > UPLOAD_CAP) return failure("INPUT_TOO_LARGE", 413);
+    let size = 0;
+    stream = request.body?.pipeThrough(new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, controller) {
+        size += chunk.byteLength;
+        if (size <= UPLOAD_CAP) return controller.enqueue(chunk);
+        tooLarge = true;
+        controller.error(new Error("INPUT_TOO_LARGE"));
+      },
+    }));
+  } else if (request.method === "POST") {
     const reader = request.body?.getReader();
     const chunks: Uint8Array[] = [];
     let size = 0;
@@ -103,9 +125,10 @@ async function proxy(request: Request) {
   }
   try {
     const upstream = await fetch(`${target.origin}/api/v1/${path}${incoming.search}`, {
-      method: request.method, headers, body: body as BodyInit | undefined,
-      redirect: "error", cache: "no-store", signal: AbortSignal.timeout(20000),
-    });
+      method: request.method, headers, body: (stream ?? body) as BodyInit | undefined,
+      redirect: "error", cache: "no-store",
+      ...(upload ? { duplex: "half" } : { signal: AbortSignal.timeout(20000) }),
+    } as RequestInit & { duplex?: "half" });
     const responseHeaders = new Headers({ "Cache-Control": "no-store" });
     for (const name of ["content-type", "location", "x-request-id", "retry-after"]) {
       const value = upstream.headers.get(name);
@@ -116,7 +139,7 @@ async function proxy(request: Request) {
     }
     return new Response(upstream.body, { status: upstream.status, headers: responseHeaders });
   } catch {
-    return failure("BACKEND_UNAVAILABLE", 503);
+    return tooLarge ? failure("INPUT_TOO_LARGE", 413) : failure("BACKEND_UNAVAILABLE", 503);
   }
 }
 

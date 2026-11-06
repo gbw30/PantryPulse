@@ -197,3 +197,88 @@ test("local install reads the proxy token from the shared file, never the client
   assert.equal((await request()).status, 503);
   assert.equal(fetchMock.mock.calls.length, 1);
 });
+
+const importId = "33333333-3333-4333-8333-333333333333";
+const MiB = 1024 * 1024;
+
+function chunks(total, size = MiB) {
+  let sent = 0;
+  return new ReadableStream({ pull(controller) {
+    if (sent >= total) return controller.close();
+    const length = Math.min(size, total - sent);
+    sent += length;
+    controller.enqueue(new Uint8Array(length).fill(97));
+  } });
+}
+
+function upload(body, headers = {}) {
+  return new Request(`http://localhost:3000/api/v1/imports/${importId}/files/demand_history`, {
+    method: "POST", body, duplex: "half",
+    headers: { Origin: "http://localhost:3000", "Content-Type": "text/csv", "X-CSRF-Token": "csrf", ...headers },
+  });
+}
+
+test("v1 import file upload streams past the 64 KB JSON cap with no timeout", async (t) => {
+  process.env.PANTRYPULSE_API_ORIGIN = "http://127.0.0.1:8000";
+  process.env.PP_TRUSTED_PROXY_TOKEN = "test-proxy-secret";
+  t.after(() => {
+    delete process.env.PANTRYPULSE_API_ORIGIN;
+    delete process.env.PP_TRUSTED_PROXY_TOKEN;
+  });
+  const fetchMock = t.mock.method(globalThis, "fetch", async (url, options) => {
+    assert.equal(url, `http://127.0.0.1:8000/api/v1/imports/${importId}/files/demand_history`);
+    assert.ok(options.body instanceof ReadableStream, "body is passed through as a stream");
+    assert.equal(options.duplex, "half");
+    assert.equal(options.signal, undefined, "no 20 s timeout on uploads");
+    assert.equal(options.headers.get("content-type"), "text/csv");
+    assert.equal(options.headers.get("x-csrf-token"), "csrf");
+    let bytes = 0;
+    for await (const chunk of options.body) bytes += chunk.byteLength;
+    return Response.json({ name: "demand_history", bytes }, { status: 200 });
+  });
+  const response = await POST(upload(chunks(3 * MiB)));
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).bytes, 3 * MiB);
+  assert.equal(fetchMock.mock.calls.length, 1);
+});
+
+test("v1 import file upload enforces the 160 MiB cap while streaming", async (t) => {
+  process.env.PANTRYPULSE_API_ORIGIN = "http://127.0.0.1:8000";
+  process.env.PP_TRUSTED_PROXY_TOKEN = "test-proxy-secret";
+  t.after(() => {
+    delete process.env.PANTRYPULSE_API_ORIGIN;
+    delete process.env.PP_TRUSTED_PROXY_TOKEN;
+  });
+  t.mock.method(globalThis, "fetch", async (_url, options) => {
+    const reader = options.body.getReader();
+    while (!(await reader.read()).done) { /* drain until the proxy errors the stream */ }
+    return Response.json({}, { status: 200 });
+  });
+  const response = await POST(upload(chunks(160 * MiB + 1)));
+  assert.equal(response.status, 413);
+  assert.equal((await response.json()).error.code, "INPUT_TOO_LARGE");
+  assert.equal((await POST(upload("x", { "Content-Length": String(160 * MiB + 1) }))).status, 413);
+});
+
+test("v1 import routes: only template names, only CSV bodies, plus create/commit/status", async (t) => {
+  process.env.PANTRYPULSE_API_ORIGIN = "http://127.0.0.1:8000";
+  process.env.PP_TRUSTED_PROXY_TOKEN = "test-proxy-secret";
+  t.after(() => {
+    delete process.env.PANTRYPULSE_API_ORIGIN;
+    delete process.env.PP_TRUSTED_PROXY_TOKEN;
+  });
+  const seen = [];
+  t.mock.method(globalThis, "fetch", async (url) => {
+    seen.push(url.slice("http://127.0.0.1:8000/api/v1/".length));
+    return Response.json({}, { status: 200 });
+  });
+  const post = (path, body = "{}") => POST(new Request(`http://localhost:3000/api/v1/${path}`, {
+    method: "POST", body, headers: { Origin: "http://localhost:3000" },
+  }));
+  assert.equal((await POST(upload("a,b\n", { "Content-Type": "application/json" }))).status, 422);
+  assert.equal((await post(`imports/${importId}/files/secrets`, "x")).status, 404);
+  assert.equal((await post("imports")).status, 200);
+  assert.equal((await post(`imports/${importId}/commit`)).status, 200);
+  assert.equal((await GET(new Request(`http://localhost:3000/api/v1/imports/${importId}`))).status, 200);
+  assert.deepEqual(seen, ["imports", `imports/${importId}/commit`, `imports/${importId}`]);
+});
