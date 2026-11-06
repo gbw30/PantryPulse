@@ -10,7 +10,7 @@ The plan is [docs/plans/v1/](../plans/v1/README.md), which implements [V1-SPEC](
 
 | Wave | Lanes (at most 3) | Mode | Tasks | Acceptance IDs | Status |
 |---|---|---|---|---|---|
-| W0 Foundation | orchestrator (spikes S1, S4 in-session) | orchestrator + A | W0-01…W0-10 | A02, A04, A21, A22 (+ S1/S3/S4 findings) | IN PROGRESS on local `w0/foundation` (base `7067b0b`, unpushed): done W0-01/02/03/04/05/07/09; next W0-08 → W0-06 (Gabriel's Windows run) → W0-10 |
+| W0 Foundation | orchestrator (spikes S1, S4 in-session) | orchestrator + A | W0-01…W0-10 | A02, A04, A21, A22 (+ S1/S3/S4 findings) | IN PROGRESS on local `w0/foundation` (base `7067b0b`, unpushed): done W0-01/02/03/04/05/07/09; W0-08 in progress (decisions taken 2026-11-06) → W0-06 (Gabriel's Windows run) → W0-10 |
 | W1 | `w1-data`, `w1-solver`, `w1-web` | B | W1-D01…D09, W1-S01…S07, W1-W01…W08 | A06–A11, A13–A17, A20, A21, A23 | NOT STARTED |
 | W2 Integrate W1 | orchestrator | orchestrator + A | W2-01…W2-06 | A22 + backend journey | NOT STARTED |
 | W3 | `w3-forecast`, `w3-samples`, `w3-web` | B | W3-F01…F06, W3-P01…P04, W3-W01…W03 | A02, A05, A06, A08, A12, A13, A17, A20, A23 | NOT STARTED |
@@ -21,13 +21,9 @@ The plan is [docs/plans/v1/](../plans/v1/README.md), which implements [V1-SPEC](
 W0 handoff (2026-11-04):
 - **Decisions:** `docs/plans/v1/decisions/` (network model and login table, per-product optimizer). Spike reports: `docs/plans/v1/spikes/` (S1, S4).
 - **W0-05 (done, `9e14797`):** login hash in `local_logins`, password only in `.pantrypulse/local-login.txt`; proxy token via a shared read-only volume (`PP_TRUSTED_PROXY_TOKEN_FILE`). Also fixed: the insecure-cookie guard now checks the verified browser origin (compose login returned 503).
-- **W0-08 (paused before code, 2026-11-04): waiting on Gabriel's decisions.**
-  1. Scenario format: the plan says "raise caps in `or_inputs.py`", but `or-scenario-v2` can't carry v1 (14 locations / 8 products / 2-day ETA, HUB/BENEFICIARY roles, no mode/USD/weights), and raising it would change v2 (A22). Recommended **A**: a new `or-scenario-v3` in `v1_planning.py`, v2 untouched, with per-product solve status, gap and the "not at risk; not optimized" label in the method result. Option B: raise the v2 caps and add optional fields.
-  2. Import routes per S4 unless Gabriel objects: `POST /imports` (create) → `POST /imports/{id}/files/{name}` (streamed, about 160 MB cap) → `POST /imports/{id}/commit` (202, `import.v1`), plus a streaming proxy branch. The README table and wave-1 get updated at W0-10.
-- **W0-08 items:**
-  - add a per-product solve status and gap field;
-  - add per-product labeling;
-  - add the S4 streamed upload route plus a streaming proxy branch.
+- **W0-08 (in progress, decisions taken 2026-11-06):** [decision record](../plans/v1/decisions/W0-08-scenario-and-import.md).
+  1. Scenario format: **option A**, a new `or-input-v3` package in `v1_planning.py`. v2 stays untouched (A22). The v3 method result carries per-product solve status, gap and the "not at risk; not optimized" label.
+  2. Import routes per S4: `POST /imports` (create) → `POST /imports/{id}/files/{name}` (streamed, 160 MiB cap) → `POST /imports/{id}/commit` (202, `import.v1`), plus a streaming proxy branch. The first test checks that Next 16 streams the body without buffering it. The README interface table is updated; wave-1 task text follows at W0-10.
 - **W0-10:**
   - verifier review of the branch and of the S1 capacity split;
   - reword W1-S05's "decomposed equals monolithic" test;

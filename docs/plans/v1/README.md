@@ -231,8 +231,10 @@ Lanes code against these names. W0-08 may adjust them before the freeze. If it d
 |---|---|---|
 | `GET /networks`, `GET /networks/{network_id}` | `NetworkList`, `Network` | W1-D05 |
 | `GET /templates`, `GET /templates/{name}.csv?kind=blank\|example` | `TemplateCatalog`, `text/csv` | W1-D03 (blank), W3-P03 (example) |
-| `POST /imports` (streamed multipart; mechanism set by S4) | 202 `ImportAccepted{import_id, job_id}` | W1-D04/D05 |
-| `GET /imports/{import_id}` | `ImportStatus{state, progress{phase, rows_done, rows_total}, errors[RowError{file, line, column, reason}], error_count, outside_horizon_inbound[], dataset_version_id}` | W1-D05 |
+| `POST /imports` (`{network: {name, mode, timezone}}` or `{network_id}`) | 201 `ImportCreated{import_id, network_id}` | W1-D05 |
+| `POST /imports/{import_id}/files/{name}` (streamed multipart, 160 MiB cap; [decision](decisions/W0-08-scenario-and-import.md)) | `ImportFile{name, bytes, sha256}` | W1-D04 |
+| `POST /imports/{import_id}/commit` (`{as_of_date?}`) | 202 `ImportAccepted{import_id, job_id}` | W1-D05 |
+| `GET /imports/{import_id}` | `ImportStatus{phase, files[], progress{unit, done, total}, errors[RowError{file, line, column, code, reason}], error_count, errors_truncated, outside_horizon_inbound[], dataset_version_id}` | W1-D05 |
 | `GET /networks/{id}/enrichment`, `POST /networks/{id}/enrichment/retry` | `EnrichmentStatus`, 202 | W1-D06 |
 | `PUT /networks/{id}/locations/{location_id}/attributes` | `LocationAttributes` (manual override or `excluded=true`) | W1-D06 |
 | `GET /networks/{id}/routes` | `RouteList` (each route carries `method`, `fetched_at`) | W1-D07/D08 |
@@ -253,14 +255,14 @@ Lanes code against these names. W0-08 may adjust them before the freeze. If it d
 |---|---|---|
 | `app.services.imports.validate` | `validate_files(files: Mapping[TemplateName, BinaryIO], settings: ImportSettings, envelope: Envelope = V1_ENVELOPE) -> ValidationReport` | W1-D02 |
 | `app.services.imports.templates` | `template_catalog(mode: NetworkMode \| None) -> TemplateCatalog`; `template_csv(name: TemplateName, kind: Literal["blank", "example"]) -> str` | W1-D03, W3-P03 |
-| `app.services.imports.api` | `start_import(session, scope, upload: ImportUpload) -> ImportAccepted`; `import_status(session, scope, import_id: UUID) -> ImportStatus` | W1-D04/D05 |
+| `app.services.imports.api` | `create_import(session, scope, request: ImportCreate) -> ImportCreated`; `store_import_file(session, scope, import_id: UUID, name: TemplateName, chunks: AsyncIterator[bytes]) -> ImportFile`; `commit_import(session, scope, import_id: UUID, request: ImportCommit) -> ImportAccepted`; `import_status(session, scope, import_id: UUID) -> ImportStatus` | W1-D04/D05 |
 | `app.services.networks.api` | `list_networks(session, scope) -> NetworkList`; `get_network(session, scope, network_id) -> Network` | W1-D05 |
 | `app.services.enrichment.api` | `enrichment_status(...) -> EnrichmentStatus`; `retry_enrichment(...) -> ForecastAccepted`; `set_location_attributes(...) -> LocationAttributes`; `egp_blockers(session, network_id, dataset_version_id) -> list[EgpBlocker]` | W1-D06 |
 | `app.services.enrichment.distance` | `candidate_routes(locations: Sequence[GeoLocation], k: int = 10, radius_miles: int = 150, road_factor: Decimal = Decimal("1.3"), mph: int = 45) -> list[CandidateRoute]`; `travel_days(road_miles: Decimal, mph: int = 45) -> int` | W1-D07 |
 | `app.services.enrichment.google` | `preview_lookups(session, network_id) -> GoogleLookupPreview`; `fetch_routes(session, network_id) -> ForecastAccepted` | W1-D08 |
 | `app.services.enrichment.settings` | `get_settings(session) -> LocalSettings`; `set_google_key(session, key: SecretStr) -> LocalSettings`; `delete_google_key(session) -> LocalSettings` | W1-D08 |
 | `app.services.enrichment.api` (routes) | `list_routes(session, scope, network_id) -> RouteList` | W1-D07 |
-| `app.services.networks.scenario` | `build_scenario(session, scope, network_id, dataset_version_id, forecast_run_id, options: ScenarioOptions) -> ORScenarioPayload` | W1-D09 |
+| `app.services.networks.scenario` | `build_scenario(session, scope, network_id, dataset_version_id, forecast_run_id, options: ScenarioOptions) -> ORInputV3` (`or-input-v3`; v2 untouched, [decision](decisions/W0-08-scenario-and-import.md)) | W1-D09 |
 | `app.services.optimization.methods` | `run_method(scenario: FrozenScenario, method: AllocationMethod, measure: Measure) -> MethodResult` | W1-S02/S03 |
 | `app.services.optimization.compare` | `compare_methods(scenario: FrozenScenario, methods: Sequence[AllocationMethod], measure: Measure) -> ComparisonResult` | W1-S04 |
 | `app.services.optimization.actions` | `decision_actions(scenario: FrozenScenario, result: MethodResult) -> DecisionActions`; `remove_one_effect(scenario, result, transfer_id) -> ActionEffect` | W1-S06 |
