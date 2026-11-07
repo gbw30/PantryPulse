@@ -298,6 +298,24 @@ def test_reads_reject_what_is_not_there(api):
     assert unknown.status_code == 422 and code(unknown) == "UNKNOWN_ACTION_ID"
 
 
+def test_export_internal_error_is_not_an_unknown_action(api, monkeypatch):
+    """Only ids missing from the plan are UNKNOWN_ACTION_ID; a bug inside the export stays a 500."""
+    client, headers, rt, own, ids = api
+    url, comparison = published(api)
+    first = comparison["methods"][2]["transfers"][0]["id"]
+
+    def broken(*args, **kwargs):
+        raise KeyError("internal")
+
+    monkeypatch.setattr("app.services.optimization.export.export_plan_csv", broken)
+    with pytest.raises(KeyError, match="internal"):  # TestClient re-raises the server error
+        client.post(
+            f"{url}/methods/RETAIL_OPTIMIZED/export",
+            json=dict(action_ids=[first]),
+            headers=headers,
+        )
+
+
 class _CommitThenLose(QueueRepository):
     def _commit(self, transaction):
         transaction.commit()

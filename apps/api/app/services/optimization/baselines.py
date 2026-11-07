@@ -16,6 +16,8 @@ Declared tie-breaks (V1-SPEC §14 leaves them to the builder):
   receiver that can't be served its full target stays short; nothing is redistributed.
 """
 
+import math
+import time
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, timedelta
@@ -31,9 +33,10 @@ class HeuristicPlan:
     quantities: dict
     risky: frozenset[str]
     starved: frozenset[str]
+    late: tuple[str, ...] = ()  # not reached before the method deadline
 
 
-def heuristic(s, method, measure, baseline) -> HeuristicPlan:
+def heuristic(s, method, measure, baseline, deadline=math.inf) -> HeuristicPlan:
     risky = at_risk(s, baseline)
     cands = {p: candidates(s, p) for p in risky}
     parts = split(s, baseline, risky, measure, cands)
@@ -41,7 +44,11 @@ def heuristic(s, method, measure, baseline) -> HeuristicPlan:
     by_product = defaultdict(list)
     for d in baseline:
         by_product[d.product_id].append(d)
+    late = []
     for p in sorted(risky - parts.starved):
+        if time.monotonic() >= deadline:
+            late.append(p)
+            continue
         sp = only_product(s, p)  # every probe below touches this product only
         rows = by_product[p]
         senders = protected_senders(s, rows, p)
@@ -58,7 +65,7 @@ def heuristic(s, method, measure, baseline) -> HeuristicPlan:
                     break
                 fill(sp, p, plan, c.key, wanted - got, parts.shares[p], rows)
         quantities.update({k: q for k, q in plan.items() if q})
-    return HeuristicPlan(quantities, frozenset(risky), parts.starved)
+    return HeuristicPlan(quantities, frozenset(risky), parts.starved, tuple(late))
 
 
 def deficits(s, rows) -> list[tuple[str, int]]:

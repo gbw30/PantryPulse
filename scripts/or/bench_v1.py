@@ -19,6 +19,7 @@ import os
 import platform
 import random
 import resource
+import subprocess
 import sys
 import time
 from collections import Counter
@@ -207,6 +208,22 @@ def peak_rss_mb() -> float:
     return round(max(own, children) / 1024, 1)  # Linux reports KiB
 
 
+def source(evidence: Path) -> dict:
+    """The commit this run measures; the tree must be clean apart from the evidence file itself."""
+
+    def git(*argv):
+        return subprocess.run(
+            ["git", *argv], cwd=Path(__file__).parent, capture_output=True, text=True, check=True
+        ).stdout.strip()
+
+    changed = [
+        line[3:]
+        for line in git("status", "--porcelain").splitlines()
+        if Path(git("rev-parse", "--show-toplevel"), line[3:]).resolve() != evidence.resolve()
+    ]
+    return {"commit": git("rev-parse", "HEAD"), "tree_clean": not changed}
+
+
 def run(args) -> dict:
     from app.services.optimization.compare import compare_methods
     from app.services.optimization.verify import verify_plan
@@ -219,6 +236,7 @@ def run(args) -> dict:
         "seed": SEED,
         "machine": {"platform": platform.platform(), "cpus_allowed": len(os.sched_getaffinity(0))},
         "recorded_at": datetime.now(UTC).isoformat(timespec="seconds"),
+        **source(args.out),
         "size": {
             "locations": len(scenario.locations),
             "products": len(scenario.products),

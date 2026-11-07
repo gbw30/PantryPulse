@@ -10,7 +10,7 @@ from uuid import UUID
 import pytest
 
 from app.schemas.v1_planning import NON_ADDITIVE_LABEL, ActionEffect, DecisionActions
-from app.services.optimization.actions import decision_actions, remove_one_effect
+from app.services.optimization.actions import decision_actions, remove_one_effect, units_label
 from app.services.optimization.methods import run_method
 from app.services.optimization.projection import project_v3
 from app.services.optimization.v3 import pack, quantities_of
@@ -100,6 +100,23 @@ def test_effect_names_the_product_unit():  # CR-w1-web-5
     s, _, actions = actions_for("retail-usd-no-flip")
     units = {p.id: p.unit for p in s.products}
     assert {(a.effect.product_id, a.effect.unit) for a in actions.actions} == set(units.items())
+
+
+@pytest.mark.parametrize(
+    ("unit", "n", "label"),
+    [
+        ("each", 2, "each"),
+        ("lb", 3, "lb"),
+        ("kg", 5, "kg"),
+        ("case", 2, "cases"),
+        ("Case", 2, "Cases"),
+        ("box", 2, "boxes"),
+        ("case", 1, "case"),
+    ],
+)
+def test_units_label_pluralizes_only_known_count_nouns(unit, n, label):
+    """The unit is the product's own string (CR-w1-web-5): never inflect an unknown one."""
+    assert units_label(unit, n) == label
 
 
 def test_no_total_effect_field():

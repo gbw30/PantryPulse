@@ -117,5 +117,6 @@ def effect_text(effect, unit: str) -> str:
         f"expired {amount(effect.expired_delta)}",
     ]
     if effect.usd_delta is not None:
-        parts.append(f"USD {effect.usd_delta}")
+        # price × (Δunmet + Δexpired) in plain dollars: not the weighted Retail objective
+        parts.append(f"dollar value of the units changed USD {effect.usd_delta}")
     return f"{'; '.join(parts)} ({NON_ADDITIVE_LABEL})"

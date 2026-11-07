@@ -141,10 +141,7 @@ def _why(s, baseline, transfers, t) -> tuple[str, str]:
     more = [
         x.model_copy(update={"quantity": x.quantity + 1}) if x.id == t.id else x for x in transfers
     ]
-    # batch_ids of the grown transfer follow FEFO packing, so ignore that one mismatch code
-    violations = [
-        v for v in verify_plan(s, _repacked(s, more)).violations if v != "PACKING_FEFO_MISMATCH"
-    ]
+    violations = verify_plan(s, _repacked(s, more)).violations
     if not violations:
         return why, "inferred"
     reasons = "; ".join(dict.fromkeys(BINDING.get(v, v) for v in violations))
@@ -159,10 +156,17 @@ def _repacked(s, transfers):
         return tuple(transfers)
 
 
+COUNT_NOUNS = frozenset(
+    {"bag", "box", "bottle", "bucket", "bundle", "can", "carton", "case", "container", "crate"}
+    | {"jar", "pack", "packet", "pallet", "sack", "tin", "tray", "tub", "unit"}
+)
+
+
 def units_label(unit: str, n: int) -> str:
-    if n == 1 or unit.endswith("s"):
+    """The product's own unit; only known count nouns are pluralized, anything else verbatim."""
+    if n == 1 or unit.lower() not in COUNT_NOUNS:
         return unit
-    return unit + ("es" if unit.endswith(("x", "ch", "sh")) else "s")
+    return unit + ("es" if unit.lower().endswith("x") else "s")
 
 
 def _day(d) -> str:

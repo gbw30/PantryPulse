@@ -14,16 +14,16 @@ per-product plans is re-checked by verify.verify_plan against the raw scenario.
 from collections import defaultdict
 from dataclasses import dataclass
 from fractions import Fraction
-from math import floor, lcm
+from math import lcm
 
-from app.services.optimization.product_model import Shares
+from app.services.optimization.product_model import Shares, _unit_cost
 from app.services.optimization.v3 import Candidate, dates, window_days
 
 
 def floor_shares(cap: int, weights) -> dict:
     """share_p = floor(cap × weight_p / Σ weight); never sums above cap (0 when Σ weight = 0)."""
     total = sum(weights.values())
-    return {p: (floor(cap * w / total) if total else 0) for p, w in weights.items()}
+    return {p: (cap * w // total if total else 0) for p, w in weights.items()}
 
 
 def allot(cap: int, weights: dict, handling: dict) -> dict:
@@ -115,7 +115,7 @@ def split(s, baseline, products, measure, cands: dict[str, tuple[Candidate, ...]
                 users["receiving", to, c.arrival].add(p)
                 users["storage", to].add(p)
 
-    totals: dict = {}
+    floored: dict = {}
     allotted: dict = {}
     handling_of = {p: info[p].handling_units_per_unit for p in products}
 
@@ -128,10 +128,10 @@ def split(s, baseline, products, measure, cands: dict[str, tuple[Candidate, ...]
                 mine = users[key]
                 allotted[key, cap] = allot(cap, {q: weight[q] for q in mine}, handling_of)
             return allotted[key, cap].get(p, 0)
-        if key not in totals:
-            totals[key] = sum(weight[q] for q in (users[key] if key else products))
-        total = totals[key]
-        return cap * weight[p] // total if total else 0
+        if (key, cap) not in floored:
+            mine = users[key] if key else products
+            floored[key, cap] = floor_shares(cap, {q: weight[q] for q in mine})
+        return floored[key, cap].get(p, 0)
 
     caps = {c.location_id: c for c in s.capacities}
     routes = {(r.from_location_id, r.to_location_id): r for r in s.routes}
@@ -179,8 +179,7 @@ def split(s, baseline, products, measure, cands: dict[str, tuple[Candidate, ...]
 
         def fits(c, sh=shares[p], h=h, short=short):
             frm, to = c.route.from_location_id, c.route.to_location_id
-            cost = c.route.cost_per_handling_unit_usd
-            unit_cost = Fraction(cost) * 100 * h if cost else Fraction(0)
+            unit_cost = _unit_cost(c.route, h)
             # The unit sits in storage at the receiver until its first short day in the window.
             waiting = []
             for day in (d for d in window if d >= c.arrival):

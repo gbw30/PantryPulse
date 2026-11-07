@@ -151,8 +151,7 @@ def export_comparison(
     from app.services.optimization.export import export_plan_csv
 
     saved, scenario = _read(rt, scope, network_id, comparison_id)
-    _method(saved, method)
-    try:
-        return export_plan_csv(saved, method, action_ids, scenario=scenario)
-    except KeyError:
-        raise HistoryRejected("UNKNOWN_ACTION_ID", 422) from None
+    planned = {t.id for t in _method(saved, method).transfers}  # action id = transfer id
+    if not set(action_ids) <= planned:
+        raise HistoryRejected("UNKNOWN_ACTION_ID", 422)
+    return export_plan_csv(saved, method, action_ids, scenario=scenario)

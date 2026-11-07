@@ -84,7 +84,8 @@ def test_export_columns():
         "arrival_date": "2026-11-03",
         "why": action.why_text,
         "effect": (
-            "sender unmet +0 cases; receiver unmet -6 cases; expired -6 cases; USD -30.00 "
+            "sender unmet +0 cases; receiver unmet -6 cases; expired -6 cases; "
+            "dollar value of the units changed USD -30.00 "
             "(effect of this action given the rest of the plan; effects don't add up across "
             "actions)"
         ),

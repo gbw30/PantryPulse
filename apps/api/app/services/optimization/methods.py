@@ -59,6 +59,7 @@ def run_method(
     search_seconds: float = PER_PRODUCT_SEARCH_S,
     method_seconds: float = METHOD_SEARCH_S,
 ) -> MethodResult:
+    deadline = time.monotonic() + min(method_seconds, METHOD_SEARCH_S)  # counts preparation
     s = scenario
     require_methods_for_mode(s.mode, [method])
     if s.mode == "PANTRY" and measure != "UNITS":
@@ -68,7 +69,7 @@ def run_method(
         return failed_result(s, method, measure, None, "USD_UNAVAILABLE", ())
     baseline = project_v3(s).days
     if method in OPTIMIZING:
-        return _optimized(s, method, measure, baseline, search_seconds, method_seconds)
+        return _optimized(s, method, measure, baseline, search_seconds, deadline)
     if method == "NO_TRANSFERS":
         products = tuple(
             ProductSolve(product_id=p.id, native_status=None, gap=None, label=None)
@@ -77,7 +78,7 @@ def run_method(
         return assemble(s, method, measure, baseline, {}, None, products, {})
     from app.services.optimization.baselines import heuristic
 
-    plan = heuristic(s, method, measure, baseline)
+    plan = heuristic(s, method, measure, baseline, deadline)
     products = tuple(
         ProductSolve(
             product_id=p.id,
@@ -91,10 +92,13 @@ def run_method(
         )
         for p in s.products
     )
+    if plan.late:
+        reason = f"METHOD_TIME_LIMIT:{','.join(plan.late)}"
+        return failed_result(s, method, measure, None, reason, products)
     return assemble(s, method, measure, baseline, plan.quantities, None, products, {})
 
 
-def _optimized(s, method, measure, baseline, search_seconds, method_seconds) -> MethodResult:
+def _optimized(s, method, measure, baseline, search_seconds, deadline) -> MethodResult:
     undefined = set()
     if method == "EGP_PI_INSPIRED":
         missing = coverage_gap(s)
@@ -112,7 +116,6 @@ def _optimized(s, method, measure, baseline, search_seconds, method_seconds) -> 
     by_product = defaultdict(list)
     for d in baseline:
         by_product[d.product_id].append(d)
-    deadline = time.monotonic() + min(method_seconds, METHOD_SEARCH_S)
     for p in sorted(risky - parts.starved):
         remaining = deadline - time.monotonic()
         if remaining <= 0:

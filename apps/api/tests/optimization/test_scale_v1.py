@@ -23,9 +23,10 @@ from app.services.optimization.decompose import (
     split,
 )
 from app.services.optimization.methods import run_method
+from app.services.optimization.product_model import _unit_cost
 from app.services.optimization.projection import project_v3
 from app.services.optimization.v3 import STARVED_LABEL, candidates, pack
-from app.services.optimization.verify import verify_plan
+from app.services.optimization.verify import cost_minor, verify_plan
 from tests.optimization.test_retail_oracle import load
 
 FIRST = date(2026, 11, 2)
@@ -105,6 +106,19 @@ def test_split_floors_by_handling_need_share_and_never_exceeds_capacity():
         assert sum(shares.values()) <= cap
         for p, w in weights.items():
             assert shares[p] == (cap * w // total if total else 0)
+
+
+@pytest.mark.parametrize("cost", [None, "0", "0.37", "12.5"])
+def test_solver_unit_cost_agrees_with_the_verifier(cost):
+    """One solver-side cost helper (split screen, product models, Pantry references); the
+    independent verifier keeps its own formula, and the two must agree."""
+    route = (
+        scenario("retail-usd-flip")
+        .routes[0]
+        .model_copy(update={"cost_per_handling_unit_usd": cost})
+    )
+    for h, units in ((1, 1), (3, 7)):
+        assert _unit_cost(route, h) * units == cost_minor(route, units, h)
 
 
 def test_split_uses_handling_units():
@@ -408,6 +422,38 @@ def test_method_search_deadline_fails_honestly(monkeypatch):
     assert (result.verified, result.transfers, result.native_status) == (False, (), "UNKNOWN")
     assert result.failure_reason == "METHOD_TIME_LIMIT:P,Q"
     assert {p.native_status for p in result.products} == {"UNKNOWN"}
+
+
+def test_method_deadline_counts_preparation(monkeypatch):
+    """The budget starts when the method does: slow preparation leaves no search time, and the
+    method reports METHOD_TIME_LIMIT instead of overrunning into a hard step timeout."""
+    import time
+
+    from app.services.optimization import methods
+
+    def slow_split(*args, **kwargs):
+        time.sleep(0.3)
+        return split(*args, **kwargs)
+
+    monkeypatch.setattr(methods, "split", slow_split)
+    result = run_method(scenario(), "RETAIL_OPTIMIZED", "UNITS", method_seconds=0.2)
+    assert (result.verified, result.transfers) == (False, ())
+    assert result.failure_reason == "METHOD_TIME_LIMIT:P,Q"
+
+
+@pytest.mark.parametrize(
+    ("fixture", "method", "late"),
+    [
+        (None, "SOONEST_EXPIRY_FIRST", "P,Q"),
+        ("pantry-four-methods", "EQUAL_SHARE", "F"),
+        ("pantry-four-methods", "MOST_URGENT_FIRST", "F"),
+    ],
+)
+def test_heuristics_stop_at_the_method_deadline(fixture, method, late):
+    s = scenario() if fixture is None else load(fixture)[0]
+    result = run_method(s, method, "UNITS", method_seconds=0)
+    assert (result.verified, result.transfers, result.native_status) == (False, (), None)
+    assert result.failure_reason == f"METHOD_TIME_LIMIT:{late}"
 
 
 def bench_scenario(locations, products, mode="retail"):
