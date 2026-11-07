@@ -992,3 +992,56 @@ def test_missing_secret_fails_before_spawn(db, org, google_key):
 def test_secret_names_are_checked():
     with pytest.raises(ValueError):
         dataclasses.replace(REGISTRY.get("test.echo.v1"), child_secrets=("Bad-Name",))
+
+
+# verifier findings on PR #103 (F1–F3)
+
+
+def test_timed_out_prepare_is_not_rerun_after_a_storage_blip(db, org, prep, monkeypatch):  # F1
+    publisher, registry = prep
+
+    def slow(identity):
+        raise PublicationRejected("SLOW_LOAD", timed_out=True)
+
+    publisher.on_prepare = slow
+    real, calls = QueueRepository.request_stop, []
+
+    def flaky(self, *args, **kwargs):
+        calls.append(1)
+        if len(calls) == 1:
+            raise QueueStorageUnavailable("blip")
+        return real(self, *args, **kwargs)
+
+    monkeypatch.setattr(QueueRepository, "request_stop", flaky)
+    _, attempt = _prep_run(db, org, prep)
+    assert attempt.state is AttemptState.TIMED_OUT
+    assert len(publisher.prepared) == 1 and len(publisher.discarded) == 1
+
+
+def test_ownership_lost_after_prepare_discards(db, org, prep):  # F2
+    publisher, registry = prep
+
+    def takeover(identity):
+        with db.begin() as conn:
+            conn.execute(sa.text("UPDATE compute_control SET generation = generation + 1"))
+
+    publisher.on_prepare = takeover
+    repo = QueueRepository(db, registry=registry, profile=PROFILE)
+    sup = _prep_started(repo, registry)
+    submit(repo, org, contract="test.prepared.v1")
+    run_until(sup, lambda: sup.ownership_lost)
+    assert len(publisher.prepared) == 1 and len(publisher.discarded) == 1
+
+
+@pytest.mark.parametrize(("outcome", "discards"), [("OTHER_CANCELLED", 1), ("OTHER_SUCCEEDED", 0)])
+def test_reconciled_other_outcome_discards_unless_succeeded(
+    db, org, prep, monkeypatch, outcome, discards
+):  # F3
+    publisher, registry = prep
+    monkeypatch.setattr(_LoseBeforeCommit, "reconcile_publication", lambda *_: outcome)
+    repo = _LoseBeforeCommit(db, registry=registry, profile=PROFILE)
+    sup = _prep_started(repo, registry)
+    submit(repo, org, contract="test.prepared.v1")
+    run_until(sup, lambda: len(publisher.prepared) == 1 and sup.active is None)
+    assert len(publisher.discarded) == discards
+    sup.shutdown_drain()

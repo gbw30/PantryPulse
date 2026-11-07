@@ -318,7 +318,12 @@ def resolve_window_and_policy(
         return None, None
     if options.planning_days is None:
         raise InputRejected("PLANNING_DAYS_REQUIRED", "Choose a 1-3 day allocation window")
-    return options.planning_days, options.policy or DEFAULT_PANTRY_POLICY
+    policy = options.policy or DEFAULT_PANTRY_POLICY
+    if any(c.attribute_id not in VULNERABILITY_ATTRIBUTES for c in policy.coefficients):
+        raise InputRejected(
+            "UNKNOWN_POLICY_ATTRIBUTE", "Policy weights may use only poverty_rate and snap_rate"
+        )
+    return options.planning_days, policy
 
 
 class ScenarioV3(ORContract):

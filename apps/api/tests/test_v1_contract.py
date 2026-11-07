@@ -16,6 +16,7 @@ from pydantic import ValidationError
 
 from app.main import create_app
 from app.routers.forecasts import presenter, runtime
+from app.schemas.or_inputs import AttributeCoefficient
 from app.schemas.v1_envelope import UPLOAD_CAP_BYTES
 from app.schemas.v1_imports import ImportCreated, ImportStatus, RowError
 from app.schemas.v1_planning import (
@@ -289,6 +290,12 @@ def test_scenario_options_resolve_window_and_policy():
     with pytest.raises(InputRejected) as rejected:
         resolve_window_and_policy("RETAIL", chosen)
     assert rejected.value.code == "WINDOW_AND_POLICY_ONLY_IN_PANTRY"
+    need = {"coefficients": (AttributeCoefficient(attribute_id="need", percent=100),)}
+    bad = ScenarioOptions.model_validate(
+        {**ids, "planning_days": 2, "policy": DEFAULT_PANTRY_POLICY.model_copy(update=need)})
+    with pytest.raises(InputRejected) as rejected:  # verifier F4 on PR #103
+        resolve_window_and_policy("PANTRY", bad)
+    assert rejected.value.code == "UNKNOWN_POLICY_ATTRIBUTE"
 
 
 def test_method_sets_per_mode():

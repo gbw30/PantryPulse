@@ -128,6 +128,7 @@ class Execution:
     finalize_pending: bool = False
     failure_reason: ReasonCode | None = None
     failure_error: dict | None = None
+    timeout_pending: bool = False  # the stop is requested again after a storage blip
     uncertain: bool = False
     last_state_poll: float = 0.0
     package: dict | None = None  # validated (and prepared) publication package
@@ -354,6 +355,9 @@ class Supervisor:
                 self.driver.force_stop(handle)
                 time.sleep(0.02)
             self.driver.dispose(handle)
+        if ex is not None and ex.prepared:
+            ex.prepared = False
+            self._discard(ex)  # fenced: this attempt can never publish its prepared data
         self.active = None
         self.close()
 
@@ -467,6 +471,9 @@ class Supervisor:
         self._publish(ex)
 
     def _drive(self, ex: Execution, now: float) -> None:
+        if ex.timeout_pending:
+            self._timeout(ex)
+            return
         if ex.finalize_pending:
             self._finish(ex, failure_reason=ex.failure_reason, error=ex.failure_error)
             return
@@ -628,7 +635,9 @@ class Supervisor:
             self._recovery_pass()
 
     def _timeout(self, ex: Execution) -> None:
+        ex.timeout_pending = True
         self.repo.request_stop(self.own, ex.claim, ReasonCode.EXECUTION_DEADLINE_EXCEEDED)
+        ex.timeout_pending = False
         self._finish(ex)
 
     def _publish(self, ex: Execution) -> None:
@@ -750,6 +759,9 @@ class Supervisor:
             ex.uncertain = False
             self._finish(ex)
         else:
+            if outcome != "COMMITTED" and outcome != "OTHER_SUCCEEDED" and ex.prepared:
+                ex.prepared = False
+                self._discard(ex)  # finalized elsewhere without our publication
             self.active = None
 
     # --- shutdown --------------------------------------------------------------------------

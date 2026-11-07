@@ -100,9 +100,10 @@ class Publisher(Protocol):
     #     to `publish`. Raise PublicationRejected to fail the attempt.
     # discard(engine, identity) -> None
     #     Undoes `prepare` when the attempt ends without a committed publication (rejected,
-    #     timed out, cancelled, fenced, or commit lost). Never called after a committed
-    #     publication. Best effort: it must be idempotent, and a supervisor crash between
-    #     prepare and publish can leave data that a later prepare must tolerate or clean.
+    #     timed out, cancelled, fenced, ownership lost, commit lost, or finalized elsewhere).
+    #     Never called after a committed publication. Best effort: it must be idempotent,
+    #     and a supervisor crash between prepare and publish can leave data that a later
+    #     prepare must tolerate or clean.
 
 
 @dataclass(frozen=True, slots=True)
