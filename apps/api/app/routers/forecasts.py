@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Header, Request, Response
 from app.models import operational as m
 from app.models.forecasts import ForecastRun
 from app.repositories.forecast_history import HistoryRejected, load_input
-from app.repositories.jobs import JobNotFound
+from app.repositories.jobs import JobNotFound, TrustedScope
 from app.schemas.forecast_api import (
     AttemptSummary,
     ErrorEnvelope,
@@ -224,14 +224,34 @@ def cancel(
     )
 
 
+V1_NETWORK_JOBS = {"import.v1", "enrichment.v1", "routes-google.v1", "or-comparison.v3"}
+
+
+def _job_scope(rt, scope: TrustedScope, job_id: UUID) -> TrustedScope:
+    """A v1 network job belongs to its network's organization; the session may read every
+    network of the install (W0-network-model §2). Only those job kinds are read across
+    organizations, and the organization never comes from the client."""
+    with rt.engine.connect() as conn:
+        network_org = conn.scalar(
+            sa.text(
+                "SELECT n.organization_id FROM compute_jobs j"
+                " JOIN networks n ON n.organization_id = j.organization_id"
+                " WHERE j.job_id = :j AND j.handler_contract = ANY(:kinds)"
+            ),
+            {"j": job_id, "kinds": sorted(V1_NETWORK_JOBS)},
+        )
+    return scope if network_org is None else TrustedScope(network_org, scope.actor_ref)
+
+
 @router.get("/jobs/{job_id}", response_model=ForecastJob, tags=["forecasts"])
 def job_status(job_id: UUID, rt=RUNTIME, scope=PRESENTER):
-    job = rt.queue.get_job(scope, job_id)
+    job = rt.queue.get_job(_job_scope(rt, scope, job_id), job_id)  # CR-w1-solver-5
     if job.handler_contract not in {
         "forecast.v1",
         CHRONOS_CONTRACT,
         "or-comparison.v2",
         "or-allocation.v2",
+        *V1_NETWORK_JOBS,
     }:
         raise JobNotFound()
     return ForecastJob(

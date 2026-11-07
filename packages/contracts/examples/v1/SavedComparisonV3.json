@@ -113,5 +113,11 @@
         ]
       }
     ]
-  }
+  },
+  "assumptions": [
+    "capacity not provided — no limit assumed",
+    "reserve floors default to 0",
+    "cost budget off"
+  ],
+  "inbound_file_provided": true
 }

@@ -19,10 +19,14 @@ from app.routers.forecasts import presenter, runtime
 from app.schemas.or_inputs import AttributeCoefficient
 from app.schemas.v1_envelope import UPLOAD_CAP_BYTES
 from app.schemas.v1_imports import ImportCreated, ImportStatus, RowError
+from app.schemas.v1_networks import Network
 from app.schemas.v1_planning import (
     DEFAULT_PANTRY_POLICY,
     METHODS_BY_MODE,
+    ActionEffect,
     ORInputV3,
+    RetailWeights,
+    SavedComparisonV3,
     ScenarioOptions,
     require_methods_for_mode,
     resolve_window_and_policy,
@@ -415,3 +419,49 @@ def test_examples_validate():
     result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True)
     assert result.returncode == 0, result.stdout + result.stderr
     assert "21 v1 examples valid" in result.stdout
+
+
+def _example(name):
+    return json.loads((ROOT / f"packages/contracts/examples/v1/{name}.json").read_text())
+
+
+def test_retail_weights_need_one_positive_weight():  # E-1 (Gabriel, 2026-11-07)
+    with pytest.raises(ValidationError, match="RETAIL_WEIGHTS_ALL_ZERO"):
+        RetailWeights(w_exp=0, w_lost=0)
+    assert RetailWeights(w_exp=0, w_lost=1).w_lost == 1
+    assert RetailWeights(w_exp=1, w_lost=0).w_exp == 1
+
+
+def test_action_effect_names_the_product_unit():  # CR-w1-web-5
+    effect = _example("DecisionActions")["actions"][0]["effect"]
+    assert ActionEffect.model_validate(effect).unit == "case"
+    for bad in ({k: v for k, v in effect.items() if k != "unit"}, {**effect, "unit": ""}):
+        with pytest.raises(ValidationError):
+            ActionEffect.model_validate(bad)
+
+
+def test_saved_comparison_carries_the_scenario_notes():  # CR-w1-web-6 (a)
+    saved = SavedComparisonV3.model_validate(_example("SavedComparisonV3"))
+    scenario = _example("ScenarioV3")
+    assert saved.scenario_id == UUID(scenario["id"])
+    assert saved.assumptions == tuple(scenario["payload"]["assumptions"])
+    assert saved.inbound_file_provided is scenario["payload"]["inbound_file_provided"]
+    for field in ("assumptions", "inbound_file_provided"):
+        body = _example("SavedComparisonV3")
+        del body[field]
+        with pytest.raises(ValidationError):
+            SavedComparisonV3.model_validate(body)
+
+
+def test_network_says_whether_inbound_was_provided():  # CR-w1-web-6 (b)
+    imported, pending = (Network.model_validate(n) for n in _example("NetworkList")["networks"])
+    assert imported.inbound_file_provided is True
+    assert pending.inbound_file_provided is None  # no dataset version yet
+    with pytest.raises(ValidationError, match="bool_type"):  # strict, like SavedComparisonV3
+        Network.model_validate({**_example("Network"), "inbound_file_provided": 1})
+    with pytest.raises(ValidationError, match="INBOUND_FLAG_NEEDS_A_DATASET_VERSION"):
+        Network.model_validate({**_example("Network"), "inbound_file_provided": None})
+    with pytest.raises(ValidationError, match="INBOUND_FLAG_NEEDS_A_DATASET_VERSION"):
+        Network.model_validate(
+            {**_example("NetworkList")["networks"][1], "inbound_file_provided": False}
+        )
