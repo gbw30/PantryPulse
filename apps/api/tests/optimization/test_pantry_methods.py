@@ -364,14 +364,32 @@ def moved(result):
     return out
 
 
-@pytest.mark.parametrize("method", PANTRY)
-def test_product_nobody_needs_does_not_break_a_method(method):
-    """Rice sits at the hub but no pantry asks for it in the window (n = 0 goals): the replay
-    has no objective for it and the beans plan stays the fixture's."""
-    s, expected = load("pantry-four-methods")
+def rice_without_pantry_goals(hub_demand):
+    """Rice (G) at the hub and no pantry target for it (n = 0 goals). With hub demand, its 10 bags
+    expire on day 1, so the hub runs short and G is at risk: CLASSICAL_GP solves it, EGP can't."""
+    s, _ = load("pantry-four-methods")
     beans = tuple((d.location_id, d.product_id, d.targets) for d in s.demand)
-    s = with_rice(beans, CapacityV3(location_id="H", receiving=None, dispatch=None, storage=None))
-    assert plan_of(run_method(s, method, "UNITS")) == expected["plans"][method]
+    demand = (*beans, ("H", "G", (3, 3, 3, 0, 0, 0, 0))) if hub_demand else beans
+    s = with_rice(demand, CapacityV3(location_id="H", receiving=None, dispatch=None, storage=None))
+    if not hub_demand:
+        return s
+    expiring = tuple(
+        b.model_copy(update={"expiry_date": s.first_planning_date, "non_expiring": False})
+        if b.id == "g1"
+        else b
+        for b in s.batches
+    )
+    return ORInputV3.model_validate(s.model_copy(update={"batches": expiring}).model_dump())
+
+
+@pytest.mark.parametrize("hub_demand", (False, True))
+@pytest.mark.parametrize("method", PANTRY)
+def test_product_without_pantry_goals_does_not_break_a_method(method, hub_demand):
+    _, expected = load("pantry-four-methods")
+    result = run_method(rice_without_pantry_goals(hub_demand), method, "UNITS")
+    assert plan_of(result) == expected["plans"][method]
+    if hub_demand and method == "CLASSICAL_GP":  # G was solved, so its objective was replayed
+        assert next(p for p in result.products if p.product_id == "G").native_status == "OPTIMAL"
 
 
 def test_singleton_product_keeps_the_shared_split():

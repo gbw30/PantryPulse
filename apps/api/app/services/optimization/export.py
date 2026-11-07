@@ -61,7 +61,7 @@ def export_plan_csv(
     products = {p.id: p for p in scenario.products}
     names = {loc.id: loc.name for loc in scenario.locations}
     notes = [SIMULATED_NOTE]
-    if CAPACITY_NOTE in scenario.assumptions:
+    if any(CAPACITY_NOTE in a for a in scenario.assumptions):  # embedded in longer notes
         notes.append(CAPACITY_NOTE)
     if not scenario.inbound_file_provided:
         notes.append(NO_INBOUND_NOTE)

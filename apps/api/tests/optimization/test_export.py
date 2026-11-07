@@ -130,9 +130,8 @@ def test_no_scheduled_deliveries_note_when_no_inbound():
 
 def test_capacity_note_when_capacity_was_not_provided():  # CR-w1-web-6
     s, _ = load("retail-usd-no-flip")
-    assumed = s.model_copy(
-        update={"assumptions": (*s.assumptions, "capacity not provided — no limit assumed")}
-    )
+    blank = "Receiving capacity at B: capacity not provided — no limit assumed"  # data lane wording
+    assumed = s.model_copy(update={"assumptions": (*s.assumptions, blank)})
     no_inbound = "; no scheduled deliveries provided"
     capacity = "; capacity not provided — no limit assumed"
     for scenario, note in ((s, no_inbound), (assumed, capacity + no_inbound)):

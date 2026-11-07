@@ -191,7 +191,7 @@ def pantry_objectives(s, report, method) -> dict[str, int]:
         pid = product.id
         product_goals = goals(s, pid)
         n = len(product_goals)
-        if not n:  # no pantry needs it in the window: never solved, so no objective to replay
+        if research(method) and n < 2:  # EGP-PI undefined (singleton rule): never solved
             continue
         qs = [
             (S * v[loc].numerator * (target - served[loc, pid])) // (v[loc].denominator * target)
