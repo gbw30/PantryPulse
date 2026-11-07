@@ -8,7 +8,7 @@ import { AppShell } from "@/components/shell/app-shell";
 import { SampleBadge, useNetwork } from "@/components/shell/network-switcher";
 import { modeSummary } from "@/lib/mode-vocabulary";
 import { networkApi, type Network } from "@/lib/network-api";
-import { ApiError, type Schema } from "@/lib/planning-api";
+import { ApiError, isUuid, type Schema } from "@/lib/planning-api";
 import { ActionList } from "./action-list";
 import { ExportBar } from "./export-bar";
 
@@ -28,7 +28,7 @@ export function DecisionsView({ comparisonId, method }: { comparisonId?: string;
             <h1 className="text-[26px] leading-tight font-semibold tracking-tight md:text-[28px]">Decisions</h1>
             <p className="text-sm text-muted-foreground">Suggested transfers from one compared method, each with its reason and effect.</p>
           </header>
-          {comparisonId && isV1Method(method)
+          {isUuid(comparisonId) && isV1Method(method)
             ? <Decisions comparisonId={comparisonId} method={method} />
             : <p className="text-sm text-muted-foreground">Open suggested actions from a verified method result in Scenario Lab.</p>}
         </div>

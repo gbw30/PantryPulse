@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { V1_METHOD_LABEL } from "@/components/scenario-lab/model";
 import { networkApi } from "@/lib/network-api";
-import { ApiError, type Schema } from "@/lib/planning-api";
+import { ApiError, isUuid, type Schema } from "@/lib/planning-api";
 import { effectLines } from "./action-card";
 import { isV1Method } from "./decisions-view";
 import { SIMULATED_NOTE } from "./export-bar";
@@ -16,10 +16,10 @@ type Props = { networkId?: string; comparisonId?: string; method?: string; actio
 
 /** Print-friendly copy of the selected actions: the same rows and identities as the CSV export. */
 export function PrintPlan({ networkId, comparisonId, method, actionIds }: Props) {
-  const valid = !!networkId && !!comparisonId && isV1Method(method);
+  const valid = isUuid(networkId) && isUuid(comparisonId) && isV1Method(method);
   const [load, setLoad] = useState<Load>({ status: "loading" });
   useEffect(() => {
-    if (!networkId || !comparisonId || !isV1Method(method)) return;
+    if (!isUuid(networkId) || !isUuid(comparisonId) || !isV1Method(method)) return;
     let active = true;
     Promise.all([networkApi.comparison(networkId, comparisonId), networkApi.actions(networkId, comparisonId, method)]).then(
       ([saved, decisions]) => { if (active) setLoad({ status: "ready", saved, decisions }); },

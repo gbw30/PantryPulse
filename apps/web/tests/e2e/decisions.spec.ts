@@ -79,6 +79,15 @@ test("@V1-A16 print page shows the same rows", async ({ page }) => {
   await expect(page.getByText("effect of this action given the rest of the plan; effects don't add up across actions")).toBeVisible();
 });
 
+test("@V1-A16 ids that are not UUIDs are never sent to the API", async ({ page }) => {
+  const calls = await mockV1(page, { "GET networks": { body: { networks: [network] } } });
+  await page.goto(`/decisions?comparison_id=..%2F..%2Fsettings&method=${METHOD}`);
+  await expect(page.getByText("Open suggested actions from a verified method result in Scenario Lab.")).toBeVisible();
+  await page.goto(`/decisions/print?network_id=..&comparison_id=${saved.id}&method=${METHOD}&actions=T-1`);
+  await expect(page.getByText("Open the print page from Decisions after selecting actions.")).toBeVisible();
+  expect(calls.filter((c) => c.path.includes("comparisons"))).toEqual([]);
+});
+
 for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]] as const) {
   test(`@V1-A20 decisions keyboard + axe + reduced motion at ${width}x${height}`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height });
