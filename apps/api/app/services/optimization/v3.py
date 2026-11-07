@@ -47,9 +47,9 @@ def money(value: Decimal) -> str:
     return str(cents) if cents == value else str(value)
 
 
-def route_allowed(s: ORInputV3, route: RouteV3) -> bool:
+def route_allowed(s: ORInputV3, route: RouteV3, roles: dict[str, str] | None = None) -> bool:
     """Topology (mode, roles) plus arrival inside the consumption window."""
-    roles = {loc.id: loc.role for loc in s.locations}
+    roles = roles or {loc.id: loc.role for loc in s.locations}
     if roles[route.to_location_id] not in RECEIVER_ROLES:
         return False  # hubs and DCs never receive
     if s.transfer_mode == "HUB_ONLY" and roles[route.from_location_id] not in HUB_ROLES:
@@ -98,8 +98,9 @@ def candidates(s: ORInputV3, product_id: str, routes=None, k=None) -> tuple[Cand
         if b.product_id == product_id:
             held[b.location_id].append(b)
     found = {}
+    roles = {loc.id: loc.role for loc in s.locations}
     for r in s.routes if routes is None else routes:
-        if not route_allowed(s, r):
+        if not route_allowed(s, r, roles):
             continue
         arrival = first + timedelta(days=r.travel_days)
         lots = sorted(

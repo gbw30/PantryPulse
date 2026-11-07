@@ -23,7 +23,7 @@ from datetime import date, timedelta
 from app.services.optimization.decompose import at_risk, protected_senders, split
 from app.services.optimization.kernel import KernelLot, project_kernel
 from app.services.optimization.v3 import RECEIVER_ROLES, candidates, dates, window_days
-from app.services.optimization.verify import product_violations
+from app.services.optimization.verify import only_product, product_violations
 
 
 @dataclass(frozen=True)
@@ -42,6 +42,7 @@ def heuristic(s, method, measure, baseline) -> HeuristicPlan:
     for d in baseline:
         by_product[d.product_id].append(d)
     for p in sorted(risky - parts.starved):
+        sp = only_product(s, p)  # every probe below touches this product only
         rows = by_product[p]
         senders = protected_senders(s, rows, p)
         usable = [c for c in cands[p] if c.route.from_location_id in senders]
@@ -55,7 +56,7 @@ def heuristic(s, method, measure, baseline) -> HeuristicPlan:
                 got = sum(q for k, q in plan.items() if k[2] == loc)
                 if got >= wanted:
                     break
-                fill(s, p, plan, c.key, wanted - got, parts.shares[p], rows)
+                fill(sp, p, plan, c.key, wanted - got, parts.shares[p], rows)
         quantities.update({k: q for k, q in plan.items() if q})
     return HeuristicPlan(quantities, frozenset(risky), parts.starved)
 
@@ -108,7 +109,7 @@ def fill(s, product_id, plan, key, room, shares, rows) -> None:
 
     def ok(extra):
         trial = {**plan, key: start + extra}
-        return not product_violations(s, product_id, trial, shares, rows)
+        return not product_violations(s, product_id, trial, shares, rows, changed_sender=key[1])
 
     low, high = 0, room
     while low < high:

@@ -286,3 +286,48 @@ def test_method_search_deadline_fails_honestly(monkeypatch):
     assert (result.verified, result.transfers, result.native_status) == (False, (), "UNKNOWN")
     assert result.failure_reason == "METHOD_TIME_LIMIT:P,Q"
     assert {p.native_status for p in result.products} == {"UNKNOWN"}
+
+
+def bench_scenario(locations, products, mode="retail"):
+    """The scripts/or/bench_v1.py generator at a small size (same shape as 100 × 500)."""
+    import importlib.util
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parents[4] / "scripts" / "or" / "bench_v1.py"
+    spec = importlib.util.spec_from_file_location("bench_v1", path)
+    bench = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(bench)
+    return bench.generate(locations, products, mode)
+
+
+def test_restricted_probe_equals_full_probe():
+    """The heuristic probe replays only the changed sender and its receivers. Starting from a
+    plan that passes, that must give exactly the full probe's violations for any change."""
+    from collections import defaultdict
+
+    from app.services.optimization.baselines import heuristic
+    from app.services.optimization.decompose import split
+    from app.services.optimization.verify import product_violations
+
+    s = bench_scenario(16, 6)
+    baseline = project_v3(s).days
+    plan = heuristic(s, "SOONEST_EXPIRY_FIRST", "UNITS", baseline)
+    risky = sorted(plan.risky - plan.starved)
+    cands = {p: candidates(s, p) for p in plan.risky}
+    parts = split(s, baseline, plan.risky, "UNITS", cands)
+    rows = defaultdict(list)
+    for d in baseline:
+        rows[d.product_id].append(d)
+    outcomes = set()
+    for p in risky:
+        base = {k: q for k, q in plan.quantities.items() if k[0] == p}
+        assert not product_violations(s, p, base, parts.shares[p], rows[p])
+        for c, delta in grid(cands[p], (1, 5)):
+            trial = {**base, c.key: base.get(c.key, 0) + delta}
+            full = product_violations(s, p, trial, parts.shares[p], rows[p])
+            fast = product_violations(
+                s, p, trial, parts.shares[p], rows[p], changed_sender=c.key[1]
+            )
+            assert set(full) == set(fast), (p, c.key, delta)
+            outcomes.add(bool(full))
+    assert outcomes == {True, False}  # both accepted and rejected changes were compared

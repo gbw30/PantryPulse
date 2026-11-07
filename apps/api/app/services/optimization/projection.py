@@ -174,12 +174,15 @@ def lot_ids_v3():
     )
 
 
-def project_v3(scenario, packed=(), *, include_inbound_transfers=True) -> ProjectionV3:
+def project_v3(
+    scenario, packed=(), *, include_inbound_transfers=True, locations=None
+) -> ProjectionV3:
     """Dated FEFO replay of an or-input-v3 scenario with a packed plan (v3.pack).
 
     Seven planning days plus one sentinel day with no demand, so a batch expiring on day 7 is
     written off inside the horizon. include_inbound_transfers=False gives the sender-protection
-    view (BD-49): outgoing debits stay, proposed arrivals are left out.
+    view (BD-49): outgoing debits stay, proposed arrivals are left out. locations limits the
+    replay to those locations (each location × product series is independent once packed).
     """
     from datetime import timedelta
 
@@ -220,6 +223,8 @@ def project_v3(scenario, packed=(), *, include_inbound_transfers=True) -> Projec
                 )
     rows, sublots = [], []
     for key in sorted(set(demand) | set(lots)):
+        if locations is not None and key[0] not in locations:
+            continue
         targets = (*demand.get(key, (0,) * len(days)), 0)
         out, flows = project_kernel(
             tuple(zip(points, targets, strict=True)), tuple(lots.get(key, ()))

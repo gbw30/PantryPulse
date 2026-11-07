@@ -238,37 +238,64 @@ def verify_plan(scenario, transfers) -> PlanReport:
     return PlanReport(not unique, unique, plan.days, plan.sublots, packed, tuple(above))
 
 
-def product_violations(s, product_id, quantities, shares, baseline) -> tuple[str, ...]:
-    """One product's plan against its pre-split shares (heuristic feasibility probe).
+def _ends(route) -> tuple[str, str]:
+    return route.from_location_id, route.to_location_id
 
-    Projects only the locations the plan touches (projection is per location × product), so a
-    heuristic can probe many quantities cheaply. Not a substitute for verify_plan, which checks
-    the union plan against the raw scenario before anything is published.
-    """
-    touched = {loc for key in quantities for loc in key[1:]}
-    if not touched:
-        return ()
-    product = next(p for p in s.products if p.id == product_id)
+
+def only_product(s, product_id, locations=None):
+    """The scenario restricted to one product (and optionally to some locations)."""
 
     def mine(rows):
-        return tuple(r for r in rows if r.product_id == product_id and r.location_id in touched)
+        return tuple(
+            r
+            for r in rows
+            if r.product_id == product_id and (locations is None or r.location_id in locations)
+        )
 
-    sub = s.model_copy(
+    return s.model_copy(
         update={
-            "products": (product,),
+            "products": tuple(p for p in s.products if p.id == product_id),
             "batches": mine(s.batches),
             "demand": mine(s.demand),
             "inbound": mine(s.inbound),
             "reserves": mine(s.reserves),
         }
     )
+
+
+def product_violations(
+    s, product_id, quantities, shares, baseline, *, changed_sender=None
+) -> tuple[str, ...]:
+    """One product's plan against its pre-split shares (heuristic feasibility probe).
+
+    Projects only the locations the plan touches (projection is per location × product), so a
+    heuristic can probe many quantities cheaply. With changed_sender (the rest of the plan already
+    passed), only that sender and its receivers are replayed: packing is FEFO per sender, so no
+    other location's lots change. Shared limits are always summed over the whole plan. Not a
+    substitute for verify_plan, which checks the union plan against the raw scenario before
+    anything is published.
+    """
+    touched = {loc for key in quantities for loc in key[1:]}
+    if not touched:
+        return ()
+    sub = only_product(s, product_id, touched)
+    # pack only needs the routes the plan uses; a route outside the full candidate set
+    # never reaches here because heuristics probe full candidates only
+    sub = sub.model_copy(
+        update={"routes": tuple(r for r in s.routes if (product_id, *_ends(r)) in quantities)}
+    )
+    product = sub.products[0]
     try:
         packed = pack_v3(sub, quantities)
     except ValueError as exc:
         return (str(exc),)
     violations = []
     window = window_days(s)
-    for lot in project_v3(sub, packed).sublots:
+    replay = None
+    if changed_sender is not None:
+        replay = {changed_sender} | {k[2] for k in quantities if k[1] == changed_sender}
+    plan = project_v3(sub, packed, locations=replay)
+    for lot in plan.sublots:
         if sum(lot.consumed[:window]) != lot.units:
             violations.append("TRANSFER_NOT_CONSUMED_IN_WINDOW")
     base = {(d.location_id, d.day): d for d in baseline if d.product_id == product_id}
@@ -286,8 +313,10 @@ def product_violations(s, product_id, quantities, shares, baseline) -> tuple[str
             if units > need:
                 violations.append("BASELINE_NEED_OVERDELIVERY")
     senders = {p.transfer.from_location_id for p in packed}
+    if replay is not None:
+        senders &= replay
     floors = {r.location_id: r.floor for r in sub.reserves}
-    for d in project_v3(sub, packed, include_inbound_transfers=False).days:
+    for d in project_v3(sub, packed, include_inbound_transfers=False, locations=senders).days:
         if d.location_id in senders and (d.unmet or d.on_hand < floors.get(d.location_id, 0)):
             violations.append("DONOR_PROTECTION")
     h = product.handling_units_per_unit
@@ -316,7 +345,7 @@ def product_violations(s, product_id, quantities, shares, baseline) -> tuple[str
         violations.append("GLOBAL_HANDLING_CAPACITY")
     if shares.cost_minor is not None and cost > shares.cost_minor:
         violations.append("TRANSPORT_COST_BUDGET")
-    for d in project_v3(sub, packed).days:
+    for d in plan.days:
         room = shares.storage_room.get((d.location_id, d.day))
         start = base[d.location_id, d.day].on_hand if (d.location_id, d.day) in base else 0
         if room is not None and h * d.on_hand > h * start + room:
