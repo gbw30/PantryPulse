@@ -6,7 +6,7 @@
 
 | Task | Status | Commit | Evidence (command → result) |
 |---|---|---|---|
-| W1-D01 | done, except the ACS poverty/SNAP fixture (blocked, CR-w1-data-1) | `5b5e45e` | `uv run --frozen pytest -q tests/enrichment/test_fixtures_shape.py` → 4 passed, 0 skipped |
+| W1-D01 | done; ACS rates from the lead's bundled whole-US table (CR-w1-data-1 option A, `acs5-2024-tracts.csv.gz`, 85,382 tracts) | `5b5e45e`, see `git log --grep W1-D01` | `uv run --frozen pytest -q tests/enrichment/test_fixtures_shape.py tests/enrichment/test_census.py` → `test_the_bundled_whole_us_table_loads_every_row` passes on the committed file (rows = metadata, ACS 5-year 2024 source text) |
 | W1-D02 | done | `2d14868` | `uv run --frozen pytest -q tests/imports/test_validation.py` → 39 passed, 0 skipped; `ruff check .` → clean |
 | W1-D03 | done | `22fb017` | `uv run --frozen pytest -q tests/imports tests/enrichment tests/test_v1_contract.py` → 121 passed, 0 skipped (22 in `test_templates.py`); `ruff check .` → clean |
 | W1-D04 | done | see `git log --grep W1-D04` | `uv run --frozen pytest -q tests/test_v1_contract.py tests/imports tests/enrichment` (PostgreSQL `pantrypulse_data_test`, schema `w1_data_import_test`) → 132 passed, 0 skipped; `ruff check .` → clean |

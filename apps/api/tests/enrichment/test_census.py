@@ -10,9 +10,11 @@ from pathlib import Path
 import pytest
 
 from app.services.enrichment.census import (
+    BUNDLED_ACS,
     Address,
     CensusClient,
     CensusUnavailable,
+    default_acs,
     load_acs,
 )
 
@@ -102,6 +104,17 @@ def _acs(tmp_path: Path, rows: str) -> Path:
         "vintage": "2020-2024", "survey": "ACS 5-year", "tables": ["B17001", "B22003"],
         "generated_at": "2026-11-07T12:00:00Z", "rows": rows.count("\n")}))
     return path
+
+
+def test_the_bundled_whole_us_table_loads_every_row():
+    """CR-w1-data-1 option A: enrichment.v1 reads the lead's committed table, not a fixture."""
+    table = default_acs()
+    meta = json.loads(BUNDLED_ACS.with_suffix("").with_suffix(".json").read_text())
+    assert table is not None and len(table.counts) == meta["rows"] > 80_000
+    assert table.year == 2024
+    poverty, snap = table.rates("12073000200")  # Leon County, FL
+    assert poverty is not None and 0 <= poverty <= 1 and snap is not None and 0 <= snap <= 1
+    assert table.source("12073000200") == "ACS 5-year 2024, tract 12073000200"
 
 
 def test_acs_rates_from_counts(tmp_path):
