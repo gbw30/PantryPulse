@@ -114,9 +114,9 @@ Every task follows the TDD loop in [ORCHESTRATION.md §8](ORCHESTRATION.md#8-rul
 
 **Output:** `docs/plans/v1/spikes/S3-docker.md`.
 
-- [ ] **Step 1 (Gabriel, Windows 11 PowerShell):** `git clone` the `w0/foundation` branch to a Windows path, then run `docker compose up --build`. Record: Docker Desktop version and memory setting, whether WSL 2 is the backend, elapsed time to the login page, any CRLF error, and a screenshot.
-- [ ] **Step 2 (orchestrator, WSL Ubuntu):** the same from a fresh clone in `~/tmp-s3-clone`, with `COMPOSE_PROJECT_NAME=pp-s3` and `PP_WEB_PORT=3999`.
-- [ ] **Step 3:** write both runs into the report, with the commit, versions and times. Fix any CRLF or entrypoint problem in this task, then commit.
+- [x] **Step 1 (Gabriel, Windows 11 PowerShell):** `git clone` the `w0/foundation` branch to a Windows path, then run `docker compose up --build`. Record: Docker Desktop version and memory setting, whether WSL 2 is the backend, elapsed time to the login page, any CRLF error, and a screenshot.
+- [x] **Step 2 (orchestrator, WSL Ubuntu):** the same from a fresh clone in `~/tmp-s3-clone`, with `COMPOSE_PROJECT_NAME=pp-s3` and `PP_WEB_PORT=3999`.
+- [x] **Step 3:** write both runs into the report, with the commit, versions and times. Fix any CRLF or entrypoint problem in this task, then commit.
 
 ### W0-07: Schema freeze, migration `ppv1_0008` · size M · depends on: W0-03 · V1-A07, A08, A10, A11, A23 (constraints)
 
