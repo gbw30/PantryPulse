@@ -10,9 +10,45 @@
 | W1-S02 | in progress: NO_TRANSFERS, SOONEST_EXPIRY_FIRST and the shared heuristic machinery (incl. EQUAL_SHARE/MOST_URGENT_FIRST code) done; the Pantry tests (equal-share/most-urgent hand values, Pantry hubs) wait on CR-w1-solver-1 | see `git log` | `uv run --frozen pytest -q -p no:cacheprovider tests/optimization/test_baselines.py` → 19 passed, 0 skipped; `tests/optimization` → 221 passed |
 | W1-S03 | done for Retail; `test_bd51_relaxed_retail_only` Pantry half waits on CR-w1-solver-1 (Retail half `test_bd51_relaxed_retail_selling_on_day_5_counts` passes) | see `git log` | `uv run --frozen pytest -q -p no:cacheprovider tests/optimization/test_retail_oracle.py tests/optimization/test_retail_optimized.py` → 37 passed, 0 skipped; `tests/optimization` → 202 passed; `node scripts/quality/run.cjs quick` → PASS |
 | W1-S04 | in progress: pure `compare_methods` done for Retail (independent failures, publication re-verification, v2 regression); Pantry five-method test waits on CR-w1-solver-1; `or-comparison.v3` worker publisher and `api_v3` submit/get blocked on CR-w1-solver-3 | see `git log` | `uv run --frozen pytest -q -p no:cacheprovider tests/optimization/test_compare_v3.py` → 9 passed, 0 skipped; `tests/optimization` → 230 passed |
-| W1-S05 | in progress: decomposition hardening tests (at-risk on frozen baseline, handling-unit floor split property test, starvation, cost-budget split, shared storage, planted union violations per limit, decomposed vs enumerated monolithic, no network objective total, k-nearest) done for Retail; process pool, method deadline and `bench_v1.py` next | see `git log` | `uv run --frozen pytest -q -p no:cacheprovider tests/optimization/test_scale_v1.py` → 17 passed, 0 skipped; `tests/optimization` → 247 passed |
+| W1-S05 | Retail done: decomposition hardening tests, method search deadline, fast heuristic probe (`test_restricted_probe_equals_full_probe`), `scripts/or/bench_v1.py` and Retail 100 × 500 evidence (`docs/optimization/evidence/v1-scale.json`, see Pause point). Pantry at-risk test and the Pantry bench wait on CR-w1-solver-1 | see `git log` | `uv run --frozen pytest -q -p no:cacheprovider tests/optimization/test_scale_v1.py` → 19 passed, 0 skipped; `tests/optimization` → 262 passed; `taskset -c 0-5 uv run --frozen python ../../scripts/or/bench_v1.py --locations 100 --products 500 --mode retail` → UNITS 95.0 s, USD 77.9 s, all six results verified, exit 0 |
 | W1-S06 | done for Retail (Pantry why text uses the window from CR-w1-solver-1, tested after merge); `api_v3.comparison_actions` waits on CR-w1-solver-3 | see `git log` | `uv run --frozen pytest -q -p no:cacheprovider tests/optimization/test_actions.py` → 8 passed, 0 skipped; `tests/optimization` → 256 passed |
 | W1-S07 | in progress: pure `export_plan_csv` done (columns, selected actions only, scenario mismatch, unverified rejection, no-scheduled-deliveries note); `test_export_changes_no_stock` (PostgreSQL row counts around `api_v3.export_comparison`) waits on CR-w1-solver-3 | see `git log` | `uv run --frozen pytest -q -p no:cacheprovider tests/optimization/test_export.py` → 5 passed, 0 skipped; `tests/optimization` → 261 passed |
+
+## Pause point (2026-11-07, Gabriel's stop)
+
+- **Done and committed:**
+  - W1-S01.
+  - W1-S03 for Retail.
+  - W1-S06 for Retail.
+  - Pure W1-S04 (`compare_methods`) for Retail.
+  - Pure W1-S07 (`export_plan_csv`).
+  - W1-S05 for Retail: hardening tests, deadline, fast probe, bench and evidence.
+  - Retail heuristics (W1-S02).
+- **In progress (committed as WIP 3b60263):**
+  - Pantry CLASSICAL_GP and EGP_PI_INSPIRED (`pantry.py`), wired into `methods.py`.
+  - The `pantry-four-methods` fixture.
+  - Its tests, parked as `tests/optimization/pending_cr1_pantry_methods.py` (not collected). They need `ORInputV3.planning_days`/`policy` and `DEFAULT_PANTRY_POLICY` from CR-w1-solver-1 (lead PR #103, not merged). Against a local stand-in for those fields, 21 passed, and four mutations were each caught. No Pantry test has run against the real schema.
+- **Next step after #103 merges into `v1-local`:**
+  1. `git fetch && git merge origin/v1-local`.
+  2. Rename the parked module to `test_pantry_methods.py` and run it.
+  3. Pantry bench (`--mode pantry`).
+  4. CR-3 wiring: the `V3_REGISTRATION` handler and publisher in `workers/optimization.py` (insert `planning_comparisons_v3` with id = job_id); `api_v3` submit/get/actions/export, with GET returning 404 `COMPARISON_NOT_FOUND` before publication; `test_export_changes_no_stock` on PostgreSQL.
+  5. Quick and full gates, ship-check, then the PR.
+- **Retail 100 × 500 bench.** Run on the tree at 3b60263 (6b46700 plus Pantry wiring; Retail behaviour is identical). 6 CPUs (`taskset -c 0-5`), WSL2, seed 20261104.
+  - Network: 100 locations, 500 products, 69 961 batches, 48 000 demand series, 960 routes.
+  - Comparison wall time: UNITS 95.0 s, USD 77.9 s (ceiling 690 s). Total run 199.6 s, peak RSS 1.23 GB.
+  - All six method results are verified, and every union check passes:
+
+    | Measure | Method | Status | Transfers |
+    |---|---|---|---|
+    | UNITS | NO_TRANSFERS | — | 0 |
+    | UNITS | SOONEST_EXPIRY_FIRST | — | 6 106 |
+    | UNITS | RETAIL_OPTIMIZED | OPTIMAL | 5 546 |
+    | USD | SOONEST_EXPIRY_FIRST | — | 5 029 |
+    | USD | RETAIL_OPTIMIZED | OPTIMAL | 4 461 |
+
+  - At-risk products: 209 of 500. Under the decision's advance split, 123 of them (USD: 150) are starved: "capacity share too small to move one unit". This reproduces the W0-10 review finding. The rule is kept and the counts are recorded; a localized-weight option is still to be raised with the lead.
+  - History: the first run timed out at 25 min. Per-method profiling then showed SOONEST_EXPIRY_FIRST taking more than 23 min, NO_TRANSFERS 21.6 s and RETAIL_OPTIMIZED 55.6 s. The fix in 6b46700 brought the heuristic to 85.8 s with the same 6 106 transfers.
 
 ## Gates
 
@@ -39,6 +75,23 @@
 - **Shared limits are split among the products that can use each limit** (the ones with a candidate on that route, sender, receiver/day or storage), by `floor_shares`; global handling and the cost budget among all at-risk products. This keeps the floor rule and never exceeds a limit, while an unrelated product on another route doesn't dilute a share.
 - **Decision actions (W1-S06):** `proven_binding` means the independent verifier rejects the same plan with one more unit on that route, and the why text names the limit ("One more unit is infeasible: …"); otherwise `inferred`. The remove-one effect keeps every other transfer's exact batches (no re-pack, no re-optimization); deltas are `with plan − without this transfer` at the sender and receiver, and USD is that unit change × `unit_value_usd` (Retail only, `None` without a price). `decision_actions` takes `comparison_id` keyword-only, like `compare_methods`. Money prints as cents when exact (`v3.money`), because the schema normalizes `"10.00"` to `"10"`.
 - **Export (W1-S07):** `export_plan_csv` takes the frozen `scenario` keyword-only (names, units, why/effect need it; `SavedComparisonV3` has no payload) and rejects a scenario from another network/mode (`SCENARIO_MISMATCH`). Columns: scenario_id, scenario_hash, method, network_mode, product, unit, quantity, from, to, ship_date, arrival_date, why, effect (signed deltas plus the non-additive label), note (`simulated plan; no stock was reserved or moved`, plus `; no scheduled deliveries provided` without an inbound file).
+- **Pantry GP/EGP objective (`pantry.py`):** a per-product port of v2 `objective.attach` and `metrics.evaluate`.
+  - Goals: pantries with a positive target inside the window (`planning_days`); hubs are never goals.
+  - Weight v = 1 + λ × Σ coefficient × rate, from the exact `VulnerabilityV3` rates (EGP only).
+  - Terms: q = floor(10000 × v × unmet / target), Z = max q, the β blend, then AP/RP flags reified both ways (equality unflagged) and the per-product excess.
+  - ε_cost uses floor(10000 × cost / cost reference); ε_waste uses floor(10000 × expired / stock).
+  - There is one RP group per product, so v2's 1 / (number of groups) factor is 1.
+  - Coefficients compile to integers by LCM then GCD. `pantry_objectives` replays the same integer from the verifier's projection and plan; the assembly rejects a mismatch.
+  - No fewer-units tie-break for Pantry: K × these coefficients could exceed the 2**60 audit at 100 × 500.
+- **EGP groups and coverage:**
+  - A product with fewer than two positive-target pantries is not optimized by EGP_PI_INSPIRED. It gets the label `relative-priority group has fewer than two pantries; EGP-PI not defined` (SPEC-V5 §11 / ADR 0001: reject singleton groups rather than fabricate a comparison). CLASSICAL_GP still optimizes it.
+  - A pantry goal without a vulnerability row fails EGP as `ATTRIBUTE_POLICY_COVERAGE:<ids>`; the other methods run.
+- **Heuristic probe speed (W1-S05):** `product_violations(..., changed_sender=)` replays only the changed sender and its receivers. Packing is FEFO per sender, so no other location's lots change, and the plan before the probe already passed. Shared limits are always summed over the whole plan. `verify_plan` still re-checks the union before publication.
+- **TDD note for Pantry:** `pantry.py` was drafted before its tests, so every test was mutation-checked. Each of these mutations makes at least one test fail:
+  - flagging AP at equality;
+  - ignoring vulnerability;
+  - dropping the singleton rule;
+  - ignoring the window in goal targets.
 - **Oracle test names:** one parametrized `test_fixture_matches_oracle[<fixture>-<measure>]` instead of six functions; the ids carry the fixture name.
 
 ## Gotchas

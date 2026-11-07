@@ -1,0 +1,129 @@
+{
+  "RETAIL": {
+    "mode": "RETAIL",
+    "seed": 20261104,
+    "machine": {
+      "platform": "Linux-6.18.54.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+      "cpus_allowed": 6
+    },
+    "recorded_at": "2026-11-07T08:29:53+00:00",
+    "size": {
+      "locations": 100,
+      "products": 500,
+      "batches": 69961,
+      "demand_series": 48000,
+      "routes": 960
+    },
+    "generate_s": 1.1,
+    "ceilings_s": {
+      "method": 330,
+      "comparison": 690
+    },
+    "methods": [
+      {
+        "measure": "UNITS",
+        "method": "NO_TRANSFERS",
+        "native_status": null,
+        "product_status_counts": {
+          "baseline": 500
+        },
+        "verified": true,
+        "failure_reason": null,
+        "transfers": 0,
+        "union_check": {
+          "passed": true,
+          "violations": []
+        }
+      },
+      {
+        "measure": "UNITS",
+        "method": "SOONEST_EXPIRY_FIRST",
+        "native_status": null,
+        "product_status_counts": {
+          "baseline": 86,
+          "capacity share too small to move one unit": 123,
+          "not at risk; not optimized": 291
+        },
+        "verified": true,
+        "failure_reason": null,
+        "transfers": 6106,
+        "union_check": {
+          "passed": true,
+          "violations": []
+        }
+      },
+      {
+        "measure": "UNITS",
+        "method": "RETAIL_OPTIMIZED",
+        "native_status": "OPTIMAL",
+        "product_status_counts": {
+          "OPTIMAL": 86,
+          "capacity share too small to move one unit": 123,
+          "not at risk; not optimized": 291
+        },
+        "verified": true,
+        "failure_reason": null,
+        "transfers": 5546,
+        "union_check": {
+          "passed": true,
+          "violations": []
+        }
+      },
+      {
+        "measure": "USD",
+        "method": "NO_TRANSFERS",
+        "native_status": null,
+        "product_status_counts": {
+          "baseline": 500
+        },
+        "verified": true,
+        "failure_reason": null,
+        "transfers": 0,
+        "union_check": {
+          "passed": true,
+          "violations": []
+        }
+      },
+      {
+        "measure": "USD",
+        "method": "SOONEST_EXPIRY_FIRST",
+        "native_status": null,
+        "product_status_counts": {
+          "baseline": 59,
+          "capacity share too small to move one unit": 150,
+          "not at risk; not optimized": 291
+        },
+        "verified": true,
+        "failure_reason": null,
+        "transfers": 5029,
+        "union_check": {
+          "passed": true,
+          "violations": []
+        }
+      },
+      {
+        "measure": "USD",
+        "method": "RETAIL_OPTIMIZED",
+        "native_status": "OPTIMAL",
+        "product_status_counts": {
+          "OPTIMAL": 59,
+          "capacity share too small to move one unit": 150,
+          "not at risk; not optimized": 291
+        },
+        "verified": true,
+        "failure_reason": null,
+        "transfers": 4461,
+        "union_check": {
+          "passed": true,
+          "violations": []
+        }
+      }
+    ],
+    "comparison_wall_s": {
+      "UNITS": 95.0,
+      "USD": 77.9
+    },
+    "peak_rss_mb": 1231.5,
+    "total_s": 199.6
+  }
+}
