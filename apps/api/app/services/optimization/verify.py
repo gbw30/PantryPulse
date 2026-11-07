@@ -1,13 +1,18 @@
 """Independent physical replay/checker. Never imports CP or objective attachments."""
 
 from collections import defaultdict
+from dataclasses import dataclass
+from datetime import date, timedelta
+from fractions import Fraction
 
 from app.schemas.or_outputs import Candidate, VerificationReport
 from app.services.optimization.candidates import prepare_problem
 from app.services.optimization.canonical import operational_hash
 from app.services.optimization.metrics import evaluate
 from app.services.optimization.packing import pack
-from app.services.optimization.projection import simulate
+from app.services.optimization.projection import DayV3, SublotV3, project_v3, simulate
+from app.services.optimization.v3 import Packed, quantities_of, window_days
+from app.services.optimization.v3 import pack as pack_v3
 
 
 def verify(problem, candidate: Candidate, method=None) -> VerificationReport:
@@ -108,3 +113,126 @@ def verify(problem, candidate: Candidate, method=None) -> VerificationReport:
         operational_hash=scenario.operational_hash,
         candidate_hash=candidate_hash,
     )
+
+
+# --- or-input-v3 (v1): independent plan check and union check ----------------------------------
+
+
+@dataclass(frozen=True)
+class PlanReport:
+    passed: bool
+    violations: tuple[str, ...]
+    days: tuple[DayV3, ...]  # projection with the plan (empty when the plan could not be packed)
+    sublots: tuple[SublotV3, ...]
+    packed: tuple[Packed, ...]
+    above_storage_at_baseline: tuple[tuple[str, date], ...]  # reported, never made infeasible
+
+
+def cost_minor(route, units: int, handling: int) -> Fraction:
+    """Exact transport cost in cents; a route without a cost column costs nothing."""
+    if route.cost_per_handling_unit_usd is None:
+        return Fraction(0)
+    return Fraction(route.cost_per_handling_unit_usd) * 100 * units * handling
+
+
+def verify_plan(scenario, transfers) -> PlanReport:
+    """Replay a v1 plan from the raw frozen scenario only; never reads solver state.
+
+    Recomputes FEFO packing, the dated projection, BD-49/BD-51 and every shared limit of the
+    union plan (route per-batch, dispatch, receiving, storage, global handling, cost budget).
+    """
+    s = scenario
+    violations: list[str] = []
+    products = {p.id: p for p in s.products}
+    routes = {(r.from_location_id, r.to_location_id): r for r in s.routes}
+    caps = {c.location_id: c for c in s.capacities}
+    for t in transfers:
+        route = routes.get((t.from_location_id, t.to_location_id))
+        if t.product_id not in products or route is None:
+            violations.append("UNKNOWN_ROUTE_OR_PRODUCT")
+            continue
+        if t.quantity < 1:
+            violations.append("EMPTY_TRANSFER")
+        if t.ship_date != s.first_planning_date:
+            violations.append("SINGLE_DISPATCH_ON_FIRST_PLANNING_DAY")
+        if t.arrival_date != s.first_planning_date + timedelta(days=route.travel_days):
+            violations.append("ARRIVAL_DATE_MISMATCH")
+    if violations:
+        return PlanReport(False, tuple(dict.fromkeys(violations)), (), (), (), ())
+    try:
+        packed = pack_v3(s, quantities_of(transfers))
+    except ValueError as exc:
+        return PlanReport(False, (str(exc),), (), (), (), ())
+    by_key = {
+        (p.transfer.product_id, p.transfer.from_location_id, p.transfer.to_location_id): p
+        for p in packed
+    }
+    for t in transfers:
+        expected = by_key[t.product_id, t.from_location_id, t.to_location_id].transfer
+        if tuple(t.batch_ids) != expected.batch_ids:
+            violations.append("PACKING_FEFO_MISMATCH")
+    plan = project_v3(s, packed)
+    base = project_v3(s)
+    window = window_days(s)
+    for lot in plan.sublots:
+        if sum(lot.consumed[:window]) != lot.units:
+            violations.append("TRANSFER_NOT_CONSUMED_IN_WINDOW")  # BD-51 (relaxed in Retail)
+    if s.mode == "PANTRY":
+        horizon = {d for d in (s.first_planning_date + timedelta(days=i) for i in range(window))}
+        need = defaultdict(int)
+        for d in base.days:
+            if d.day in horizon:
+                need[d.location_id, d.product_id] += d.unmet
+        incoming = defaultdict(int)
+        for p in packed:
+            incoming[p.transfer.to_location_id, p.transfer.product_id] += p.transfer.quantity
+        if any(units > need[key] for key, units in incoming.items()):
+            violations.append("BASELINE_NEED_OVERDELIVERY")
+    senders = {(p.transfer.from_location_id, p.transfer.product_id) for p in packed}
+    floors = {(r.location_id, r.product_id): r.floor for r in s.reserves}
+    for d in project_v3(s, packed, include_inbound_transfers=False).days:
+        key = (d.location_id, d.product_id)
+        if key in senders and (d.unmet or d.on_hand < floors.get(key, 0)):
+            violations.append("DONOR_PROTECTION")  # BD-49
+    route_load, dispatch, receiving = defaultdict(int), defaultdict(int), defaultdict(int)
+    handling_total, cost = 0, Fraction(0)
+    for p in packed:
+        t = p.transfer
+        h = t.quantity * products[t.product_id].handling_units_per_unit
+        route_load[t.from_location_id, t.to_location_id] += h
+        dispatch[t.from_location_id] += h
+        receiving[t.to_location_id, t.arrival_date] += h
+        handling_total += h
+        route = routes[t.from_location_id, t.to_location_id]
+        cost += cost_minor(route, t.quantity, products[t.product_id].handling_units_per_unit)
+    for key, load in route_load.items():
+        limit = routes[key].capacity_per_batch
+        if limit is not None and load > limit:
+            violations.append("ROUTE_CAPACITY")
+    for loc, load in dispatch.items():
+        limit = caps[loc].dispatch if loc in caps else None
+        if limit is not None and load > limit:
+            violations.append("DISPATCH_CAPACITY")
+    for (loc, _), load in receiving.items():
+        limit = caps[loc].receiving if loc in caps else None
+        if limit is not None and load > limit:
+            violations.append("RECEIVING_CAPACITY")
+    if s.global_handling is not None and handling_total > s.global_handling:
+        violations.append("GLOBAL_HANDLING_CAPACITY")
+    if s.cost_budget_minor is not None and cost > s.cost_budget_minor:
+        violations.append("TRANSPORT_COST_BUDGET")
+    stock, base_stock = defaultdict(int), defaultdict(int)
+    for rows, into in ((plan.days, stock), (base.days, base_stock)):
+        for d in rows:
+            into[d.location_id, d.day] += d.on_hand * products[d.product_id].handling_units_per_unit
+    above = []
+    for (loc, day), load in sorted(stock.items()):
+        limit = caps[loc].storage if loc in caps else None
+        if limit is None:
+            continue
+        if base_stock[loc, day] > limit:
+            above.append((loc, day))
+        if load > max(limit, base_stock[loc, day]):
+            violations.append("STORAGE_CAPACITY")
+    unique = tuple(dict.fromkeys(violations))
+    return PlanReport(not unique, unique, plan.days, plan.sublots, packed, tuple(above))

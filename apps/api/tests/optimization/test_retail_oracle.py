@@ -24,8 +24,6 @@ FIXTURES = (
     "retail-day5-expiry",
 )
 MEASURES = ("UNITS", "USD")
-# W1-S01 commits these failing; W1-S03 removes the mark.
-PENDING = pytest.mark.xfail(strict=True, raises=(NotImplementedError, ImportError))
 
 
 def load(name):
@@ -47,7 +45,6 @@ def transfer_key(t):
     )
 
 
-@PENDING
 @pytest.mark.parametrize("measure", MEASURES)
 @pytest.mark.parametrize("name", FIXTURES)
 def test_fixture_matches_oracle(name, measure):
@@ -86,7 +83,6 @@ def test_fixture_matches_oracle(name, measure):
     assert starved == want["starved_products"]
 
 
-@PENDING
 @pytest.mark.parametrize("measure", MEASURES)
 @pytest.mark.parametrize("name", FIXTURES)
 def test_verifier_accepts_expected_allocations(name, measure):

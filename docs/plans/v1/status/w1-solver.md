@@ -8,7 +8,7 @@
 |---|---|---|---|
 | W1-S01 | done (failing tests committed `xfail(strict=True)`; marks removed in W1-S03) | see `git log` | `uv run --frozen pytest -q -p no:cacheprovider tests/optimization/test_retail_oracle.py` → 24 xfailed (`NotImplementedV1` / missing `verify_plan`), 0 passed, 0 skipped |
 | W1-S02 | todo (Pantry baselines need CR-w1-solver-1) | — | — |
-| W1-S03 | todo | — | — |
+| W1-S03 | done for Retail; `test_bd51_relaxed_retail_only` Pantry half waits on CR-w1-solver-1 (Retail half `test_bd51_relaxed_retail_selling_on_day_5_counts` passes) | see `git log` | `uv run --frozen pytest -q -p no:cacheprovider tests/optimization/test_retail_oracle.py tests/optimization/test_retail_optimized.py` → 37 passed, 0 skipped; `tests/optimization` → 202 passed; `node scripts/quality/run.cjs quick` → PASS |
 | W1-S04 | todo (Pantry methods need CR-w1-solver-1) | — | — |
 | W1-S05 | todo | — | — |
 | W1-S06 | todo | — | — |
@@ -27,6 +27,11 @@
 - **Retail semantics for the v3 path** (W1-S01): sellable through the expiry date; unsold units past an in-horizon expiry count as expired, including expiry on day 7; transfers ship on day 1 from on-hand batches, FEFO per sender over the eligible batches (expiry ≥ arrival); relaxed BD-51 means every transferred unit sells at the receiver before its expiry and by day 7; BD-49 sender protection over all 7 days plus the reserve floor. Written out in `data/demo/or-v3/README.md`.
 - **Tie-break for RETAIL_OPTIMIZED:** fewer moved units, never changing the primary objective (`nothing-to-move` needs it: a useless transfer must not appear).
 - **No units total across products:** in UNITS a method objective is reported only for a one-product scenario; otherwise `objective = None` and per-product values come from the effects. USD totals are summed.
+- **v3 path layout:** `v3.py` (dates, roles, eligible routes, FEFO packing, transfer ids), `projection.project_v3` (kernel replay with a sentinel day so day-7 expiries count), `verify.verify_plan` (independent check including the union check of every shared limit), `product_model.py` (one product's CP-SAT physical model mirroring `project_v3`), `retail.py`, `decompose.py`, `methods.py` (dispatch and one assembly that publishes only verified plans and replays each native objective).
+- **Every optimizing method is per product even on tiny scenarios,** so the oracle fixtures exercise the same path as 100 × 500.
+- **Method-level native status:** OPTIMAL if every solved product is OPTIMAL, FEASIBLE if any is FEASIBLE; any product without a solution fails the method with that status and no plan (`NO_SOLUTION:<ids>`). A method that solved nothing has `native_status = None`. Each product's own status and FEASIBLE gap are in `products`.
+- **Pantry + USD** raises `ValueError("MEASURE_NOT_IN_MODE")`: the optimization package may not import `app.services.jobs` (`test_or_scope.py`), so the submit layer maps it to 422.
+- **TDD note for W1-S03:** the S01 oracle tests drove the implementation; the extra S03 tests then passed on first run, so each was mutation-checked instead (ignoring edited weights fails `test_weights_editable`; relabeling FEASIBLE fails `test_native_status_preserved`). `test_native_status_preserved` patches `CpSolver.status_name` to report FEASIBLE while keeping CP-SAT's real solution.
 - **Oracle test names:** one parametrized `test_fixture_matches_oracle[<fixture>-<measure>]` instead of six functions; the ids carry the fixture name.
 
 ## Gotchas
@@ -40,7 +45,7 @@
 - **Exact change (orchestrator's proposal, 2026-11-07):** `ORInputV3` gains `planning_days: int` (1..3, required in PANTRY, absent in RETAIL, validated like `retail_weights`) and `policy: ORPolicy` (`app/schemas/or_inputs.py:422`; required in PANTRY, absent in RETAIL). `ScenarioOptions` takes both; the policy defaults to the connected-flow values and is recorded in the frozen scenario.
 - **Why:** `ORInputV3` has neither field. v2 carries both explicitly (`or_inputs.py:515` `planning_days` 1..3; `ORScenarioPayload.policy`). BD-50 requires an explicit 1–3-day window, and V1-SPEC §6.2 requires λ/β/coefficients to be shown and editable, so they must be frozen with the scenario rather than hardcoded in the solver. Pantry need (window unmet), BD-51 (consumption inside the window), the at-risk screen for Pantry, and the CLASSICAL_GP/EGP_PI_INSPIRED objectives all read them.
 - **Unblocks:** W1-S02 (EQUAL_SHARE, MOST_URGENT_FIRST), W1-S04 (Pantry five-method comparison), W1-S05 (Pantry at-risk screen and Pantry benchmark), W1-S06/S07 Pantry cases. Retail work proceeds meanwhile.
-- **Status:** open (orchestrator taking it to Gabriel). Field-dependent code reads `scenario.planning_days` and `scenario.policy` as proposed; nothing in this lane touches the contract.
+- **Status:** approved by Gabriel via the orchestrator, 2026-11-07; the lead lands it on `v1-local`. Field-dependent code reads `scenario.planning_days` and `scenario.policy` as proposed; nothing in this lane touches the contract.
 
 ### CR-w1-solver-2 — USD mode splits shared capacity by value
 - **File(s):** none out of lane (`apps/api/app/services/optimization/decompose.py`, W1-S05); the orchestrator records it in `decisions/W0-optimizer-decomposition.md` at integration.

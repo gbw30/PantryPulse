@@ -1,5 +1,8 @@
 """OR-local network replay; no changes to the inventory service."""
 
+from dataclasses import dataclass
+from datetime import date
+
 
 def simulate(scenario, assignments=(), *, include_planned_inbound=True):
     """Operational adapter to the shared FEFO recurrence, with frozen lot lineage."""
@@ -129,3 +132,107 @@ def simulate(scenario, assignments=(), *, include_planned_inbound=True):
         exclusions=tuple(exclusions),
         blocked_units=blocked,
     )
+
+
+# --- or-input-v3 (v1) -------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class DayV3:
+    location_id: str
+    product_id: str
+    day: date
+    demand: int
+    served: int
+    unmet: int
+    expired: int  # units left unsold after expiring on this day (pre-expired stock: day 1)
+    on_hand: int  # end of day, before that day's expiries are written off
+
+
+@dataclass(frozen=True)
+class SublotV3:
+    transfer_id: str
+    batch_id: str
+    location_id: str
+    units: int
+    consumed: tuple[int, ...]  # per planning day at the receiver
+    expired: int
+
+
+@dataclass(frozen=True)
+class ProjectionV3:
+    days: tuple[DayV3, ...]
+    sublots: tuple[SublotV3, ...]
+
+
+def lot_ids_v3():
+    """Kernel lot identities; the CP model uses the same ones so FEFO ties break identically."""
+    return (
+        lambda batch_id: f"b:{batch_id}",
+        lambda inbound_id: f"i:{inbound_id}",
+        lambda transfer_id, batch_id: f"s:{transfer_id}:{batch_id}",
+    )
+
+
+def project_v3(scenario, packed=(), *, include_inbound_transfers=True) -> ProjectionV3:
+    """Dated FEFO replay of an or-input-v3 scenario with a packed plan (v3.pack).
+
+    Seven planning days plus one sentinel day with no demand, so a batch expiring on day 7 is
+    written off inside the horizon. include_inbound_transfers=False gives the sender-protection
+    view (BD-49): outgoing debits stay, proposed arrivals are left out.
+    """
+    from datetime import timedelta
+
+    from app.services.optimization.kernel import KernelLot, project_kernel
+    from app.services.optimization.v3 import dates
+
+    bid, iid, sid = lot_ids_v3()
+    days = dates(scenario)
+    points = (*days, days[-1] + timedelta(days=1))
+    first = scenario.first_planning_date
+    demand = {(d.location_id, d.product_id): d.targets for d in scenario.demand}
+    debit: dict[str, int] = {}
+    lots: dict[tuple[str, str], list] = {}
+    sublot_meta = {}
+    for p in packed:
+        for batch_id, units in p.splits:
+            debit[batch_id] = debit.get(batch_id, 0) + units
+    batches = {b.id: b for b in scenario.batches}
+    for b in scenario.batches:
+        units = b.quantity - debit.get(b.id, 0)
+        if units < 0:
+            raise ValueError("SOURCE_OVERDRAWN")
+        lots.setdefault((b.location_id, b.product_id), []).append(
+            KernelLot(bid(b.id), units, first, b.expiry_date, False)
+        )
+    for i in scenario.inbound:
+        lots.setdefault((i.location_id, i.product_id), []).append(
+            KernelLot(iid(i.id), i.quantity, i.arrival_date, i.expiry_date, True)
+        )
+    if include_inbound_transfers:
+        for p in packed:
+            t = p.transfer
+            for batch_id, units in p.splits:
+                key = sid(t.id, batch_id)
+                sublot_meta[key] = (t.id, batch_id, t.to_location_id)
+                lots.setdefault((t.to_location_id, t.product_id), []).append(
+                    KernelLot(key, units, t.arrival_date, batches[batch_id].expiry_date, True)
+                )
+    rows, sublots = [], []
+    for key in sorted(set(demand) | set(lots)):
+        targets = (*demand.get(key, (0,) * len(days)), 0)
+        out, flows = project_kernel(
+            tuple(zip(points, targets, strict=True)), tuple(lots.get(key, ()))
+        )
+        for i, d in enumerate(out[:-1]):
+            expired = out[i + 1].expired + (out[0].expired if i == 0 else 0)
+            rows.append(DayV3(*key, d.day, d.demand, d.served, d.unmet, expired, d.on_hand))
+        for f in flows:
+            if f.lot.id in sublot_meta:
+                transfer, batch_id, location = sublot_meta[f.lot.id]
+                sublots.append(
+                    SublotV3(
+                        transfer, batch_id, location, f.lot.units, f.consumed[:-1], sum(f.expired)
+                    )
+                )
+    return ProjectionV3(tuple(rows), tuple(sublots))
