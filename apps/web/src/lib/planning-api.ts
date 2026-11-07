@@ -38,6 +38,12 @@ export async function api<T>(path: string, body?: unknown, idempotencyKey?: stri
   });
 }
 
+/** POST a raw body (a v1 import CSV, streamed by the browser) with CSRF and an Idempotency-Key. */
+export async function apiRaw<T>(path: string, body: Blob, contentType: string, idempotencyKey?: string): Promise<T> {
+  return send<T>(path, { method: "POST", body,
+    headers: { "Content-Type": contentType, "X-CSRF-Token": csrfToken(), "Idempotency-Key": idempotencyKey ?? crypto.randomUUID() } });
+}
+
 /** Multipart POST (CSV import). The browser sets the multipart boundary. */
 export async function apiUpload<T>(path: string, form: FormData, idempotencyKey?: string): Promise<T> {
   return send<T>(path, { method: "POST", body: form,

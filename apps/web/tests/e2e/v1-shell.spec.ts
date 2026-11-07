@@ -8,7 +8,7 @@ const pantry = list.networks.find((n) => n.mode === "PANTRY" && !n.is_sample)!;
 const sample = list.networks.find((n) => n.is_sample)!;
 
 async function chooseNetwork(page: Page, name: string) {
-  await page.getByRole("combobox", { name: "Network" }).click();
+  await page.getByRole("combobox", { name: "Network", exact: true }).click();
   await page.getByRole("option", { name: new RegExp(name) }).click();
 }
 
@@ -48,5 +48,5 @@ test("switching network updates vocabulary", async ({ page }) => {
   await expect(switcher).not.toContainText("Pantry mode");
   // The choice survives a reload (per-browser convenience only).
   await page.reload();
-  await expect(page.getByRole("combobox", { name: "Network" })).toContainText(sample.name);
+  await expect(page.getByRole("combobox", { name: "Network", exact: true })).toContainText(sample.name);
 });
