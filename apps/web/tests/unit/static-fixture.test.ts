@@ -28,9 +28,12 @@ describe("simulated overview adapter (not a backend forecast)", () => {
           expect(projection.servedUnits[day]).toBeGreaterThanOrEqual(0);
           expect(projection.unmetUnits[day]).toBeGreaterThanOrEqual(0);
         });
-        expect(projection.eligibleStockAtHorizonEnd).toBeGreaterThanOrEqual(0);
-        expect(projection.servedUnits.reduce((a, b) => a + b, 0) + projection.eligibleStockAtHorizonEnd)
-          .toBeLessThanOrEqual(projection.eligibleStockNow + projection.donationOutlook.reduce((a, b) => a + b, 0));
+        // These became nullable for live data after a4573b5; the static fixture always fills them.
+        const { eligibleStockAtHorizonEnd: end, eligibleStockNow: now, donationOutlook: donations } = projection;
+        if (end === null || now === null || donations === null) throw new Error(`Fixture ${site.id}/${product.id} has a null stock field`);
+        expect(end).toBeGreaterThanOrEqual(0);
+        expect(projection.servedUnits.reduce((a, b) => a + b, 0) + end)
+          .toBeLessThanOrEqual(now + donations.reduce((a, b) => a + b, 0));
       } else if (site.role === "HUB") expect(projection.kind).toBe("hub");
     }
   });
