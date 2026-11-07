@@ -14,7 +14,13 @@ import pytest
 
 from app.schemas.v1_planning import NOT_AT_RISK_LABEL, CapacityV3, InboundV3, ReserveV3
 from app.services.optimization import v3 as v3_module
-from app.services.optimization.decompose import at_risk, floor_shares, protected_senders
+from app.services.optimization.decompose import (
+    allot,
+    at_risk,
+    floor_shares,
+    protected_senders,
+    split,
+)
 from app.services.optimization.methods import run_method
 from app.services.optimization.projection import project_v3
 from app.services.optimization.v3 import STARVED_LABEL, candidates, pack
@@ -112,10 +118,85 @@ def test_split_uses_handling_units():
 
 
 def test_starved_product_reported_not_optimized():
+    """Route capacity 1: proportional shares 18/32 and 14/32 of one unit are both 0. Lettuce
+    (larger weight) gets the one unit's handling; nothing is left for oil, which is starved."""
+    s = priced_route(scenario("retail-usd-flip"), capacity_per_batch=1)
+    result = run_method(s, "RETAIL_OPTIMIZED", "UNITS")
+    q = next(x for x in result.products if x.product_id == "Q")
+    assert (q.native_status, q.label) == (None, STARVED_LABEL)
+    assert quantities(result) == {"P": 1}
+    assert verify_plan(s, result.transfers).passed
+
+
+def test_starved_product_gets_one_unit_first():
+    """USD on retail-usd-flip: lettuce's share 4 x 18 // 158 = 0 can't fit a unit, so it gets
+    one unit's handling and oil splits the remaining 3 (README)."""
     result = run_method(scenario("retail-usd-flip"), "RETAIL_OPTIMIZED", "USD")
-    p = next(x for x in result.products if x.product_id == "P")
-    assert (p.native_status, p.label) == (None, STARVED_LABEL)
-    assert quantities(result) == {"Q": 3}
+    assert quantities(result) == {"P": 1, "Q": 3}
+    assert not any(x.label == STARVED_LABEL for x in result.products)
+
+
+def test_allot_never_exceeds_cap_and_starves_no_one_when_units_fit():
+    rng = random.Random(20261108)
+    for _ in range(3000):
+        n = rng.randint(1, 8)
+        weights = {f"p{i}": rng.randint(0, 50) * rng.randint(0, 3) for i in range(n)}
+        handling = {p: rng.randint(1, 4) for p in weights}
+        cap = rng.randint(0, 60)
+        shares = allot(cap, weights, handling)
+        assert set(shares) == set(weights)
+        assert sum(shares.values()) <= cap
+        for p, share in shares.items():
+            assert share % handling[p] == 0
+            assert share == 0 or weights[p] > 0
+        positive = [p for p, w in weights.items() if w > 0]
+        if cap >= sum(handling[p] for p in positive):
+            assert all(shares[p] >= handling[p] for p in positive)
+        total = sum(weights.values())
+        floors = {p: (cap * w // total // handling[p]) for p, w in weights.items()} if total else {}
+        if total and all(floors[p] for p in positive):  # every share fits: plain floor split
+            assert shares == {p: floors[p] * handling[p] for p in weights}
+
+
+def test_allot_priority_largest_weight_then_product_id():
+    # proportional shares of 3 are all below 2 handling units; c (weight 9) goes first
+    assert allot(3, {"a": 5, "b": 5, "c": 9}, {"a": 2, "b": 2, "c": 2}) == {"a": 0, "b": 0, "c": 2}
+    assert allot(2, {"b": 5, "a": 5}, {"a": 2, "b": 2}) == {"a": 2, "b": 0}  # tie: product id
+    # 10 split 1 : 9 gives a 1 handling unit (< 2), so a takes 2 and b the remaining 8
+    assert allot(10, {"a": 1, "b": 9}, {"a": 2, "b": 1}) == {"a": 2, "b": 8}
+
+
+def test_localized_split_only_products_with_need_at_receiver():
+    """Oil sells only at a new store C, so B's route capacity 4 goes to lettuce alone
+    (network weights would have given it 4 x 18 // 32 = 2)."""
+    s = scenario("retail-usd-flip")
+    b = next(loc for loc in s.locations if loc.id == "B")
+    c = b.model_copy(update={"id": "C", "name": "Store C"})
+    demand = []
+    for d in s.demand:
+        if (d.location_id, d.product_id) == ("B", "Q"):
+            demand.append(d.model_copy(update={"location_id": "C"}))
+            demand.append(
+                d.model_copy(update={"targets": (0,) * 7, "central_literals": ("0",) * 7})
+            )
+        else:
+            demand.append(d)
+    to_c = s.routes[0].model_copy(update={"to_location_id": "C", "capacity_per_batch": None})
+    s = s.model_copy(
+        update={
+            "locations": (*s.locations, c),
+            "demand": tuple(demand),
+            "routes": (*s.routes, to_c),
+        }
+    )
+    baseline = project_v3(s).days
+    risky = at_risk(s, baseline)
+    cands = {p: candidates(s, p) for p in risky}
+    parts = split(s, baseline, risky, "UNITS", cands)
+    assert parts.shares["P"].route["D", "B"] == 4
+    assert parts.shares["Q"].route["D", "B"] == 0
+    result = run_method(s, "RETAIL_OPTIMIZED", "UNITS")
+    assert quantities(result)["P"] == 4 and verify_plan(s, result.transfers).passed
 
 
 def test_cost_budget_split_union_within_budget():

@@ -6,7 +6,7 @@
       "platform": "Linux-6.18.54.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
       "cpus_allowed": 6
     },
-    "recorded_at": "2026-11-07T08:29:53+00:00",
+    "recorded_at": "2026-11-07T17:02:16+00:00",
     "size": {
       "locations": 100,
       "products": 500,
@@ -40,13 +40,12 @@
         "method": "SOONEST_EXPIRY_FIRST",
         "native_status": null,
         "product_status_counts": {
-          "baseline": 86,
-          "capacity share too small to move one unit": 123,
+          "baseline": 209,
           "not at risk; not optimized": 291
         },
         "verified": true,
         "failure_reason": null,
-        "transfers": 6106,
+        "transfers": 8429,
         "union_check": {
           "passed": true,
           "violations": []
@@ -57,13 +56,12 @@
         "method": "RETAIL_OPTIMIZED",
         "native_status": "OPTIMAL",
         "product_status_counts": {
-          "OPTIMAL": 86,
-          "capacity share too small to move one unit": 123,
+          "OPTIMAL": 209,
           "not at risk; not optimized": 291
         },
         "verified": true,
         "failure_reason": null,
-        "transfers": 5546,
+        "transfers": 8025,
         "union_check": {
           "passed": true,
           "violations": []
@@ -89,13 +87,12 @@
         "method": "SOONEST_EXPIRY_FIRST",
         "native_status": null,
         "product_status_counts": {
-          "baseline": 59,
-          "capacity share too small to move one unit": 150,
+          "baseline": 209,
           "not at risk; not optimized": 291
         },
         "verified": true,
         "failure_reason": null,
-        "transfers": 5029,
+        "transfers": 9486,
         "union_check": {
           "passed": true,
           "violations": []
@@ -106,13 +103,12 @@
         "method": "RETAIL_OPTIMIZED",
         "native_status": "OPTIMAL",
         "product_status_counts": {
-          "OPTIMAL": 59,
-          "capacity share too small to move one unit": 150,
+          "OPTIMAL": 209,
           "not at risk; not optimized": 291
         },
         "verified": true,
         "failure_reason": null,
-        "transfers": 4461,
+        "transfers": 8775,
         "union_check": {
           "passed": true,
           "violations": []
@@ -120,10 +116,10 @@
       }
     ],
     "comparison_wall_s": {
-      "UNITS": 95.0,
-      "USD": 77.9
+      "UNITS": 130.9,
+      "USD": 124.5
     },
-    "peak_rss_mb": 1231.5,
-    "total_s": 199.6
+    "peak_rss_mb": 1451.7,
+    "total_s": 284.0
   }
 }

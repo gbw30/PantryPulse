@@ -1,10 +1,13 @@
 """Per-product decomposition (decisions/W0-optimizer-decomposition.md, W1-S05).
 
-At-risk screen on the frozen no-transfer projection, and the advance split of every shared limit:
-share_p = floor(cap × weight_p / Σ weight over the products that can use that limit), where
-weight = need × handling_units_per_unit, times unit_value_usd in Retail USD mode
-(CR-w1-solver-2). Products whose share can't move one unit are reported, never optimized. The
-union of the per-product plans is re-checked by verify.verify_plan against the raw scenario.
+At-risk screen on the frozen no-transfer projection, and the advance split of every shared limit,
+weight = need × handling_units_per_unit, times unit_value_usd in Retail USD mode (CR-w1-solver-2):
+- a receiver's limits (route into it, receiving, storage) go only to the products with positive
+  need at that receiver, by allot (localized split, Gabriel 2026-11-07);
+- sender dispatch, global handling and the cost budget: share_p = floor(cap × weight_p / Σ weight)
+  over the products that can use them.
+Products whose share still can't move one unit are reported, never optimized. The union of the
+per-product plans is re-checked by verify.verify_plan against the raw scenario.
 """
 
 from collections import defaultdict
@@ -22,12 +25,48 @@ def floor_shares(cap: int, weights) -> dict:
     return {p: (floor(cap * w / total) if total else 0) for p, w in weights.items()}
 
 
-def need(s, baseline) -> dict[str, int]:
-    """Retail: lost sales + expired units over 7 days. Pantry: unmet inside the window."""
+def allot(cap: int, weights: dict, handling: dict) -> dict:
+    """Localized split of one limit (Gabriel, 2026-11-07), shares in handling units.
+
+    Proportional floor shares, rounded down to whole units. A product whose share can't fit one
+    unit gets exactly one unit's handling, largest weight then product id first, while capacity
+    lasts (else 0: starved); the rest is split proportionally among the others. Never sums above
+    cap; zero weight gets 0.
+    """
+
+    def proportional(room, products):
+        total = sum(weights[p] for p in products)
+        return {
+            p: (room * weights[p] // total // handling[p] * handling[p] if total else 0)
+            for p in products
+        }
+
+    positive = {p for p, w in weights.items() if w > 0}
+    small: set = set()  # products held to one unit; grows until the others all fit
+    while True:
+        others = positive - small
+        room = max(0, cap - sum(handling[p] for p in small))
+        grown = {p for p, v in proportional(room, others).items() if v < handling[p]}
+        if not grown:
+            break
+        small |= grown
+    out = dict.fromkeys(weights, 0)
+    left = cap
+    for p in sorted(small, key=lambda p: (-weights[p], p)):
+        if left >= handling[p]:
+            out[p], left = handling[p], left - handling[p]
+    out |= proportional(left, positive - small)
+    return out
+
+
+def need(s, baseline, *, by_location=False) -> dict:
+    """Retail: lost sales + expired units over 7 days. Pantry: unmet inside the window.
+    Keyed by product, or by (product, location)."""
     window = set(dates(s)[: window_days(s)])
     out = defaultdict(int)
     for d in baseline:
-        out[d.product_id] += (
+        key = (d.product_id, d.location_id) if by_location else d.product_id
+        out[key] += (
             d.unmet + d.expired if s.mode == "RETAIL" else (d.unmet if d.day in window else 0)
         )
     return dict(out)
@@ -64,21 +103,30 @@ def split(s, baseline, products, measure, cands: dict[str, tuple[Candidate, ...]
     scale = lcm(*(w.denominator for w in exact.values())) if exact else 1
     weight = {p: int(w * scale) for p, w in exact.items()}
     days = dates(s)
+    local = need(s, baseline, by_location=True)
     users = defaultdict(set)  # limit key -> products that can use it
     for p in products:
         for c in cands[p]:
             frm, to = c.route.from_location_id, c.route.to_location_id
-            users["route", frm, to].add(p)
             users["dispatch", frm].add(p)
-            users["receiving", to, c.arrival].add(p)
-            users["storage", to].add(p)
+            if local.get((p, to), 0) > 0:  # a receiver's limits: products with need there
+                users["route", frm, to].add(p)
+                users["receiving", to, c.arrival].add(p)
+                users["storage", to].add(p)
 
     totals: dict = {}
+    allotted: dict = {}
+    handling_of = {p: info[p].handling_units_per_unit for p in products}
 
     def share(cap, p, key=None):
-        """floor_shares(cap, weights of the products using this limit)[p], with cached totals."""
+        """This product's share of one limit (allot for a receiver's limits, else floor)."""
         if cap is None:
             return None
+        if key and key[0] in ("route", "receiving", "storage"):
+            if (key, cap) not in allotted:
+                mine = users[key]
+                allotted[key, cap] = allot(cap, {q: weight[q] for q in mine}, handling_of)
+            return allotted[key, cap].get(p, 0)
         if key not in totals:
             totals[key] = sum(weight[q] for q in (users[key] if key else products))
         total = totals[key]

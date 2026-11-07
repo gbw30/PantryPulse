@@ -74,11 +74,11 @@ DC North: Lettuce `p1` 4 units expiring 11-04 (day 3), at $1.00; Olive oil `q1` 
   - Lettuce y = 2: expired 2, lost 12, objective 14.
   - Oil y = 1: expired 0, lost 13, objective 13.
   - No units total is computed, because cases and bottles are different units.
-- **USD split.** Weights 18 × 1 × 1.00 = 18 and 14 × 1 × 10.00 = 140. Lettuce gets 4 × 18 // 158 = **0**, which is below one unit's handling, so lettuce is reported as "capacity share too small to move one unit". Oil gets 4 × 140 // 158 = **3**.
-  - Lettuce: no transfer; expired 4, lost 14, objective $18.00.
+- **USD split.** Weights 18 × 1 × 1.00 = 18 and 14 × 1 × 10.00 = 140. Lettuce's proportional share 4 × 18 // 158 = 0 can't fit one unit. Under the localized split (Gabriel, 2026-11-07), lettuce gets one unit's handling first (**1**), and oil splits the remaining 3 alone (**3**).
+  - Lettuce y = 1: it sells on day 2; the DC's other 3 expire on day 3. Expired 3, lost 2 + 1 + 5 × 2 = 13, objective 16 = $16.00.
   - Oil y = 3: lost 11, objective $110.00.
-  - **USD total $128.00.**
-- **The plan changes:** UNITS ships 2 lettuce + 1 oil; USD ships 3 oil. For reference, a single network model would also flip: units prefers 4 lettuce (−8), USD prefers 4 oil (−$40 against −$8).
+  - **USD total $126.00.** Before the localized split, lettuce was starved and the total was $128.00.
+- **The plan changes:** UNITS ships 2 lettuce + 1 oil; USD ships 1 lettuce + 3 oil. For reference, a single network model would also flip: units prefers 4 lettuce (−8), USD prefers 4 oil (−$40 against −$8).
 
 ## retail-usd-no-flip (same network, no route capacity)
 

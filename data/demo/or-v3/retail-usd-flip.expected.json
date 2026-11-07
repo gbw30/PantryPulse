@@ -45,8 +45,19 @@
     }
   },
   "USD": {
-    "objective": "128.00",
+    "objective": "126.00",
     "transfers": [
+      {
+        "product_id": "P",
+        "from_location_id": "D",
+        "to_location_id": "B",
+        "quantity": 1,
+        "ship_date": "2026-11-02",
+        "arrival_date": "2026-11-03",
+        "batch_ids": [
+          "p1"
+        ]
+      },
       {
         "product_id": "Q",
         "from_location_id": "D",
@@ -59,14 +70,12 @@
         ]
       }
     ],
-    "starved_products": [
-      "P"
-    ],
+    "starved_products": [],
     "products": {
       "P": {
-        "expired": 4,
-        "lost": 14,
-        "objective": "18.00"
+        "expired": 3,
+        "lost": 13,
+        "objective": "16.00"
       },
       "Q": {
         "expired": 0,
