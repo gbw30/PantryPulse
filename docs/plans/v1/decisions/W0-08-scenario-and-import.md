@@ -67,3 +67,10 @@ An import either succeeds completely or leaves nothing behind, including the net
 - **Gap:** or-input-v2 froze `planning_days` (1–3) and `policy` (`ORPolicy`); or-input-v3 dropped both. BD-50 requires an explicit window, and V1-SPEC §6.2 says λ/β and the coefficients are shown and editable, so hardcoding them would make saved scenarios unreplayable.
 - **Change:** `ORInputV3` gains `planning_days` and `policy`, both required (no default) in PANTRY and null in RETAIL, like `retail_weights`. Policy coefficients may weight only `poverty_rate` and `snap_rate`. `ScenarioOptions` gains both as optional; `resolve_window_and_policy` rejects a Pantry scenario without a window (`PLANNING_DAYS_REQUIRED`) and fills `DEFAULT_PANTRY_POLICY`, the connected flow's values with 50/50 weights on the two v1 attributes. Retail rejects either field (`WINDOW_AND_POLICY_ONLY_IN_PANTRY`).
 - **Checked against v2:** the other v2-only scenario fields are values the v3 solver derives from the frozen inputs (`loading_order`, cost and waste references, hashes) or v2 features outside V1-SPEC (`modifiers`, `HISTORICAL_REPLAY`).
+
+## 6. Web reads (CR-w1-web-1/2/3, Gabriel, 2026-11-07)
+
+- `GET /networks/{id}/locations` → `LocationList`: the latest dataset version's locations (ID from `locations.csv`, name, role, city, state, decimal-string coordinates or null, coordinate source). Lead-built in W1; it unblocks atlas placement (V1-SPEC §6.6).
+- `GET /networks/{id}/forecasts` → `ForecastRunList`, newest first, `forecast_run_id` null until the job publishes. Frozen with a 501 stub; W3-F03 builds it. Until then the web lane keeps `?forecast_run_id=`.
+- `GET /networks/{id}/projection?forecast_run_id=&location_id=` → `LocationProjection`: per product, in the product's own unit, `null` = unknown, no cross-product totals. Frozen with a 501 stub; W3-F05 builds it. The site inspector is built against the example now and goes live in W4.
+- Data lane lead call (same day): candidate routes are every hub/DC within 150 miles plus the k = 10 nearest non-hub senders within 150 miles, so a `HUB_ONLY` plan can always reach a receiver that has a hub in range.

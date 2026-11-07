@@ -109,6 +109,9 @@ STUBS = [
     ("POST", f"/networks/{NET}/routes/google-preview", {}, None, "W1-D08"),
     ("POST", f"/networks/{NET}/routes/google-fetch", {}, KEYED, "W1-D08"),
     ("GET", f"/networks/{NET}/danger?forecast_run_id={JOB}", None, None, "W3-F05"),
+    ("GET", f"/networks/{NET}/forecasts", None, None, "W3-F03"),
+    ("GET", f"/networks/{NET}/projection?forecast_run_id={JOB}&location_id=P-1", None, None,
+     "W3-F05"),
     ("GET", f"/forecasts/{JOB}/backtest", None, None, "W3-F03"),
     ("GET", f"/networks/{NET}/comparisons/{CMP}", None, None, "W1-S04"),
     ("GET", f"{ACTIONS}/actions", None, None, "W1-S06"),
@@ -424,4 +427,4 @@ def test_examples_validate():
     script = Path(__file__).resolve().parents[1] / "scripts/validate_contract_examples.py"
     result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True)
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "18 v1 examples valid" in result.stdout
+    assert "21 v1 examples valid" in result.stdout

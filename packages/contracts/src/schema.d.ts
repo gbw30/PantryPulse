@@ -575,10 +575,28 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** List Forecast Runs */
+        get: operations["list_forecast_runs_api_v1_networks__network_id__forecasts_get"];
         put?: never;
         /** Submit Forecast */
         post: operations["submit_forecast_api_v1_networks__network_id__forecasts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/networks/{network_id}/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Locations */
+        get: operations["list_locations_api_v1_networks__network_id__locations_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -595,6 +613,23 @@ export interface paths {
         get?: never;
         /** Set Attributes */
         put: operations["set_attributes_api_v1_networks__network_id__locations__location_id__attributes_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/networks/{network_id}/projection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Projection */
+        get: operations["get_projection_api_v1_networks__network_id__projection_get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -2069,6 +2104,43 @@ export interface components {
              */
             published_at: string;
         };
+        /**
+         * ForecastRunList
+         * @description GET /networks/{id}/forecasts: newest first, so the UI finds runs after a reload.
+         */
+        ForecastRunList: {
+            /**
+             * Network Id
+             * Format: uuid
+             */
+            network_id: string;
+            /** Runs */
+            runs: components["schemas"]["ForecastRunSummary"][];
+        };
+        /**
+         * ForecastRunSummary
+         * @description One forecast.v1 job for the network (CR-w1-web-2).
+         */
+        ForecastRunSummary: {
+            /**
+             * Dataset Version Id
+             * Format: uuid
+             */
+            dataset_version_id: string;
+            /** Forecast Run Id */
+            forecast_run_id: string | null;
+            /**
+             * Job Id
+             * Format: uuid
+             */
+            job_id: string;
+            /**
+             * Recorded At
+             * Format: date-time
+             */
+            recorded_at: string;
+            state: components["schemas"]["AttemptState"];
+        };
         /** ForecastSeries */
         ForecastSeries: {
             /** Actual Provider */
@@ -2712,6 +2784,76 @@ export interface components {
             /** Unmet Without Plan */
             unmet_without_plan: number;
         };
+        /**
+         * LocationList
+         * @description GET /networks/{id}/locations: the network's latest dataset version.
+         */
+        LocationList: {
+            /**
+             * Dataset Version Id
+             * Format: uuid
+             */
+            dataset_version_id: string;
+            /** Locations */
+            locations: components["schemas"]["LocationSummary"][];
+            /**
+             * Network Id
+             * Format: uuid
+             */
+            network_id: string;
+        };
+        /**
+         * LocationProjection
+         * @description GET /networks/{id}/projection?forecast_run_id=&location_id= (CR-w1-web-3).
+         *
+         *     Raw per-product projections for the site inspector; no cross-product totals.
+         */
+        LocationProjection: {
+            /**
+             * Forecast Run Id
+             * Format: uuid
+             */
+            forecast_run_id: string;
+            /** Location Id */
+            location_id: string;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "PANTRY" | "RETAIL";
+            /**
+             * Network Id
+             * Format: uuid
+             */
+            network_id: string;
+            /** Products */
+            products: components["schemas"]["ProductProjection"][];
+        };
+        /**
+         * LocationSummary
+         * @description One location of a dataset version, for the atlas and names (CR-w1-web-1).
+         */
+        LocationSummary: {
+            /** City */
+            city: string;
+            /** Coordinates Source */
+            coordinates_source: ("user" | "census_geocoder") | null;
+            /** Latitude */
+            latitude: string | null;
+            /** Location Id */
+            location_id: string;
+            /** Longitude */
+            longitude: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "hub" | "pantry" | "distribution_center" | "store";
+            /** State */
+            state: string;
+        };
         /** LocationV3 */
         LocationV3: {
             /** Id */
@@ -3340,6 +3482,30 @@ export interface components {
             category_name?: string | null;
             /** Name */
             name: string;
+        };
+        /**
+         * ProductProjection
+         * @description One product at one location over the projection dates, in the product's own unit.
+         */
+        ProductProjection: {
+            /** Dates */
+            dates: string[];
+            /** Donation Forecast */
+            donation_forecast: (number | null)[] | null;
+            /** Eligible Stock Now */
+            eligible_stock_now: number;
+            /** Expiring Unsold */
+            expiring_unsold: (number | null)[] | null;
+            /** Product Id */
+            product_id: string;
+            /** Served */
+            served: (number | null)[];
+            /** Target */
+            target: (number | null)[];
+            /** Unit */
+            unit: string;
+            /** Unmet */
+            unmet: (number | null)[];
         };
         /** ProductReference */
         ProductReference: {
@@ -7352,6 +7518,100 @@ export interface operations {
             };
         };
     };
+    list_forecast_runs_api_v1_networks__network_id__forecasts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                network_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForecastRunList"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     submit_forecast_api_v1_networks__network_id__forecasts_post: {
         parameters: {
             query?: never;
@@ -7452,6 +7712,100 @@ export interface operations {
             };
         };
     };
+    list_locations_api_v1_networks__network_id__locations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                network_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocationList"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     set_attributes_api_v1_networks__network_id__locations__location_id__attributes_put: {
         parameters: {
             query?: never;
@@ -7475,6 +7829,103 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LocationAttributes"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_projection_api_v1_networks__network_id__projection_get: {
+        parameters: {
+            query: {
+                forecast_run_id: string;
+                location_id: string;
+            };
+            header?: never;
+            path: {
+                network_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocationProjection"];
                 };
             };
             /** @description Unauthorized */
