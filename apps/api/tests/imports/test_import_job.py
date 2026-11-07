@@ -1,7 +1,7 @@
 # covers: V1-A07, V1-A09
 """Import lifecycle on PostgreSQL (W1-D05): create → upload → commit (import.v1) → status,
-re-import, network reads. The worker step itself is CR-w1-data-2; these tests run
-`run_import` directly, exactly as the job will."""
+re-import, network reads. These run `run_import`, the job's step, prepare and publish in one
+process; tests/imports/test_import_worker.py runs the same job under a real supervisor."""
 
 import asyncio
 import uuid
@@ -44,8 +44,8 @@ def engine():
 
 @pytest.fixture(scope="module")
 def queue(engine):
-    """A READY supervisor advertising import.v1, as the worker will once CR-w1-data-2 lands
-    (admission needs one; no step is executed in these tests)."""
+    """A READY supervisor advertising import.v1 (admission needs one); it never claims, so
+    no step runs here and the tests run each import in process."""
     repo = QueueRepository(engine, registry=load_registry("production"),
                            profile=PRODUCTION_PROFILE)
     own = repo.acquire_ownership(
@@ -65,7 +65,7 @@ def rt(engine, queue, tmp_path, monkeypatch):
 
 
 def _cancel_queued(engine, queue):
-    """The production profile queues at most 2 jobs, and no step runs here (CR-w1-data-2)."""
+    """The production profile queues at most 2 jobs, and no supervisor claims them here."""
     with engine.connect() as conn:
         jobs = conn.execute(sa.text(
             "SELECT job_id, organization_id FROM compute_jobs WHERE state = 'QUEUED'")).all()

@@ -66,15 +66,19 @@ def _import(engine, tmp_path: Path, files: dict[str, str], network=NEW, as_of=AS
     with engine.begin() as conn:
         run = repo.create_run(conn, network if isinstance(network, NewNetwork) else None,
                               network if isinstance(network, uuid.UUID) else None)
+    _write(engine, tmp_path, run.id, files)
+    return run_import(engine, run.id, as_of, tmp_path, actor="local")
 
+
+def _write(engine, base: Path, run_id: uuid.UUID, files: dict[str, str]) -> None:
+    """Upload each file as the API does: stream to the imports folder, then record it."""
     async def chunks(text):
         yield text.encode()
 
     for name, text in files.items():
-        size, sha = asyncio.run(write_upload(tmp_path, run.id, name, chunks(text)))
+        size, sha = asyncio.run(write_upload(base, run_id, name, chunks(text)))
         with engine.begin() as conn:
-            repo.record_file(conn, run.id, name, size, sha)
-    return run_import(engine, run.id, as_of, tmp_path, actor="local")
+            repo.record_file(conn, run_id, name, size, sha)
 
 
 def test_clean_import_commits_everything(engine, tmp_path):

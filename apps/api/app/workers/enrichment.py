@@ -181,22 +181,13 @@ class GooglePublisher:
         return {"fetched": len(package["step"]["results"]), "error": package["step"]["error"]}
 
 
-class HeldGoogleHandler(GoogleHandler):
-    """Built, but not advertised until CR-w1-data-4 updates the lead-owned
-    tests/workers/test_v1_job_kinds.py; until then google-fetch answers 503."""
-
-    @staticmethod
-    def execution_capability():
-        return None
-
-
 GOOGLE_REGISTRATION = Registration(
     contract="routes-google.v1",
     operation_kind=OperationKind.ENRICHMENT,
     input_schema_version="1",
     max_input_bytes=64_000,
     max_output_bytes=4_000_000,
-    handler=HeldGoogleHandler(),
+    handler=GoogleHandler(),
     publisher=GooglePublisher(),
     child_secrets=(GOOGLE_KEY,),
 )

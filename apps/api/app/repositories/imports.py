@@ -9,7 +9,7 @@ from uuid import UUID
 
 import sqlalchemy as sa
 
-from app.schemas.v1_imports import NewNetwork, RowError
+from app.schemas.v1_imports import NewNetwork, OutsideHorizonInbound, RowError
 from app.services.presenter_access import AccessError
 
 
@@ -112,3 +112,15 @@ def stored_errors(conn: sa.Connection, run_id: UUID) -> list[RowError]:
         "WHERE import_run_id = :id ORDER BY file, line_no, id"), {"id": run_id}).all()
     return [RowError(file=r.file, line=r.line_no, column=r.column_name, code=r.code,
                      reason=r.reason, fix=r.fix, value=r.value) for r in rows]
+
+
+def outside_horizon(conn: sa.Connection, version_id: UUID) -> list[OutsideHorizonInbound]:
+    """Inbound rows arriving after the seven-day horizon: kept, not counted, listed."""
+    rows = conn.execute(sa.text(
+        "SELECT i.line_no, l.external_id, p.external_id, i.quantity, i.arrival_date "
+        "FROM net_inbound i JOIN net_locations l ON l.id = i.location_id "
+        "JOIN net_products p ON p.id = i.product_id "
+        "WHERE i.dataset_version_id = :v AND NOT i.within_horizon ORDER BY i.line_no"),
+        {"v": version_id}).all()
+    return [OutsideHorizonInbound(line=r[0], location_id=r[1], product_id=r[2], quantity=r[3],
+                                  arrival_date=r[4]) for r in rows]

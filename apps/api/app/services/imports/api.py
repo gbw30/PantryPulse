@@ -21,7 +21,6 @@ from app.schemas.v1_imports import (
     ImportFile,
     ImportProgress,
     ImportStatus,
-    OutsideHorizonInbound,
     RowError,
 )
 from app.schemas.v1_networks import REQUIRED_TEMPLATES, TemplateName
@@ -91,8 +90,8 @@ def commit_import(
                 raise AccessError("IMPORT_IN_PROGRESS", 409)
         accepted = rt.queue.submit(
             TrustedScope(run.organization_id, scope.actor_ref), CONTRACT,
-            {"import_id": str(import_id),
-             "as_of_date": None if request.as_of_date is None else request.as_of_date.isoformat()},
+            staging.job_input(conn, run, request.as_of_date, staging.import_dir(),
+                              scope.actor_ref),
             idempotency_key)
         repo.set_phase(conn, import_id, "staging", job_id=accepted.job_id,
                        progress={"unit": "rows", "done": 0, "total": None})
@@ -106,12 +105,7 @@ def import_status(rt, scope, import_id: UUID) -> ImportStatus:
         version = conn.execute(sa.text(
             "SELECT id, as_of_date FROM dataset_versions WHERE import_run_id = :r"),
             {"r": import_id}).one_or_none()
-        outside = [] if version is None else conn.execute(sa.text(
-            "SELECT i.line_no, l.external_id, p.external_id, i.quantity, i.arrival_date "
-            "FROM net_inbound i JOIN net_locations l ON l.id = i.location_id "
-            "JOIN net_products p ON p.id = i.product_id "
-            "WHERE i.dataset_version_id = :v AND NOT i.within_horizon ORDER BY i.line_no"),
-            {"v": version.id}).all()
+        outside = [] if version is None else repo.outside_horizon(conn, version.id)
     phase = run.phase
     if phase in ("uploading", *RUNNING_PHASES) and run.job_id is not None:
         job = rt.queue.get_job(TrustedScope(run.organization_id, "status"), run.job_id)
@@ -128,9 +122,7 @@ def import_status(rt, scope, import_id: UUID) -> ImportStatus:
         error_count=run.error_count,
         errors_truncated=run.errors_truncated,
         errors=tuple(errors),
-        outside_horizon_inbound=tuple(
-            OutsideHorizonInbound(line=r[0], location_id=r[1], product_id=r[2], quantity=r[3],
-                                  arrival_date=r[4]) for r in outside),
+        outside_horizon_inbound=tuple(outside),
         dataset_version_id=None if version is None else version.id,
         as_of_date=None if version is None else version.as_of_date,
         failure=_failure(errors, run.error_count, run.errors_truncated) if phase == "failed"
