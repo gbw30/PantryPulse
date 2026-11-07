@@ -26,6 +26,12 @@ export function asOfDateToSend(value: NetworkSettingsValue, lastHistory: string 
 }
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+/** A real calendar day (not 2026-13-45 or 2026-11-31) whose next day still has a four-digit year. */
+const isCalendarDate = (value: string) => {
+  if (!ISO_DATE.test(value) || value >= "9999-12-31") return false;
+  const day = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(day.getTime()) && day.toISOString().slice(0, 10) === value;
+};
 const cellsOf = (line: string) => {
   if (!line.includes('"')) return line.split(",");
   const cells: string[] = [];
@@ -54,7 +60,7 @@ export async function lastHistoryDate(file: Blob, chunkBytes = 4 << 20): Promise
       return;
     }
     const value = cells[column]?.trim();
-    if (value && ISO_DATE.test(value) && (latest === null || value > latest)) latest = value;
+    if (value && isCalendarDate(value) && (latest === null || value > latest)) latest = value;
   };
   for (let start = 0; start < file.size; start += chunkBytes) {
     const text = carry + decoder.decode(new Uint8Array(await file.slice(start, start + chunkBytes).arrayBuffer()), { stream: true });

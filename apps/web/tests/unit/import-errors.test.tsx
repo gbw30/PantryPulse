@@ -91,3 +91,11 @@ it("reads the last date from demand_history.csv, whatever the row order", async 
   expect(await lastHistoryDate(new Blob([csv]))).toBe("2026-11-04");
   expect(await lastHistoryDate(new Blob(["location_id,product_id,quantity\n"]))).toBeNull();
 });
+
+it("ignores impossible dates, so the as_of_date default is always a real day", async () => {
+  // Each bad value sorts after 2026-11-04; the server reports those rows, the default ignores them.
+  const csv = ["location_id,product_id,date,quantity,basis", "P1,W,2026-11-04,3,demand", "P1,W,2026-13-45,1,demand",
+    "P1,W,2026-11-31,1,demand", "P1,W,9999-12-31,1,demand"].join("\n");
+  expect(await lastHistoryDate(new Blob([csv]))).toBe("2026-11-04");
+  expect(await lastHistoryDate(new Blob(["date\n2026-00-10\n"]))).toBeNull();
+});

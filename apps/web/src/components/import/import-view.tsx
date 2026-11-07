@@ -17,11 +17,14 @@ type Run =
   | { step: "idle" }
   | { step: "uploading"; done: number; total: number }
   | { step: "tracking"; status: ImportStatus | null }
-  | { step: "request_failed"; code: string };
+  | { step: "request_failed"; code: string }
+  /** The commit was accepted but a status read failed: the import may still finish. */
+  | { step: "lost"; importId: string; code: string };
 
 const POLL_MS = 1000;
 const TERMINAL = new Set<ImportStatus["phase"]>(["done", "failed"]);
 const describe = (code: string) => code.replaceAll("_", " ").toLowerCase();
+const codeOf = (error: unknown) => (error instanceof ApiError ? error.code : "REQUEST_FAILED");
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** The template catalog for the chosen mode. A mode change keeps the previous catalog while it reloads. */
@@ -72,6 +75,7 @@ function ImportContent() {
   const [problems, setProblems] = useState<string[]>([]);
   const [run, setRun] = useState<Run>({ step: "idle" });
   const alive = useRef(true);
+  const scan = useRef(0); // only the latest demand_history scan may set the default date
   // Set on mount too: Strict Mode runs the cleanup once before the real mount.
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
 
@@ -86,7 +90,8 @@ function ImportContent() {
     });
     if (name === "demand_history") {
       setLastHistory(null);
-      if (file) lastHistoryDate(file).then((last) => { if (alive.current) setLastHistory(last); }, () => undefined);
+      const token = ++scan.current;
+      if (file) lastHistoryDate(file).then((last) => { if (alive.current && token === scan.current) setLastHistory(last); }, () => undefined);
     }
   }
 
@@ -106,6 +111,7 @@ function ImportContent() {
     setProblems(missing);
     if (missing.length) return;
     const chosen = templates.filter((t) => files[t.name]).map((t) => [t.name, files[t.name]!] as const);
+    let importId: string;
     try {
       setRun({ step: "uploading", done: 0, total: chosen.length });
       const created = await networkApi.createImport(reimport
@@ -116,9 +122,20 @@ function ImportContent() {
         if (alive.current) setRun({ step: "uploading", done: index + 1, total: chosen.length });
       }
       await networkApi.commitImport(created.import_id, { as_of_date: asOfDateToSend(settings, lastHistory) });
-      setRun({ step: "tracking", status: null });
+      importId = created.import_id;
+    } catch (error) {
+      if (alive.current) setRun({ step: "request_failed", code: codeOf(error) });
+      return;
+    }
+    await track(importId);
+  }
+
+  /** Poll an accepted import until it is done or failed. */
+  async function track(importId: string) {
+    setRun({ step: "tracking", status: null });
+    try {
       for (;;) {
-        const status = await networkApi.importStatus(created.import_id);
+        const status = await networkApi.importStatus(importId);
         if (!alive.current) return;
         setRun({ step: "tracking", status });
         if (TERMINAL.has(status.phase)) {
@@ -131,11 +148,12 @@ function ImportContent() {
         await sleep(POLL_MS);
       }
     } catch (error) {
-      if (alive.current) setRun({ step: "request_failed", code: error instanceof ApiError ? error.code : "REQUEST_FAILED" });
+      if (alive.current) setRun({ step: "lost", importId, code: codeOf(error) });
     }
   }
 
   function startOver() {
+    scan.current += 1;
     setRun({ step: "idle" });
     setFiles({});
     setLastHistory(null);
@@ -203,6 +221,12 @@ function ImportContent() {
               <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-pp-danger/40 bg-card px-4 py-3 text-sm">
                 Import request failed ({describe(run.code)}). Nothing was saved.
                 <Button variant="outline" size="sm" onClick={startOver}>Start a new import</Button>
+              </div>
+            )}
+            {run.step === "lost" && (
+              <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-pp-warning bg-card px-4 py-3 text-sm">
+                Lost contact with the import ({describe(run.code)}). It may still finish; nothing is known yet about what was saved.
+                <Button variant="outline" size="sm" onClick={() => { const { importId } = run; void track(importId); }}>Check again</Button>
               </div>
             )}
             {status && <ImportProgress status={status} />}
