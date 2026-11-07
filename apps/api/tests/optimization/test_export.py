@@ -150,3 +150,26 @@ def test_export_rejects_scenario_of_another_comparison():
     other = other.model_copy(update={"network_id": UUID("00000000-0000-4000-8000-0000000000ff")})
     with pytest.raises(ValueError, match="SCENARIO_MISMATCH"):
         export_plan_csv(comparison, "RETAIL_OPTIMIZED", [], scenario=other)
+
+
+def test_export_pantry_plan():
+    s, _ = load("pantry-four-methods")
+    methods = ("NO_TRANSFERS", "MOST_URGENT_FIRST", "EGP_PI_INSPIRED")
+    result = compare_methods(s, methods, "UNITS", scenario_id=SCENARIO, scenario_hash=HASH)
+    comparison = SavedComparisonV3(
+        id=COMPARISON,
+        network_id=s.network_id,
+        scenario_id=SCENARIO,
+        recorded_at=datetime(2026, 11, 7, tzinfo=UTC),
+        result=result,
+    )
+    ids = [t.id for t in result.methods[1].transfers]
+    exported = rows(export_plan_csv(comparison, "MOST_URGENT_FIRST", ids, scenario=s))
+    assert [(r["to"], r["quantity"], r["unit"]) for r in exported] == [
+        ("Pantry 2", "3", "case"),
+        ("Pantry 3", "1", "case"),
+    ]  # README: MOST_URGENT_FIRST P2 3, P3 1
+    assert {(r["network_mode"], r["method"], r["note"]) for r in exported} == {
+        ("PANTRY", "MOST_URGENT_FIRST", SIMULATED_NOTE + "; no scheduled deliveries provided")
+    }
+    assert all("over 2 days" in r["why"] and "USD" not in r["effect"] for r in exported)

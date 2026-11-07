@@ -57,6 +57,7 @@ def run_method(
     measure: Measure,
     *,
     search_seconds: float = PER_PRODUCT_SEARCH_S,
+    method_seconds: float = METHOD_SEARCH_S,
 ) -> MethodResult:
     s = scenario
     require_methods_for_mode(s.mode, [method])
@@ -67,7 +68,7 @@ def run_method(
         return failed_result(s, method, measure, None, "USD_UNAVAILABLE", ())
     baseline = project_v3(s).days
     if method in OPTIMIZING:
-        return _optimized(s, method, measure, baseline, search_seconds)
+        return _optimized(s, method, measure, baseline, search_seconds, method_seconds)
     if method == "NO_TRANSFERS":
         products = tuple(
             ProductSolve(product_id=p.id, native_status=None, gap=None, label=None)
@@ -93,7 +94,7 @@ def run_method(
     return assemble(s, method, measure, baseline, plan.quantities, None, products, {})
 
 
-def _optimized(s, method, measure, baseline, search_seconds) -> MethodResult:
+def _optimized(s, method, measure, baseline, search_seconds, method_seconds) -> MethodResult:
     undefined = set()
     if method == "EGP_PI_INSPIRED":
         missing = coverage_gap(s)
@@ -109,7 +110,7 @@ def _optimized(s, method, measure, baseline, search_seconds) -> MethodResult:
     by_product = defaultdict(list)
     for d in baseline:
         by_product[d.product_id].append(d)
-    deadline = time.monotonic() + METHOD_SEARCH_S
+    deadline = time.monotonic() + min(method_seconds, METHOD_SEARCH_S)
     for p in sorted(risky - parts.starved):
         remaining = deadline - time.monotonic()
         if remaining <= 0:

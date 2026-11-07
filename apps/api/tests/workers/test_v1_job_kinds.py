@@ -21,8 +21,9 @@ def test_v1_job_kinds_registered():
 
 def test_v1_stub_handlers_are_not_advertised_for_execution():
     advertised, _ = REGISTRY.execution_advertisement()
-    assert not set(V1_KINDS) & set(advertised)
-    assert "or-comparison.v2" in advertised
+    built = {"or-comparison.v3"}  # CR-w1-solver-4 (Gabriel, 2026-11-07): W1-S04 handler built
+    assert not (set(V1_KINDS) - built) & set(advertised)
+    assert {"or-comparison.v2", "or-comparison.v3"} <= set(advertised)
 
 
 def test_import_and_enrichment_budgets():

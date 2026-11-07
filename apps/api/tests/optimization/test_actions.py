@@ -130,3 +130,22 @@ def test_unverified_result_has_no_actions():
             result.model_copy(update={"verified": False, "transfers": ()}),
             comparison_id=COMPARISON,
         )
+
+
+def test_pantry_actions_explain_the_window():
+    """EGP plans P1 2, P2 2 (README). Why text counts unmet inside the 2-day window; the hub's
+    4 cases are all shipped, so one more unit is proven infeasible; Pantry has no USD effect."""
+    _, _, actions = actions_for("pantry-four-methods", method="EGP_PI_INSPIRED")
+    by_text = {a.action_text: a for a in actions.actions}
+    assert set(by_text) == {
+        "Move 2 cases of Canned beans from Central Hub to Pantry 1, ship on Nov 2, arrives Nov 3.",
+        "Move 2 cases of Canned beans from Central Hub to Pantry 2, ship on Nov 2, arrives Nov 3.",
+    }
+    p1 = next(a for a in actions.actions if "Pantry 1," in a.action_text)
+    assert p1.why_text == (
+        "Pantry 1 runs out on Nov 3 (projected unmet 3 cases over 2 days); "
+        "Central Hub has 4 cases beyond its protected need. "
+        "One more unit is infeasible: the sender has no more eligible stock."
+    )
+    assert p1.explanation_kind == "proven_binding"
+    assert (p1.effect.receiver_unmet_delta, p1.effect.usd_delta) == (-2, None)

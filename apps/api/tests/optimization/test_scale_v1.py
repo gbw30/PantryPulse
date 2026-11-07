@@ -18,6 +18,7 @@ from app.services.optimization.decompose import (
     allot,
     at_risk,
     floor_shares,
+    need,
     protected_senders,
     split,
 )
@@ -327,6 +328,25 @@ def test_no_network_objective_total():
     assert result.objective is None  # lettuce cases and oil bottles are never added
     assert "solved per product: 2 OPTIMAL, 0 FEASIBLE" in result.labels
     assert "units objective is per product; not summed across products" in result.labels
+
+
+def test_pantry_at_risk_uses_the_window_and_reports_no_total():
+    """pantry-four-methods: need is window unmet only (README: targets 3, 6, 6 over 2 days;
+    the demand of 1 a day on days 3-7 is outside). With a 1-day window P1 has no need."""
+    s = scenario("pantry-four-methods")
+    assert need(s, project_v3(s).days, by_location=True) == {
+        ("F", "H"): 0,
+        ("F", "P1"): 3,
+        ("F", "P2"): 6,
+        ("F", "P3"): 6,
+    }
+    one_day = s.model_copy(update={"planning_days": 1})
+    local = need(one_day, project_v3(one_day).days, by_location=True)
+    assert (local[("F", "P1")], local[("F", "P2")], local[("F", "P3")]) == (0, 3, 3)
+    for method in ("CLASSICAL_GP", "EGP_PI_INSPIRED"):
+        result = run_method(s, method, "UNITS")
+        assert result.verified and result.objective is None  # no network objective total
+        assert "solved per product: 1 OPTIMAL, 0 FEASIBLE" in result.labels
 
 
 def test_k_nearest_routes_used(monkeypatch):
