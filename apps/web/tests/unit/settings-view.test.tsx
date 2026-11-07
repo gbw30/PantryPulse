@@ -64,6 +64,20 @@ it("a queued lookup or route job re-reads its list when the job ends (GET /jobs/
   await waitFor(() => expect(networkApi.routes).toHaveBeenCalledTimes(3));
 });
 
+it("a job state outside the contract stops the polling and re-reads the list once", async () => {
+  vi.spyOn(networkApi, "retryEnrichment").mockResolvedValue(example("ForecastAccepted"));
+  let answer!: (job: Schema["ForecastJob"]) => void;
+  const job = vi.spyOn(networkApi, "job").mockImplementation(() => new Promise((resolve) => { answer = resolve; }));
+  render(<SettingsView />);
+  fireEvent.click(await screen.findByRole("button", { name: "Retry lookups" }));
+  // Mount, then the queued state right away.
+  await waitFor(() => expect(networkApi.enrichment).toHaveBeenCalledTimes(2));
+  await act(async () => answer({ state: "PAUSED" } as unknown as Schema["ForecastJob"]));
+  // Once more when the poll gives up, with no further job read.
+  await waitFor(() => expect(networkApi.enrichment).toHaveBeenCalledTimes(3));
+  expect(job).toHaveBeenCalledTimes(1);
+});
+
 it("switching network never shows the previous network's locations or routes under the new name", async () => {
   const { rerender } = render(<SettingsView />);
   const firstLocation = example("EnrichmentStatus").locations[0].location_id;

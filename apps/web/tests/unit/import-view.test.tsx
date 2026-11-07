@@ -29,6 +29,18 @@ beforeEach(() => {
 const csv = (name: string) => new File(["x"], name, { type: "text/csv" });
 const asOf = () => screen.getByLabelText("Stock snapshot date (as_of_date)");
 
+/** Fill in a new Pantry network with every template file and press "Check and import". */
+async function importAll() {
+  vi.spyOn(networkApi, "createImport").mockResolvedValue(example("ImportCreated"));
+  vi.spyOn(networkApi, "uploadImportFile").mockResolvedValue(example("ImportFile"));
+  const user = userEvent.setup();
+  render(<ImportView />);
+  fireEvent.change(await screen.findByLabelText("Network name"), { target: { value: "My pantries" } });
+  fireEvent.click(screen.getByRole("radio", { name: /^Pantry network/ }));
+  for (const t of example("TemplateCatalog").templates) await user.upload(screen.getByLabelText(`${t.name}.csv (${t.required ? "required" : "optional"})`), csv(`${t.name}.csv`));
+  fireEvent.click(screen.getByRole("button", { name: "Check and import" }));
+}
+
 it("a slower scan of an earlier demand_history.csv never overwrites the later file's date", async () => {
   let finishFirst!: (last: string | null) => void;
   vi.mocked(lastHistoryDate)
@@ -66,4 +78,32 @@ it("losing the status check after the commit was accepted never claims nothing w
   fireEvent.click(screen.getByRole("button", { name: "Check again" }));
   await screen.findByText(example("ImportStatus").failure!.message);
   expect(status).toHaveBeenCalledTimes(2);
+});
+
+it("an import phase outside the contract stops the polling and says the status is unknown", async () => {
+  vi.spyOn(networkApi, "commitImport").mockResolvedValue(example("ImportAccepted"));
+  const status = vi.spyOn(networkApi, "importStatus").mockResolvedValue({ ...example("ImportStatus"), phase: "archived" } as unknown as ReturnType<typeof example<"ImportStatus">>);
+  await importAll();
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("The import reported a status this page doesn't know (archived). It may still finish; nothing is known yet about what was saved.");
+  expect(screen.getByRole("button", { name: "Check again" })).toBeVisible();
+  expect(status).toHaveBeenCalledTimes(1);
+});
+
+it("a commit with no answer never claims nothing was saved: the run is read again", async () => {
+  const created = example("ImportCreated");
+  vi.spyOn(networkApi, "commitImport").mockRejectedValue(new ApiError("NETWORK_ERROR", 0));
+  const status = vi.spyOn(networkApi, "importStatus").mockResolvedValue(example("ImportStatus"));
+  await importAll();
+  await screen.findByText(example("ImportStatus").failure!.message);
+  expect(status).toHaveBeenCalledWith(created.import_id);
+  expect(screen.queryByText(/Nothing was saved/)).not.toBeInTheDocument();
+});
+
+it("a commit the server refused still says nothing was saved", async () => {
+  vi.spyOn(networkApi, "commitImport").mockRejectedValue(new ApiError("AS_OF_DATE_INVALID", 422));
+  const status = vi.spyOn(networkApi, "importStatus");
+  await importAll();
+  expect(await screen.findByRole("alert")).toHaveTextContent("Import request failed (as of date invalid). Nothing was saved.");
+  expect(status).not.toHaveBeenCalled();
 });

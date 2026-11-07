@@ -66,6 +66,11 @@ it('"on your last 4 weeks, this forecast was off by about X%" plus over/under bi
   expect(screen.getByText("It forecast too high by about 5% on average.")).toBeVisible();
 });
 
+it('one evaluated week reads "on your last week", never "last 1 weeks"', () => {
+  panel({ score: { ...evaluated.score, origins_evaluated: 1 } });
+  expect(screen.getByText("on your last week, this forecast was off by about 18%")).toBeVisible();
+});
+
 it('"expected donations (forecast, not confirmed): X"', () => {
   panel({ donationForecast: { units: 120, unit: "case" } });
   expect(screen.getByText("expected donations (forecast, not confirmed): 120 cases")).toBeVisible();

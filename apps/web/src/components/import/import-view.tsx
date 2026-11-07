@@ -7,7 +7,7 @@ import { useNetwork } from "@/components/shell/network-switcher";
 import { networkApi, type ImportStatus, type TemplateCatalog, type TemplateName } from "@/lib/network-api";
 import { ApiError } from "@/lib/planning-api";
 import { ImportErrors } from "./import-errors";
-import { ImportProgress } from "./import-progress";
+import { ImportProgress, PHASE_LABEL } from "./import-progress";
 import { asOfDateToSend, lastHistoryDate, NetworkSettings, type NetworkSettingsValue } from "./network-settings";
 import { TemplateGuide } from "./template-guide";
 import { UploadForm, type ChosenFiles } from "./upload-form";
@@ -18,8 +18,8 @@ type Run =
   | { step: "uploading"; done: number; total: number }
   | { step: "tracking"; status: ImportStatus | null }
   | { step: "request_failed"; code: string }
-  /** The commit was accepted but a status read failed: the import may still finish. */
-  | { step: "lost"; importId: string; code: string };
+  /** The commit may have been accepted, but no status could be read or understood: the import may still finish. */
+  | { step: "lost"; importId: string; reason: string };
 
 const POLL_MS = 1000;
 const TERMINAL = new Set<ImportStatus["phase"]>(["done", "failed"]);
@@ -112,7 +112,7 @@ function ImportContent() {
     setProblems(missing);
     if (missing.length) return;
     const chosen = templates.filter((t) => files[t.name]).map((t) => [t.name, files[t.name]!] as const);
-    let importId: string;
+    let importId: string | null = null;
     try {
       setRun({ step: "uploading", done: 0, total: chosen.length });
       const created = await networkApi.createImport(reimport
@@ -122,11 +122,15 @@ function ImportContent() {
         await networkApi.uploadImportFile(created.import_id, name, file);
         if (alive.current) setRun({ step: "uploading", done: index + 1, total: chosen.length });
       }
-      await networkApi.commitImport(created.import_id, { as_of_date: asOfDateToSend(settings, lastHistory) });
       importId = created.import_id;
+      await networkApi.commitImport(importId, { as_of_date: asOfDateToSend(settings, lastHistory) });
     } catch (error) {
-      if (alive.current) setRun({ step: "request_failed", code: codeOf(error) });
-      return;
+      // Nothing is saved before the commit or when it is refused (4xx). A commit with no answer may have been accepted: read the run.
+      const refused = error instanceof ApiError && error.status >= 400 && error.status < 500;
+      if (importId === null || refused) {
+        if (alive.current) setRun({ step: "request_failed", code: codeOf(error) });
+        return;
+      }
     }
     await track(importId);
   }
@@ -138,6 +142,10 @@ function ImportContent() {
       for (;;) {
         const status = await networkApi.importStatus(importId);
         if (!alive.current) return;
+        if (!Object.hasOwn(PHASE_LABEL, status.phase)) {
+          setRun({ step: "lost", importId, reason: `The import reported a status this page doesn't know (${describe(status.phase)}).` });
+          return;
+        }
         setRun({ step: "tracking", status });
         if (TERMINAL.has(status.phase)) {
           if (status.phase === "done") {
@@ -149,7 +157,7 @@ function ImportContent() {
         await sleep(POLL_MS);
       }
     } catch (error) {
-      if (alive.current) setRun({ step: "lost", importId, code: codeOf(error) });
+      if (alive.current) setRun({ step: "lost", importId, reason: `Lost contact with the import (${describe(codeOf(error))}).` });
     }
   }
 
@@ -226,7 +234,7 @@ function ImportContent() {
             )}
             {run.step === "lost" && (
               <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-pp-warning bg-card px-4 py-3 text-sm">
-                Lost contact with the import ({describe(run.code)}). It may still finish; nothing is known yet about what was saved.
+                {run.reason} It may still finish; nothing is known yet about what was saved.
                 <Button variant="outline" size="sm" onClick={() => { const { importId } = run; void track(importId); }}>Check again</Button>
               </div>
             )}

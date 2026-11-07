@@ -1,10 +1,16 @@
 // covers: V1-A13
 import { render, screen, within } from "@testing-library/react";
-import { expect, it } from "vitest";
-import { DangerRanking } from "@/components/overview/danger-ranking";
+import { expect, it, vi } from "vitest";
+import { DangerRanking, DangerRankingSection } from "@/components/overview/danger-ranking";
+import { networkApi } from "@/lib/network-api";
 import { example } from "./contract-examples";
 
 const pantry = example("DangerRanking");
+const retailNetwork = example("NetworkList").networks.find((n) => n.mode === "RETAIL")!;
+vi.mock("@/components/shell/network-switcher", async (load) => ({
+  ...(await load<typeof import("@/components/shell/network-switcher")>()),
+  useNetwork: () => ({ state: { status: "ready", networks: [retailNetwork] }, network: retailNetwork, reload: vi.fn(), select: vi.fn() }),
+}));
 
 function retail() {
   const ranking = example("DangerRanking");
@@ -60,4 +66,12 @@ it("the table alternative lists the same rows in the same order", () => {
   expect(rows.map((r) => within(r).getAllByRole("cell")[0].textContent)).toEqual(pantry.rows.map((r) => r.location_id));
   expect(rows[0]).toHaveTextContent("High danger");
   expect(rows[0]).toHaveTextContent("55 cases");
+});
+
+it("a Retail forecast with nothing at risk names both risks: lost sales and stock expiring unsold", async () => {
+  vi.spyOn(networkApi, "danger").mockResolvedValue({ ...retail(), rows: [] });
+  vi.spyOn(networkApi, "locations").mockResolvedValue(example("LocationList"));
+  render(<DangerRankingSection forecastRunId={pantry.forecast_run_id} />);
+  expect(await screen.findByText("No location is projected to lose sales or to have stock expire unsold in this forecast.")).toBeVisible();
+  vi.restoreAllMocks();
 });

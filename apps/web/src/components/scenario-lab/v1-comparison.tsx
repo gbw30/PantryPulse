@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { SampleBadge, useNetwork } from "@/components/shell/network-switcher";
 import { Button } from "@/components/ui/button";
 import { modeSummary } from "@/lib/mode-vocabulary";
-import { JOB_ENDED as TERMINAL, networkApi, type Network } from "@/lib/network-api";
+import { JOB_ACTIVE, JOB_ENDED, networkApi, type Network } from "@/lib/network-api";
 import { ApiError, type Schema } from "@/lib/planning-api";
 import { V1_METHODS, type V1Measure, type V1Method } from "./model";
 import { MethodComparisonResults } from "./results";
@@ -15,8 +15,9 @@ const POLL_MS = 1000;
 type Shown = { saved: Schema["SavedComparisonV3"]; scenario: Schema["ScenarioV3"]; requested: V1Method[] };
 type Job = { jobId: string; resultUrl: string; scenario: Schema["ScenarioV3"]; requested: V1Method[] };
 // "lost": the accepted job is durable and may still finish, so comparing again would queue a duplicate.
-type Status = { kind: "idle" } | { kind: "busy"; text: string } | { kind: "error"; text: string } | { kind: "lost"; job: Job; code: string };
+type Status = { kind: "idle" } | { kind: "busy"; text: string } | { kind: "error"; text: string } | { kind: "lost"; job: Job; reason: string };
 
+const words = (code: string) => code.replaceAll("_", " ").toLowerCase();
 const failure = (error: unknown) => (error instanceof ApiError ? `${error.message} (${error.code})` : "the request failed");
 
 /** v1 method comparison for the chosen network (V1-SPEC §6.2), on the forecast run named in the URL (CR-w1-web-2). */
@@ -73,13 +74,17 @@ function Comparison({ network, forecastRunId }: { network: Network; forecastRunI
     setStatus({ kind: "busy", text: "Comparing methods… A queued or running job is not a result." });
     try {
       let { state } = await networkApi.job(job.jobId);
-      while (!TERMINAL.has(state)) {
+      while (JOB_ACTIVE.has(state)) {
         await new Promise((resolve) => setTimeout(resolve, POLL_MS));
         if (!alive.current) return;
         ({ state } = await networkApi.job(job.jobId));
       }
+      if (!JOB_ENDED.has(state)) {
+        if (alive.current) setStatus({ kind: "lost", job, reason: `The comparison job reported a status this page doesn't know (${words(state)}).` });
+        return;
+      }
       if (state !== "SUCCEEDED") {
-        if (alive.current) setStatus({ kind: "error", text: `No comparison result: comparison ${state.replaceAll("_", " ").toLowerCase()}. Nothing is substituted.` });
+        if (alive.current) setStatus({ kind: "error", text: `No comparison result: comparison ${words(state)}. Nothing is substituted.` });
         return;
       }
       const saved = await networkApi.comparisonAt(job.resultUrl);
@@ -87,7 +92,7 @@ function Comparison({ network, forecastRunId }: { network: Network; forecastRunI
       setShown({ saved, scenario: job.scenario, requested: job.requested });
       setStatus({ kind: "idle" });
     } catch (error) {
-      if (alive.current) setStatus({ kind: "lost", job, code: error instanceof ApiError ? error.code : "REQUEST_FAILED" });
+      if (alive.current) setStatus({ kind: "lost", job, reason: `Lost contact with the comparison job (${words(error instanceof ApiError ? error.code : "REQUEST_FAILED")}).` });
     }
   }
 
@@ -108,7 +113,7 @@ function Comparison({ network, forecastRunId }: { network: Network; forecastRunI
           {status.kind === "error" && <p role="alert" className="text-sm">{status.text}</p>}
           {status.kind === "lost" && (
             <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-pp-warning bg-card px-4 py-3 text-sm">
-              Lost contact with the comparison job ({status.code.replaceAll("_", " ").toLowerCase()}). It may still finish; check again before comparing again.
+              {status.reason} It may still finish; check again before comparing again.
               <Button variant="outline" size="sm" onClick={() => { const { job } = status; void follow(job); }}>Check again</Button>
             </div>
           )}

@@ -3,7 +3,7 @@ import type { ImportStatus } from "@/lib/network-api";
 
 export { NO_INBOUND };
 
-const PHASE_LABEL: Record<ImportStatus["phase"], string> = {
+export const PHASE_LABEL: Record<ImportStatus["phase"], string> = {
   uploading: "Uploading files", staging: "Reading files", validating: "Checking every row",
   committing: "Saving the network", done: "Import finished", failed: "Import failed",
 };

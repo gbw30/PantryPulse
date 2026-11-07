@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AppShell } from "@/components/shell/app-shell";
 import { SampleBadge, useNetwork } from "@/components/shell/network-switcher";
-import { JOB_ENDED, networkApi, type Network } from "@/lib/network-api";
+import { JOB_ACTIVE, networkApi, type Network } from "@/lib/network-api";
 import { ApiError } from "@/lib/planning-api";
 import { EnrichmentStatusPanel } from "./enrichment-status";
 import { GoogleFetch } from "./google-fetch";
@@ -90,7 +90,7 @@ function NetworkSections({ network, configured }: { network: Network; configured
   async function reloadWhenDone(jobId: string, reload: () => void) {
     reload();
     try {
-      while (!JOB_ENDED.has((await networkApi.job(jobId)).state)) {
+      while (JOB_ACTIVE.has((await networkApi.job(jobId)).state)) {
         await new Promise((resolve) => setTimeout(resolve, POLL_MS));
         if (!alive.current) return;
       }

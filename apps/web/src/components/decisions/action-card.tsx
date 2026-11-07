@@ -20,7 +20,8 @@ export function effectLines(action: Action, mode: NetworkMode, usdUnavailableRea
   const { effect } = action;
   const short = mode === "RETAIL" ? "lost sales" : "unmet need";
   const usd = mode !== "RETAIL" ? null : effect.usd_delta !== null
-    ? `Value lost (USD): ${usdChange(effect.usd_delta)}`
+    // price × (Δunmet + Δexpired), the CSV's wording: neither the objective nor a loss.
+    ? `Dollar value of the units changed (USD): ${usdChange(effect.usd_delta)}`
     : `USD effect unavailable: ${usdUnavailableReason ?? "this plan was compared in units"}`;
   return {
     receiver: `Receiver ${short}: ${change(effect.receiver_unmet_delta, effect.unit)}`,
@@ -79,7 +80,6 @@ export function ActionCard({ action, mode, usdUnavailableReason, selected, onSel
           <li>{lines.expired}</li>
           {lines.usd && <li>{lines.usd}</li>}
         </ul>
-        <p className="text-xs text-muted-foreground">Product {action.effect.product_id}; units as in the plan.</p>
       </section>
     </article>
   );

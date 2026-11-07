@@ -37,3 +37,20 @@ it("losing the job status mid-comparison keeps the job: no new job is queued, an
   expect((await screen.findAllByText("Verified by the independent check")).length).toBeGreaterThan(0);
   expect(submit).toHaveBeenCalledTimes(1);
 });
+
+it("a job state outside the contract stops the polling and says the status is unknown", async () => {
+  const accepted = { ...example("ForecastAccepted"), result_url: `/api/v1/networks/${network.id}/comparisons/${example("ForecastAccepted").job_id}` };
+  vi.spyOn(networkApi, "createScenario").mockResolvedValue(example("ScenarioV3"));
+  vi.spyOn(networkApi, "submitComparison").mockResolvedValue(accepted);
+  const job = vi.spyOn(networkApi, "job").mockResolvedValue({ job_id: accepted.job_id, state: "PAUSED" } as unknown as Schema["ForecastJob"]);
+  render(<MethodComparisonSection forecastRunId={example("ScenarioV3").payload.forecast_run_id} />);
+  fireEvent.click(screen.getByRole("radio", { name: "Hub and pantries → pantries" }));
+  fireEvent.click(screen.getByRole("radio", { name: "3 days" }));
+  fireEvent.click(screen.getByRole("button", { name: "Freeze scenario" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Compare methods" }));
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("The comparison job reported a status this page doesn't know (paused). It may still finish; check again before comparing again.");
+  expect(screen.getByRole("button", { name: "Compare methods" })).toBeDisabled();
+  expect(job).toHaveBeenCalledTimes(1);
+});

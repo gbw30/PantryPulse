@@ -189,7 +189,9 @@ function RankingSection({ network, forecastRunId }: { network: Network; forecast
             )}
             {load.status === "ready" && (
               load.ranking.rows.length === 0
-                ? <p className="text-sm">No location is projected to run short in this forecast.</p>
+                ? <p className="text-sm">{load.ranking.mode === "RETAIL"
+                  ? "No location is projected to lose sales or to have stock expire unsold in this forecast."
+                  : "No location is projected to run short in this forecast."}</p>
                 : <DangerRanking ranking={load.ranking} label={label} onSelect={select} canSelect={(id) => byId.has(id)} />
             )}
           </div>

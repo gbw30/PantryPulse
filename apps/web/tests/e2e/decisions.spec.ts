@@ -117,6 +117,25 @@ test("@V1-A16 a method without a verified plan shows no actions and no export", 
   await expect(section.getByRole("button", { name: /Export CSV/ })).toHaveCount(0);
 });
 
+test("@V1-A16 the print page of a method without a verified plan prints no actions", async ({ page }) => {
+  const base = `networks/${network.id}/comparisons/${saved.id}`;
+  const egp = saved.result.methods.find((m) => m.method === "EGP_PI_INSPIRED")!;
+  await mockV1(page, {
+    "GET networks": { body: { networks: [network] } },
+    [`GET networks/${network.id}`]: { body: network },
+    [`GET ${base}`]: { body: saved },
+    // The actions endpoint still answers: the page itself must not print an unverified plan.
+    [`GET ${base}/methods/EGP_PI_INSPIRED/actions`]: { body: { ...decisions(), method: "EGP_PI_INSPIRED" } },
+  });
+  await page.goto(`/decisions/print?network_id=${network.id}&comparison_id=${saved.id}&method=EGP_PI_INSPIRED&actions=T-1`);
+  const main = page.getByRole("main");
+  await expect(main).toContainText("EGP-PI-inspired has no verified plan in this comparison, so there are no suggested actions.");
+  await expect(main).toContainText(egp.failure_reason!);
+  await expect(page.getByRole("table", { name: "Selected actions" })).toHaveCount(0);
+  await expect(main).not.toContainText(decisions().actions[0].action_text);
+  await expect(main).not.toContainText(NOTE);
+});
+
 test("@V1-A16 a comparison not found in the chosen network says to choose its network", async ({ page }) => {
   // Requests are scoped to the sidebar network, so another network's comparison comes back 404.
   await mockV1(page, { "GET networks": { body: { networks: [network] } } });

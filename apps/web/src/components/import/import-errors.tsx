@@ -30,8 +30,9 @@ export function ImportErrors({ status, onStartOver }: { status: ImportStatus; on
                 <tr>{["File", "Line", "Column", "Value", "Problem", "How to fix"].map((h) => <th key={h} scope="col" className="px-3 py-2 font-medium">{h}</th>)}</tr>
               </thead>
               <tbody>
-                {status.errors.map((error) => (
-                  <tr key={`${error.file}:${error.line}:${error.column}:${error.code}`} className="border-t border-border align-top">
+                {/* Rows hold no state, and file:line:column:code repeats when column is null, so the position is the key. */}
+                {status.errors.map((error, index) => (
+                  <tr key={index} className="border-t border-border align-top">
                     <td className="px-3 py-2"><code className="font-mono">{error.file}.csv</code></td>
                     <td className="px-3 py-2 tabular-nums">{error.line}</td>
                     <td className="px-3 py-2"><code className="font-mono">{error.column ?? "—"}</code></td>

@@ -13,6 +13,10 @@ import { ActionList } from "./action-list";
 import { ExportBar, PlanNotes } from "./export-bar";
 
 export const isV1Method = (value: string | undefined): value is V1Method => !!value && Object.hasOwn(V1_METHOD_LABEL, value);
+type MethodResult = Schema["SavedComparisonV3"]["result"]["methods"][number];
+/** Decisions and its print page show actions only for a verified plan. */
+export const noVerifiedPlan = (method: V1Method, result: MethodResult | undefined) =>
+  `${V1_METHOD_LABEL[method]} has no verified plan in this comparison, so there are no suggested actions.${result?.failure_reason ? ` ${result.failure_reason}.` : ""}`;
 const failure = (error: unknown) => (error instanceof ApiError ? `${error.message} (${error.code})` : "the request failed");
 
 type Load = { status: "loading" } | { status: "error"; text: string }
@@ -110,9 +114,7 @@ function Loaded({ network, comparisonId, method }: { network: Network; compariso
           </div>
           <PlanNotes saved={ready.saved} />
           {!result?.verified ? (
-            <p className="text-sm">
-              {label} has no verified plan in this comparison, so there are no suggested actions.{result?.failure_reason ? ` ${result.failure_reason}.` : ""}
-            </p>
+            <p className="text-sm">{noVerifiedPlan(method, result)}</p>
           ) : (<>
           <ExportBar total={ready.decisions.actions.length} count={ids.length} busy={exporting} printHref={printHref} onExport={() => void exportCsv()}
             onSelectAll={() => setSelected(new Set(ready.decisions.actions.map((a) => a.id)))} onClear={() => setSelected(new Set())} />

@@ -26,6 +26,16 @@ it("renders file, line, column and reason per error", () => {
   }
 });
 
+it("two errors on the same line, column unknown and same code both render without a key clash", () => {
+  const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+  const twin = { ...failed.errors[0], column: null, value: null };
+  render(<ImportErrors status={{ ...failed, error_count: 2, errors: [{ ...twin, reason: "First problem." }, { ...twin, reason: "Second problem." }] }} onStartOver={() => {}} />);
+  expect(screen.getByText("First problem.")).toBeVisible();
+  expect(screen.getByText("Second problem.")).toBeVisible();
+  expect(logged.mock.calls.flat().join(" ")).not.toMatch(/same key/);
+  logged.mockRestore();
+});
+
 it('shows "first 1,000 of N errors" when error_count > 1000', () => {
   const many = { ...failed, error_count: 2345, errors_truncated: true,
     errors: Array.from({ length: 1000 }, (_, i) => ({ ...failed.errors[0], line: i + 2 })) };

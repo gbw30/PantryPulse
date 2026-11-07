@@ -26,6 +26,8 @@ it("action/why/effect three parts", () => {
   expect(article).toHaveTextContent("Sender unmet need: unchanged");
   expect(article).toHaveTextContent("Expired: unchanged");
   expect(within(article).getByRole("checkbox", { name: "Include in export" })).not.toBeChecked();
+  // Effect lines carry the product's unit, so there is no "units as in the plan" caveat.
+  expect(article).not.toHaveTextContent(/units as in the plan/);
 });
 
 it("proven vs inferred badge", () => {
@@ -57,7 +59,9 @@ it("USD effect hidden with reason when unavailable", () => {
   expect(screen.getByText(/Receiver lost sales: 40 cases lower/)).toBeVisible();
   unmount();
   const { unmount: unmount2 } = card({ mode: "RETAIL", action: { ...action, effect: { ...action.effect, usd_delta: "-180.00" } } });
-  expect(screen.getByText("Value lost (USD): $180.00 lower")).toBeVisible();
+  // price × (Δunmet + Δexpired): not the objective and not a loss, so never "Value lost".
+  expect(screen.getByText("Dollar value of the units changed (USD): $180.00 lower")).toBeVisible();
+  expect(screen.queryByText(/Value lost/)).not.toBeInTheDocument();
   expect(screen.queryByText(/USD effect unavailable/)).not.toBeInTheDocument();
   unmount2();
   // Pantry plans are never in USD: no USD line at all.

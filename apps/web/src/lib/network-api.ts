@@ -4,6 +4,8 @@ import { api, ApiError, apiRaw, apiText, apiWrite, type Schema } from "./plannin
 const seg = encodeURIComponent;
 /** Job states after which `GET /jobs/{id}` will not change. */
 export const JOB_ENDED = new Set<Schema["AttemptState"]>(["SUCCEEDED", "FAILED", "TIMED_OUT", "INTERRUPTED", "CANCELLED", "EXPIRED"]);
+/** Job states worth polling again. Any other state, ended or outside the contract, stops a poll. */
+export const JOB_ACTIVE = new Set<Schema["AttemptState"]>(["QUEUED", "RUNNING", "STOPPING"]);
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const COMPARISON_URL = new RegExp(`^/api/v1/networks/${UUID}/comparisons/${UUID}$`, "i");
 
