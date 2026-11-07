@@ -13,10 +13,16 @@ import pytest
 import sqlalchemy as sa
 from fake_driver import FakeDriver
 
-from app.repositories.jobs import QueueRepository, TrustedScope
-from app.services.jobs.contracts import AttemptState, RuntimeProfile, SupervisorState
+from app.repositories.jobs import QueueRepository, QueueStorageUnavailable, TrustedScope
+from app.services.jobs.contracts import (
+    AttemptState,
+    OperationKind,
+    RuntimeProfile,
+    SupervisorState,
+)
+from app.services.jobs.registry import PublicationRejected, Registration, Registry
 from app.workers.supervisor import Supervisor, SupervisorConfig
-from app.workers.testing import REGISTRY
+from app.workers.testing import REGISTRY, EchoHandler, FixturePublisher
 
 pytestmark = pytest.mark.integration
 
@@ -743,3 +749,319 @@ def test_failed_spawn_is_not_retried_when_finalization_storage_recovers(q, org, 
     assert attempt.reason_code == "SPAWN_FAILED"
     assert not driver.started  # only an explicit retry may run this attempt's input again
     sup.shutdown_drain()
+
+
+# --- publication preparation hook (CR-w1-data-2) ---------------------------------------------
+
+
+class _PreparingPublisher(FixturePublisher):
+    """Echo publisher with the optional prepare/discard hooks; records every call."""
+
+    def __init__(self):
+        super().__init__("echo")
+        self.prepared, self.discarded = [], []
+        self.on_prepare = None
+        self.discard_error = False
+
+    def prepare(self, engine, identity, package, *, remaining_s):
+        with engine.connect() as conn:  # the queue control row must not be locked here
+            conn.execute(sa.text("SET LOCAL lock_timeout = '200ms'"))
+            conn.execute(sa.text("SELECT 1 FROM compute_control FOR UPDATE NOWAIT"))
+            conn.rollback()
+        self.prepared.append((identity, remaining_s))
+        if self.on_prepare:
+            self.on_prepare(identity)
+        return {**package, "prepared_by": str(identity.attempt_id)}
+
+    def discard(self, engine, identity):
+        self.discarded.append(identity)
+        if self.discard_error:
+            raise RuntimeError("cleanup failed")
+
+
+@pytest.fixture
+def prep():
+    publisher = _PreparingPublisher()
+    registry = Registry(
+        [
+            Registration(
+                contract="test.prepared.v1",
+                operation_kind=OperationKind.ALLOCATION,
+                input_schema_version="1",
+                max_input_bytes=16_384,
+                max_output_bytes=65_536,
+                handler=EchoHandler(),
+                publisher=publisher,
+            )
+        ]
+    )
+    return publisher, registry
+
+
+def _prep_started(repo, registry):
+    config = SupervisorConfig(registry_name="test", profile=PROFILE, tick_s=0.02)
+    sup = Supervisor(repo, registry, FakeDriver(registry=registry), config)
+    _created.append(sup)
+    assert sup.start()
+    return sup
+
+
+def _prep_run(db, org, prep, payload=None, cls=QueueRepository):
+    publisher, registry = prep
+    repo = cls(db, registry=registry, profile=PROFILE)
+    sup = _prep_started(repo, registry)
+    accepted = submit(repo, org, contract="test.prepared.v1", payload=payload)
+    done = settled(repo, org, accepted.job_id)
+    run_until(sup, lambda: done() and sup.active is None)
+    attempt = repo.get_job(org, accepted.job_id).attempts[0]
+    assert repo.control().active_attempt_id is None
+    sup.shutdown_drain()
+    return repo, attempt
+
+
+def test_prepared_package_is_published_without_discard(db, org, prep):
+    publisher, _ = prep
+    repo, attempt = _prep_run(db, org, prep)
+    assert attempt.state is AttemptState.SUCCEEDED
+    assert _fixture_payload(repo, attempt.attempt_id)["prepared_by"] == str(attempt.attempt_id)
+    [(identity, remaining_s)] = publisher.prepared
+    assert identity.attempt_id == attempt.attempt_id
+    assert identity.organization_id == org.organization_id
+    assert 0 < remaining_s < PROFILE.allocation_total_s
+    assert publisher.discarded == []
+
+
+def test_rejected_publication_discards_the_prepared_data(db, org, prep):
+    publisher, _ = prep
+    payload = {"value": 3, "behavior": {}, "publish_fail": True}
+    _, attempt = _prep_run(db, org, prep, payload)
+    assert attempt.state is AttemptState.FAILED
+    assert [i.attempt_id for i in publisher.discarded] == [attempt.attempt_id]
+
+
+@pytest.mark.parametrize("error", [PublicationRejected("IMPORT_REJECTED"), RuntimeError("load")])
+def test_prepare_failure_fails_the_attempt_and_discards(db, org, prep, error):
+    publisher, _ = prep
+
+    def reject(identity):
+        raise error
+
+    publisher.on_prepare = reject
+    _, attempt = _prep_run(db, org, prep)
+    assert attempt.state is AttemptState.FAILED
+    assert attempt.reason_code == "PUBLICATION_REJECTED"
+    assert len(publisher.discarded) == 1
+
+
+def test_prepare_past_the_deadline_times_out_and_discards(db, org, prep):
+    publisher, _ = prep
+    publisher.on_prepare = lambda identity: time.sleep(PROFILE.allocation_total_s)
+    _, attempt = _prep_run(db, org, prep)
+    assert attempt.state is AttemptState.TIMED_OUT
+    assert len(publisher.discarded) == 1
+
+
+def test_cancel_during_prepare_discards(db, org, prep):
+    publisher, registry = prep
+    repo = QueueRepository(db, registry=registry, profile=PROFILE)
+    publisher.on_prepare = lambda identity: repo.cancel(org, identity.job_id, "cancel-prep")
+    sup = _prep_started(repo, registry)
+    accepted = submit(repo, org, contract="test.prepared.v1")
+    done = settled(repo, org, accepted.job_id)
+    run_until(sup, lambda: done() and sup.active is None)
+    assert job_state(repo, org, accepted.job_id) is AttemptState.CANCELLED
+    assert len(publisher.discarded) == 1
+    sup.shutdown_drain()
+
+
+def test_storage_retry_publishes_without_preparing_twice(db, org, prep, monkeypatch):
+    publisher, _ = prep
+    real, calls = QueueRepository.publish, []
+
+    def flaky(self, *args):
+        calls.append(1)
+        if len(calls) == 1:
+            raise QueueStorageUnavailable("blip")
+        return real(self, *args)
+
+    monkeypatch.setattr(QueueRepository, "publish", flaky)
+    _, attempt = _prep_run(db, org, prep)
+    assert attempt.state is AttemptState.SUCCEEDED
+    assert len(calls) == 2 and len(publisher.prepared) == 1
+    assert publisher.discarded == []
+
+
+@pytest.mark.parametrize(
+    ("cls", "expected", "discards"),
+    [(_CommitThenLose, AttemptState.SUCCEEDED, 0), (_LoseBeforeCommit, AttemptState.FAILED, 1)],
+)
+def test_reconciled_publication_discards_only_when_lost(db, org, prep, cls, expected, discards):
+    publisher, _ = prep
+    _, attempt = _prep_run(db, org, prep, cls=cls)
+    assert attempt.state is expected
+    assert len(publisher.discarded) == discards
+
+
+def test_failed_discard_does_not_block_finalization(db, org, prep):
+    publisher, _ = prep
+    publisher.discard_error = True
+    _, attempt = _prep_run(db, org, prep, {"value": 3, "behavior": {}, "publish_fail": True})
+    assert attempt.state is AttemptState.FAILED
+    assert len(publisher.discarded) == 1
+
+
+# --- named secrets in the child environment (W1-D08 Google key, Gabriel 2026-11-07) --------
+
+
+def _secret_registry(child_secrets):
+    return Registry(
+        [
+            Registration(
+                contract="test.secret.v1",
+                operation_kind=OperationKind.ALLOCATION,
+                input_schema_version="1",
+                max_input_bytes=16_384,
+                max_output_bytes=65_536,
+                handler=EchoHandler(),
+                publisher=FixturePublisher("echo"),
+                child_secrets=child_secrets,
+            )
+        ]
+    )
+
+
+@pytest.fixture
+def google_key(db):
+    with db.begin() as conn:
+        conn.execute(sa.text("DELETE FROM local_secrets"))
+    yield
+    with db.begin() as conn:
+        conn.execute(sa.text("DELETE FROM local_secrets"))
+
+
+def _secret_run(db, org, registry):
+    repo = QueueRepository(db, registry=registry, profile=PROFILE)
+    driver = FakeDriver(registry=registry)
+    config = SupervisorConfig(registry_name="test", profile=PROFILE, tick_s=0.02)
+    sup = Supervisor(repo, registry, driver, config)
+    _created.append(sup)
+    assert sup.start()
+    accepted = submit(repo, org, contract="test.secret.v1")
+    done = settled(repo, org, accepted.job_id)
+    run_until(sup, lambda: done() and sup.active is None)
+    sup.shutdown_drain()
+    return repo, driver, accepted
+
+
+def test_declared_secret_reaches_only_the_child_env(db, org, google_key, caplog):
+    with db.begin() as conn:
+        conn.execute(
+            sa.text("INSERT INTO local_secrets (name, value) VALUES ('google_maps_api_key', :v)"),
+            {"v": "k-secret-xyz"},
+        )
+    caplog.set_level("DEBUG")
+    repo, driver, accepted = _secret_run(db, org, _secret_registry(("google_maps_api_key",)))
+    assert job_state(repo, org, accepted.job_id) is AttemptState.SUCCEEDED
+    assert driver.child_envs == [{"PP_SECRET_GOOGLE_MAPS_API_KEY": "k-secret-xyz"}]
+    view = repo.get_job(org, accepted.job_id)
+    stored = repr(view) + repr(repo.audit_events(accepted.job_id)) + caplog.text
+    with db.connect() as conn:
+        stored += repr(conn.execute(sa.text("SELECT * FROM compute_jobs")).all())
+        stored += repr(conn.execute(sa.text("SELECT * FROM compute_attempts")).all())
+    assert "k-secret-xyz" not in stored
+
+
+def test_undeclared_registration_gets_no_secret(db, org, google_key):
+    with db.begin() as conn:
+        conn.execute(
+            sa.text("INSERT INTO local_secrets (name, value) VALUES ('google_maps_api_key', 'k')")
+        )
+    _, driver, _ = _secret_run(db, org, _secret_registry(()))
+    assert driver.child_envs == [{}]
+
+
+def test_missing_secret_fails_before_spawn(db, org, google_key):
+    repo, driver, accepted = _secret_run(db, org, _secret_registry(("google_maps_api_key",)))
+    attempt = repo.get_job(org, accepted.job_id).attempts[0]
+    assert attempt.state is AttemptState.FAILED
+    assert attempt.reason_code == "SPAWN_FAILED"
+    assert attempt.error == {"code": "SECRET_UNAVAILABLE"}
+    assert driver.started == [] and driver.child_envs == []
+
+
+def test_secret_names_are_checked():
+    with pytest.raises(ValueError):
+        dataclasses.replace(REGISTRY.get("test.echo.v1"), child_secrets=("Bad-Name",))
+
+
+# verifier findings on PR #103 (F1–F3)
+
+
+def test_timed_out_prepare_is_not_rerun_after_a_storage_blip(db, org, prep, monkeypatch):  # F1
+    publisher, registry = prep
+
+    def slow(identity):
+        raise PublicationRejected("SLOW_LOAD", timed_out=True)
+
+    publisher.on_prepare = slow
+    real, calls = QueueRepository.request_stop, []
+
+    def flaky(self, *args, **kwargs):
+        calls.append(1)
+        if len(calls) == 1:
+            raise QueueStorageUnavailable("blip")
+        return real(self, *args, **kwargs)
+
+    monkeypatch.setattr(QueueRepository, "request_stop", flaky)
+    _, attempt = _prep_run(db, org, prep)
+    assert attempt.state is AttemptState.TIMED_OUT
+    assert len(publisher.prepared) == 1 and len(publisher.discarded) == 1
+
+
+def test_ownership_lost_after_prepare_discards(db, org, prep):  # F2
+    publisher, registry = prep
+
+    def takeover(identity):
+        with db.begin() as conn:
+            conn.execute(sa.text("UPDATE compute_control SET generation = generation + 1"))
+
+    publisher.on_prepare = takeover
+    repo = QueueRepository(db, registry=registry, profile=PROFILE)
+    sup = _prep_started(repo, registry)
+    submit(repo, org, contract="test.prepared.v1")
+    run_until(sup, lambda: sup.ownership_lost)
+    assert len(publisher.prepared) == 1 and len(publisher.discarded) == 1
+
+
+@pytest.mark.parametrize(("outcome", "discards"), [("OTHER_CANCELLED", 1), ("OTHER_SUCCEEDED", 0)])
+def test_reconciled_other_outcome_discards_unless_succeeded(
+    db, org, prep, monkeypatch, outcome, discards
+):  # F3
+    publisher, registry = prep
+    monkeypatch.setattr(_LoseBeforeCommit, "reconcile_publication", lambda *_: outcome)
+    repo = _LoseBeforeCommit(db, registry=registry, profile=PROFILE)
+    sup = _prep_started(repo, registry)
+    submit(repo, org, contract="test.prepared.v1")
+    run_until(sup, lambda: len(publisher.prepared) == 1 and sup.active is None)
+    assert len(publisher.discarded) == discards
+    sup.shutdown_drain()
+
+
+class _CommitThenFence(QueueRepository):
+    def _commit(self, transaction):
+        from sqlalchemy.exc import OperationalError
+
+        transaction.commit()  # the publication really commits
+        with self.engine.begin() as conn:  # another owner takes the lane before the ack
+            conn.execute(sa.text("UPDATE compute_control SET generation = generation + 1"))
+        raise OperationalError("COMMIT", {}, Exception("ack lost"))
+
+
+def test_fenced_during_uncertain_commit_never_discards(db, org, prep):  # verifier N1 on PR #103
+    publisher, registry = prep
+    repo = _CommitThenFence(db, registry=registry, profile=PROFILE)
+    sup = _prep_started(repo, registry)
+    accepted = submit(repo, org, contract="test.prepared.v1")
+    run_until(sup, lambda: sup.ownership_lost)
+    assert repo.get_job(org, accepted.job_id).attempts[0].state is AttemptState.SUCCEEDED
+    assert publisher.discarded == []

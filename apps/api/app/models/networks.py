@@ -10,6 +10,7 @@ own partition and attaches it after load (S4: 4.5 M rows in ~5 s, all-or-nothing
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 
+from app.models.jobs import compute_attempts, compute_jobs
 from app.models.operational import Base, OwnedIdentity, check, fk, instant, owned, uid
 
 MODES = ("PANTRY", "RETAIL")  # the API's NetworkMode, stored as is (ppv1_0010)
@@ -365,3 +366,46 @@ local_logins = sa.Table(
               server_default=sa.func.clock_timestamp()),
     sa.CheckConstraint("password_hash LIKE 'scrypt$%'", name="scrypt"),
 )
+
+
+class PlanningScenarioV3(OwnedIdentity, Base):
+    """A frozen or-input-v3 scenario (ScenarioV3); immutable (trigger), CR-w1-solver-3."""
+
+    __tablename__ = "planning_scenarios_v3"
+    network_id = uid(nullable=False)
+    dataset_version_id = uid(nullable=False)
+    forecast_run_id = uid(nullable=False)
+    content_hash = sa.Column(sa.String(64), nullable=False)
+    payload = sa.Column(JSONB, nullable=False)
+    __table_args__ = owned(
+        fk(["network_id"], "networks", ["id"]),
+        fk(["dataset_version_id"], "dataset_versions", ["id"]),
+        check("content_hash ~ '^[0-9a-f]{64}$'", "hash"),
+    )
+
+
+class PlanningComparisonV3(OwnedIdentity, Base):
+    """A published or-comparison.v3 result; immutable (trigger), CR-w1-solver-3."""
+
+    __tablename__ = "planning_comparisons_v3"
+    network_id = uid(nullable=False)
+    scenario_id = uid(nullable=False)
+    job_id = uid(nullable=False, unique=True)
+    attempt_id = uid(nullable=False, unique=True)
+    measure = sa.Column(sa.Text, nullable=False)
+    result = sa.Column(JSONB, nullable=False)
+    __table_args__ = owned(
+        fk(["network_id"], "networks", ["id"]),
+        fk(["scenario_id"], "planning_scenarios_v3", ["id"]),
+        sa.ForeignKeyConstraint(
+            ["organization_id", "job_id"],
+            [compute_jobs.c.organization_id, compute_jobs.c.job_id],
+            ondelete="RESTRICT",
+        ),
+        sa.ForeignKeyConstraint(
+            ["organization_id", "attempt_id"],
+            [compute_attempts.c.organization_id, compute_attempts.c.attempt_id],
+            ondelete="RESTRICT",
+        ),
+        check("measure IN ('UNITS', 'USD')", "measure"),
+    )

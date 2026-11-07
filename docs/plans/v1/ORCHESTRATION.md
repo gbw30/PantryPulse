@@ -19,7 +19,7 @@ Checked against this setup on 2026-11-04 (Claude Code 2.1.318):
 
 - The Agent tool supports `isolation: "worktree"` and background runs. Every project builder agent (`forecast-engineer`, `solver-engineer`, `frontend-engineer`, `integration-fixer`) declares `isolation: worktree` and `maxTurns: 35` (25 for `integration-fixer`). Harness worktrees live under `.claude/worktrees/` (gitignored), not under `~/code/PantryPulse-<lane>`.
 - The Workflow tool exists, but needs Gabriel's explicit opt-in ("use a workflow"), so this plan does not depend on it.
-- `ListAgents` lists peer Claude sessions on this machine, and `SendMessage` can address them. Whether a freshly opened lane session shows up there is **unverified**. Check it at W0-10. Either way, git/gh is the record.
+- `ListAgents` lists peer Claude sessions on this machine, and `SendMessage` can address them. Checked 2026-11-07: `ListAgents` from the orchestrator lists the other Claude sessions running on this machine. Whether a lane CLI session appears, and whether `SendMessage` reaches it, is confirmed at W1 launch. Either way, git/gh is the record.
 - CI (`.github/workflows/pantrypulse-ci.yml`) runs on every `pull_request` whatever the base, so PRs into `v1-local` get the Linux gates.
 
 **A. In-session.** The orchestrator dispatches a project builder agent (never `general-purpose`, per CLAUDE.md) with a task packet, in a harness worktree, in the background. Use it for bounded work that fits in 35 turns: spikes, one-task fixes, read-only reviews. The orchestrator records the harness worktree path in BOARD.md, then pushes and opens the PR itself.
@@ -119,5 +119,5 @@ Evidence follows CLAUDE.md: exact commit, command and result. Skipped, mocked or
 - Use the TDD loop for every task: write the failing test, run it and see it fail for the expected reason, write the minimal implementation, run it and see it pass, commit. Use `superpowers:verification-before-completion` before any "done" claim.
 - Tag every new e2e title with `@V1-Axx` (the story-coverage convention adopted in W0-09). Put `# covers: V1-Axx` on the first line of new Python test modules.
 - Run `research-claims-check` before writing any UI copy or doc that mentions the EGP-PI research, fairness, forecasts or impact.
-- Gates before the PR: your task's focused tests, `node scripts/quality/run.cjs quick`, then `node scripts/quality/run.cjs full` with `.env.lane` loaded. Zero skips.
+- Gates before the PR: your task's focused tests, `node scripts/quality/run.cjs quick`, then `node scripts/quality/run.cjs full` with `.env.lane` loaded. Quick runs in the standard env; name the PostgreSQL (PP19) suites it skips and never count them as validated. Full runs with `PP19_TEST_SCHEMA_ISOLATION=1` and must show zero skips (Gabriel, 2026-11-07; the api-tests step limit is 480 s).
 - Put durable findings in your status file under "Gotchas". The orchestrator consolidates them at wave end.

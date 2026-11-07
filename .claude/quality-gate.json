@@ -49,7 +49,7 @@
           "pytest",
           "-q"
         ],
-        "timeoutSeconds": 360
+        "timeoutSeconds": 480
       }
     ],
     "full": [

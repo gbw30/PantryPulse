@@ -5,6 +5,7 @@ shell command, pickle or callback. Registrations carry explicit serialized-size 
 production default is inferred.
 """
 
+import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -90,6 +91,20 @@ class Publisher(Protocol):
         self, connection: Any, identity: PublicationIdentity, package: Mapping[str, Any]
     ) -> dict[str, Any]: ...
 
+    # Optional hooks (CR-w1-data-2), looked up with getattr like `execution_budget`:
+    #
+    # prepare(engine, identity, package, *, remaining_s) -> package
+    #     Runs in the supervisor after `validate` and before `publish`, outside the queue
+    #     lock, once per attempt. It may do slow database work (bulk loads) in its own
+    #     transactions, finishing within `remaining_s`; its result is the package passed
+    #     to `publish`. Raise PublicationRejected to fail the attempt.
+    # discard(engine, identity) -> None
+    #     Undoes `prepare` when the attempt ends without a committed publication (rejected,
+    #     timed out, cancelled, fenced, ownership lost, commit lost, or finalized elsewhere).
+    #     Never called after a committed publication. Best effort: it must be idempotent,
+    #     and a supervisor crash between prepare and publish can leave data that a later
+    #     prepare must tolerate or clean.
+
 
 @dataclass(frozen=True, slots=True)
 class Registration:
@@ -100,6 +115,9 @@ class Registration:
     max_output_bytes: int
     handler: Handler
     publisher: Publisher
+    # Named local_secrets rows passed only to this contract's step children, as
+    # secret_env(name) variables; never in the payload, logs or job rows (W1-D08).
+    child_secrets: tuple[str, ...] = ()
 
     def execution_budget(self, validated: Mapping[str, Any], profile: RuntimeProfile) -> float:
         """A registered handler may freeze a shorter allowance than the lane ceiling."""
@@ -126,6 +144,14 @@ class Registration:
             if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
                 raise ValueError(f"{name} must be a positive int")
         OperationKind(self.operation_kind)
+        for name in self.child_secrets:
+            if not isinstance(name, str) or not re.fullmatch(r"[a-z][a-z0-9_]*", name):
+                raise ValueError(f"invalid child secret name {name!r}")
+
+
+def secret_env(name: str) -> str:
+    """The step child's environment variable for a declared secret."""
+    return "PP_SECRET_" + name.upper()
 
 
 class Registry:
