@@ -51,14 +51,26 @@ def test_travel_days_rounds_up_whole_days():
 
 def test_k10_nearest_within_150_miles():
     receiver = _geo("R", "29.0", "-82.0")
-    # 12 hubs north of the receiver, 0.1° apart (~6.9 mi); hub 11 is the farthest.
-    hubs = [_geo(f"H{i:02d}", str(Decimal("29.1") + Decimal("0.1") * i), "-82.0", "hub")
-            for i in range(12)]
-    far = _geo("FAR", "32.0", "-82.0", "hub")  # ~207 straight miles: outside 150
-    routes = candidate_routes([receiver, far, *hubs])
+    # 12 pantries north of the receiver, 0.1° apart (~6.9 mi); pantry 11 is the farthest.
+    pantries = [_geo(f"P{i:02d}", str(Decimal("29.1") + Decimal("0.1") * i), "-82.0")
+                for i in range(12)]
+    far = _geo("FAR", "32.0", "-82.0")  # ~207 straight miles: outside 150
+    routes = candidate_routes([receiver, far, *pantries])
     assert [r.from_location_id for r in routes if r.to_location_id == "R"] == [
-        f"H{i:02d}" for i in range(10)]
+        f"P{i:02d}" for i in range(10)]
     assert all(r.straight_miles <= 150 for r in routes)
+
+
+def test_all_hubs_within_150_miles_kept_beside_10_nearest_pantries():
+    # Lead call 2026-11-07: hubs never use up a pantry slot, so HUB_ONLY plans reach receivers.
+    receiver = _geo("R", "29.0", "-82.0")
+    pantries = [_geo(f"P{i:02d}", str(Decimal("29.01") + Decimal("0.01") * i), "-82.0")
+                for i in range(11)]
+    hubs = [_geo("H", "29.5", "-82.0", "hub"), _geo("D", "30.0", "-82.0", "distribution_center"),
+            _geo("HFAR", "32.0", "-82.0", "hub")]  # HFAR is ~207 miles away: no route
+    senders = [r.from_location_id for r in candidate_routes([receiver, *hubs, *pantries])
+               if r.to_location_id == "R"]
+    assert senders == ["H", "D", *(f"P{i:02d}" for i in range(10))]
 
 
 def test_hubs_and_dcs_never_receive():

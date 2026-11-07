@@ -45,16 +45,21 @@ def candidate_routes(
     road_factor: Decimal = Decimal("1.3"),
     mph: int = 45,
 ) -> list[CandidateRoute]:
-    """Each receiver's k nearest senders within radius_miles (straight line), nearest first."""
+    """k=10 nearest pantries + all hubs ≤150 mi (lead call 2026-11-07).
+
+    For each receiver: every hub/DC within radius_miles, then the k nearest other senders
+    within radius_miles, each group nearest first. Hubs never use up a pantry slot, so a
+    HUB_ONLY plan reaches every receiver within the radius of a hub."""
     routes: list[CandidateRoute] = []
     for target in locations:
         if target.role in SENDER_ONLY:
             continue
-        near = sorted((r for r in (_route(s, target, road_factor, mph)
-                                   for s in locations if s.id != target.id)
+        near = sorted(((s.role in SENDER_ONLY, r) for s in locations if s.id != target.id
+                       for r in (_route(s, target, road_factor, mph),)
                        if r.straight_miles <= radius_miles),
-                      key=lambda r: (r.straight_miles, r.from_location_id))
-        routes.extend(near[:k])
+                      key=lambda pair: (pair[1].straight_miles, pair[1].from_location_id))
+        routes.extend(r for hub, r in near if hub)
+        routes.extend([r for hub, r in near if not hub][:k])
     return routes
 
 
