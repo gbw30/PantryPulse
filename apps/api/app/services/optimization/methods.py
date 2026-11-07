@@ -147,7 +147,14 @@ def assemble(s, method, measure, baseline, quantities, status, products, native)
     if mismatched:
         reason = f"NATIVE_OBJECTIVE_REPLAY_MISMATCH:{','.join(mismatched)}"
         return failed_result(s, method, measure, status, reason, products)
-    labels = [PER_PRODUCT_LABEL] if method in OPTIMIZING else []
+    labels = []
+    if method in OPTIMIZING:
+        solved = [p.native_status for p in products if p.native_status]
+        labels += [
+            PER_PRODUCT_LABEL,
+            f"solved per product: {solved.count('OPTIMAL')} OPTIMAL, "
+            f"{solved.count('FEASIBLE')} FEASIBLE",
+        ]
     if s.mode == "RETAIL" and measure == "UNITS" and len(s.products) > 1:
         labels.append(UNITS_NOT_SUMMED)
     if report.above_storage_at_baseline:

@@ -16,6 +16,12 @@ from app.services.optimization.product_model import Shares
 from app.services.optimization.v3 import Candidate, dates, window_days
 
 
+def floor_shares(cap: int, weights) -> dict:
+    """share_p = floor(cap × weight_p / Σ weight); never sums above cap (0 when Σ weight = 0)."""
+    total = sum(weights.values())
+    return {p: (floor(cap * w / total) if total else 0) for p, w in weights.items()}
+
+
 def need(s, baseline) -> dict[str, int]:
     """Retail: lost sales + expired units over 7 days. Pantry: unmet inside the window."""
     window = set(dates(s)[: window_days(s)])
@@ -68,8 +74,7 @@ def split(s, baseline, products, measure, cands: dict[str, tuple[Candidate, ...]
         if cap is None:
             return None
         group = users[key] if key else products
-        total = sum(weight[q] for q in group)
-        return floor(cap * weight[p] / total) if total else 0
+        return floor_shares(cap, {q: weight[q] for q in group})[p]
 
     caps = {c.location_id: c for c in s.capacities}
     routes = {(r.from_location_id, r.to_location_id): r for r in s.routes}

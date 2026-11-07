@@ -14,6 +14,7 @@ from decimal import Decimal
 from app.schemas.v1_planning import BatchV3, ORInputV3, RouteV3, TransferV3
 
 HORIZON = 7
+K_NEAREST = 10  # senders kept per receiver and product (V1-SPEC §12 item 1, spike S1)
 RECEIVER_ROLES = frozenset({"pantry", "store"})
 HUB_ROLES = frozenset({"hub", "distribution_center"})
 STARVED_LABEL = "capacity share too small to move one unit"
@@ -76,26 +77,38 @@ class Candidate:
         return transfer_id(*self.key)
 
 
-def candidates(s: ORInputV3, product_id: str, routes=None) -> tuple[Candidate, ...]:
-    """Frozen loading order per sender: longest travel first, then destination id (OR-DEC-004)."""
+def candidates(s: ORInputV3, product_id: str, routes=None, k=None) -> tuple[Candidate, ...]:
+    """Frozen loading order per sender: longest travel first, then destination id (OR-DEC-004).
+
+    Only routes from a sender holding eligible stock count, and each receiver keeps its k nearest
+    such senders (candidates.k_nearest; default K_NEAREST). Packing and the verifier use the same
+    candidate set, so a plan on any other route is rejected as ROUTE_NOT_ALLOWED.
+    """
+    from app.services.optimization.candidates import k_nearest
+
     first = s.first_planning_date
     held = defaultdict(list)
     for b in s.batches:
         if b.product_id == product_id:
             held[b.location_id].append(b)
-    out = []
-    for r in sorted(
-        (r for r in (s.routes if routes is None else routes) if route_allowed(s, r)),
-        key=lambda r: (r.from_location_id, -r.travel_days, r.to_location_id),
-    ):
+    found = {}
+    for r in s.routes if routes is None else routes:
+        if not route_allowed(s, r):
+            continue
         arrival = first + timedelta(days=r.travel_days)
         lots = sorted(
             (b for b in held[r.from_location_id] if eligible(b, arrival)),
             key=lambda b: fefo_key(b.expiry_date, first, b.id),
         )
         if lots:
-            out.append(Candidate(product_id, r, arrival, tuple(lots)))
-    return tuple(out)
+            found[id(r)] = Candidate(product_id, r, arrival, tuple(lots))
+    kept = k_nearest([c.route for c in found.values()], K_NEAREST if k is None else k)
+    return tuple(
+        sorted(
+            (found[id(r)] for r in kept),
+            key=lambda c: (c.route.from_location_id, -c.route.travel_days, c.route.to_location_id),
+        )
+    )
 
 
 @dataclass(frozen=True)
