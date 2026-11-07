@@ -82,6 +82,20 @@ Not fixed:
 - CR-w1-solver-5 follow-up (PR review finding 3): settings re-reads the locations or routes when an `enrichment.v1` or `routes-google.v1` job ends. It polls `GET /jobs/{id}` every 2 s; if that read fails, it re-reads anyway. The copy again says "This list updates when they finish." / "Route labels update when the job finishes." `JOB_ENDED` (network-api.ts) is now shared with the comparison poll.
 - Evidence: `npx vitest run` → 22 files, 110 passed. e2e `decisions.spec.ts`, `atlas-ranking.spec.ts`, `forecast-trust.spec.ts` → 16 passed; `enrichment.spec.ts` + `v1-comparison.spec.ts` → 5 passed. tsc and eslint clean.
 
+## Lead verifier verdict on 62d6c72 (2026-11-07)
+
+PASS on mocks, no must-fix. The two should-fix items and the notes are fixed test-first, committed locally, and not pushed (Gabriel approves each push). Each new test was run RED first, for the right reason:
+- SF1: print-plan.tsx printed the actions of an unverified method under "simulated plan". The print page now uses the same guard and message as Decisions (`noVerifiedPlan`, decisions-view.tsx). The new e2e test (decisions.spec.ts) failed on the old page with the action rows in the table.
+- SF2: the Retail USD line now reads "Dollar value of the units changed (USD): …", the lead's accepted wording, which matches the backend CSV. It is price × (Δunmet + Δexpired), neither the objective nor a loss.
+- N3: action-card.tsx no longer says "Product …; units as in the plan."
+- N5: import-error rows use their position as the key. The rows hold no state, and file:line:column:code repeats when column is null; the test failed on React's "same key" warning.
+- N6: `JOB_ACTIVE` (network-api.ts: QUEUED, RUNNING, STOPPING) is the only set of states that polls again. An off-contract job state stops the comparison poll and the settings poll; the comparison shows "The comparison job reported a status this page doesn't know (…)" with "Check again". An off-contract import phase stops the import poll with "The import reported a status this page doesn't know (…)" with "Check again".
+- N7: a commit with no answer (network error, 5xx) re-reads the import run instead of saying "Nothing was saved". A refused commit (4xx) still says "Nothing was saved."
+- N8: the Retail empty state now reads "No location is projected to lose sales or to have stock expire unsold in this forecast."
+- N9: one evaluated week reads "on your last week", not "last 1 weeks".
+- N4 (lead call, no change): the imported network's danger ranking sits under the legacy fixture atlas. The lead sent it to the W2 UX-critic gate.
+- research-claims-check grep over the added source lines: no research, fairness, probability or outcome claim. The hits are comments, types and "nothing is known yet about what was saved".
+
 ## Pause point (2026-11-07, at Gabriel's request via the orchestrator)
 
 **Done:** W1-W01 … W1-W08 committed and pushed. The reviewed candidate is b2f32ec; this commit adds only this file. Partial items, each with a CR or waiting on the v1-local merge (#103):
@@ -129,6 +143,11 @@ Not fixed:
 
 | Gate | Commit | Result |
 |---|---|---|
+| `node scripts/quality/run.cjs quick` (standard env) | fd0d9a7 | PASS (4 of 4) |
+| `node scripts/quality/run.cjs full` (`.env.lane` + `PP19_TEST_SCHEMA_ISOLATION=1`) | fd0d9a7 | PASS (8 of 8). fd0d9a7 changes only apps/web, so the backend evidence at 71b116a (1471 passed, 0 skipped) still applies. |
+| `npx vitest run` / `node --test tests/*.test.mjs` | fd0d9a7 | 22 files, 118 passed / 12 passed, 0 skipped |
+| `PLAYWRIGHT_PORT=3003 npx playwright test --workers=1` (whole suite on mocks, serial, alone) | fd0d9a7 | 179 passed, 6 skipped: the same six seeded-backend specs. The eight v1 lane specs (v1-shell, import-templates, import-upload, enrichment, forecast-trust, v1-comparison, decisions, atlas-ranking) ran 31 tests, all passed and none skipped. |
+| research-claims-check grep over the added copy | fd0d9a7 | PASS: no research, fairness, probability or outcome claim |
 | `node scripts/quality/run.cjs quick` (standard env) | 71b116a | PASS (4 of 4). The api step ran 1394 passed and 77 skipped, all in the same eight PostgreSQL isolated-schema suites as at be99c71 (`pytest -q -rs`). |
 | `node scripts/quality/run.cjs full` (`.env.lane` + `PP19_TEST_SCHEMA_ISOLATION=1`) | 71b116a | PASS (8 of 8) |
 | `uv run --frozen pytest -q --junitxml=…` + `require-test-evidence.py` | 71b116a | 1471 passed, 0 skipped; "1471 backend tests completed without skips or failures" |
