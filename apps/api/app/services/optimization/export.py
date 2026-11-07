@@ -52,7 +52,10 @@ def export_plan_csv(
     if not chosen.verified:
         raise ValueError("RESULT_NOT_VERIFIED")
     actions = {
-        a.id: a for a in decision_actions(scenario, chosen, comparison_id=comparison.id).actions
+        a.id: a
+        for a in decision_actions(
+            scenario, chosen, comparison_id=comparison.id, ids=action_ids
+        ).actions
     }
     transfers = {t.id: t for t in chosen.transfers}
     missing = [i for i in action_ids if i not in actions]

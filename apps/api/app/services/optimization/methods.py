@@ -24,6 +24,7 @@ from app.services.optimization.pantry import (
     SINGLETON_LABEL,
     coverage_gap,
     goals,
+    pantry_index,
     pantry_objectives,
     solve_pantry_product,
 )
@@ -100,12 +101,13 @@ def run_method(
 
 def _optimized(s, method, measure, baseline, search_seconds, deadline) -> MethodResult:
     undefined = set()
+    ix = pantry_index(s) if s.mode == "PANTRY" else None
     if method == "EGP_PI_INSPIRED":
-        missing = coverage_gap(s)
+        missing = coverage_gap(s, ix)
         if missing:
             reason = f"ATTRIBUTE_POLICY_COVERAGE:{','.join(missing)}"
             return failed_result(s, method, measure, None, reason, ())
-        undefined = {p.id for p in s.products if len(goals(s, p.id)) < 2}
+        undefined = {p.id for p in s.products if len(goals(s, p.id, ix)) < 2}
     at_risk_all = at_risk(s, baseline)
     risky = at_risk_all - undefined
     cands = {p: candidates(s, p) for p in at_risk_all}
@@ -128,7 +130,7 @@ def _optimized(s, method, measure, baseline, search_seconds, deadline) -> Method
         if method == "RETAIL_OPTIMIZED":
             outcomes[p] = solve_retail_product(*args)
         else:
-            outcomes[p] = solve_pantry_product(*args, method=method)
+            outcomes[p] = solve_pantry_product(*args, method=method, ix=ix)
     products = []
     for p in s.products:
         if p.id in undefined and p.id in at_risk_all:

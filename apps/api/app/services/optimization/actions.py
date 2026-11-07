@@ -10,6 +10,8 @@ Every text and number is derived from the frozen scenario and the verified plan:
 """
 
 from collections import defaultdict
+from collections.abc import Callable
+from dataclasses import dataclass, field
 from decimal import Decimal
 
 from app.schemas.v1_planning import (
@@ -22,7 +24,7 @@ from app.schemas.v1_planning import (
 from app.services.optimization.baselines import surplus
 from app.services.optimization.projection import project_v3
 from app.services.optimization.v3 import dates, money, pack, quantities_of, window_days
-from app.services.optimization.verify import verify_plan
+from app.services.optimization.verify import product_violations, residual_shares
 
 BINDING = {  # verifier code -> what one more unit would break
     "TRANSFER_NOT_CONSUMED_IN_WINDOW": "it could not be used in time at the receiver",
@@ -38,55 +40,110 @@ BINDING = {  # verifier code -> what one more unit would break
 }
 
 
-def decision_actions(
-    scenario: ORInputV3, result: MethodResult, *, comparison_id
-) -> DecisionActions:
-    s = scenario
-    if not result.verified:
-        raise ValueError("RESULT_NOT_VERIFIED")
-    packed = pack(s, quantities_of(result.transfers))
-    with_plan = project_v3(s, packed).days
-    baseline = project_v3(s).days
-    actions = tuple(
-        DecisionAction(
-            id=p.transfer.id,
-            action_text=action_text(s, p.transfer),
-            why_text=why,
-            explanation_kind=kind,
-            effect=_effect(s, packed, with_plan, p.transfer.id),
+@dataclass
+class _Plan:
+    """One verified plan, indexed once, so each action replays only its own product (each
+    location × product series is independent once packed; shared limits are sums)."""
+
+    s: ORInputV3
+    packed: tuple
+    by_product: dict  # product id -> its packed transfers
+    plan_rows: dict  # product id -> its projected rows with the plan
+    base_rows: dict  # product id -> its no-transfer rows
+    rows: dict  # scenario row field -> product id -> rows
+    rooms: Callable
+    subs: dict = field(default_factory=dict)
+    shares: dict = field(default_factory=dict)
+
+    @classmethod
+    def of(cls, s, result):
+        if not result.verified:
+            raise ValueError("RESULT_NOT_VERIFIED")
+        packed = pack(s, quantities_of(result.transfers))
+        plan, base = project_v3(s, packed).days, project_v3(s).days
+
+        def group(items, key=lambda r: r.product_id):
+            out = defaultdict(list)
+            for r in items:
+                out[key(r)].append(r)
+            return out
+
+        fields = ("batches", "demand", "inbound", "reserves")
+        return cls(
+            s,
+            packed,
+            group(packed, lambda x: x.transfer.product_id),
+            group(plan),
+            group(base),
+            {f: group(getattr(s, f)) for f in fields},
+            residual_shares(s, packed, plan, base),
         )
-        for p in packed
-        for why, kind in (_why(s, baseline, result.transfers, p.transfer),)
+
+    def sub(self, product_id):
+        """only_product(s, product_id), from the index."""
+        if product_id not in self.subs:
+            product = next(p for p in self.s.products if p.id == product_id)
+            self.subs[product_id] = self.s.model_copy(
+                update={"products": (product,)}
+                | {f: tuple(rows[product_id]) for f, rows in self.rows.items()}
+            )
+        return self.subs[product_id]
+
+    def room(self, product_id):
+        if product_id not in self.shares:
+            self.shares[product_id] = self.rooms(product_id)
+        return self.shares[product_id]
+
+
+def decision_actions(
+    scenario: ORInputV3, result: MethodResult, *, comparison_id, ids=None
+) -> DecisionActions:
+    """Every action of the plan, or only those in ids (export of a selection)."""
+    plan = _Plan.of(scenario, result)
+    wanted = None if ids is None else set(ids)
+    actions = tuple(
+        _action(plan, x.transfer) for x in plan.packed if wanted is None or x.transfer.id in wanted
     )
     return DecisionActions(comparison_id=comparison_id, method=result.method, actions=actions)
 
 
+def _action(plan, t) -> DecisionAction:
+    why, kind = _why(plan, t)
+    return DecisionAction(
+        id=t.id,
+        action_text=action_text(plan.s, t),
+        why_text=why,
+        explanation_kind=kind,
+        effect=_effect(plan, t),
+    )
+
+
 def remove_one_effect(scenario: ORInputV3, result: MethodResult, transfer_id: str) -> ActionEffect:
-    if not result.verified:
-        raise ValueError("RESULT_NOT_VERIFIED")
-    packed = pack(scenario, quantities_of(result.transfers))
-    if transfer_id not in {p.transfer.id for p in packed}:
+    plan = _Plan.of(scenario, result)
+    t = next((x.transfer for x in plan.packed if x.transfer.id == transfer_id), None)
+    if t is None:
         raise KeyError(transfer_id)
-    return _effect(scenario, packed, project_v3(scenario, packed).days, transfer_id)
+    return _effect(plan, t)
 
 
-def _effect(s, packed, with_plan, transfer_id) -> ActionEffect:
-    t = next(p.transfer for p in packed if p.transfer.id == transfer_id)
-    without = project_v3(s, tuple(p for p in packed if p.transfer.id != transfer_id)).days
+def _effect(plan, t) -> ActionEffect:
+    s, p = plan.s, t.product_id
     ends = (t.from_location_id, t.to_location_id)
+    rest = tuple(x for x in plan.by_product[p] if x.transfer.id != t.id)
+    without = project_v3(plan.sub(p), rest, locations=set(ends)).days  # only the two ends change
     delta = defaultdict(int)
-    for sign, rows in ((1, with_plan), (-1, without)):
+    for sign, rows in ((1, plan.plan_rows[p]), (-1, without)):
         for d in rows:
-            if d.product_id == t.product_id and d.location_id in ends:
+            if d.location_id in ends:
                 delta["unmet", d.location_id] += sign * d.unmet
                 delta["expired"] += sign * d.expired
     sender, receiver = delta["unmet", ends[0]], delta["unmet", ends[1]]
-    product = next(p for p in s.products if p.id == t.product_id)
+    product = next(x for x in s.products if x.id == p)
     usd = None
     if s.mode == "RETAIL" and product.unit_value_usd is not None:
         usd = money(Decimal(product.unit_value_usd) * (sender + receiver + delta["expired"]))
     return ActionEffect(
-        product_id=t.product_id,
+        product_id=p,
         unit=product.unit,
         sender_unmet_delta=sender,
         receiver_unmet_delta=receiver,
@@ -105,17 +162,13 @@ def action_text(s, t) -> str:
     )
 
 
-def _why(s, baseline, transfers, t) -> tuple[str, str]:
+def _why(plan, t) -> tuple[str, str]:
+    s, p = plan.s, t.product_id
     names = {loc.id: loc.name for loc in s.locations}
-    product = next(p for p in s.products if p.id == t.product_id)
-    unit = product.unit
+    unit = next(x for x in s.products if x.id == p).unit
     window = dates(s)[: window_days(s)]
-    receiver = [
-        d
-        for d in baseline
-        if (d.location_id, d.product_id) == (t.to_location_id, t.product_id) and d.day in window
-    ]
-    short = [d for d in receiver if d.unmet]
+    base = plan.base_rows[p]
+    short = [d for d in base if d.location_id == t.to_location_id and d.day in window and d.unmet]
     if short:
         unmet = sum(d.unmet for d in short)
         first = (
@@ -124,36 +177,26 @@ def _why(s, baseline, transfers, t) -> tuple[str, str]:
         )
     else:
         first = f"{names[t.to_location_id]} can use the units before they expire"
-    spare = surplus(s, t.product_id, t.from_location_id)
+    spare = surplus(plan.sub(p), p, t.from_location_id)
     parts = [
         first,
         f"{names[t.from_location_id]} has {spare} {units_label(unit, spare)} "
         "beyond its protected need",
     ]
-    sender = [
-        d
-        for d in baseline
-        if (d.location_id, d.product_id) == (t.from_location_id, t.product_id) and d.expired
-    ]
+    sender = [d for d in base if d.location_id == t.from_location_id and d.expired]
     if sender:
         parts[-1] += f"; {sum(d.expired for d in sender)} of them expire {_day(sender[0].day)}"
     why = "; ".join(parts) + "."
-    more = [
-        x.model_copy(update={"quantity": x.quantity + 1}) if x.id == t.id else x for x in transfers
-    ]
-    violations = verify_plan(s, _repacked(s, more)).violations
+    # One more unit on this route, against the room the rest of the plan leaves in every limit
+    grown = quantities_of(x.transfer for x in plan.by_product[p])
+    grown[p, t.from_location_id, t.to_location_id] += 1
+    violations = product_violations(
+        plan.sub(p), p, grown, plan.room(p), base, changed_sender=t.from_location_id
+    )
     if not violations:
         return why, "inferred"
     reasons = "; ".join(dict.fromkeys(BINDING.get(v, v) for v in violations))
     return f"{why} One more unit is infeasible: {reasons}.", "proven_binding"
-
-
-def _repacked(s, transfers):
-    try:
-        return tuple(p.transfer for p in pack(s, quantities_of(transfers)))
-    except ValueError:
-        # can't even pack one more unit: report it through the verifier's own code
-        return tuple(transfers)
 
 
 COUNT_NOUNS = frozenset(

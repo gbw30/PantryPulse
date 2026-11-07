@@ -15,6 +15,7 @@ replays the same integer from the verifier's projection.
 """
 
 from collections import defaultdict
+from dataclasses import dataclass
 from decimal import Decimal
 from fractions import Fraction
 from functools import reduce
@@ -34,22 +35,48 @@ def research(method: str) -> bool:
     return method == "EGP_PI_INSPIRED"
 
 
-def goals(s, product_id) -> list[tuple[str, int]]:
+@dataclass(frozen=True)
+class PantryIndex:
+    """Rows by product and each sender's dearest allowed route, built once per pass over products
+    (a full scan per product made pantry_objectives quadratic at 100 × 500)."""
+
+    demand: dict
+    batches: dict
+    inbound: dict
+    max_cost: dict  # sender -> max cents per handling unit over its allowed routes
+
+
+def pantry_index(s) -> PantryIndex:
+    rows = {f: defaultdict(list) for f in ("demand", "batches", "inbound")}
+    for f, out in rows.items():
+        for r in getattr(s, f):
+            out[r.product_id].append(r)
+    roles = {loc.id: loc.role for loc in s.locations}
+    max_cost: dict = {}
+    for r in s.routes:
+        if route_allowed(s, r, roles):
+            cost = _unit_cost(r, 1)  # linear in handling units
+            max_cost[r.from_location_id] = max(max_cost.get(r.from_location_id, cost), cost)
+    return PantryIndex(rows["demand"], rows["batches"], rows["inbound"], max_cost)
+
+
+def goals(s, product_id, ix=None) -> list[tuple[str, int]]:
     """(pantry, window target) for every pantry with a positive target, in location order."""
     roles = {loc.id: loc.role for loc in s.locations}
     window = window_days(s)
     out = [
         (d.location_id, sum(d.targets[:window]))
-        for d in s.demand
+        for d in (s.demand if ix is None else ix.demand.get(product_id, ()))
         if d.product_id == product_id and roles[d.location_id] == "pantry"
     ]
     return sorted((loc, t) for loc, t in out if t > 0)
 
 
-def coverage_gap(s) -> list[str]:
+def coverage_gap(s, ix=None) -> list[str]:
     """Pantries with demand but no vulnerability row (EGP can't weight them)."""
+    ix = ix or pantry_index(s)
     covered = {v.location_id for v in s.vulnerability}
-    return sorted({loc for p in s.products for loc, _ in goals(s, p.id)} - covered)
+    return sorted({loc for p in s.products for loc, _ in goals(s, p.id, ix)} - covered)
 
 
 def weights(s, method) -> dict[str, Fraction]:
@@ -68,24 +95,22 @@ def weights(s, method) -> dict[str, Fraction]:
     }
 
 
-def references(s, product_id) -> tuple[Fraction, int]:
+def references(s, product_id, ix=None) -> tuple[Fraction, int]:
     """(cost reference in cents, stock reference in units) for the normalized ε terms."""
-    product = next(p for p in s.products if p.id == product_id)
+    ix = ix or pantry_index(s)
+    h = next(p for p in s.products if p.id == product_id).handling_units_per_unit
     first, last = s.first_planning_date, dates(s)[-1]
-    unit_costs = defaultdict(list)
-    for r in s.routes:
-        if route_allowed(s, r):
-            unit_costs[r.from_location_id].append(_unit_cost(r, product.handling_units_per_unit))
+    batches = ix.batches.get(product_id, ())
     cost = sum(
         (
-            b.quantity * max(unit_costs[b.location_id], default=Fraction(0))
-            for b in s.batches
-            if b.product_id == product_id and (b.expiry_date is None or b.expiry_date >= first)
+            b.quantity * h * ix.max_cost.get(b.location_id, Fraction(0))
+            for b in batches
+            if b.expiry_date is None or b.expiry_date >= first
         ),
         Fraction(0),
     )
-    stock = sum(b.quantity for b in s.batches if b.product_id == product_id) + sum(
-        i.quantity for i in s.inbound if i.product_id == product_id and i.arrival_date <= last
+    stock = sum(b.quantity for b in batches) + sum(
+        i.quantity for i in ix.inbound.get(product_id, ()) if i.arrival_date <= last
     )
     return cost, stock
 
@@ -109,12 +134,12 @@ def coefficients(policy, method, n, has_cost, has_waste) -> tuple[int, ...]:
 
 
 def solve_pantry_product(
-    s, product_id, cands, shares, baseline, protected, search_seconds, *, method
+    s, product_id, cands, shares, baseline, protected, search_seconds, *, method, ix=None
 ):
     pm = build_product_model(s, product_id, cands, shares, baseline, protected)
     m, policy, window = pm.model, s.policy, window_days(s)
     v = weights(s, method)
-    product_goals = goals(s, product_id)
+    product_goals = goals(s, product_id, ix)
     n = len(product_goals)
     values = []
     for loc, target in product_goals:
@@ -148,7 +173,7 @@ def solve_pantry_product(
             excess = m.new_int_var(0, S * n, f"excess:{kind}")
             m.add_max_equality(excess, [0, S * sum(flags) - cap * n])
             values.append(excess)
-    cost_ref, stock_ref = references(s, product_id)
+    cost_ref, stock_ref = references(s, product_id, ix)
     if cost_ref:
         routes = {(r.from_location_id, r.to_location_id): r for r in s.routes}
         h = next(p.handling_units_per_unit for p in s.products if p.id == product_id)
@@ -187,9 +212,10 @@ def pantry_objectives(s, report, method) -> dict[str, int]:
             routes[t.from_location_id, t.to_location_id], t.quantity, handling[t.product_id]
         )
     out = {}
+    ix = pantry_index(s)
     for product in s.products:
         pid = product.id
-        product_goals = goals(s, pid)
+        product_goals = goals(s, pid, ix)
         n = len(product_goals)
         if research(method) and n < 2:  # EGP-PI undefined (singleton rule): never solved
             continue
@@ -204,7 +230,7 @@ def pantry_objectives(s, report, method) -> dict[str, int]:
                 ([n * q - sum(qs) > n * policy.rp_threshold for q in qs], policy.rp_cap_bp),
             ):
                 values.append(max(0, S * sum(flags) - cap * n))
-        cost_ref, stock_ref = references(s, pid)
+        cost_ref, stock_ref = references(s, pid, ix)
         if cost_ref:
             values.append(floor(S * cost[pid] / cost_ref))
         if stock_ref:

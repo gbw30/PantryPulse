@@ -9,11 +9,17 @@ from uuid import UUID
 
 import pytest
 
-from app.schemas.v1_planning import NON_ADDITIVE_LABEL, ActionEffect, DecisionActions
+from app.schemas.v1_planning import (
+    NON_ADDITIVE_LABEL,
+    ActionEffect,
+    DecisionActions,
+    ORInputV3,
+)
 from app.services.optimization.actions import decision_actions, remove_one_effect, units_label
 from app.services.optimization.methods import run_method
 from app.services.optimization.projection import project_v3
 from app.services.optimization.v3 import pack, quantities_of
+from app.services.optimization.verify import verify_plan
 from tests.optimization.test_retail_oracle import load
 
 COMPARISON = UUID("00000000-0000-4000-8000-0000000000d1")
@@ -117,6 +123,148 @@ def test_effect_names_the_product_unit():  # CR-w1-web-5
 def test_units_label_pluralizes_only_known_count_nouns(unit, n, label):
     """The unit is the product's own string (CR-w1-web-5): never inflect an unknown one."""
     assert units_label(unit, n) == label
+
+
+def full_replay(s, transfers, t):
+    """Oracle for proven_binding: verify the whole network's plan with one more unit on t."""
+    more = tuple(
+        x.model_copy(update={"quantity": x.quantity + 1}) if x.id == t.id else x for x in transfers
+    )
+    try:
+        more = tuple(p.transfer for p in pack(s, quantities_of(more)))
+    except ValueError:
+        pass  # verify_plan reports the packing failure itself
+    return verify_plan(s, more).violations
+
+
+def full_effect(s, transfers, t):
+    """Oracle for the effect: re-project the whole network without t, other batches kept."""
+    packed = pack(s, quantities_of(transfers))
+    rest = tuple(p for p in packed if p.transfer.id != t.id)
+    with_plan, without = project_v3(s, packed).days, project_v3(s, rest).days
+    ends = (t.from_location_id, t.to_location_id)
+    sender, receiver = (
+        total(with_plan, loc, t.product_id, "unmet") - total(without, loc, t.product_id, "unmet")
+        for loc in ends
+    )
+    expired = sum(
+        total(with_plan, loc, t.product_id, "expired")
+        - total(without, loc, t.product_id, "expired")
+        for loc in ends
+    )
+    return sender, receiver, expired
+
+
+def saturated(s, transfers, kind):
+    """The scenario with one kind of shared limit (or all) set exactly to the plan's own load, so
+    the plan still fits and one more unit has to break it."""
+    from collections import defaultdict
+
+    from app.schemas.v1_planning import CapacityV3
+    from app.services.optimization.verify import cost_minor
+
+    report = verify_plan(s, transfers)
+    assert report.passed
+    h = {p.id: p.handling_units_per_unit for p in s.products}
+    routes = {(r.from_location_id, r.to_location_id): r for r in s.routes}
+    route, dispatch, receiving, stock, arriving = (defaultdict(int) for _ in range(5))
+    for p in report.packed:
+        x = p.transfer
+        load = x.quantity * h[x.product_id]
+        route[x.from_location_id, x.to_location_id] += load
+        dispatch[x.from_location_id] += load
+        arriving[x.to_location_id, x.arrival_date] += load
+    for (loc, _), load in arriving.items():
+        receiving[loc] = max(receiving[loc], load)
+    by_day = defaultdict(int)
+    for d in report.days:
+        by_day[d.location_id, d.day] += d.on_hand * h[d.product_id]
+    for (loc, _), load in by_day.items():
+        stock[loc] = max(stock[loc], load)
+    every = kind == "all"
+    update = {}
+    if kind in ("route", "all"):
+        update["routes"] = tuple(
+            r.model_copy(update={"capacity_per_batch": route[key]}) if key in route else r
+            for key, r in routes.items()
+        )
+    if kind in ("dispatch", "receiving", "storage", "all"):
+        update["capacities"] = tuple(
+            CapacityV3(
+                location_id=loc.id,
+                dispatch=dispatch.get(loc.id) if kind == "dispatch" or every else None,
+                receiving=receiving.get(loc.id) if kind == "receiving" or every else None,
+                storage=stock.get(loc.id) if kind == "storage" or every else None,
+            )
+            for loc in s.locations
+        )
+    if kind in ("global", "all"):
+        update["global_handling"] = sum(dispatch.values())
+    if kind in ("cost", "all"):
+        spent = sum(
+            cost_minor(
+                routes[p.transfer.from_location_id, p.transfer.to_location_id],
+                p.transfer.quantity,
+                h[p.transfer.product_id],
+            )
+            for p in report.packed
+        )
+        assert spent.denominator == 1
+        update["cost_budget_minor"] = int(spent)
+    out = ORInputV3.model_validate(s.model_copy(update=update).model_dump())
+    assert verify_plan(out, transfers).passed
+    return out
+
+
+@pytest.mark.parametrize(
+    "kind", [None, "route", "dispatch", "receiving", "storage", "global", "cost", "all"]
+)
+@pytest.mark.parametrize(
+    ("name", "method"),
+    [
+        ("retail-usd-no-flip", "RETAIL_OPTIMIZED"),
+        ("pantry-four-methods", "EGP_PI_INSPIRED"),
+        ("pantry-four-methods", "MOST_URGENT_FIRST"),
+        ("bench-retail", "SOONEST_EXPIRY_FIRST"),
+        ("bench-retail", "RETAIL_OPTIMIZED"),
+        ("bench-pantry", "EQUAL_SHARE"),
+        ("bench-pantry", "CLASSICAL_GP"),
+    ],
+)
+def test_actions_equal_the_full_network_replay(name, method, kind):
+    """Every action's kind, binding reasons and effect equal a replay of the whole network, also
+    when a shared limit is exactly saturated by the rest of the plan."""
+    from app.services.optimization.actions import BINDING
+    from tests.optimization.test_scale_v1 import bench_scenario
+
+    if name.startswith("bench-"):
+        s = bench_scenario(14, 10, name.removeprefix("bench-"))
+    else:
+        s = load(name)[0]
+    priced = tuple(r.model_copy(update={"cost_per_handling_unit_usd": "0.37"}) for r in s.routes)
+    s = ORInputV3.model_validate(s.model_copy(update={"routes": priced}).model_dump())
+    result = run_method(s, method, "UNITS")
+    assert result.verified and result.transfers, result.failure_reason
+    if kind is not None:
+        s = saturated(s, result.transfers, kind)
+    codes = set()
+    for a in decision_actions(s, result, comparison_id=COMPARISON).actions:
+        t = next(x for x in result.transfers if x.id == a.id)
+        violations = full_replay(s, result.transfers, t)
+        if violations:
+            reasons = "; ".join(dict.fromkeys(BINDING.get(v, v) for v in violations))
+            assert a.explanation_kind == "proven_binding", (a.id, violations)
+            assert a.why_text.endswith(f" One more unit is infeasible: {reasons}."), a.why_text
+        else:
+            assert a.explanation_kind == "inferred", (a.id, a.why_text)
+        effect = a.effect
+        assert (
+            effect.sender_unmet_delta,
+            effect.receiver_unmet_delta,
+            effect.expired_delta,
+        ) == full_effect(s, result.transfers, t)
+        codes |= set(violations)
+    print("CODES", name, method, kind, sorted(codes))
 
 
 def test_no_total_effect_field():

@@ -195,6 +195,57 @@ def test_penalty_ablation_changes_the_egp_plan(gammas, plan):
     assert plan_of(run_method(s, "EGP_PI_INSPIRED", "UNITS")) == plan
 
 
+def scanned_references(s, product_id):
+    """Oracle: the original full scan of routes, batches and inbound for one product."""
+    from app.services.optimization.product_model import _unit_cost
+    from app.services.optimization.v3 import dates, route_allowed
+
+    product = next(p for p in s.products if p.id == product_id)
+    first, last = s.first_planning_date, dates(s)[-1]
+    unit_costs = {}
+    for r in s.routes:
+        if route_allowed(s, r):
+            unit_costs.setdefault(r.from_location_id, []).append(
+                _unit_cost(r, product.handling_units_per_unit)
+            )
+    cost = sum(
+        (
+            b.quantity * max(unit_costs.get(b.location_id, ()), default=Fraction(0))
+            for b in s.batches
+            if b.product_id == product_id and (b.expiry_date is None or b.expiry_date >= first)
+        ),
+        Fraction(0),
+    )
+    stock = sum(b.quantity for b in s.batches if b.product_id == product_id) + sum(
+        i.quantity for i in s.inbound if i.product_id == product_id and i.arrival_date <= last
+    )
+    return cost, stock
+
+
+def test_indexed_goals_and_references_equal_the_scan():
+    """Code review W2-01 (7): one index per call instead of a full scan per product."""
+    from app.services.optimization.pantry import pantry_index, references
+    from tests.optimization.test_scale_v1 import bench_scenario
+
+    bench = bench_scenario(14, 10, "pantry")
+    costs = ("0.37", None, "1.25", "0")
+    priced = tuple(
+        r.model_copy(update={"cost_per_handling_unit_usd": costs[i % 4]})
+        for i, r in enumerate(bench.routes)
+    )
+    heavy = tuple(
+        p.model_copy(update={"handling_units_per_unit": 1 + i % 3})
+        for i, p in enumerate(bench.products)
+    )
+    bench = bench.model_copy(update={"routes": priced, "products": heavy})
+    for s in (load("pantry-four-methods")[0], bench):
+        ix = pantry_index(s)
+        for p in s.products:
+            assert goals(s, p.id, ix) == goals(s, p.id)
+            assert references(s, p.id, ix) == scanned_references(s, p.id)
+            assert references(s, p.id) == scanned_references(s, p.id)
+
+
 def test_default_policy_is_frozen_in_the_fixture():
     s, _ = load("pantry-four-methods")
     assert s.policy == DEFAULT_PANTRY_POLICY

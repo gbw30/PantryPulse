@@ -263,6 +263,82 @@ def only_product(s, product_id, locations=None):
     )
 
 
+def residual_shares(s, packed, plan_days, base_days):
+    """Each product's room in every raw shared limit, given the rest of a verified plan.
+
+    Shared limits are sums over products, so with every other product's load fixed,
+    product_violations of one product's change against these rooms (changed_sender set) is exactly
+    verify_plan's verdict on the whole changed plan. Returns product id -> Shares.
+    """
+    from app.services.optimization.product_model import Shares
+
+    h = {p.id: p.handling_units_per_unit for p in s.products}
+    routes = {(r.from_location_id, r.to_location_id): r for r in s.routes}
+    caps = {c.location_id: c for c in s.capacities}
+    load, own = defaultdict(int), defaultdict(lambda: defaultdict(int))
+    cost, own_cost = Fraction(0), defaultdict(Fraction)
+    for x in packed:
+        t = x.transfer
+        units = t.quantity * h[t.product_id]
+        for key in (
+            ("route", t.from_location_id, t.to_location_id),
+            ("dispatch", t.from_location_id),
+            ("receiving", t.to_location_id, t.arrival_date),
+            ("handling",),
+        ):
+            load[key] += units
+            own[t.product_id][key] += units
+        spent = cost_minor(
+            routes[t.from_location_id, t.to_location_id], t.quantity, h[t.product_id]
+        )
+        cost += spent
+        own_cost[t.product_id] += spent
+    stock, base = defaultdict(int), defaultdict(int)
+    own_stock, own_base = defaultdict(lambda: defaultdict(int)), defaultdict(dict)
+    for d in plan_days:
+        stock[d.location_id, d.day] += d.on_hand * h[d.product_id]
+        own_stock[d.product_id][d.location_id, d.day] += d.on_hand * h[d.product_id]
+    for d in base_days:
+        base[d.location_id, d.day] += d.on_hand * h[d.product_id]
+        own_base[d.product_id][d.location_id, d.day] = d.on_hand * h[d.product_id]
+    days = sorted({day for _, day in stock} | {k[2] for k in load if k[0] == "receiving"})
+
+    def rooms(product_id) -> Shares:
+        mine = own[product_id]
+
+        def room(limit, key):
+            return None if limit is None else limit - (load[key] - mine[key])
+
+        def cap(loc, field):
+            return getattr(caps[loc], field) if loc in caps else None
+
+        storage = {}
+        for loc, day in stock:
+            limit = cap(loc, "storage")
+            if limit is not None:
+                other = stock[loc, day] - own_stock[product_id][loc, day]
+                start = own_base[product_id].get((loc, day), 0)
+                storage[loc, day] = max(limit, base[loc, day]) - other - start
+        return Shares(
+            route={k: room(r.capacity_per_batch, ("route", *k)) for k, r in routes.items()},
+            dispatch={
+                loc.id: room(cap(loc.id, "dispatch"), ("dispatch", loc.id)) for loc in s.locations
+            },
+            receiving={
+                (loc.id, day): room(cap(loc.id, "receiving"), ("receiving", loc.id, day))
+                for loc in s.locations
+                for day in days
+            },
+            storage_room=storage,
+            global_handling=room(s.global_handling, ("handling",)),
+            cost_minor=None
+            if s.cost_budget_minor is None
+            else s.cost_budget_minor - (cost - own_cost[product_id]),
+        )
+
+    return rooms
+
+
 def product_violations(
     s, product_id, quantities, shares, baseline, *, changed_sender=None
 ) -> tuple[str, ...]:

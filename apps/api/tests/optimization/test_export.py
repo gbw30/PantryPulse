@@ -143,6 +143,20 @@ def test_capacity_note_when_capacity_was_not_provided():  # CR-w1-web-6
         assert exported and {r["note"] for r in exported} == {SIMULATED_NOTE + note + solved}
 
 
+def test_export_builds_only_the_selected_actions(monkeypatch):
+    """Code review W2-01 (1): a one-row export must not explain every transfer of the plan."""
+    from app.services.optimization import actions
+
+    s, _ = load("retail-usd-no-flip")
+    comparison = saved(s)
+    ids = [t.id for t in comparison.result.methods[2].transfers]
+    assert len(ids) > 1
+    explained, real = [], actions._why
+    monkeypatch.setattr(actions, "_why", lambda plan, t: explained.append(t.id) or real(plan, t))
+    export_plan_csv(comparison, "RETAIL_OPTIMIZED", ids[:1], scenario=s)
+    assert explained == ids[:1]
+
+
 def test_export_rejects_unverified_method():
     s, _ = load("retail-expiry-transfer")
     comparison = saved(s)
