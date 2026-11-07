@@ -1076,10 +1076,18 @@ class _FollowingPublisher(FixturePublisher):
     def __init__(self, follow):
         super().__init__("echo")
         self.follow = follow
+        self.hook_error = False
+        self.publish_delay_s = 0.0
+
+    def publish(self, connection, identity, package):
+        time.sleep(self.publish_delay_s)
+        return super().publish(connection, identity, package)
 
     def follow_ups(self, connection, identity, manifest):
         from app.services.jobs.registry import FollowUp
 
+        if self.hook_error:
+            connection.execute(sa.text("SELECT 1/0"))  # aborts the hook's own reads
         # Same transaction: this attempt's publication is visible, not yet committed.
         assert connection.scalar(sa.text("SELECT count(*) FROM wq_fixture_results"
                                          " WHERE attempt_id = :a"), {"a": identity.attempt_id})
@@ -1087,25 +1095,32 @@ class _FollowingPublisher(FixturePublisher):
 
 
 def _follow_registry(follow):
-    def reg(contract, publisher):
+    from app.workers.v1_stub import NotBuiltHandler
+
+    def reg(contract, publisher, handler=None):
         return Registration(
             contract=contract,
             operation_kind=OperationKind.ALLOCATION,
             input_schema_version="1",
             max_input_bytes=16_384,
             max_output_bytes=65_536,
-            handler=EchoHandler(),
+            handler=handler or EchoHandler(),
             publisher=publisher,
         )
 
     return Registry(
         [reg("test.parent.v1", _FollowingPublisher(follow)),
-         reg("test.child.v1", FixturePublisher("echo"))]
+         reg("test.child.v1", FixturePublisher("echo")),
+         reg("test.stub.v1", FixturePublisher("echo"), NotBuiltHandler("W9-X01"))]
     )
 
 
-def _follow_run(db, org, follow, cls=QueueRepository, admission=None, monkeypatch=None):
+def _follow_run(
+    db, org, follow, cls=QueueRepository, admission=None, monkeypatch=None, setup=None
+):
     registry = _follow_registry(follow)
+    if setup is not None:
+        setup(registry.get("test.parent.v1").publisher)
     repo = cls(db, registry=registry, profile=PROFILE)
     if admission is not None:
         real = repo._admission
@@ -1121,6 +1136,10 @@ def _follow_run(db, org, follow, cls=QueueRepository, admission=None, monkeypatc
     _created.append(sup)
     assert sup.start()
     accepted = submit(repo, org, contract="test.parent.v1")
+    if setup is not None and getattr(setup, "squat", False):
+        # A client in the same organization guesses keys derived from the parent job.
+        key = f"follow-up:{accepted.job_id}:0"
+        repo.submit(org, "test.child.v1", {"value": 99, "behavior": {}}, key)
     done = settled(repo, org, accepted.job_id)
     run_until(sup, lambda: done() and sup.active is None)
     sup.shutdown_drain()
@@ -1175,3 +1194,56 @@ def test_rejected_follow_up_never_fails_the_publication(
     assert [(e["reason_code"], e["details"]["contract"]) for e in rejected] == [
         (code, follow[0][0])
     ]
+
+
+def _rejections(repo, job_id):
+    return [
+        (e["reason_code"], e["details"].get("contract"))
+        for e in repo.audit_events(job_id)
+        if e["event_type"] == "FOLLOW_UP_REJECTED"
+    ]
+
+
+def test_unbuilt_follow_up_contract_never_fails_the_publication(db, org):  # verifier F1
+    repo, accepted, children = _follow_run(db, org, [("test.stub.v1", {"value": 1})])
+    assert job_state(repo, org, accepted.job_id) is AttemptState.SUCCEEDED
+    assert _rejections(repo, accepted.job_id) == [("NOT_IMPLEMENTED", "test.stub.v1")]
+
+
+def test_a_client_key_cannot_claim_the_follow_up(db, org):  # verifier F2
+    def squat(publisher):
+        pass
+
+    squat.squat = True
+    repo, accepted, children = _follow_run(db, org, [CHILD], setup=squat)
+    assert job_state(repo, org, accepted.job_id) is AttemptState.SUCCEEDED
+    assert _rejections(repo, accepted.job_id) == []
+    assert len(children) == 2  # the client's job plus the follow-up
+
+
+def test_failing_hook_never_fails_the_publication(db, org):  # verifier delta note
+    def broken(publisher):
+        publisher.hook_error = True
+
+    repo, accepted, children = _follow_run(db, org, [CHILD], setup=broken)
+    assert job_state(repo, org, accepted.job_id) is AttemptState.SUCCEEDED
+    assert children == []
+    assert _rejections(repo, accepted.job_id) == [("FOLLOW_UP_HOOK_FAILED", None)]
+
+
+def test_follow_up_queue_window_starts_after_the_publisher_ran(db, org):  # verifier note 4
+    def slow(publisher):
+        publisher.publish_delay_s = 0.4
+
+    repo, accepted, _ = _follow_run(db, org, [CHILD], setup=slow)
+    parent = repo.get_job(org, accepted.job_id).attempts[0]
+    with db.connect() as conn:
+        enqueued = conn.scalar(
+            sa.text(
+                "SELECT a.enqueued_at FROM compute_attempts a JOIN compute_jobs j"
+                " ON j.job_id = a.job_id WHERE j.handler_contract = 'test.child.v1'"
+                " AND j.organization_id = :o"
+            ),
+            {"o": org.organization_id},
+        )
+    assert (parent.completed_at - enqueued).total_seconds() < 0.2

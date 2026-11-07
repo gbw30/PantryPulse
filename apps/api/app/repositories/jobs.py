@@ -39,6 +39,7 @@ from app.services.jobs.policies import (
     heartbeat_status,
 )
 from app.services.jobs.registry import (
+    FollowUp,
     InputRejected,
     PublicationIdentity,
     PublicationRejected,
@@ -1398,7 +1399,7 @@ class QueueRepository:
                 manifest = registration.publisher.publish(conn, identity, package)
                 if not isinstance(manifest, dict):
                     raise PublicationRejected(ReasonCode.OUTPUT_INVALID.value)
-                self._admit_follow_ups(conn, (ctl, now), job, identity, registration, manifest)
+                self._admit_follow_ups(conn, ctl, job, identity, registration, manifest)
                 encoded = _json(manifest)
                 final_now = conn.scalar(sa.text("SELECT clock_timestamp()"))
                 if final_now >= deadline:
@@ -1438,32 +1439,61 @@ class QueueRepository:
             conn.close()
 
     def _admit_follow_ups(
-        self, conn: sa.Connection, locked: tuple[Mapping[str, Any], datetime],
-        job: Mapping[str, Any], identity: PublicationIdentity, registration: Any,
-        manifest: dict[str, Any],
+        self, conn: sa.Connection, ctl: Mapping[str, Any], job: Mapping[str, Any],
+        identity: PublicationIdentity, registration: Any, manifest: dict[str, Any],
     ) -> None:
-        """Queue the publisher's follow-up jobs in the publication's transaction."""
+        """Queue the publisher's follow-up jobs in the publication's transaction.
+
+        Nothing here fails the publication (CR-w1-data-5): a failing hook or follow-up is
+        rolled back alone in a savepoint and audited with a code and an error type only.
+        """
         hook = getattr(registration.publisher, "follow_ups", None)
         if hook is None:
             return
+        try:
+            with conn.begin_nested():
+                follows = list(hook(conn, identity, manifest))
+                if not all(isinstance(f, FollowUp) for f in follows):
+                    raise TypeError("follow_ups must return FollowUp items")
+        except Exception as exc:  # noqa: BLE001 - a publisher bug never loses the publication
+            self._follow_up_rejected(conn, identity, None, "FOLLOW_UP_HOOK_FAILED", exc)
+            return
         scope = TrustedScope(job["organization_id"], job["requested_by_ref"])
-        for n, follow in enumerate(hook(conn, identity, manifest)):
-            key = f"follow-up:{identity.job_id}:{n}"  # same transaction, so retry-safe
+        for follow in follows:
+            # Unguessable, so no client key can claim it; the shared transaction already
+            # makes the admission exactly-once.
+            key = f"follow-up:{uuid.uuid4().hex}"
             try:
                 with conn.begin_nested():
+                    now = conn.scalar(sa.text("SELECT clock_timestamp()"))
                     submission = self._submission(follow.contract, follow.payload, key, False)
-                    result = self._admit(conn, scope, submission, key, False, locked=locked)
+                    result = self._admit(conn, scope, submission, key, False, locked=(ctl, now))
                     if isinstance(result, AdmissionOutcome):
                         raise AdmissionRejected("follow-up rejected", code=result.value)
-            except (InputRejected, AdmissionRejected) as exc:
+            except Exception as exc:  # noqa: BLE001 - e.g. a stub handler's NotImplementedError
+                code = getattr(exc, "code", None) or "FOLLOW_UP_FAILED"
+                self._follow_up_rejected(conn, identity, follow.contract, code, exc)
+            else:
                 self._audit(
                     conn,
-                    "FOLLOW_UP_REJECTED",
+                    "FOLLOW_UP_QUEUED",
                     job_id=identity.job_id,
                     attempt_id=identity.attempt_id,
-                    reason_code=exc.code,
-                    details={"contract": follow.contract},
+                    details={"contract": follow.contract, "follow_up_job_id": str(result.job_id)},
                 )
+
+    def _follow_up_rejected(
+        self, conn: sa.Connection, identity: PublicationIdentity, contract: str | None,
+        code: str, exc: BaseException,
+    ) -> None:
+        self._audit(
+            conn,
+            "FOLLOW_UP_REJECTED",
+            job_id=identity.job_id,
+            attempt_id=identity.attempt_id,
+            reason_code=str(code),
+            details={"contract": contract, "error_type": type(exc).__name__},
+        )
 
     def reconcile_publication(self, own: Ownership, claim: ClaimedAttempt) -> str:
         """Resolve an uncertain COMMIT by identity: COMMITTED, ABSENT or OTHER_<state>."""
