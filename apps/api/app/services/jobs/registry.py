@@ -104,8 +104,9 @@ class Publisher(Protocol):
     #     Never called after a committed publication. Best effort: it must be idempotent,
     #     and a supervisor crash between prepare and publish can leave data that a later
     #     prepare must tolerate or clean.
-    # follow_ups(identity, manifest) -> Sequence[FollowUp]   (CR-w1-data-5)
-    #     Runs right after `publish`, in the same locked transaction. Each FollowUp is
+    # follow_ups(connection, identity, manifest) -> Sequence[FollowUp]   (CR-w1-data-5)
+    #     Runs right after `publish`, in the same locked transaction (`connection` is that
+    #     transaction: read only what the follow-up needs, briefly). Each FollowUp is
     #     admitted there as a new job with the parent's organization and actor, so it exists
     #     only if the publication commits. A rejected follow-up (unknown contract, invalid
     #     input, queue full, compute unavailable) never fails the publication: it is rolled

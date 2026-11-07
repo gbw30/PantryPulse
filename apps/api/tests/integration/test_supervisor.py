@@ -1077,9 +1077,12 @@ class _FollowingPublisher(FixturePublisher):
         super().__init__("echo")
         self.follow = follow
 
-    def follow_ups(self, identity, manifest):
+    def follow_ups(self, connection, identity, manifest):
         from app.services.jobs.registry import FollowUp
 
+        # Same transaction: this attempt's publication is visible, not yet committed.
+        assert connection.scalar(sa.text("SELECT count(*) FROM wq_fixture_results"
+                                         " WHERE attempt_id = :a"), {"a": identity.attempt_id})
         return [FollowUp(contract, payload) for contract, payload in self.follow]
 
 

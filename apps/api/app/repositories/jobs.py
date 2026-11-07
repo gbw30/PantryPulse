@@ -1447,7 +1447,7 @@ class QueueRepository:
         if hook is None:
             return
         scope = TrustedScope(job["organization_id"], job["requested_by_ref"])
-        for n, follow in enumerate(hook(identity, manifest)):
+        for n, follow in enumerate(hook(conn, identity, manifest)):
             key = f"follow-up:{identity.job_id}:{n}"  # same transaction, so retry-safe
             try:
                 with conn.begin_nested():
