@@ -129,6 +129,11 @@ Not fixed:
 
 | Gate | Commit | Result |
 |---|---|---|
+| `node scripts/quality/run.cjs quick` (standard env) | 71b116a | PASS (4 of 4). The api step ran 1394 passed and 77 skipped, all in the same eight PostgreSQL isolated-schema suites as at be99c71 (`pytest -q -rs`). |
+| `node scripts/quality/run.cjs full` (`.env.lane` + `PP19_TEST_SCHEMA_ISOLATION=1`) | 71b116a | PASS (8 of 8) |
+| `uv run --frozen pytest -q --junitxml=…` + `require-test-evidence.py` | 71b116a | 1471 passed, 0 skipped; "1471 backend tests completed without skips or failures" |
+| `npx vitest run` / `node --test tests/*.test.mjs` | 71b116a | 22 files, 110 passed / 12 passed, 0 skipped |
+| `PLAYWRIGHT_PORT=3003 npx playwright test` (whole suite, alone) | 71b116a | 178 passed, 6 skipped: the same six seeded-backend specs |
 | `node scripts/quality/run.cjs quick` (standard env: `.env.lane`, no `PP19_TEST_SCHEMA_ISOLATION`) | be99c71 | PASS: web typecheck, web lint, api lint, api tests. The api step ran 1374 passed and 77 skipped. All 77 are the PostgreSQL isolated-schema suites that need the opt-in: `test_operational_postgres.py` (25), `test_stock_postgres.py` (17), `test_stock_adjustment_api_postgres.py` (9), `test_operations_api_postgres.py` (7), `test_forecast_api_postgres.py` (6), `test_inventory_api_postgres.py` (5), `test_planning_api_postgres.py` (4) and `test_planning_postgres.py` (4), all under `tests/integration/` (`pytest -q -rs`). |
 | `node scripts/quality/run.cjs full` (`.env.lane` + `PP19_TEST_SCHEMA_ISOLATION=1`) | be99c71 | PASS: web typecheck, web lint, api lint, api tests, web unit tests, web build, contract drift, database migrations |
 | `uv run --frozen pytest -q --junitxml=…` + `scripts/quality/require-test-evidence.py` (same env, lane DB) | be99c71 | 1451 passed, 0 skipped; "1451 backend tests completed without skips or failures" |
