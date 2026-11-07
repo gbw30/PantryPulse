@@ -21,6 +21,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+import sqlalchemy as sa
+
 from app.repositories.jobs import (
     ClaimedAttempt,
     CommitUncertain,
@@ -53,6 +55,7 @@ from app.services.jobs.registry import (
     PublicationRejected,
     Registration,
     Registry,
+    secret_env,
 )
 from app.workers.publication import reason_for, step_outcome
 from app.workers.recovery import containment_evidence
@@ -426,10 +429,23 @@ class Supervisor:
                 spec.name,
             ]
             try:
+                secrets = self._child_secrets(ex.registration)
+            except Exception as exc:  # noqa: BLE001 - missing or unreadable: never spawn
+                log_event(
+                    "SECRET_UNAVAILABLE",
+                    attempt_id=ex.claim.attempt_id,
+                    error_type=type(exc).__name__,
+                )
+                self._finish(
+                    ex, failure_reason=ReasonCode.SPAWN_FAILED, error={"code": "SECRET_UNAVAILABLE"}
+                )
+                return
+            try:
                 handle = self.driver.start(
                     argv,
                     canonical_json(envelope).encode("utf-8"),
                     max_stdout_bytes=ex.registration.max_output_bytes,
+                    **({"child_env": secrets} if secrets else {}),
                 )
             except Exception as exc:  # noqa: BLE001 - no boundary was created
                 log_event(
@@ -679,6 +695,22 @@ class Supervisor:
             return
         log_event("ATTEMPT_PUBLISHED", attempt_id=ex.claim.attempt_id)
         self.active = None
+
+    def _child_secrets(self, registration: Registration) -> dict[str, str]:
+        names = registration.child_secrets
+        if not names:
+            return {}
+        with self.repo.engine.connect() as conn:
+            rows = dict(
+                conn.execute(
+                    sa.text("SELECT name, value FROM local_secrets WHERE name = ANY(:n)"),
+                    {"n": list(names)},
+                ).all()
+            )
+        missing = [n for n in names if n not in rows]
+        if missing:
+            raise LookupError(f"{len(missing)} declared secret(s) not set")
+        return {secret_env(n): rows[n] for n in names}
 
     @staticmethod
     def _identity(ex: Execution) -> PublicationIdentity:

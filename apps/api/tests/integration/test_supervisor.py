@@ -908,3 +908,87 @@ def test_failed_discard_does_not_block_finalization(db, org, prep):
     _, attempt = _prep_run(db, org, prep, {"value": 3, "behavior": {}, "publish_fail": True})
     assert attempt.state is AttemptState.FAILED
     assert len(publisher.discarded) == 1
+
+
+# --- named secrets in the child environment (W1-D08 Google key, Gabriel 2026-11-07) --------
+
+
+def _secret_registry(child_secrets):
+    return Registry(
+        [
+            Registration(
+                contract="test.secret.v1",
+                operation_kind=OperationKind.ALLOCATION,
+                input_schema_version="1",
+                max_input_bytes=16_384,
+                max_output_bytes=65_536,
+                handler=EchoHandler(),
+                publisher=FixturePublisher("echo"),
+                child_secrets=child_secrets,
+            )
+        ]
+    )
+
+
+@pytest.fixture
+def google_key(db):
+    with db.begin() as conn:
+        conn.execute(sa.text("DELETE FROM local_secrets"))
+    yield
+    with db.begin() as conn:
+        conn.execute(sa.text("DELETE FROM local_secrets"))
+
+
+def _secret_run(db, org, registry):
+    repo = QueueRepository(db, registry=registry, profile=PROFILE)
+    driver = FakeDriver(registry=registry)
+    config = SupervisorConfig(registry_name="test", profile=PROFILE, tick_s=0.02)
+    sup = Supervisor(repo, registry, driver, config)
+    _created.append(sup)
+    assert sup.start()
+    accepted = submit(repo, org, contract="test.secret.v1")
+    done = settled(repo, org, accepted.job_id)
+    run_until(sup, lambda: done() and sup.active is None)
+    sup.shutdown_drain()
+    return repo, driver, accepted
+
+
+def test_declared_secret_reaches_only_the_child_env(db, org, google_key, caplog):
+    with db.begin() as conn:
+        conn.execute(
+            sa.text("INSERT INTO local_secrets (name, value) VALUES ('google_maps_api_key', :v)"),
+            {"v": "k-secret-xyz"},
+        )
+    caplog.set_level("DEBUG")
+    repo, driver, accepted = _secret_run(db, org, _secret_registry(("google_maps_api_key",)))
+    assert job_state(repo, org, accepted.job_id) is AttemptState.SUCCEEDED
+    assert driver.child_envs == [{"PP_SECRET_GOOGLE_MAPS_API_KEY": "k-secret-xyz"}]
+    view = repo.get_job(org, accepted.job_id)
+    stored = repr(view) + repr(repo.audit_events(accepted.job_id)) + caplog.text
+    with db.connect() as conn:
+        stored += repr(conn.execute(sa.text("SELECT * FROM compute_jobs")).all())
+        stored += repr(conn.execute(sa.text("SELECT * FROM compute_attempts")).all())
+    assert "k-secret-xyz" not in stored
+
+
+def test_undeclared_registration_gets_no_secret(db, org, google_key):
+    with db.begin() as conn:
+        conn.execute(
+            sa.text("INSERT INTO local_secrets (name, value) VALUES ('google_maps_api_key', 'k')")
+        )
+    _, driver, _ = _secret_run(db, org, _secret_registry(()))
+    assert driver.child_envs == [{}]
+
+
+def test_missing_secret_fails_before_spawn(db, org, google_key):
+    repo, driver, accepted = _secret_run(db, org, _secret_registry(("google_maps_api_key",)))
+    attempt = repo.get_job(org, accepted.job_id).attempts[0]
+    assert attempt.state is AttemptState.FAILED
+    assert attempt.reason_code == "SPAWN_FAILED"
+    assert attempt.error == {"code": "SECRET_UNAVAILABLE"}
+    assert driver.started == [] and driver.child_envs == []
+
+
+def test_secret_names_are_checked():
+    with pytest.raises(ValueError):
+        dataclasses.replace(REGISTRY.get("test.echo.v1"), child_secrets=("Bad-Name",))

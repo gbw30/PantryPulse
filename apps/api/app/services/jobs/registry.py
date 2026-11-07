@@ -5,6 +5,7 @@ shell command, pickle or callback. Registrations carry explicit serialized-size 
 production default is inferred.
 """
 
+import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -113,6 +114,9 @@ class Registration:
     max_output_bytes: int
     handler: Handler
     publisher: Publisher
+    # Named local_secrets rows passed only to this contract's step children, as
+    # secret_env(name) variables; never in the payload, logs or job rows (W1-D08).
+    child_secrets: tuple[str, ...] = ()
 
     def execution_budget(self, validated: Mapping[str, Any], profile: RuntimeProfile) -> float:
         """A registered handler may freeze a shorter allowance than the lane ceiling."""
@@ -139,6 +143,14 @@ class Registration:
             if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
                 raise ValueError(f"{name} must be a positive int")
         OperationKind(self.operation_kind)
+        for name in self.child_secrets:
+            if not isinstance(name, str) or not re.fullmatch(r"[a-z][a-z0-9_]*", name):
+                raise ValueError(f"invalid child secret name {name!r}")
+
+
+def secret_env(name: str) -> str:
+    """The step child's environment variable for a declared secret."""
+    return "PP_SECRET_" + name.upper()
 
 
 class Registry:
