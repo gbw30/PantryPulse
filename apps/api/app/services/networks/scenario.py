@@ -16,6 +16,7 @@ from uuid import UUID
 import sqlalchemy as sa
 from pydantic import ValidationError
 
+from app.repositories import networks as networks_repo
 from app.schemas.or_inputs import decimal_literal
 from app.schemas.v1_planning import (
     BatchV3,
@@ -195,10 +196,7 @@ def _inbound(conn: sa.Connection, version_id: UUID,
                        "JOIN net_locations l ON l.id = i.location_id "
                        "JOIN net_products p ON p.id = i.product_id "
                        "WHERE i.dataset_version_id = :v ORDER BY i.line_no", version_id)
-    files = conn.scalar(sa.text(
-        "SELECT r.files FROM dataset_versions v JOIN import_runs r ON r.id = v.import_run_id "
-        "WHERE v.id = :v"), {"v": version_id}) or []
-    provided = bool(rows) or any(f["name"] == "inbound" for f in files)
+    provided = networks_repo.inbound_file_provided(conn, version_id)
     if not provided:
         assumptions.append("no scheduled deliveries provided")
     later = [r for r in rows if not r.within_horizon]
