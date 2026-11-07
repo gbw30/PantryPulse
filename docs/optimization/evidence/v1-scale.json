@@ -121,5 +121,112 @@
     },
     "peak_rss_mb": 1451.7,
     "total_s": 284.0
+  },
+  "PANTRY": {
+    "mode": "PANTRY",
+    "seed": 20261104,
+    "machine": {
+      "platform": "Linux-6.18.54.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+      "cpus_allowed": 6
+    },
+    "recorded_at": "2026-11-07T17:14:29+00:00",
+    "size": {
+      "locations": 100,
+      "products": 500,
+      "batches": 69961,
+      "demand_series": 48000,
+      "routes": 960
+    },
+    "generate_s": 1.1,
+    "ceilings_s": {
+      "method": 330,
+      "comparison": 690
+    },
+    "methods": [
+      {
+        "measure": "UNITS",
+        "method": "NO_TRANSFERS",
+        "native_status": null,
+        "product_status_counts": {
+          "baseline": 500
+        },
+        "verified": true,
+        "failure_reason": null,
+        "transfers": 0,
+        "union_check": {
+          "passed": true,
+          "violations": []
+        }
+      },
+      {
+        "measure": "UNITS",
+        "method": "EQUAL_SHARE",
+        "native_status": null,
+        "product_status_counts": {
+          "baseline": 209,
+          "not at risk; not optimized": 291
+        },
+        "verified": true,
+        "failure_reason": null,
+        "transfers": 3473,
+        "union_check": {
+          "passed": true,
+          "violations": []
+        }
+      },
+      {
+        "measure": "UNITS",
+        "method": "MOST_URGENT_FIRST",
+        "native_status": null,
+        "product_status_counts": {
+          "baseline": 209,
+          "not at risk; not optimized": 291
+        },
+        "verified": true,
+        "failure_reason": null,
+        "transfers": 3473,
+        "union_check": {
+          "passed": true,
+          "violations": []
+        }
+      },
+      {
+        "measure": "UNITS",
+        "method": "CLASSICAL_GP",
+        "native_status": "OPTIMAL",
+        "product_status_counts": {
+          "OPTIMAL": 209,
+          "not at risk; not optimized": 291
+        },
+        "verified": true,
+        "failure_reason": null,
+        "transfers": 4062,
+        "union_check": {
+          "passed": true,
+          "violations": []
+        }
+      },
+      {
+        "measure": "UNITS",
+        "method": "EGP_PI_INSPIRED",
+        "native_status": "OPTIMAL",
+        "product_status_counts": {
+          "OPTIMAL": 209,
+          "not at risk; not optimized": 291
+        },
+        "verified": true,
+        "failure_reason": null,
+        "transfers": 4091,
+        "union_check": {
+          "passed": true,
+          "violations": []
+        }
+      }
+    ],
+    "comparison_wall_s": {
+      "UNITS": 220.2
+    },
+    "peak_rss_mb": 1023.5,
+    "total_s": 247.2
   }
 }

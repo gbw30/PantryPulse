@@ -10,7 +10,7 @@
 | W1-S02 | in progress: NO_TRANSFERS, SOONEST_EXPIRY_FIRST and the shared heuristic machinery (incl. EQUAL_SHARE/MOST_URGENT_FIRST code) done; the Pantry tests (equal-share/most-urgent hand values, Pantry hubs) wait on CR-w1-solver-1 | see `git log` | `uv run --frozen pytest -q -p no:cacheprovider tests/optimization/test_baselines.py` → 19 passed, 0 skipped; `tests/optimization` → 221 passed |
 | W1-S03 | done for Retail; `test_bd51_relaxed_retail_only` Pantry half waits on CR-w1-solver-1 (Retail half `test_bd51_relaxed_retail_selling_on_day_5_counts` passes) | see `git log` | `uv run --frozen pytest -q -p no:cacheprovider tests/optimization/test_retail_oracle.py tests/optimization/test_retail_optimized.py` → 37 passed, 0 skipped; `tests/optimization` → 202 passed; `node scripts/quality/run.cjs quick` → PASS |
 | W1-S04 | in progress: pure `compare_methods` done for Retail (independent failures, publication re-verification, v2 regression); Pantry five-method test waits on CR-w1-solver-1; `or-comparison.v3` worker publisher and `api_v3` submit/get blocked on CR-w1-solver-3 | see `git log` | `uv run --frozen pytest -q -p no:cacheprovider tests/optimization/test_compare_v3.py` → 9 passed, 0 skipped; `tests/optimization` → 230 passed |
-| W1-S05 | Retail done: decomposition hardening, method search deadline, fast heuristic probe, localized capacity split (`test_allot_*`, `test_localized_split_only_products_with_need_at_receiver`), `scripts/or/bench_v1.py`, and Retail 100 × 500 evidence (`docs/optimization/evidence/v1-scale.json`). Pantry bench next | see `git log` | `uv run --frozen pytest -q -p no:cacheprovider tests/optimization` → 287 passed, 0 skipped; `taskset -c 0-5 uv run --frozen python ../../scripts/or/bench_v1.py --locations 100 --products 500 --mode retail` → UNITS 130.9 s, USD 124.5 s; starved 0/209 (was 123/209, USD 150/209); all six results verified; exit 0 |
+| W1-S05 | Retail done: decomposition hardening, method search deadline, fast heuristic probe, localized capacity split (`test_allot_*`, `test_localized_split_only_products_with_need_at_receiver`), `scripts/or/bench_v1.py`, and 100 × 500 evidence for both modes (`docs/optimization/evidence/v1-scale.json`, commands under Scale benches) | see `git log` | `uv run --frozen pytest -q -p no:cacheprovider tests/optimization` → 287 passed, 0 skipped; `taskset -c 0-5 uv run --frozen python ../../scripts/or/bench_v1.py --locations 100 --products 500 --mode retail` → UNITS 130.9 s, USD 124.5 s; starved 0/209 (was 123/209, USD 150/209); all six results verified; exit 0. `--mode pantry` → UNITS 220.2 s, five methods verified, GP/EGP OPTIMAL ×209; exit 0 |
 | W1-S06 | done for Retail (Pantry why text uses the window from CR-w1-solver-1, tested after merge); `api_v3.comparison_actions` waits on CR-w1-solver-3 | see `git log` | `uv run --frozen pytest -q -p no:cacheprovider tests/optimization/test_actions.py` → 8 passed, 0 skipped; `tests/optimization` → 256 passed |
 | W1-S07 | in progress: pure `export_plan_csv` done (columns, selected actions only, scenario mismatch, unverified rejection, no-scheduled-deliveries note); `test_export_changes_no_stock` (PostgreSQL row counts around `api_v3.export_comparison`) waits on CR-w1-solver-3 | see `git log` | `uv run --frozen pytest -q -p no:cacheprovider tests/optimization/test_export.py` → 5 passed, 0 skipped; `tests/optimization` → 261 passed |
 
@@ -24,31 +24,36 @@
   - Pure W1-S07 (`export_plan_csv`).
   - W1-S05 for Retail: hardening tests, deadline, fast probe, bench and evidence.
   - Retail heuristics (W1-S02).
-- **In progress (committed as WIP 3b60263):**
-  - Pantry CLASSICAL_GP and EGP_PI_INSPIRED (`pantry.py`), wired into `methods.py`.
-  - The `pantry-four-methods` fixture.
-  - Its tests, parked as `tests/optimization/pending_cr1_pantry_methods.py` (not collected). They need `ORInputV3.planning_days`/`policy` and `DEFAULT_PANTRY_POLICY` from CR-w1-solver-1 (lead PR #103, not merged). Against a local stand-in for those fields, 21 passed, and four mutations were each caught. No Pantry test has run against the real schema.
-- **Next step after #103 merges into `v1-local`:**
-  1. `git fetch && git merge origin/v1-local`.
-  2. Rename the parked module to `test_pantry_methods.py` and run it.
-  3. Pantry bench (`--mode pantry`).
-  4. CR-3 wiring: the `V3_REGISTRATION` handler and publisher in `workers/optimization.py` (insert `planning_comparisons_v3` with id = job_id); `api_v3` submit/get/actions/export, with GET returning 404 `COMPARISON_NOT_FOUND` before publication; `test_export_changes_no_stock` on PostgreSQL.
-  5. Quick and full gates, ship-check, then the PR.
-- **Retail 100 × 500 bench.** Run on the tree at 3b60263 (6b46700 plus Pantry wiring; Retail behaviour is identical). 6 CPUs (`taskset -c 0-5`), WSL2, seed 20261104.
-  - Network: 100 locations, 500 products, 69 961 batches, 48 000 demand series, 960 routes.
-  - Comparison wall time: UNITS 95.0 s, USD 77.9 s (ceiling 690 s). Total run 199.6 s, peak RSS 1.23 GB.
-  - All six method results are verified, and every union check passes:
+- **Done after #103 merged (resume, Gabriel's go 2026-11-07):**
+  - Merged `origin/v1-local` (18799a6). The Pantry tests now run on the real CR-1 schema as `tests/optimization/test_pantry_methods.py` (4b18119).
+  - Localized capacity split, built test-first (de0c53c).
+  - Pantry 100 × 500 bench (below).
+- **Next:** CR-3 wiring. This is the `V3_REGISTRATION` handler and publisher, which insert `planning_comparisons_v3` with id = job_id. CR-w1-solver-4 (approved 2026-11-07) changes the stub-advertising test in that commit. Also next: `api_v3` submit/get/actions/export, where GET returns 404 `COMPARISON_NOT_FOUND` before publication, and `test_export_changes_no_stock` on PostgreSQL. Then gates, ship-check and the PR.
+- **Scale benches (W1-S05).** Command, from `apps/api` with `.env.lane` loaded: `taskset -c 0-5 uv run --frozen python ../../scripts/or/bench_v1.py --locations 100 --products 500 --mode {retail|pantry}`. Each run writes its mode into `docs/optimization/evidence/v1-scale.json`. Both ran on 6 CPUs, WSL2, seed 20261104, on a network of 100 locations, 500 products, 69 961 batches, 48 000 demand series and 960 routes. Ceilings: 330 s per method, 690 s per comparison. Every method result is verified, and every union check passes.
+  - **Retail.** Tree de0c53c (localized split). Comparison wall time UNITS 130.9 s, USD 124.5 s. Total 284.0 s, peak RSS 1.45 GB, exit 0. At-risk 209/500, starved 0/209. Before the localized split it was 123/209 (USD 150/209).
 
     | Measure | Method | Status | Transfers |
     |---|---|---|---|
     | UNITS | NO_TRANSFERS | — | 0 |
-    | UNITS | SOONEST_EXPIRY_FIRST | — | 6 106 |
-    | UNITS | RETAIL_OPTIMIZED | OPTIMAL | 5 546 |
-    | USD | SOONEST_EXPIRY_FIRST | — | 5 029 |
-    | USD | RETAIL_OPTIMIZED | OPTIMAL | 4 461 |
+    | UNITS | SOONEST_EXPIRY_FIRST | — | 8 429 |
+    | UNITS | RETAIL_OPTIMIZED | OPTIMAL ×209 | 8 025 |
+    | USD | NO_TRANSFERS | — | 0 |
+    | USD | SOONEST_EXPIRY_FIRST | — | 9 486 |
+    | USD | RETAIL_OPTIMIZED | OPTIMAL ×209 | 8 775 |
 
-  - At-risk products: 209 of 500. Under the decision's advance split, 123 of them (USD: 150) are starved: "capacity share too small to move one unit". This reproduces the W0-10 review finding. The rule is kept and the counts are recorded; a localized-weight option is still to be raised with the lead.
-  - History: the first run timed out at 25 min. Per-method profiling then showed SOONEST_EXPIRY_FIRST taking more than 23 min, NO_TRANSFERS 21.6 s and RETAIL_OPTIMIZED 55.6 s. The fix in 6b46700 brought the heuristic to 85.8 s with the same 6 106 transfers.
+  - **Pantry.** Tree de0c53c, `DEFAULT_PANTRY_POLICY`, `planning_days` 3, a vulnerability row for every pantry. Comparison wall time UNITS 220.2 s (five methods). Total 247.2 s (`/usr/bin/time`: 4:07.76), peak RSS 1.02 GB, exit 0. At-risk 209/500, starved 0, no singleton RP groups.
+
+    | Method | Status | Transfers |
+    |---|---|---|
+    | NO_TRANSFERS | — | 0 |
+    | EQUAL_SHARE | — | 3 473 |
+    | MOST_URGENT_FIRST | — | 3 473 |
+    | CLASSICAL_GP | OPTIMAL ×209 | 4 062 |
+    | EGP_PI_INSPIRED | OPTIMAL ×209 | 4 091 |
+
+    EQUAL_SHARE and MOST_URGENT_FIRST report the same transfer count. The bench records counts, not plans, so whether the two plans are identical is unverified. On `pantry-four-methods` the two plans differ.
+
+  - History: the first Retail run timed out at 25 min because SOONEST_EXPIRY_FIRST took more than 23 min. Three probe fixes (6b46700 and later) brought the full Retail comparison under the ceilings.
 
 ## Gates
 
