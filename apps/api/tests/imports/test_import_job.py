@@ -13,6 +13,7 @@ import sqlalchemy as sa
 from alembic import command
 
 from app.repositories.jobs import QueueRepository, TrustedScope, create_queue_engine
+from app.repositories.networks import inbound_file_provided
 from app.schemas.v1_imports import ImportCommit, ImportCreate, NewNetwork
 from app.services.imports import api
 from app.services.imports.staging import import_dir, run_import
@@ -264,9 +265,33 @@ def test_list_networks_returns_mode_timezone_as_of(rt):
     assert (listed.dataset_version_id, listed.as_of_date) == (
         done.dataset_version_id, date(2026, 11, 4))
     assert (listed.location_count, listed.product_count) == (2, 2)
+    assert listed.inbound_file_provided is False  # FILES has no inbound.csv
     with pytest.raises(AccessError) as missing:
         get_network(rt, SCOPE, uuid.uuid4())
     assert missing.value.status == 404
+
+
+def test_network_reads_say_whether_the_latest_version_had_an_inbound_file(rt):
+    header_only = "location_id,product_id,quantity,arrival_date,expiry_date,non_expiring\n"
+    status = _imported(rt, {**FILES, "inbound": header_only})
+    network = get_network(rt, SCOPE, status.network_id)
+    assert network.inbound_file_provided is True  # uploaded, even with no deliveries
+    listed = {n.id: n for n in list_networks(rt, SCOPE).networks}[status.network_id]
+    assert listed.inbound_file_provided is True
+    with rt.engine.connect() as conn:
+        assert inbound_file_provided(conn, status.dataset_version_id) is True  # scenario's flag
+
+
+def test_a_network_without_a_version_has_no_inbound_flag(rt):
+    org, network_id = uuid.uuid4(), uuid.uuid4()
+    with rt.engine.begin() as conn:  # no import path leaves this; the read must still hold
+        conn.execute(sa.text("INSERT INTO organizations (id, name, is_demo) "
+                             "VALUES (:o, 'No version', false)"), {"o": org})
+        conn.execute(sa.text("INSERT INTO networks (id, organization_id, name, mode, timezone) "
+                             "VALUES (:n, :o, 'No version', 'RETAIL', 'UTC')"),
+                     {"n": network_id, "o": org})
+    network = get_network(rt, SCOPE, network_id)
+    assert (network.dataset_version_id, network.inbound_file_provided) == (None, None)
 
 
 def test_as_of_defaults_to_day_after_last_history(rt):
