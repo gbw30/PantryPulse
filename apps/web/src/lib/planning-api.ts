@@ -44,6 +44,22 @@ export async function apiWrite<T>(method: "PUT" | "DELETE", path: string, body?:
     headers: { ...(body === undefined ? {} : { "Content-Type": "application/json" }), "X-CSRF-Token": csrfToken(), "Idempotency-Key": crypto.randomUUID() } });
 }
 
+/** POST JSON and return the text body (a v1 plan CSV); errors still arrive as the JSON error envelope. */
+export async function apiText(path: string, body: unknown): Promise<string> {
+  let response: Response;
+  try {
+    response = await fetch(`/api/v1/${path}`, { method: "POST", cache: "no-store", credentials: "same-origin", body: JSON.stringify(body),
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken(), "Idempotency-Key": crypto.randomUUID() } });
+  } catch {
+    throw new ApiError("NETWORK_ERROR", 0);
+  }
+  if (!response.ok) {
+    const error = (await response.json().catch(() => null) as Partial<Schema["ErrorEnvelope"]> | null)?.error;
+    throw new ApiError(error?.code ?? "REQUEST_FAILED", response.status, (error?.details as Record<string, unknown> | undefined) ?? {});
+  }
+  return response.text();
+}
+
 /** POST a raw body (a v1 import CSV, streamed by the browser) with CSRF and an Idempotency-Key. */
 export async function apiRaw<T>(path: string, body: Blob, contentType: string, idempotencyKey?: string): Promise<T> {
   return send<T>(path, { method: "POST", body,

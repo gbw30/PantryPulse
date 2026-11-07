@@ -1,4 +1,4 @@
-import { api, apiRaw, apiWrite, type Schema } from "./planning-api";
+import { api, apiRaw, apiText, apiWrite, type Schema } from "./planning-api";
 
 export type Network = Schema["Network"];
 export type TemplateCatalog = Schema["TemplateCatalog"];
@@ -31,6 +31,12 @@ export const networkApi = {
   submitComparison: (networkId: string, body: Schema["ComparisonRequestV3"]) => api<Schema["ForecastAccepted"]>(`networks/${networkId}/comparisons`, body),
   /** The finished comparison named by the job's `result_url` (GET networks/{id}/comparisons/{comparison_id}). */
   comparisonAt: (resultUrl: string) => api<Schema["SavedComparisonV3"]>(resultUrl.replace(/^\/api\/v1\//, "")),
+  comparison: (networkId: string, comparisonId: string) => api<Schema["SavedComparisonV3"]>(`networks/${networkId}/comparisons/${comparisonId}`),
+  actions: (networkId: string, comparisonId: string, method: Schema["MethodResult"]["method"]) =>
+    api<Schema["DecisionActions"]>(`networks/${networkId}/comparisons/${comparisonId}/methods/${method}/actions`),
+  /** The server's plan CSV for the chosen actions (each row carries the scenario hash and the simulation note). */
+  exportPlan: (networkId: string, comparisonId: string, method: Schema["MethodResult"]["method"], actionIds: string[]) =>
+    apiText(`networks/${networkId}/comparisons/${comparisonId}/methods/${method}/export`, { action_ids: actionIds }),
   job: (jobId: string) => api<Schema["ForecastJob"]>(`jobs/${encodeURIComponent(jobId)}`),
   settings: () => api<Schema["LocalSettings"]>("settings"),
   /** Write-only: the key is sent once and never read back. */

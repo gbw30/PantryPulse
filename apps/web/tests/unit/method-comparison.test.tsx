@@ -105,4 +105,8 @@ it("per-location effects table", () => {
   expect(within(row).getByRole("rowheader")).toHaveTextContent("Pantry 12");
   expect(within(row).getAllByRole("cell").map((td) => td.textContent)).toEqual(["Bottled water", "55 cases", "15 cases", "0 cases", "0 cases"]);
   expect(screen.getByText("Effects are per location and product; quantities of different products are never added together.")).toBeVisible();
+  // A verified method with transfers links to its suggested actions (W1-W08).
+  expect(screen.getByRole("link", { name: "Open suggested actions for Classical GP" }))
+    .toHaveAttribute("href", `/decisions?comparison_id=${saved.id}&method=CLASSICAL_GP`);
+  expect(screen.queryByRole("link", { name: /for EGP-PI-inspired/ })).not.toBeInTheDocument();
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useReducedMotion } from "motion/react";
 import { ArrowDown, ArrowUp, Minus } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis } from "recharts";
@@ -332,7 +333,7 @@ function EffectsTable({ result, label, retail, names }: { result: V1Result; labe
   );
 }
 
-function MethodCard({ method, result, retail, names }: { method: V1Method; result: V1Result | undefined; retail: boolean; names: V1Names }) {
+function MethodCard({ comparisonId, method, result, retail, names }: { comparisonId: string; method: V1Method; result: V1Result | undefined; retail: boolean; names: V1Names }) {
   const label = V1_METHOD_LABEL[method];
   const solved = result?.products.filter((p) => p.native_status !== null) ?? [];
   const skipped = result?.products.filter((p) => p.native_status === null && p.label) ?? [];
@@ -355,6 +356,11 @@ function MethodCard({ method, result, retail, names }: { method: V1Method; resul
             <>
               <p className="text-xs">{result.transfers.length} transfer{result.transfers.length === 1 ? "" : "s"} suggested</p>
               <EffectsTable result={result} label={label} retail={retail} names={names} />
+              {result.transfers.length > 0 && (
+                <Link href={`/decisions?${new URLSearchParams({ comparison_id: comparisonId, method })}`} aria-label={`Open suggested actions for ${label}`} className="text-xs font-medium underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm justify-self-start">
+                  Open suggested actions
+                </Link>
+              )}
             </>
           )}
         </>
@@ -381,7 +387,7 @@ export function MethodComparisonResults({ comparison, scenario, requested }: { c
         {retail && <p>Measure: {result.measure === "USD" ? "USD (effects below stay in units)" : `units${usdReason ? ` · USD unavailable: ${usdReason}` : ""}`}</p>}
       </div>
       <div className="grid gap-2 xl:grid-cols-2">
-        {order.map((m) => <MethodCard key={m} method={m} result={result.methods.find((r) => r.method === m)} retail={retail} names={names} />)}
+        {order.map((m) => <MethodCard key={m} comparisonId={comparison.id} method={m} result={result.methods.find((r) => r.method === m)} retail={retail} names={names} />)}
       </div>
       <p className="text-xs text-muted-foreground">Effects are per location and product; quantities of different products are never added together.</p>
     </section>
