@@ -89,11 +89,6 @@ NEW_NETWORK = {"name": "N", "mode": "PANTRY", "timezone": "America/New_York"}
 ACTIONS = f"/networks/{NET}/comparisons/{CMP}/methods/EQUAL_SHARE"
 STUBS = [
     ("GET", "/templates/locations.csv?kind=example", None, None, "W3-P03"),
-    ("GET", "/settings", None, None, "W1-D08"),
-    ("PUT", "/settings/google-maps-key", {"key": "k"}, None, "W1-D08"),
-    ("DELETE", "/settings/google-maps-key", None, None, "W1-D08"),
-    ("POST", f"/networks/{NET}/routes/google-preview", {}, None, "W1-D08"),
-    ("POST", f"/networks/{NET}/routes/google-fetch", {}, KEYED, "W1-D08"),
     ("GET", f"/networks/{NET}/danger?forecast_run_id={JOB}", None, None, "W3-F05"),
     ("GET", f"/forecasts/{JOB}/backtest", None, None, "W3-F03"),
     ("GET", f"/networks/{NET}/comparisons/{CMP}", None, None, "W1-S04"),
