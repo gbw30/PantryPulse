@@ -1167,6 +1167,8 @@ export interface components {
             receiver_unmet_delta: number;
             /** Sender Unmet Delta */
             sender_unmet_delta: number;
+            /** Unit */
+            unit: string;
             /** Usd Delta */
             usd_delta: string | null;
         };
@@ -3095,6 +3097,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Inbound File Provided */
+            inbound_file_provided: boolean | null;
             /** Is Sample */
             is_sample: boolean;
             /** Location Count */
@@ -3904,11 +3908,15 @@ export interface components {
         };
         /** SavedComparisonV3 */
         SavedComparisonV3: {
+            /** Assumptions */
+            assumptions: string[];
             /**
              * Id
              * Format: uuid
              */
             id: string;
+            /** Inbound File Provided */
+            inbound_file_provided: boolean;
             /**
              * Network Id
              * Format: uuid
