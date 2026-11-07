@@ -27,12 +27,14 @@ class ProductOutcome:
     gap: str | None  # relative gap on the primary objective, FEASIBLE only
 
 
-def solve(pm, primary, search_seconds: float, product_id: str) -> ProductOutcome:
-    """Solve primary × K + moved units; keep the native status, never relabel FEASIBLE."""
+def solve(
+    pm, primary, search_seconds: float, product_id: str, *, tie_break: bool = True
+) -> ProductOutcome:
+    """Solve primary × K + moved units (or primary alone); keep the native status."""
     m = pm.model
     moved = [v for v in pm.y.values() if not isinstance(v, int)]
-    k = sum(pm.upper.values()) + 1
-    m.minimize(k * primary + sum(moved))
+    k = sum(pm.upper.values()) + 1 if tie_break else 1
+    m.minimize(k * primary + sum(moved) if tie_break else primary)
     audit_model(m)
     solver = cp_model.CpSolver()
     solver.parameters.num_workers = WORKERS

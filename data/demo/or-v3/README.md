@@ -107,3 +107,30 @@ Store A: `a1` 6 units expiring 11-06 (day 5 of 7). A's sales forecast is 0. Stor
   - B: lost on days 1–2 and 6–7, so 4 lost.
   - **Objective 7 units = $8.75.**
 - Pantry BD-51 with a 3-day window would accept only the day-3 sale, so only 1 unit could move. Retail's relaxed rule is what lets 3 move (`test_bd51_relaxed_retail_only`).
+
+## pantry-four-methods
+
+Pantry mode, HUB_ONLY, window `planning_days = 2`, the default policy (λ 100 %, β 50 %, AP threshold 7500, RP threshold 2500, caps 2500 bp, γ 100 %/100 %, ε 100 bp/100 bp). Central Hub has `h1`, 4 non-expiring cases of canned beans. The hub has no demand, so all 4 cases are protected surplus. Routes Hub→P1, P2 and P3 take 1 day: a case shipped on 11-02 arrives on 11-03 (day 2) and can only serve day-2 demand, which is at most 3 per pantry. The pantries hold no stock. Every pantry also has demand 1 on each of days 3–7. That demand is outside the window, so it changes no target (`test_goals_use_the_window_only`).
+
+| Pantry | Demand day 1, day 2 | Window target | poverty, SNAP | v = 1 + λ × (½ poverty + ½ SNAP) |
+|---|---|---|---|---|
+| P1 | 0, 3 | 3 | 0.4, 0.4 | 1.4 |
+| P2 | 3, 3 | 6 | 0, 0 | 1 |
+| P3 | 3, 3 | 6 | 0.2, 0.2 | 1.2 |
+
+Notation: q = floor(10000 × v × unmet / target). W = Σq, Z = max q. GP uses v = 1. There is no route cost, so the cost term is absent. Nothing expires, so the waste term is 0.
+
+- **EQUAL_SHARE.** Receivers in first-deficit order are P2, P3 (day 1), then P1 (day 2). Water-filling 4 over 3 gives 1 each, and the remainder goes to P2. **P1 1, P2 2, P3 1.**
+- **MOST_URGENT_FIRST.** P2 first: it wants 6 and can use 3. P3 gets the last 1. **P2 3, P3 1.**
+- **CLASSICAL_GP: P1 2, P2 1, P3 1.**
+  - q = (3333, 8333, 8333), so W + Z = 19999 + 8333 = 28332.
+  - The closest rival, P1 3 with P2 or P3 1, has q = (0, 8333, 10000): W + Z = 18333 + 10000 = 28333, so it loses by one quantization step.
+  - Compiled coefficients (q₁, q₂, q₃, Z, waste) = (50, 50, 50, 50, 1). **Objective 50 × 28332 = 1 416 600.**
+- **EGP_PI_INSPIRED: P1 2, P2 2.**
+  - q = (4666, 6666, 12000), so W = 23332 and Z = 12000.
+  - AP: only P3 is above 7500. AP excess = max(0, 10000 × 1 − 2500 × 3) = 2500.
+  - RP: 3 × 12000 − 23332 = 12668 > 7500, so only P3 is flagged. RP excess = 2500.
+  - Compiled coefficients (q×3, Z, AP, RP, waste) = (150, 150, 150, 150, 100, 100, 3). **Objective 150 × 35332 + 100 × 5000 = 5 799 800.**
+  - The GP plan scores 6 199 850 under EGP: q = (4666, 8333, 10000) gives 150 × 32999. P2 and P3 are both above the AP threshold, so AP excess is 20000 − 7500 = 12500. No goal is RP-flagged.
+
+An enumeration of every feasible plan (`test_pantry_oracle`) confirms that each optimum is unique. `test_ap_flag_unset_at_equality` covers the AP boundary: a goal at exactly q = 7500 is not flagged. This is arithmetic on a fictional fixture, not evidence that either method is fairer.

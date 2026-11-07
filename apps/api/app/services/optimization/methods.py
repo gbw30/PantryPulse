@@ -20,8 +20,15 @@ from app.schemas.v1_planning import (
     require_methods_for_mode,
 )
 from app.services.optimization.decompose import at_risk, protected_senders, split
+from app.services.optimization.pantry import (
+    SINGLETON_LABEL,
+    coverage_gap,
+    goals,
+    pantry_objectives,
+    solve_pantry_product,
+)
 from app.services.optimization.projection import project_v3
-from app.services.optimization.retail import ProductOutcome
+from app.services.optimization.retail import ProductOutcome, solve_retail_product
 from app.services.optimization.v3 import (
     PER_PRODUCT_LABEL,
     STARVED_LABEL,
@@ -87,7 +94,15 @@ def run_method(
 
 
 def _optimized(s, method, measure, baseline, search_seconds) -> MethodResult:
-    risky = at_risk(s, baseline)
+    undefined = set()
+    if method == "EGP_PI_INSPIRED":
+        missing = coverage_gap(s)
+        if missing:
+            reason = f"ATTRIBUTE_POLICY_COVERAGE:{','.join(missing)}"
+            return failed_result(s, method, measure, None, reason, ())
+        undefined = {p.id for p in s.products if len(goals(s, p.id)) < 2}
+    at_risk_all = at_risk(s, baseline)
+    risky = at_risk_all - undefined
     cands = {p: candidates(s, p) for p in risky}
     parts = split(s, baseline, risky, measure, cands)
     outcomes, late = {}, []
@@ -103,18 +118,18 @@ def _optimized(s, method, measure, baseline, search_seconds) -> MethodResult:
             continue
         rows = by_product[p]
         protected = protected_senders(s, rows, p)
+        args = (s, p, cands[p], parts.shares[p], rows, protected, min(search_seconds, remaining))
         if method == "RETAIL_OPTIMIZED":
-            from app.services.optimization.retail import solve_retail_product as solve
+            outcomes[p] = solve_retail_product(*args)
         else:
-            from app.services.optimization.pantry import solve_pantry_product as solve
-
-            solve = _bind_method(solve, method)
-        outcomes[p] = solve(
-            s, p, cands[p], parts.shares[p], rows, protected, min(search_seconds, remaining)
-        )
+            outcomes[p] = solve_pantry_product(*args, method=method)
     products = []
     for p in s.products:
-        if p.id not in risky:
+        if p.id in undefined and p.id in at_risk_all:
+            products.append(
+                ProductSolve(product_id=p.id, native_status=None, gap=None, label=SINGLETON_LABEL)
+            )
+        elif p.id not in risky:
             products.append(
                 ProductSolve(product_id=p.id, native_status=None, gap=None, label=NOT_AT_RISK_LABEL)
             )
@@ -145,10 +160,6 @@ def _optimized(s, method, measure, baseline, search_seconds) -> MethodResult:
     return assemble(s, method, measure, baseline, quantities, status, tuple(products), native)
 
 
-def _bind_method(solve, method):
-    return lambda *args: solve(*args, method=method)
-
-
 def assemble(s, method, measure, baseline, quantities, status, products, native) -> MethodResult:
     """Pack, verify the union plan, replay native objectives, publish only verified plans."""
     try:
@@ -160,7 +171,7 @@ def assemble(s, method, measure, baseline, quantities, status, products, native)
     if not report.passed:
         reason = f"VERIFICATION_FAILED:{','.join(report.violations)}"
         return failed_result(s, method, measure, status, reason, products)
-    replay = product_objectives(s, report.days, method)
+    replay = product_objectives(s, report, method)
     mismatched = sorted(p for p, value in native.items() if replay.get(p, 0) != value)
     if mismatched:
         reason = f"NATIVE_OBJECTIVE_REPLAY_MISMATCH:{','.join(mismatched)}"
@@ -210,15 +221,13 @@ def failed_result(s, method, measure, status, reason, products) -> MethodResult:
     )
 
 
-def product_objectives(s, days, method) -> dict[str, int]:
-    """Per-product objective recomputed from the verifier's projection (Retail primary)."""
+def product_objectives(s, report, method) -> dict[str, int]:
+    """Per-product objective recomputed from the verifier's projection and plan."""
     if s.mode != "RETAIL":
-        from app.services.optimization.pantry import pantry_objectives
-
-        return pantry_objectives(s, days, method)
+        return pantry_objectives(s, report, method)
     w = s.retail_weights
     out = defaultdict(int)
-    for d in days:
+    for d in report.days:
         out[d.product_id] += w.w_exp * d.expired + w.w_lost * d.unmet
     return dict(out)
 

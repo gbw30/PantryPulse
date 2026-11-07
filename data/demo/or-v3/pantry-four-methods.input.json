@@ -1,0 +1,238 @@
+{
+  "schema_version": "or-input-v3",
+  "network_id": "00000000-0000-4000-8000-0000000000a1",
+  "organization_id": "00000000-0000-4000-8000-0000000000a2",
+  "dataset_version_id": "00000000-0000-4000-8000-0000000000a3",
+  "forecast_run_id": "00000000-0000-4000-8000-0000000000a4",
+  "mode": "PANTRY",
+  "transfer_mode": "HUB_ONLY",
+  "timezone": "America/New_York",
+  "snapshot_as_of": "2026-11-01",
+  "first_planning_date": "2026-11-02",
+  "horizon_days": 7,
+  "locations": [
+    {
+      "id": "H",
+      "name": "Central Hub",
+      "role": "hub"
+    },
+    {
+      "id": "P1",
+      "name": "Pantry 1",
+      "role": "pantry"
+    },
+    {
+      "id": "P2",
+      "name": "Pantry 2",
+      "role": "pantry"
+    },
+    {
+      "id": "P3",
+      "name": "Pantry 3",
+      "role": "pantry"
+    }
+  ],
+  "products": [
+    {
+      "id": "F",
+      "name": "Canned beans",
+      "unit": "case",
+      "handling_units_per_unit": 1,
+      "unit_value_usd": null
+    }
+  ],
+  "batches": [
+    {
+      "id": "h1",
+      "location_id": "H",
+      "product_id": "F",
+      "quantity": 4,
+      "expiry_date": null,
+      "non_expiring": true
+    }
+  ],
+  "demand": [
+    {
+      "location_id": "P1",
+      "product_id": "F",
+      "basis": "demand",
+      "actual_provider": "seasonal_naive",
+      "fallback_reason": null,
+      "central_literals": [
+        "0",
+        "3",
+        "1",
+        "1",
+        "1",
+        "1",
+        "1"
+      ],
+      "targets": [
+        0,
+        3,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "location_id": "P2",
+      "product_id": "F",
+      "basis": "demand",
+      "actual_provider": "seasonal_naive",
+      "fallback_reason": null,
+      "central_literals": [
+        "3",
+        "3",
+        "1",
+        "1",
+        "1",
+        "1",
+        "1"
+      ],
+      "targets": [
+        3,
+        3,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "location_id": "P3",
+      "product_id": "F",
+      "basis": "demand",
+      "actual_provider": "seasonal_naive",
+      "fallback_reason": null,
+      "central_literals": [
+        "3",
+        "3",
+        "1",
+        "1",
+        "1",
+        "1",
+        "1"
+      ],
+      "targets": [
+        3,
+        3,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    }
+  ],
+  "inbound": [],
+  "inbound_file_provided": false,
+  "routes": [
+    {
+      "from_location_id": "H",
+      "to_location_id": "P1",
+      "travel_days": 1,
+      "method": "routes_csv",
+      "road_miles": null,
+      "cost_per_handling_unit_usd": null,
+      "capacity_per_batch": null
+    },
+    {
+      "from_location_id": "H",
+      "to_location_id": "P2",
+      "travel_days": 1,
+      "method": "routes_csv",
+      "road_miles": null,
+      "cost_per_handling_unit_usd": null,
+      "capacity_per_batch": null
+    },
+    {
+      "from_location_id": "H",
+      "to_location_id": "P3",
+      "travel_days": 1,
+      "method": "routes_csv",
+      "road_miles": null,
+      "cost_per_handling_unit_usd": null,
+      "capacity_per_batch": null
+    }
+  ],
+  "capacities": [],
+  "global_handling": null,
+  "cost_budget_minor": null,
+  "reserves": [],
+  "retail_weights": null,
+  "vulnerability": [
+    {
+      "location_id": "P1",
+      "poverty_rate": "0.4",
+      "snap_rate": "0.4",
+      "source": "manual"
+    },
+    {
+      "location_id": "P2",
+      "poverty_rate": "0",
+      "snap_rate": "0",
+      "source": "manual"
+    },
+    {
+      "location_id": "P3",
+      "poverty_rate": "0.2",
+      "snap_rate": "0.2",
+      "source": "manual"
+    }
+  ],
+  "assumptions": [
+    "fictional oracle fixture"
+  ],
+  "planning_days": 2,
+  "policy": {
+    "schema_version": "or-policy-v1",
+    "version": "or-draft-1.1",
+    "purpose": "PRIMARY",
+    "lambda_percent": 100,
+    "beta_percent": 50,
+    "coefficients": [
+      {
+        "attribute_id": "poverty_rate",
+        "percent": 50
+      },
+      {
+        "attribute_id": "snap_rate",
+        "percent": 50
+      }
+    ],
+    "ap_threshold": 7500,
+    "rp_threshold": 2500,
+    "ap_cap_bp": 2500,
+    "rp_cap_bp": 2500,
+    "gamma_ap_percent": 100,
+    "gamma_rp_percent": 100,
+    "epsilon_cost_bp": 100,
+    "epsilon_waste_bp": 100,
+    "decision_ids": [
+      "OR-DEC-001",
+      "OR-DEC-002",
+      "OR-DEC-003",
+      "OR-DEC-004",
+      "OR-DEC-005",
+      "OR-DEC-006",
+      "OR-DEC-007",
+      "OR-DEC-008",
+      "OR-DEC-009",
+      "OR-DEC-010",
+      "OR-DEC-011",
+      "OR-DEC-012",
+      "OR-DEC-013",
+      "OR-DEC-014",
+      "OR-DEC-015",
+      "OR-DEC-016",
+      "OR-DEC-017",
+      "OR-DEC-018",
+      "OR-DEC-019",
+      "OR-DEC-020"
+    ]
+  }
+}

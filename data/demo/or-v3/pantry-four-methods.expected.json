@@ -1,0 +1,31 @@
+{
+  "fixture": "pantry-four-methods",
+  "planning_days": 2,
+  "plans": {
+    "NO_TRANSFERS": {},
+    "EQUAL_SHARE": {"P1": 1, "P2": 2, "P3": 1},
+    "MOST_URGENT_FIRST": {"P2": 3, "P3": 1},
+    "CLASSICAL_GP": {"P1": 2, "P2": 1, "P3": 1},
+    "EGP_PI_INSPIRED": {"P1": 2, "P2": 2}
+  },
+  "objectives": {
+    "CLASSICAL_GP": {
+      "q": {"P1": 3333, "P2": 8333, "P3": 8333},
+      "W": 19999,
+      "Z": 8333,
+      "ap_excess": null,
+      "rp_excess": null,
+      "coefficients": [50, 50, 50, 50, 1],
+      "compiled": 1416600
+    },
+    "EGP_PI_INSPIRED": {
+      "q": {"P1": 4666, "P2": 6666, "P3": 12000},
+      "W": 23332,
+      "Z": 12000,
+      "ap_excess": 2500,
+      "rp_excess": 2500,
+      "coefficients": [150, 150, 150, 150, 100, 100, 3],
+      "compiled": 5799800
+    }
+  }
+}
