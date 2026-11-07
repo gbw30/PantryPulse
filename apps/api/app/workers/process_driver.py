@@ -17,6 +17,7 @@ import sys
 import threading
 import time
 import uuid
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -240,9 +241,13 @@ class PosixProcessDriver:
         *,
         max_stdout_bytes: int,
         max_stderr_bytes: int = 16_384,
+        child_env: Mapping[str, str] | None = None,
     ) -> ChildHandle:
         if not self.capable:
             raise RuntimeError("process containment is unavailable on this host")
+        extra = dict(child_env or {})
+        if any(not k.startswith("PP_SECRET_") for k in extra):
+            raise ValueError("child_env may carry only PP_SECRET_* variables")
         host = current_host_identity()
         nonce = str(uuid.uuid4())
         process = subprocess.Popen(
@@ -251,7 +256,7 @@ class PosixProcessDriver:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             cwd=self.cwd,
-            env=self._child_env(nonce),
+            env=self._child_env(nonce) | extra,
             start_new_session=True,
             close_fds=True,
         )

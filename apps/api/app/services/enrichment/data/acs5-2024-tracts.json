@@ -1,0 +1,25 @@
+{
+  "survey": "American Community Survey 5-year estimates",
+  "vintage": "2020-2024",
+  "geography": "census tract (2020 boundaries), all states, DC and Puerto Rico",
+  "tables": {
+    "B17001": "Poverty status in the past 12 months: E001 universe, E002 below poverty",
+    "B22003": "Receipt of food stamps/SNAP: E001 households, E002 received SNAP"
+  },
+  "columns": [
+    "geoid",
+    "poverty_universe",
+    "poverty_below",
+    "snap_households",
+    "snap_received"
+  ],
+  "unknown": "empty cell; a zero universe also means the rate is unknown",
+  "source_urls": [
+    "https://www2.census.gov/programs-surveys/acs/summary_file/2024/table-based-SF/data/5YRData/acsdt5y2024-b17001.dat",
+    "https://www2.census.gov/programs-surveys/acs/summary_file/2024/table-based-SF/data/5YRData/acsdt5y2024-b22003.dat"
+  ],
+  "rows": 85382,
+  "sha256": "1de72aa1b5ce4f6a7a1098087fe792c6ca71353b9fb78f4b2f247aa5136fdaf7",
+  "generated_at": "2026-11-07T07:44:30+00:00",
+  "generator": "apps/api/scripts/build_acs_tracts.py"
+}

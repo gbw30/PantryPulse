@@ -2375,6 +2375,75 @@
         "title": "ForecastResult",
         "type": "object"
       },
+      "ForecastRunList": {
+        "additionalProperties": false,
+        "description": "GET /networks/{id}/forecasts: newest first, so the UI finds runs after a reload.",
+        "properties": {
+          "network_id": {
+            "format": "uuid",
+            "title": "Network Id",
+            "type": "string"
+          },
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/ForecastRunSummary"
+            },
+            "title": "Runs",
+            "type": "array"
+          }
+        },
+        "required": [
+          "network_id",
+          "runs"
+        ],
+        "title": "ForecastRunList",
+        "type": "object"
+      },
+      "ForecastRunSummary": {
+        "additionalProperties": false,
+        "description": "One forecast.v1 job for the network (CR-w1-web-2).",
+        "properties": {
+          "dataset_version_id": {
+            "format": "uuid",
+            "title": "Dataset Version Id",
+            "type": "string"
+          },
+          "forecast_run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forecast Run Id"
+          },
+          "job_id": {
+            "format": "uuid",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "recorded_at": {
+            "format": "date-time",
+            "title": "Recorded At",
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/AttemptState"
+          }
+        },
+        "required": [
+          "job_id",
+          "forecast_run_id",
+          "dataset_version_id",
+          "state",
+          "recorded_at"
+        ],
+        "title": "ForecastRunSummary",
+        "type": "object"
+      },
       "ForecastSeries": {
         "additionalProperties": false,
         "properties": {
@@ -3963,6 +4032,165 @@
         "title": "LocationEffect",
         "type": "object"
       },
+      "LocationList": {
+        "additionalProperties": false,
+        "description": "GET /networks/{id}/locations: the network's latest dataset version.",
+        "properties": {
+          "dataset_version_id": {
+            "format": "uuid",
+            "title": "Dataset Version Id",
+            "type": "string"
+          },
+          "locations": {
+            "items": {
+              "$ref": "#/components/schemas/LocationSummary"
+            },
+            "title": "Locations",
+            "type": "array"
+          },
+          "network_id": {
+            "format": "uuid",
+            "title": "Network Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "network_id",
+          "dataset_version_id",
+          "locations"
+        ],
+        "title": "LocationList",
+        "type": "object"
+      },
+      "LocationProjection": {
+        "additionalProperties": false,
+        "description": "GET /networks/{id}/projection?forecast_run_id=&location_id= (CR-w1-web-3).\n\nRaw per-product projections for the site inspector; no cross-product totals.",
+        "properties": {
+          "forecast_run_id": {
+            "format": "uuid",
+            "title": "Forecast Run Id",
+            "type": "string"
+          },
+          "location_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Location Id",
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "PANTRY",
+              "RETAIL"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "network_id": {
+            "format": "uuid",
+            "title": "Network Id",
+            "type": "string"
+          },
+          "products": {
+            "items": {
+              "$ref": "#/components/schemas/ProductProjection"
+            },
+            "title": "Products",
+            "type": "array"
+          }
+        },
+        "required": [
+          "network_id",
+          "forecast_run_id",
+          "location_id",
+          "mode",
+          "products"
+        ],
+        "title": "LocationProjection",
+        "type": "object"
+      },
+      "LocationSummary": {
+        "additionalProperties": false,
+        "description": "One location of a dataset version, for the atlas and names (CR-w1-web-1).",
+        "properties": {
+          "city": {
+            "title": "City",
+            "type": "string"
+          },
+          "coordinates_source": {
+            "anyOf": [
+              {
+                "enum": [
+                  "user",
+                  "census_geocoder"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coordinates Source"
+          },
+          "latitude": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latitude"
+          },
+          "location_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Location Id",
+            "type": "string"
+          },
+          "longitude": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Longitude"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "hub",
+              "pantry",
+              "distribution_center",
+              "store"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "location_id",
+          "name",
+          "role",
+          "city",
+          "state",
+          "latitude",
+          "longitude",
+          "coordinates_source"
+        ],
+        "title": "LocationSummary",
+        "type": "object"
+      },
       "LocationV3": {
         "additionalProperties": false,
         "properties": {
@@ -5099,6 +5327,29 @@
             "title": "Organization Id",
             "type": "string"
           },
+          "planning_days": {
+            "anyOf": [
+              {
+                "maximum": 3.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planning Days"
+          },
+          "policy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ORPolicy"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "products": {
             "items": {
               "$ref": "#/components/schemas/ProductV3"
@@ -5168,6 +5419,8 @@
           "timezone",
           "snapshot_as_of",
           "first_planning_date",
+          "planning_days",
+          "policy",
           "locations",
           "products",
           "batches",
@@ -5728,6 +5981,137 @@
           "base_unit"
         ],
         "title": "ProductCreate",
+        "type": "object"
+      },
+      "ProductProjection": {
+        "additionalProperties": false,
+        "description": "One product at one location over the projection dates, in the product's own unit.",
+        "properties": {
+          "dates": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Dates",
+            "type": "array"
+          },
+          "donation_forecast": {
+            "anyOf": [
+              {
+                "items": {
+                  "anyOf": [
+                    {
+                      "minimum": 0.0,
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Donation Forecast"
+          },
+          "eligible_stock_now": {
+            "minimum": 0.0,
+            "title": "Eligible Stock Now",
+            "type": "integer"
+          },
+          "expiring_unsold": {
+            "anyOf": [
+              {
+                "items": {
+                  "anyOf": [
+                    {
+                      "minimum": 0.0,
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expiring Unsold"
+          },
+          "product_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Product Id",
+            "type": "string"
+          },
+          "served": {
+            "items": {
+              "anyOf": [
+                {
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Served",
+            "type": "array"
+          },
+          "target": {
+            "items": {
+              "anyOf": [
+                {
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Target",
+            "type": "array"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "unmet": {
+            "items": {
+              "anyOf": [
+                {
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Unmet",
+            "type": "array"
+          }
+        },
+        "required": [
+          "product_id",
+          "unit",
+          "dates",
+          "target",
+          "served",
+          "unmet",
+          "eligible_stock_now",
+          "expiring_unsold",
+          "donation_forecast"
+        ],
+        "title": "ProductProjection",
         "type": "object"
       },
       "ProductReference": {
@@ -6917,6 +7301,29 @@
             "format": "uuid",
             "title": "Forecast Run Id",
             "type": "string"
+          },
+          "planning_days": {
+            "anyOf": [
+              {
+                "maximum": 3.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planning Days"
+          },
+          "policy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ORPolicy"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "reserve_floors": {
             "default": [],
@@ -12169,6 +12576,117 @@
       }
     },
     "/api/v1/networks/{network_id}/forecasts": {
+      "get": {
+        "operationId": "list_forecast_runs_api_v1_networks__network_id__forecasts_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "network_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Network Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForecastRunList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "List Forecast Runs",
+        "tags": [
+          "v1-networks"
+        ]
+      },
       "post": {
         "operationId": "submit_forecast_api_v1_networks__network_id__forecasts_post",
         "parameters": [
@@ -12297,6 +12815,119 @@
           }
         },
         "summary": "Submit Forecast",
+        "tags": [
+          "v1-networks"
+        ]
+      }
+    },
+    "/api/v1/networks/{network_id}/locations": {
+      "get": {
+        "operationId": "list_locations_api_v1_networks__network_id__locations_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "network_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Network Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "List Locations",
         "tags": [
           "v1-networks"
         ]
@@ -12431,6 +13062,138 @@
         "summary": "Set Attributes",
         "tags": [
           "v1-settings"
+        ]
+      }
+    },
+    "/api/v1/networks/{network_id}/projection": {
+      "get": {
+        "operationId": "get_projection_api_v1_networks__network_id__projection_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "network_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Network Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "forecast_run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Forecast Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "location_id",
+            "required": true,
+            "schema": {
+              "title": "Location Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationProjection"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Get Projection",
+        "tags": [
+          "v1-networks"
         ]
       }
     },

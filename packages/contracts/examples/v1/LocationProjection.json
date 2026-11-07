@@ -1,0 +1,110 @@
+{
+  "network_id": "8b2f4c1e-3a5d-4e6f-9a7b-1c2d3e4f5a60",
+  "forecast_run_id": "61829304-5e7f-4091-8c2d-4e5f60718293",
+  "location_id": "P-12",
+  "mode": "PANTRY",
+  "products": [
+    {
+      "product_id": "WATER-24",
+      "unit": "case",
+      "dates": [
+        "2026-11-07",
+        "2026-11-08",
+        "2026-11-09",
+        "2026-11-10",
+        "2026-11-11",
+        "2026-11-12",
+        "2026-11-13"
+      ],
+      "target": [
+        12,
+        14,
+        11,
+        null,
+        13,
+        12,
+        15
+      ],
+      "served": [
+        12,
+        9,
+        0,
+        null,
+        0,
+        0,
+        0
+      ],
+      "unmet": [
+        0,
+        5,
+        11,
+        null,
+        13,
+        12,
+        15
+      ],
+      "eligible_stock_now": 21,
+      "expiring_unsold": [
+        0,
+        0,
+        0,
+        null,
+        0,
+        0,
+        0
+      ],
+      "donation_forecast": null
+    },
+    {
+      "product_id": "RICE-5",
+      "unit": "bag",
+      "dates": [
+        "2026-11-07",
+        "2026-11-08",
+        "2026-11-09",
+        "2026-11-10",
+        "2026-11-11",
+        "2026-11-12",
+        "2026-11-13"
+      ],
+      "target": [
+        4,
+        4,
+        5,
+        4,
+        4,
+        5,
+        4
+      ],
+      "served": [
+        4,
+        4,
+        5,
+        4,
+        4,
+        5,
+        4
+      ],
+      "unmet": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "eligible_stock_now": 40,
+      "expiring_unsold": null,
+      "donation_forecast": [
+        1,
+        0,
+        2,
+        0,
+        1,
+        0,
+        0
+      ]
+    }
+  ]
+}
