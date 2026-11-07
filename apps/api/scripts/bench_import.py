@@ -3,9 +3,19 @@
 
     uv run --frozen python scripts/bench_import.py --rows 4500000
 
-Writes artifacts/bench/import.json. Uses PP_TEST_DATABASE_URL (a *_test database only) and its
-own schema, dropped afterwards. Everything runs in this one process, so peak RSS covers the step,
-which runs in a contained child under the real supervisor.
+Writes artifacts/bench/import.json. Uses PP_TEST_DATABASE_URL (or --database-url; a *_test
+database only) and its own schema, dropped afterwards. Files go to a temporary folder inside
+PP_IMPORT_DIR (or --import-dir), the volume the real job uses. Everything runs in this one
+process, so peak RSS covers the step, which runs in a contained child under the real supervisor.
+
+Against the Docker stack (a separate test database on the stack's PostgreSQL, the worker's
+imports volume):
+
+    docker compose exec postgres createdb -U pantrypulse pantrypulse_bench_test
+    URL=postgresql+psycopg://pantrypulse:local_stack_only@postgres:5432/pantrypulse_bench_test
+    docker compose exec worker uv run --frozen python scripts/bench_import.py \
+        --database-url "$URL" --out /tmp/import.json
+    docker compose cp worker:/tmp/import.json artifacts/bench/import-docker.json
 """
 
 import argparse
@@ -104,12 +114,16 @@ def main(argv=None) -> dict:
                         help="demand_history rows (at most 4,500,000)")
     parser.add_argument("--batches", type=int, default=200_000, help="inventory rows")
     parser.add_argument("--schema", default="w1_data_bench")
+    parser.add_argument("--database-url", default=os.environ.get("PP_TEST_DATABASE_URL"),
+                        help="a *_test database (default: PP_TEST_DATABASE_URL)")
+    parser.add_argument("--import-dir", type=Path, default=os.environ.get("PP_IMPORT_DIR"),
+                        help="where the files go (default: PP_IMPORT_DIR, else the temp folder)")
     parser.add_argument("--out", type=Path,
                         default=API_ROOT.parents[1] / "artifacts" / "bench" / "import.json")
     args = parser.parse_args(argv)
     if not 0 < args.rows <= LOCATIONS * PRODUCTS * DAYS or not 0 < args.batches <= 200_000:
         parser.error("--rows must be 1..4,500,000 and --batches 1..200,000 (the v1 envelope)")
-    url = os.environ.get("PP_TEST_DATABASE_URL") or parser.error("set PP_TEST_DATABASE_URL")
+    url = args.database_url or parser.error("set PP_TEST_DATABASE_URL or --database-url")
     _reset(url, args.schema, create=True)
     engine = create_queue_engine(url, schema=args.schema)
     seconds, clock = {}, [time.perf_counter()]
@@ -127,7 +141,9 @@ def main(argv=None) -> dict:
             command.upgrade(cfg, "head")
             run = repo.create_run(conn, NewNetwork(name="Bench", mode="PANTRY",
                                                    timezone="America/New_York"), None)
-        with tempfile.TemporaryDirectory() as tmp:
+        if args.import_dir:
+            Path(args.import_dir).mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix="bench-", dir=args.import_dir) as tmp:
             base = Path(tmp)
             clock[0] = time.perf_counter()
             files = generate(base, run.id, args.rows, args.batches)
