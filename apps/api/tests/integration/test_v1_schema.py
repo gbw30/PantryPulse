@@ -97,6 +97,24 @@ def test_downgrade_to_ppvp_0007_and_up_again():
         reset_schema(url, schema)
 
 
+def test_downgrade_refuses_to_drop_imported_networks():
+    url = database_url()
+    schema = "v1_schema_downgrade_refusal_test"
+    reset_schema(url, schema)
+    eng = create_queue_engine(url, schema=schema)
+    try:
+        with eng.begin() as conn:
+            command.upgrade(alembic_config(conn), "head")
+            _network(conn)
+        with pytest.raises(Exception, match="V1_DATA_PRESENT"), eng.begin() as conn:
+            command.downgrade(alembic_config(conn), "ppvp_0007")
+        with eng.connect() as conn:
+            assert "networks" in _tables_in(conn, schema)
+    finally:
+        eng.dispose()
+        reset_schema(url, schema)
+
+
 def _tables_in(conn, schema):
     return set(sa.inspect(conn).get_table_names(schema=schema))
 

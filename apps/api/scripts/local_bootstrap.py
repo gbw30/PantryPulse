@@ -74,6 +74,8 @@ def ensure_login(session, login_file: Path) -> bool:
     )
     current = _file_password(login_file)
     if stored and current and verify_password(current, stored):
+        if login_file.stat().st_mode & 0o077:
+            login_file.chmod(0o600)  # a restore or manual chmod must not expose the password
         return False
     password = secrets.token_urlsafe(18)
     hashed = hash_password(password)

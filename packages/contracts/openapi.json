@@ -6550,6 +6550,30 @@
       "RouteV3": {
         "additionalProperties": false,
         "properties": {
+          "capacity_per_batch": {
+            "anyOf": [
+              {
+                "maximum": 25600000000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacity Per Batch"
+          },
+          "cost_per_handling_unit_usd": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Per Handling Unit Usd"
+          },
           "from_location_id": {
             "maxLength": 64,
             "minLength": 1,
@@ -6594,7 +6618,9 @@
           "to_location_id",
           "travel_days",
           "method",
-          "road_miles"
+          "road_miles",
+          "cost_per_handling_unit_usd",
+          "capacity_per_batch"
         ],
         "title": "RouteV3",
         "type": "object"

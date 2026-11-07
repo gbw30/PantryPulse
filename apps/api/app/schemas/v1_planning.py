@@ -152,8 +152,11 @@ class RouteV3(ORContract):
     travel_days: int = Field(strict=True, ge=1, le=7)
     method: RouteMethod
     road_miles: str | None
+    # routes.csv columns (V1-SPEC §6.1); None = not given, so no route cost or no per-batch limit.
+    cost_per_handling_unit_usd: str | None  # exact decimal literal
+    capacity_per_batch: CapacityCount | None  # handling units per shipment, floored from the CSV
 
-    @field_validator("road_miles")
+    @field_validator("road_miles", "cost_per_handling_unit_usd")
     @classmethod
     def miles(cls, value: str | None) -> str | None:
         return _literal(value)
@@ -233,8 +236,8 @@ class ORInputV3(ORContract):
             ZoneInfo(self.timezone)
         except (ZoneInfoNotFoundError, ValueError) as exc:
             raise ValueError("UNKNOWN_TIMEZONE") from exc
-        if self.first_planning_date <= self.snapshot_as_of:
-            raise ValueError("FIRST_PLANNING_DATE_NOT_AFTER_SNAPSHOT")
+        if self.first_planning_date != self.snapshot_as_of + timedelta(days=1):
+            raise ValueError("FIRST_PLANNING_DATE_NOT_DAY_AFTER_SNAPSHOT")  # V1-SPEC §6.1
         if any(loc.role not in ROLES_BY_MODE[self.mode] for loc in self.locations):
             raise ValueError("ROLE_NOT_IN_MODE")
         if (self.retail_weights is None) != (self.mode == "PANTRY"):

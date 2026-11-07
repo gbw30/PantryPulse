@@ -3653,6 +3653,10 @@ export interface components {
         };
         /** RouteV3 */
         RouteV3: {
+            /** Capacity Per Batch */
+            capacity_per_batch: number | null;
+            /** Cost Per Handling Unit Usd */
+            cost_per_handling_unit_usd: string | null;
             /** From Location Id */
             from_location_id: string;
             /**

@@ -246,7 +246,8 @@ DEMAND = {"location_id": "P1", "product_id": "SKU0", "basis": "demand",
           "actual_provider": "seasonal_naive", "fallback_reason": None,
           "central_literals": ["1"] * 7, "targets": [1] * 7}
 ROUTE = {"from_location_id": "H0", "to_location_id": "P1", "travel_days": 1,
-         "method": "straight_line_estimate", "road_miles": None}
+         "method": "routes_csv", "road_miles": None,
+         "cost_per_handling_unit_usd": "2", "capacity_per_batch": 10}
 RESERVE = {"location_id": "P1", "product_id": "SKU0", "floor": 0}
 CAPACITY = {"location_id": "P1", "receiving": None, "dispatch": None, "storage": None}
 VULNERABILITY = {"location_id": "P1", "poverty_rate": "0.1", "snap_rate": "0.1",
@@ -285,6 +286,19 @@ def test_scenario_rejects_inbound_outside_horizon(arrival):
 def test_scenario_rejects_inbound_rows_without_inbound_file():
     with pytest.raises(ValidationError, match="INBOUND_WITHOUT_FILE"):
         ORInputV3.model_validate(_scenario(2, 1, **{**ROWS, "inbound_file_provided": False}))
+
+
+def test_route_keeps_routes_csv_cost_and_capacity():
+    route = ORInputV3.model_validate(_scenario(2, 1, **ROWS)).routes[0]
+    assert (route.cost_per_handling_unit_usd, route.capacity_per_batch) == ("2", 10)
+    for bad in ({"cost_per_handling_unit_usd": "-1"}, {"capacity_per_batch": -1}):
+        with pytest.raises(ValidationError):
+            ORInputV3.model_validate(_scenario(2, 1, **{**ROWS, "routes": [{**ROUTE, **bad}]}))
+
+
+def test_planning_starts_the_day_after_the_snapshot():
+    with pytest.raises(ValidationError, match="FIRST_PLANNING_DATE"):
+        ORInputV3.model_validate(_scenario(2, 1, first_planning_date="2026-12-01"))
 
 
 def test_examples_validate():

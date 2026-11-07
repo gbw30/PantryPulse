@@ -230,7 +230,7 @@ Agent role: `solver-engineer`. Skills: `cpsat-patterns`, `egp-pi-model`, `verify
 - **No silent starvation.** If a needed product's share is smaller than one unit's handling, the product is reported as "capacity share too small to move one unit", never as optimized. In the spike this hit 170 of 194 at-risk products.
 - **Split the cost budget too.** The spike gave each product the whole budget, so N products could spend N× the budget. Split it the same way; the union check enforces the total.
 - **Storage binds.** Subtract the projected end-of-day handling stock of every product, solved or not, from storage, then split the rest. Stock already above storage is reported, not made infeasible.
-- **The union check is asserted.** Recompute every shared limit in or-input-v3 (receiving, dispatch, storage, global handling, cost budget) from the raw scenario and the union of all per-product plans. Any violation fails the method with a native status. The spike only logged this check.
+- **The union check is asserted.** Recompute every shared limit in or-input-v3 (route `capacity_per_batch`, receiving, dispatch, storage, global handling, and the cost budget priced with route `cost_per_handling_unit_usd`) from the raw scenario and the union of all per-product plans. Any violation fails the method with a native status. The spike only logged this check.
 - **No network objective total.** Per-product objectives (Z, AP/RP normalization) don't add up to a network optimum, and FEASIBLE products add time-limit noise. Report per-product status and gap, and network totals only of physical quantities (units moved, unmet, expired) with the count of OPTIMAL and FEASIBLE products.
 
 - [ ] **Step 1:** write the failing tests:

@@ -144,14 +144,18 @@
         "to_location_id": "P-12",
         "travel_days": 1,
         "method": "straight_line_estimate",
-        "road_miles": "42.3"
+        "road_miles": "42.3",
+        "cost_per_handling_unit_usd": null,
+        "capacity_per_batch": null
       },
       {
         "from_location_id": "HUB-N",
         "to_location_id": "P-07",
         "travel_days": 1,
         "method": "google_road",
-        "road_miles": "61.8"
+        "road_miles": "61.8",
+        "cost_per_handling_unit_usd": null,
+        "capacity_per_batch": null
       }
     ],
     "capacities": [

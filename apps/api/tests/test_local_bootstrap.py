@@ -85,6 +85,16 @@ def test_first_run_generates_credentials_once(db, paths, capsys):
     assert stored_hash(db) == [("local", hashed)]
 
 
+def test_matching_login_file_gets_its_mode_restored(db, paths):
+    # A restore or manual chmod must not leave the plaintext password readable on the next start.
+    run(db, paths)
+    paths["login_file"].chmod(0o644)
+    text = paths["login_file"].read_text()
+    run(db, paths)
+    assert stat.S_IMODE(paths["login_file"].stat().st_mode) == 0o600
+    assert paths["login_file"].read_text() == text
+
+
 def test_login_file_rewritten_when_database_was_reset(db, paths):
     # `docker compose down -v` drops the database but keeps the host file: the file must not
     # keep showing a password the new install never stored.

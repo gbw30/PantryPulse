@@ -6,6 +6,7 @@ staging tables are partitioned; the import job creates and attaches one partitio
 
 from pathlib import Path
 
+import sqlalchemy as sa
 from alembic import op
 
 revision = "ppv1_0008"
@@ -42,6 +43,9 @@ def upgrade():
 
 
 def downgrade():
+    # Dropping these tables would delete every imported network; refuse instead of losing data.
+    if op.get_bind().execute(sa.text("SELECT EXISTS (SELECT 1 FROM networks)")).scalar():
+        raise RuntimeError("V1_DATA_PRESENT: delete the imported networks before downgrading")
     for table in TABLES:
         op.drop_table(table)
     op.execute("DROP FUNCTION ppv1_network_mode_fixed()")
