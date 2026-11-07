@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpenText, FlaskConical, ListChecks, Map as MapIcon, Settings, Table2 } from "lucide-react";
+import { BookOpenText, FlaskConical, ListChecks, Map as MapIcon, Settings, Table2, Upload } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -16,7 +16,7 @@ import { PresenterFooter } from "./presenter-footer";
 
 // "methodology" (research and audit, blueprint §7) is a utility destination, not one of the four
 // blueprint pages. "optimization" is kept for compatibility while /optimization redirects to /scenarios.
-export type NavKey = "overview" | "data" | "recommendations" | "scenarios" | "optimization" | "methodology";
+export type NavKey = "overview" | "data" | "recommendations" | "scenarios" | "optimization" | "methodology" | "import";
 
 // Proposed routes from the blueprint (§2). Only built destinations are links; the rest stay visible
 // but disabled so the shell geometry is identical on every page without linking to missing screens.
@@ -25,6 +25,7 @@ const NAV: { key: NavKey; label: string; href: string; built: boolean; icon: Rea
   { key: "data", label: "Data Explorer", href: "/data", built: true, icon: Table2 },
   { key: "recommendations", label: "Recommendations", href: "/recommendations", built: true, icon: ListChecks },
   { key: "scenarios", label: "Scenario Lab", href: "/scenarios", built: true, icon: FlaskConical },
+  { key: "import", label: "Import data", href: "/import", built: true, icon: Upload },
 ];
 
 function BrandMark() {
