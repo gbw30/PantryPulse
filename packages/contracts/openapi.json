@@ -5099,6 +5099,29 @@
             "title": "Organization Id",
             "type": "string"
           },
+          "planning_days": {
+            "anyOf": [
+              {
+                "maximum": 3.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planning Days"
+          },
+          "policy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ORPolicy"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "products": {
             "items": {
               "$ref": "#/components/schemas/ProductV3"
@@ -5168,6 +5191,8 @@
           "timezone",
           "snapshot_as_of",
           "first_planning_date",
+          "planning_days",
+          "policy",
           "locations",
           "products",
           "batches",
@@ -6917,6 +6942,29 @@
             "format": "uuid",
             "title": "Forecast Run Id",
             "type": "string"
+          },
+          "planning_days": {
+            "anyOf": [
+              {
+                "maximum": 3.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planning Days"
+          },
+          "policy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ORPolicy"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "reserve_floors": {
             "default": [],

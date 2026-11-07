@@ -3117,6 +3117,9 @@ export interface components {
              * Format: uuid
              */
             organization_id: string;
+            /** Planning Days */
+            planning_days: number | null;
+            policy: components["schemas"]["ORPolicy"] | null;
             /** Products */
             products: components["schemas"]["ProductV3"][];
             /** Reserves */
@@ -3789,6 +3792,9 @@ export interface components {
              * Format: uuid
              */
             forecast_run_id: string;
+            /** Planning Days */
+            planning_days?: number | null;
+            policy?: components["schemas"]["ORPolicy"] | null;
             /**
              * Reserve Floors
              * @default []

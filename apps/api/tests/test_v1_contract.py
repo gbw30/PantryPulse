@@ -19,10 +19,12 @@ from app.routers.forecasts import presenter, runtime
 from app.schemas.v1_envelope import UPLOAD_CAP_BYTES
 from app.schemas.v1_imports import ImportCreated, ImportStatus, RowError
 from app.schemas.v1_planning import (
+    DEFAULT_PANTRY_POLICY,
     METHODS_BY_MODE,
     ORInputV3,
     ScenarioOptions,
     require_methods_for_mode,
+    resolve_window_and_policy,
 )
 from app.services.jobs.registry import InputRejected
 
@@ -193,7 +195,11 @@ def _scenario(locations, products, **overrides):
         "routes": [], "capacities": [], "global_handling": None, "cost_budget_minor": None,
         "reserves": [], "retail_weights": None, "vulnerability": [], "assumptions": [],
     }
-    return {**payload, **overrides}
+    payload = {**payload, **overrides}
+    pantry = payload["mode"] == "PANTRY"
+    payload.setdefault("planning_days", 3 if pantry else None)
+    payload.setdefault("policy", DEFAULT_PANTRY_POLICY.model_dump(mode="json") if pantry else None)
+    return payload
 
 
 def test_scenario_caps():
@@ -213,6 +219,73 @@ def test_scenario_roles_match_mode():
 def test_retail_weights_required_only_in_retail():
     with pytest.raises(ValidationError, match="RETAIL_WEIGHTS"):
         ORInputV3.model_validate(_scenario(2, 1, retail_weights={"w_exp": 1, "w_lost": 1}))
+
+
+# CR-w1-solver-1 (Gabriel, 2026-11-07): the Pantry window (BD-50) and EGP policy (V1-SPEC §6.2)
+# are frozen in the scenario, so a saved scenario replays exactly.
+def test_pantry_scenario_freezes_window_and_policy():
+    frozen = ORInputV3.model_validate(_scenario(2, 1, planning_days=2))
+    assert frozen.planning_days == 2 and frozen.policy == DEFAULT_PANTRY_POLICY
+    for missing in ("planning_days", "policy"):
+        payload = _scenario(2, 1)
+        del payload[missing]
+        with pytest.raises(ValidationError, match=missing):  # explicit, no default
+            ORInputV3.model_validate(payload)
+    for empty in ({"planning_days": None}, {"policy": None}):
+        with pytest.raises(ValidationError, match="WINDOW_AND_POLICY_ONLY_IN_PANTRY"):
+            ORInputV3.model_validate(_scenario(2, 1, **empty))
+    for days in (0, 4):
+        with pytest.raises(ValidationError, match="planning_days"):
+            ORInputV3.model_validate(_scenario(2, 1, planning_days=days))
+
+
+def test_retail_scenario_has_no_window_or_policy():
+    def retail(**extra):
+        payload = _scenario(2, 1, mode="RETAIL", retail_weights={"w_exp": 1, "w_lost": 1},
+                            **extra)
+        payload["locations"] = [{"id": "D0", "name": "DC", "role": "distribution_center"},
+                                {"id": "S1", "name": "Store 1", "role": "store"}]
+        return payload
+
+    ORInputV3.model_validate(retail())
+    for extra in ({"planning_days": 3}, {"policy": DEFAULT_PANTRY_POLICY.model_dump(mode="json")}):
+        with pytest.raises(ValidationError, match="WINDOW_AND_POLICY_ONLY_IN_PANTRY"):
+            ORInputV3.model_validate(retail(**extra))
+
+
+def test_policy_weights_only_v1_vulnerability_attributes():
+    policy = DEFAULT_PANTRY_POLICY.model_dump(mode="json")
+    assert {c["attribute_id"] for c in policy["coefficients"]} == {"poverty_rate", "snap_rate"}
+    policy["coefficients"] = [{"attribute_id": "need", "percent": 50},
+                              {"attribute_id": "access", "percent": 50}]
+    with pytest.raises(ValidationError, match="UNKNOWN_POLICY_ATTRIBUTE"):
+        ORInputV3.model_validate(_scenario(2, 1, policy=policy))
+
+
+def test_default_pantry_policy_keeps_connected_flow_values():
+    snapshot = json.loads((ROOT / "data/demo/or-vp-v2/source-snapshot.json").read_text())
+    connected = {k: v for k, v in snapshot["policy"].items() if k != "coefficients"}
+    default = DEFAULT_PANTRY_POLICY.model_dump(mode="json")
+    assert {k: v for k, v in default.items() if k != "coefficients"} == connected
+    assert [c["percent"] for c in default["coefficients"]] == [
+        c["percent"] for c in snapshot["policy"]["coefficients"]]
+
+
+def test_scenario_options_resolve_window_and_policy():
+    ids = {"dataset_version_id": str(uuid4()), "forecast_run_id": str(uuid4()),
+           "transfer_mode": "HUB_ONLY"}
+    with pytest.raises(InputRejected) as rejected:
+        resolve_window_and_policy("PANTRY", ScenarioOptions.model_validate(ids))
+    assert rejected.value.code == "PLANNING_DAYS_REQUIRED"
+    chosen = ScenarioOptions.model_validate({**ids, "planning_days": 2})
+    assert resolve_window_and_policy("PANTRY", chosen) == (2, DEFAULT_PANTRY_POLICY)
+    edited = DEFAULT_PANTRY_POLICY.model_copy(update={"lambda_percent": 40})
+    own = ScenarioOptions.model_validate({**ids, "planning_days": 1, "policy": edited})
+    assert resolve_window_and_policy("PANTRY", own) == (1, edited)
+    assert resolve_window_and_policy("RETAIL", ScenarioOptions.model_validate(ids)) == (None, None)
+    with pytest.raises(InputRejected) as rejected:
+        resolve_window_and_policy("RETAIL", chosen)
+    assert rejected.value.code == "WINDOW_AND_POLICY_ONLY_IN_PANTRY"
 
 
 def test_method_sets_per_mode():

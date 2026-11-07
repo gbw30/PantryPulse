@@ -15,6 +15,54 @@
     "snapshot_as_of": "2026-11-05",
     "first_planning_date": "2026-11-06",
     "horizon_days": 7,
+    "planning_days": 3,
+    "policy": {
+      "schema_version": "or-policy-v1",
+      "version": "or-draft-1.1",
+      "purpose": "PRIMARY",
+      "lambda_percent": 100,
+      "beta_percent": 50,
+      "coefficients": [
+        {
+          "attribute_id": "poverty_rate",
+          "percent": 50
+        },
+        {
+          "attribute_id": "snap_rate",
+          "percent": 50
+        }
+      ],
+      "ap_threshold": 7500,
+      "rp_threshold": 2500,
+      "ap_cap_bp": 2500,
+      "rp_cap_bp": 2500,
+      "gamma_ap_percent": 100,
+      "gamma_rp_percent": 100,
+      "epsilon_cost_bp": 100,
+      "epsilon_waste_bp": 100,
+      "decision_ids": [
+        "OR-DEC-001",
+        "OR-DEC-002",
+        "OR-DEC-003",
+        "OR-DEC-004",
+        "OR-DEC-005",
+        "OR-DEC-006",
+        "OR-DEC-007",
+        "OR-DEC-008",
+        "OR-DEC-009",
+        "OR-DEC-010",
+        "OR-DEC-011",
+        "OR-DEC-012",
+        "OR-DEC-013",
+        "OR-DEC-014",
+        "OR-DEC-015",
+        "OR-DEC-016",
+        "OR-DEC-017",
+        "OR-DEC-018",
+        "OR-DEC-019",
+        "OR-DEC-020"
+      ]
+    },
     "locations": [
       {
         "id": "HUB-N",
