@@ -7,7 +7,7 @@ here sums different products into one total.
 """
 
 from collections.abc import Sequence
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Annotated, Literal, Self
 from uuid import UUID
@@ -248,6 +248,23 @@ class ORInputV3(ORContract):
             raise ValueError("UNKNOWN_REFERENCE")
         if any({r.from_location_id, r.to_location_id} - locations for r in self.routes):
             raise ValueError("UNKNOWN_REFERENCE")
+        if any(r.location_id not in locations for r in (*self.capacities, *self.vulnerability)):
+            raise ValueError("UNKNOWN_REFERENCE")
+        # A repeated row would be counted twice (demand, stock) or make an ID ambiguous.
+        keys = (
+            [b.id for b in self.batches], [i.id for i in self.inbound],
+            [(d.location_id, d.product_id) for d in self.demand],
+            [(r.from_location_id, r.to_location_id) for r in self.routes],
+            [(r.location_id, r.product_id) for r in self.reserves],
+            [c.location_id for c in self.capacities], [v.location_id for v in self.vulnerability],
+        )
+        if any(len(set(k)) != len(k) for k in keys):
+            raise ValueError("DUPLICATE_ROW")
+        if self.inbound and not self.inbound_file_provided:
+            raise ValueError("INBOUND_WITHOUT_FILE")
+        last_day = self.first_planning_date + timedelta(days=self.horizon_days - 1)
+        if any(not self.first_planning_date <= i.arrival_date <= last_day for i in self.inbound):
+            raise ValueError("INBOUND_OUTSIDE_HORIZON")
         return self
 
 

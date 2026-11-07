@@ -2,6 +2,7 @@
 """W0-08 contract freeze: every v1 route exists, unbuilt routes answer 501 naming their task,
 uploads stream past the 64 KB boundary, and v2's OpenAPI stays byte-identical."""
 
+import hashlib
 import json
 import re
 from datetime import date
@@ -59,13 +60,26 @@ def test_every_v1_route_in_openapi():
     assert expected - actual == set()
 
 
+# sha256 of the v2 surface (41 paths + the 114 schemas they reach) at base 7067b0b. Pinned here,
+# not read from packages/contracts/openapi.json, because regenerating that file would hide drift.
+V2_SURFACE_SHA256 = "7be5531b0829ea6febfeeea71d60f65af71b3ac58a7614bab5d5bd8d5ed5980e"
+
+
 def test_v2_openapi_unchanged():
-    committed = json.loads((ROOT / "packages/contracts/openapi.json").read_text())
-    current = create_app().openapi()
-    v2_paths = {p: current["paths"].get(p) for p in committed["paths"]}
-    assert v2_paths == committed["paths"]
-    for name, schema in committed["components"]["schemas"].items():
-        assert current["components"]["schemas"].get(name) == schema, name
+    doc = create_app().openapi()
+    v1 = {path for _, path in _readme_routes()}
+    paths = sorted(p for p in doc["paths"] if _shape(p) not in v1)
+    schemas, reached, todo = doc["components"]["schemas"], set(), [doc["paths"][p] for p in paths]
+    while todo:
+        for ref in re.findall(r'"#/components/schemas/([^"]+)"', json.dumps(todo.pop())):
+            if ref not in reached:
+                reached.add(ref)
+                todo.append(schemas[ref])
+    surface = {"paths": {p: doc["paths"][p] for p in paths},
+               "schemas": {n: schemas[n] for n in sorted(reached)}}
+    assert (len(paths), len(reached)) == (41, 114)
+    digest = hashlib.sha256(json.dumps(surface, sort_keys=True).encode()).hexdigest()
+    assert digest == V2_SURFACE_SHA256
 
 
 CSV = {"Content-Type": "text/csv"}
@@ -223,6 +237,54 @@ def test_transfer_mode_still_required():
 def test_scenario_is_frozen_and_dates_ordered():
     with pytest.raises(ValidationError, match="FIRST_PLANNING_DATE"):
         ORInputV3.model_validate(_scenario(2, 1, first_planning_date=str(date(2026, 11, 5))))
+
+
+BATCH = {"id": "B1", "location_id": "P1", "product_id": "SKU0", "quantity": 1,
+         "expiry_date": None, "non_expiring": True}
+INBOUND = {**BATCH, "id": "I1", "arrival_date": "2026-11-07"}
+DEMAND = {"location_id": "P1", "product_id": "SKU0", "basis": "demand",
+          "actual_provider": "seasonal_naive", "fallback_reason": None,
+          "central_literals": ["1"] * 7, "targets": [1] * 7}
+ROUTE = {"from_location_id": "H0", "to_location_id": "P1", "travel_days": 1,
+         "method": "straight_line_estimate", "road_miles": None}
+RESERVE = {"location_id": "P1", "product_id": "SKU0", "floor": 0}
+CAPACITY = {"location_id": "P1", "receiving": None, "dispatch": None, "storage": None}
+VULNERABILITY = {"location_id": "P1", "poverty_rate": "0.1", "snap_rate": "0.1",
+                 "source": "manual"}
+ROWS = {"batches": [BATCH], "inbound": [INBOUND], "inbound_file_provided": True,
+        "demand": [DEMAND], "routes": [ROUTE], "reserves": [RESERVE],
+        "capacities": [CAPACITY], "vulnerability": [VULNERABILITY]}
+
+
+def test_scenario_with_one_row_of_each_kind_is_valid():
+    ORInputV3.model_validate(_scenario(2, 1, **ROWS))
+
+
+@pytest.mark.parametrize("field", ["batches", "inbound", "demand", "routes", "reserves",
+                                   "capacities", "vulnerability"])
+def test_scenario_rejects_duplicate_rows(field):
+    rows = {**ROWS, field: ROWS[field] * 2}
+    with pytest.raises(ValidationError, match="DUPLICATE_ROW"):
+        ORInputV3.model_validate(_scenario(2, 1, **rows))
+
+
+@pytest.mark.parametrize("field", ["capacities", "vulnerability"])
+def test_scenario_rejects_unknown_location_in_site_rows(field):
+    rows = {**ROWS, field: [{**ROWS[field][0], "location_id": "NOPE"}]}
+    with pytest.raises(ValidationError, match="UNKNOWN_REFERENCE"):
+        ORInputV3.model_validate(_scenario(2, 1, **rows))
+
+
+@pytest.mark.parametrize("arrival", ["2026-11-05", "2026-11-13"])
+def test_scenario_rejects_inbound_outside_horizon(arrival):
+    rows = {**ROWS, "inbound": [{**INBOUND, "arrival_date": arrival}]}
+    with pytest.raises(ValidationError, match="INBOUND_OUTSIDE_HORIZON"):
+        ORInputV3.model_validate(_scenario(2, 1, **rows))
+
+
+def test_scenario_rejects_inbound_rows_without_inbound_file():
+    with pytest.raises(ValidationError, match="INBOUND_WITHOUT_FILE"):
+        ORInputV3.model_validate(_scenario(2, 1, **{**ROWS, "inbound_file_provided": False}))
 
 
 def test_examples_validate():
