@@ -3,14 +3,15 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { V1_METHOD_LABEL } from "@/components/scenario-lab/model";
-import { networkApi } from "@/lib/network-api";
+import { SAMPLE_LABEL } from "@/components/shell/network-switcher";
+import { networkApi, type Network } from "@/lib/network-api";
 import { ApiError, isUuid, type Schema } from "@/lib/planning-api";
 import { effectLines } from "./action-card";
 import { isV1Method } from "./decisions-view";
 import { SIMULATED_NOTE } from "./export-bar";
 
 type Load = { status: "loading" } | { status: "error"; text: string }
-  | { status: "ready"; saved: Schema["SavedComparisonV3"]; decisions: Schema["DecisionActions"] };
+  | { status: "ready"; saved: Schema["SavedComparisonV3"]; decisions: Schema["DecisionActions"]; network: Network };
 
 type Props = { networkId?: string; comparisonId?: string; method?: string; actionIds: string[] };
 
@@ -21,8 +22,8 @@ export function PrintPlan({ networkId, comparisonId, method, actionIds }: Props)
   useEffect(() => {
     if (!isUuid(networkId) || !isUuid(comparisonId) || !isV1Method(method)) return;
     let active = true;
-    Promise.all([networkApi.comparison(networkId, comparisonId), networkApi.actions(networkId, comparisonId, method)]).then(
-      ([saved, decisions]) => { if (active) setLoad({ status: "ready", saved, decisions }); },
+    Promise.all([networkApi.comparison(networkId, comparisonId), networkApi.actions(networkId, comparisonId, method), networkApi.get(networkId)]).then(
+      ([saved, decisions, network]) => { if (active) setLoad({ status: "ready", saved, decisions, network }); },
       (error: unknown) => { if (active) setLoad({ status: "error", text: error instanceof ApiError ? `${error.message} (${error.code})` : "the request failed" }); },
     );
     return () => { active = false; };
@@ -43,6 +44,8 @@ export function PrintPlan({ networkId, comparisonId, method, actionIds }: Props)
       {load.status === "error" && <p role="alert">Plan unavailable: {load.text}.</p>}
       {ready && (
         <>
+          <p>{ready.network.name}</p>
+          {ready.network.is_sample && <p className="font-semibold">{SAMPLE_LABEL}</p>}
           <p>Scenario {ready.saved.scenario_id} · hash {ready.saved.result.scenario_hash}</p>
           <p>Method {V1_METHOD_LABEL[method]} · {ready.saved.result.mode === "RETAIL" ? "Retail" : "Pantry"} network · units as in the plan</p>
           <p className="font-semibold">{SIMULATED_NOTE}</p>

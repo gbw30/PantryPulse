@@ -96,7 +96,7 @@ export function NetworkSwitcher() {
       )}
       {state.status === "ready" && state.networks.length > 0 && (
         <>
-          <Select value={network?.id} onValueChange={select}>
+          <Select value={network?.id ?? ""} onValueChange={select}>
             <SelectTrigger id="network-switcher" className="h-10 w-full bg-background">
               <SelectValue placeholder="Choose a network" />
             </SelectTrigger>

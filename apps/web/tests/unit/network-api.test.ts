@@ -28,3 +28,10 @@ it("follows only a comparison result_url", async () => {
   await expect(networkApi.comparisonAt("/api/v1/settings/google-maps-key")).rejects.toThrow();
   expect(urls).toHaveLength(1);
 });
+
+it('refuses "." and ".." ids, which the browser would resolve to another path', async () => {
+  const urls = capture();
+  await expect(networkApi.backtest("..")).rejects.toThrow();
+  await expect(networkApi.comparison("n-1", ".")).rejects.toThrow();
+  expect(urls).toEqual([]);
+});

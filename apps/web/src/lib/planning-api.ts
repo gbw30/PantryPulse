@@ -11,7 +11,14 @@ function csrfToken() {
   return decodeURIComponent(csrf ?? "");
 }
 
+/** "." and ".." segments (also percent-encoded) would let the browser resolve a request to another API path. */
+const DOT_SEGMENT = /^(?:\.|%2e){1,2}$/i;
+function checkPath(path: string) {
+  if (path.split("?")[0].split("/").some((segment) => DOT_SEGMENT.test(segment))) throw new ApiError("INVALID_PATH", 0);
+}
+
 async function send<T>(path: string, init: RequestInit): Promise<T> {
+  checkPath(path);
   let response: Response;
   try {
     response = await fetch(`/api/v1/${path}`, { cache: "no-store", credentials: "same-origin", ...init });
@@ -46,6 +53,7 @@ export async function apiWrite<T>(method: "PUT" | "DELETE", path: string, body?:
 
 /** POST JSON and return the text body (a v1 plan CSV); errors still arrive as the JSON error envelope. */
 export async function apiText(path: string, body: unknown): Promise<string> {
+  checkPath(path);
   let response: Response;
   try {
     response = await fetch(`/api/v1/${path}`, { method: "POST", cache: "no-store", credentials: "same-origin", body: JSON.stringify(body),

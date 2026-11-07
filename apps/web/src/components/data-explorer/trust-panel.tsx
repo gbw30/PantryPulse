@@ -7,6 +7,8 @@ export type SeriesMethod = Pick<Schema["ForecastSeriesResult"], "status" | "actu
 
 export const SALES_LABEL = "sales (undercounts demand when shelves were empty)";
 export const NOT_EVALUATED = "accuracy not evaluated: needs 35+ days";
+/** An evaluated score whose WAPE has no denominator (the contract allows a null wape_pct). */
+export const NOT_MEASURABLE = "accuracy not measurable: no recorded demand on the scored days";
 
 type Props = {
   /** "P-12 · WATER-24" */
@@ -59,9 +61,11 @@ export function TrustPanel({ label, basis, score, method, donationForecast }: Pr
           </p>
         </>
       )}
-      {score && (score.status === "evaluated" && score.wape_pct !== null ? (
+      {score && (score.status === "evaluated" ? (
         <div>
-          <p className="font-medium">on your last {score.origins_evaluated === 4 ? "4" : score.origins_evaluated} weeks, this forecast was off by about {about(score.wape_pct)}%</p>
+          {score.wape_pct !== null
+            ? <p className="font-medium">on your last {score.origins_evaluated === 4 ? "4" : score.origins_evaluated} weeks, this forecast was off by about {about(score.wape_pct)}%</p>
+            : <p className="font-medium">{NOT_MEASURABLE}</p>}
           {biasText(score.bias_pct) && <p>{biasText(score.bias_pct)}</p>}
           <p className="text-xs text-muted-foreground">Measured on {score.scored_points} past days of your own history. No claim is made about future accuracy.</p>
         </div>

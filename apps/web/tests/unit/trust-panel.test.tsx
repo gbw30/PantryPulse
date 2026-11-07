@@ -71,3 +71,11 @@ it('"expected donations (forecast, not confirmed): X"', () => {
   expect(screen.getByText("expected donations (forecast, not confirmed): 120 cases")).toBeVisible();
   expect(screen.getByText(/Not counted as supply in any plan or danger score/)).toBeVisible();
 });
+
+it("an evaluated score without WAPE says why, and still shows its bias", () => {
+  // The contract allows status "evaluated" with a null wape_pct (no recorded demand on the scored days).
+  panel({ score: { ...evaluated.score, wape_pct: null, bias_pct: "4.6" } });
+  expect(screen.getByText("accuracy not measurable: no recorded demand on the scored days")).toBeVisible();
+  expect(screen.queryByText(/needs 35\+ days/)).not.toBeInTheDocument();
+  expect(screen.getByText("It forecast too high by about 5% on average.")).toBeVisible();
+});

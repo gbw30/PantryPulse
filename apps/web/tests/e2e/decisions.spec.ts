@@ -31,10 +31,11 @@ function csv(ids: string[]) {
   return [header, ...rows].join("\n") + "\n";
 }
 
-async function open(page: Page) {
+async function open(page: Page, net: Schemas["Network"] = network) {
   const base = `networks/${network.id}/comparisons/${saved.id}`;
   const calls = await mockV1(page, {
-    "GET networks": { body: { networks: [network] } },
+    "GET networks": { body: { networks: [net] } },
+    [`GET networks/${network.id}`]: { body: net },
     [`GET ${base}`]: { body: saved },
     [`GET ${base}/methods/${METHOD}/actions`]: { body: decisions() },
     [`POST ${base}/methods/${METHOD}/export`]: (call) => ({ body: csv(JSON.parse(call.body!).action_ids), contentType: "text/csv" }),
@@ -63,7 +64,8 @@ test('@V1-A16 select actions, export CSV download contains scenario hash and "si
 });
 
 test("@V1-A16 print page shows the same rows", async ({ page }) => {
-  const { section } = await open(page);
+  // The same network marked as a sample: the printed plan must carry the sample label too.
+  const { section } = await open(page, { ...network, is_sample: true });
   await section.getByRole("button", { name: "Select all" }).click();
   await section.getByRole("link", { name: "Print page (2 actions)" }).click();
   await expect(page).toHaveURL(/\/decisions\/print\?/);
@@ -77,6 +79,24 @@ test("@V1-A16 print page shows the same rows", async ({ page }) => {
   await expect(page.getByText(`Scenario ${saved.scenario_id} · hash ${saved.result.scenario_hash}`)).toBeVisible();
   await expect(page.getByText(NOTE)).toBeVisible();
   await expect(page.getByText("effect of this action given the rest of the plan; effects don't add up across actions")).toBeVisible();
+  await expect(page.getByText("Sample data — fictional")).toBeVisible();
+});
+
+test("@V1-A16 a method without a verified plan shows no actions and no export", async ({ page }) => {
+  const base = `networks/${network.id}/comparisons/${saved.id}`;
+  const egp = saved.result.methods.find((m) => m.method === "EGP_PI_INSPIRED")!;
+  expect(egp.verified).toBe(false);
+  await mockV1(page, {
+    "GET networks": { body: { networks: [network] } },
+    [`GET ${base}`]: { body: saved },
+    [`GET ${base}/methods/EGP_PI_INSPIRED/actions`]: { body: { ...decisions(), method: "EGP_PI_INSPIRED" } },
+  });
+  await page.goto(`/decisions?comparison_id=${saved.id}&method=EGP_PI_INSPIRED`);
+  const section = page.getByRole("region", { name: `Suggested actions · ${network.name}` });
+  await expect(section).toContainText("EGP-PI-inspired has no verified plan in this comparison, so there are no suggested actions.");
+  await expect(section).toContainText(egp.failure_reason!);
+  await expect(section.getByRole("article")).toHaveCount(0);
+  await expect(section.getByRole("button", { name: /Export CSV/ })).toHaveCount(0);
 });
 
 test("@V1-A16 ids that are not UUIDs are never sent to the API", async ({ page }) => {

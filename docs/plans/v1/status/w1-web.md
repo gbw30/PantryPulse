@@ -29,7 +29,27 @@ Ported unchanged from `b54ec7c`: `atlas-layout.test.ts`, `network-atlas.test.tsx
 
 Visual check of 647f6a8: at 1440×900 the builder panel is 24rem and step-1 controls fit without wrapping; at 390×844 the layout is a single column. Pre-existing, unrelated: the full-page 1440 capture shows the fixed sidebar ending at the viewport height (screenshot artifact), and at 390 the "Simulated research preset" select sits a few px wider than its siblings.
 
-## Pause point (2026-11-07, at Gabriel's request via the orchestrator)
+## Resume (2026-11-07): verifier rerun and fixes
+
+The verifier was rerun on ce7d7df (budgeted to report). It confirmed all 10 pause-point findings and added N1–N4. Unit 88 passed and v1 e2e 25 passed at ce7d7df.
+
+Fixed test-first (each new test was run RED first, for the right reason):
+- Finding 1: `lastHistoryDate` accepts only real calendar days. `2026-13-45`, `2026-11-31`, `2026-00-10` and `9999-12-31` no longer reach `dayAfter`.
+- N2: only the latest scan sets the default date; Start a new import cancels a pending scan.
+- N1: a failed status read after an accepted commit says "Lost contact with the import… It may still finish" and offers Check again, instead of "Nothing was saved". (commit 35bdcb9)
+- Finding 2: an evaluated score with no WAPE says "accuracy not measurable: no recorded demand on the scored days" and keeps its bias.
+- Finding 6: `send`/`apiText` refuse any `.`/`..` (also `%2e`) path segment, so no caller can be redirected. `encodeURIComponent` leaves dots alone, so this guard is the actual fix.
+- Finding 4: Decisions shows no actions or export for a missing or unverified method result, and says why.
+- Finding 3, part: the print page shows the network name and "Sample data — fictional". The capacity and inbound notes need CR-w1-web-6.
+- Finding 8 / N3: the settings locations and routes remount per network, so a switch starts from loading and an attribute save can't target the old network's location.
+- Nits: 7 (`Object.hasOwn`), 10 (`Select value ?? ""`; no controlled/uncontrolled warning in the import e2e), N4 (a freeze clears the previous frozen scenario first).
+
+Not fixed:
+- Finding 5: needs CR-w1-web-6.
+- Finding 9: the untagged test title matches the wave-1 plan.
+- `@V1-A13 selecting a row opens the site inspector`: waits for #103 (CR-1/CR-3).
+
+, at Gabriel's request via the orchestrator)
 
 **Done:** W1-W01 … W1-W08 committed and pushed. The reviewed candidate is b2f32ec; this commit adds only this file. Partial items, each with a CR or waiting on the v1-local merge (#103):
 - W1-W05: map placement and the site inspector (CR-1/CR-3).
@@ -153,6 +173,13 @@ Visual check of 647f6a8: at 1440×900 the builder panel is 24rem and step-1 cont
 - **Exact change:** add `unit` (the product's unit, e.g. "case") to `ActionEffect`, or the product's `name` and `unit`.
 - **Why:** V1-SPEC §6.5 shows the effect at sender and receiver in units; the decisions page only has `product_id`, so it writes "40 units lower" and "Product WATER-24; units as in the plan" instead of "40 cases lower". There is no scenario read to look the unit up.
 - **Unblocks:** W1-W08 effect lines and print rows in the product's own unit.
+- **Status:** open
+
+### CR-w1-web-6 — plan notes for Decisions/print, and an inbound flag for the atlas and forecast views
+- **File(s):** `SavedComparisonV3` (or a new `GET networks/{id}/scenarios/{scenario_id}` → `ScenarioV3`), `Network`, their examples (lead-only); the CSV export (W1-S07)
+- **Exact change:** (a) give the Decisions and print pages the frozen scenario's `assumptions` and `inbound_file_provided`: add both to `SavedComparisonV3`, or add the scenario read. (b) add `inbound_file_provided: boolean` (latest dataset version) to `Network`. (c) the server's plan CSV carries the same notes.
+- **Why:** V1-SPEC §6.1 says every plan export shows "capacity not provided — no limit assumed" and, without `inbound.csv`, "no scheduled deliveries provided"; the atlas and forecast views show the latter too. The web only has these on the frozen scenario inside Scenario Lab (`ScenarioV3.payload.assumptions` / `inbound_file_provided`); a deep-linked Decisions or print page and the atlas/forecast views have no source, and the UI must not guess. Verifier findings 3 (rest) and 5.
+- **Unblocks:** the two notes on /decisions, /decisions/print, the atlas and the forecast trust section.
 - **Status:** open
 
 ### CR-w1-web-3 — per-location projection for the site inspector

@@ -38,6 +38,8 @@ function Comparison({ network, forecastRunId }: { network: Network; forecastRunI
   async function freeze({ transferMode, retailWeights }: { transferMode: Schema["TransferMode"]; retailWeights: Schema["RetailWeights"] | null }) {
     if (!datasetId || !forecastRunId) return;
     setStatus({ kind: "busy", text: "Freezing the scenario…" });
+    // A failed freeze must not leave the previous scenario looking like the current choice.
+    setScenario(null);
     setShown(null);
     try {
       const frozen = await networkApi.createScenario(network.id, { dataset_version_id: datasetId, forecast_run_id: forecastRunId,

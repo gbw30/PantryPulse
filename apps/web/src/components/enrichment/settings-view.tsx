@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AppShell } from "@/components/shell/app-shell";
 import { SampleBadge, useNetwork } from "@/components/shell/network-switcher";
-import { networkApi } from "@/lib/network-api";
+import { networkApi, type Network } from "@/lib/network-api";
 import { ApiError } from "@/lib/planning-api";
 import { EnrichmentStatusPanel } from "./enrichment-status";
 import { GoogleFetch } from "./google-fetch";
@@ -46,10 +46,7 @@ export function SettingsView() {
 
 function SettingsContent() {
   const { network } = useNetwork();
-  const id = network?.id ?? null;
   const settings = useLoad(() => networkApi.settings(), "settings");
-  const enrichment = useLoad(id ? () => networkApi.enrichment(id) : null, `enrichment:${id}`);
-  const routes = useLoad(id ? () => networkApi.routes(id) : null, `routes:${id}`);
   const configured = settings.state.status === "ready" && settings.state.value.google_maps_configured;
 
   return (
@@ -73,32 +70,42 @@ function SettingsContent() {
       {!network ? (
         <p className="text-sm text-muted-foreground">Choose a network in the sidebar, or import one, to see its locations and routes.</p>
       ) : (
-        <>
-          <section aria-labelledby="locations-heading" className="grid gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 id="locations-heading" className="text-lg font-semibold">Locations in {network.name}</h2>
-              {network.is_sample && <SampleBadge />}
-            </div>
-            {enrichment.state.status === "loading" && <p role="status" className="text-sm text-muted-foreground">Loading locations…</p>}
-            {enrichment.state.status === "error" && <Failed what="Location details" code={enrichment.state.code} retry={enrichment.reload} />}
-            {enrichment.state.status === "ready" && (
-              <EnrichmentStatusPanel status={enrichment.state.value}
-                onRetry={async () => { const job = await networkApi.retryEnrichment(network.id); enrichment.reload(); return job; }}
-                onSaveAttributes={async (locationId, update) => { await networkApi.setAttributes(network.id, locationId, update); enrichment.reload(); }} />
-            )}
-          </section>
-
-          <section aria-labelledby="routes-heading" className="grid gap-3">
-            <h2 id="routes-heading" className="text-lg font-semibold">Routes in {network.name}</h2>
-            <GoogleFetch configured={configured}
-              onPreview={() => networkApi.googlePreview(network.id)}
-              onFetch={async () => { const job = await networkApi.googleFetch(network.id); routes.reload(); return job; }} />
-            {routes.state.status === "loading" && <p role="status" className="text-sm text-muted-foreground">Loading routes…</p>}
-            {routes.state.status === "error" && <Failed what="Routes" code={routes.state.code} retry={routes.reload} />}
-            {routes.state.status === "ready" && <RouteList routes={routes.state.value.routes} />}
-          </section>
-        </>
+        // Keyed by network: switching never shows the previous network's rows under the new name.
+        <NetworkSections key={network.id} network={network} configured={configured} />
       )}
     </div>
+  );
+}
+
+/** Locations and routes of one network; remounted per network so its reads start from "loading". */
+function NetworkSections({ network, configured }: { network: Network; configured: boolean }) {
+  const enrichment = useLoad(() => networkApi.enrichment(network.id), `enrichment:${network.id}`);
+  const routes = useLoad(() => networkApi.routes(network.id), `routes:${network.id}`);
+  return (
+    <>
+      <section aria-labelledby="locations-heading" className="grid gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 id="locations-heading" className="text-lg font-semibold">Locations in {network.name}</h2>
+          {network.is_sample && <SampleBadge />}
+        </div>
+        {enrichment.state.status === "loading" && <p role="status" className="text-sm text-muted-foreground">Loading locations…</p>}
+        {enrichment.state.status === "error" && <Failed what="Location details" code={enrichment.state.code} retry={enrichment.reload} />}
+        {enrichment.state.status === "ready" && (
+          <EnrichmentStatusPanel status={enrichment.state.value}
+            onRetry={async () => { const job = await networkApi.retryEnrichment(network.id); enrichment.reload(); return job; }}
+            onSaveAttributes={async (locationId, update) => { await networkApi.setAttributes(network.id, locationId, update); enrichment.reload(); }} />
+        )}
+      </section>
+
+      <section aria-labelledby="routes-heading" className="grid gap-3">
+        <h2 id="routes-heading" className="text-lg font-semibold">Routes in {network.name}</h2>
+        <GoogleFetch configured={configured}
+          onPreview={() => networkApi.googlePreview(network.id)}
+          onFetch={async () => { const job = await networkApi.googleFetch(network.id); routes.reload(); return job; }} />
+        {routes.state.status === "loading" && <p role="status" className="text-sm text-muted-foreground">Loading routes…</p>}
+        {routes.state.status === "error" && <Failed what="Routes" code={routes.state.code} retry={routes.reload} />}
+        {routes.state.status === "ready" && <RouteList routes={routes.state.value.routes} />}
+      </section>
+    </>
   );
 }
