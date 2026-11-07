@@ -22,7 +22,7 @@ it("action/why/effect three parts", () => {
   expect(within(article).getAllByRole("heading").map((h) => h.textContent)).toEqual(["Action", "Why", "Effect"]);
   expect(article).toHaveTextContent(action.action_text);
   expect(article).toHaveTextContent(action.why_text);
-  expect(article).toHaveTextContent("Receiver unmet need: 40 units lower");
+  expect(article).toHaveTextContent("Receiver unmet need: 40 cases lower");
   expect(article).toHaveTextContent("Sender unmet need: unchanged");
   expect(article).toHaveTextContent("Expired: unchanged");
   expect(within(article).getByRole("checkbox", { name: "Include in export" })).not.toBeChecked();
@@ -54,7 +54,7 @@ it("no summed effect anywhere", () => {
 it("USD effect hidden with reason when unavailable", () => {
   const { unmount } = card({ mode: "RETAIL", usdUnavailableReason: "no unit values in products.csv" });
   expect(screen.getByText("USD effect unavailable: no unit values in products.csv")).toBeVisible();
-  expect(screen.getByText(/Receiver lost sales: 40 units lower/)).toBeVisible();
+  expect(screen.getByText(/Receiver lost sales: 40 cases lower/)).toBeVisible();
   unmount();
   const { unmount: unmount2 } = card({ mode: "RETAIL", action: { ...action, effect: { ...action.effect, usd_delta: "-180.00" } } });
   expect(screen.getByText("Value lost (USD): $180.00 lower")).toBeVisible();

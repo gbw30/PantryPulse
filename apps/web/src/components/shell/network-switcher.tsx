@@ -73,6 +73,14 @@ export function useNetwork() {
 }
 
 export const SAMPLE_LABEL = "Sample data — fictional";
+export const NO_INBOUND = "no scheduled deliveries provided";
+
+/** V1-SPEC §6.1: shown only when the latest dataset has no inbound.csv. `null` (no dataset yet) shows nothing. */
+export function InboundNote({ provided }: { provided: boolean | null }) {
+  return provided === false
+    ? <p className="text-xs text-muted-foreground">Scheduled deliveries: {NO_INBOUND} (this network&apos;s data has no inbound.csv).</p>
+    : null;
+}
 
 export function SampleBadge() {
   return (

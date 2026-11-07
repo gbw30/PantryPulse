@@ -31,12 +31,14 @@ function csv(ids: string[]) {
   return [header, ...rows].join("\n") + "\n";
 }
 
-async function open(page: Page, net: Schemas["Network"] = network) {
+const NO_INBOUND = "no scheduled deliveries provided";
+
+async function open(page: Page, net: Schemas["Network"] = network, comparison: Schemas["SavedComparisonV3"] = saved) {
   const base = `networks/${network.id}/comparisons/${saved.id}`;
   const calls = await mockV1(page, {
     "GET networks": { body: { networks: [net] } },
     [`GET networks/${network.id}`]: { body: net },
-    [`GET ${base}`]: { body: saved },
+    [`GET ${base}`]: { body: comparison },
     [`GET ${base}/methods/${METHOD}/actions`]: { body: decisions() },
     [`POST ${base}/methods/${METHOD}/export`]: (call) => ({ body: csv(JSON.parse(call.body!).action_ids), contentType: "text/csv" }),
   });
@@ -80,6 +82,22 @@ test("@V1-A16 print page shows the same rows", async ({ page }) => {
   await expect(page.getByText(NOTE)).toBeVisible();
   await expect(page.getByText("effect of this action given the rest of the plan; effects don't add up across actions")).toBeVisible();
   await expect(page.getByText("Sample data — fictional")).toBeVisible();
+  // CR-w1-web-5: effects in the product's own unit.
+  await expect(rows.nth(0)).toContainText("Receiver unmet need: 40 cases lower");
+  // The example scenario had inbound.csv, so only its assumptions are noted.
+  const notes = page.getByRole("list", { name: "Plan notes" });
+  await expect(notes).toContainText("capacity not provided — no limit assumed");
+  await expect(notes).not.toContainText(NO_INBOUND);
+});
+
+test("@V1-A16 decisions and the print page carry the frozen scenario's plan notes", async ({ page }) => {
+  const notes = [...saved.assumptions, NO_INBOUND];
+  const { section } = await open(page, network, { ...saved, inbound_file_provided: false });
+  for (const note of notes) await expect(section.getByRole("list", { name: "Plan notes" })).toContainText(note);
+  await section.getByRole("button", { name: "Select all" }).click();
+  await section.getByRole("link", { name: "Print page (2 actions)" }).click();
+  await expect(page.getByRole("table", { name: "Selected actions" })).toBeVisible();
+  for (const note of notes) await expect(page.getByRole("list", { name: "Plan notes" })).toContainText(note);
 });
 
 test("@V1-A16 a method without a verified plan shows no actions and no export", async ({ page }) => {

@@ -13,7 +13,10 @@ it("places located sites by their coordinates and lists the rest instead of gues
   // The hub is west and south of Eastside Pantry.
   expect(at["H-1"].x).toBeLessThan(at["P-07"].x);
   expect(at["H-1"].y).toBeGreaterThan(at["P-07"].y);
-  for (const p of placed) for (const v of [p.x, p.y]) expect(v).toBeGreaterThanOrEqual(0), expect(v).toBeLessThanOrEqual(100);
+  for (const v of placed.flatMap((p) => [p.x, p.y])) {
+    expect(v).toBeGreaterThanOrEqual(0);
+    expect(v).toBeLessThanOrEqual(100);
+  }
 });
 
 it("a single located site sits in the middle", () => {

@@ -1,15 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AppShell } from "@/components/shell/app-shell";
 import { SampleBadge, useNetwork } from "@/components/shell/network-switcher";
-import { networkApi, type Network } from "@/lib/network-api";
+import { JOB_ENDED, networkApi, type Network } from "@/lib/network-api";
 import { ApiError } from "@/lib/planning-api";
 import { EnrichmentStatusPanel } from "./enrichment-status";
 import { GoogleFetch } from "./google-fetch";
 import { GoogleKeyForm } from "./google-key-form";
 import { RouteList } from "./route-list";
+
+const POLL_MS = 2000;
 
 type Load<T> = { status: "loading" } | { status: "error"; code: string } | { status: "ready"; value: T };
 
@@ -81,6 +83,23 @@ function SettingsContent() {
 function NetworkSections({ network, configured }: { network: Network; configured: boolean }) {
   const enrichment = useLoad(() => networkApi.enrichment(network.id), `enrichment:${network.id}`);
   const routes = useLoad(() => networkApi.routes(network.id), `routes:${network.id}`);
+  const alive = useRef(true);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+
+  /** Re-read now (the job's queued state), then again once `GET /jobs/{id}` says the v1 job has ended. */
+  async function reloadWhenDone(jobId: string, reload: () => void) {
+    reload();
+    try {
+      while (!JOB_ENDED.has((await networkApi.job(jobId)).state)) {
+        await new Promise((resolve) => setTimeout(resolve, POLL_MS));
+        if (!alive.current) return;
+      }
+    } catch {
+      // Lost contact with the job: re-read anyway, so the list shows whatever the server has now.
+    }
+    if (alive.current) reload();
+  }
+
   return (
     <>
       <section aria-labelledby="locations-heading" className="grid gap-3">
@@ -92,7 +111,7 @@ function NetworkSections({ network, configured }: { network: Network; configured
         {enrichment.state.status === "error" && <Failed what="Location details" code={enrichment.state.code} retry={enrichment.reload} />}
         {enrichment.state.status === "ready" && (
           <EnrichmentStatusPanel status={enrichment.state.value}
-            onRetry={async () => { const job = await networkApi.retryEnrichment(network.id); enrichment.reload(); return job; }}
+            onRetry={async () => { const job = await networkApi.retryEnrichment(network.id); void reloadWhenDone(job.job_id, enrichment.reload); return job; }}
             onSaveAttributes={async (locationId, update) => { await networkApi.setAttributes(network.id, locationId, update); enrichment.reload(); }} />
         )}
       </section>
@@ -101,7 +120,7 @@ function NetworkSections({ network, configured }: { network: Network; configured
         <h2 id="routes-heading" className="text-lg font-semibold">Routes in {network.name}</h2>
         <GoogleFetch configured={configured}
           onPreview={() => networkApi.googlePreview(network.id)}
-          onFetch={async () => { const job = await networkApi.googleFetch(network.id); routes.reload(); return job; }} />
+          onFetch={async () => { const job = await networkApi.googleFetch(network.id); void reloadWhenDone(job.job_id, routes.reload); return job; }} />
         {routes.state.status === "loading" && <p role="status" className="text-sm text-muted-foreground">Loading routes…</p>}
         {routes.state.status === "error" && <Failed what="Routes" code={routes.state.code} retry={routes.reload} />}
         {routes.state.status === "ready" && <RouteList routes={routes.state.value.routes} />}

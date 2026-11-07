@@ -10,7 +10,7 @@ import { modeSummary } from "@/lib/mode-vocabulary";
 import { networkApi, type Network } from "@/lib/network-api";
 import { ApiError, isUuid, type Schema } from "@/lib/planning-api";
 import { ActionList } from "./action-list";
-import { ExportBar } from "./export-bar";
+import { ExportBar, PlanNotes } from "./export-bar";
 
 export const isV1Method = (value: string | undefined): value is V1Method => !!value && Object.hasOwn(V1_METHOD_LABEL, value);
 const failure = (error: unknown) => (error instanceof ApiError ? `${error.message} (${error.code})` : "the request failed");
@@ -108,6 +108,7 @@ function Loaded({ network, comparisonId, method }: { network: Network; compariso
             <p className="font-medium">Scenario {ready.saved.scenario_id.slice(0, 8)} · hash {ready.saved.result.scenario_hash.slice(0, 12)}…</p>
             {result && <MethodVerification verified={result.verified} />}
           </div>
+          <PlanNotes saved={ready.saved} />
           {!result?.verified ? (
             <p className="text-sm">
               {label} has no verified plan in this comparison, so there are no suggested actions.{result?.failure_reason ? ` ${result.failure_reason}.` : ""}

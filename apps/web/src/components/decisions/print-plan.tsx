@@ -8,7 +8,7 @@ import { networkApi, type Network } from "@/lib/network-api";
 import { ApiError, isUuid, type Schema } from "@/lib/planning-api";
 import { effectLines } from "./action-card";
 import { isV1Method } from "./decisions-view";
-import { SIMULATED_NOTE } from "./export-bar";
+import { PlanNotes, SIMULATED_NOTE } from "./export-bar";
 
 type Load = { status: "loading" } | { status: "error"; text: string }
   | { status: "ready"; saved: Schema["SavedComparisonV3"]; decisions: Schema["DecisionActions"]; network: Network };
@@ -47,7 +47,8 @@ export function PrintPlan({ networkId, comparisonId, method, actionIds }: Props)
           <p>{ready.network.name}</p>
           {ready.network.is_sample && <p className="font-semibold">{SAMPLE_LABEL}</p>}
           <p>Scenario {ready.saved.scenario_id} · hash {ready.saved.result.scenario_hash}</p>
-          <p>Method {V1_METHOD_LABEL[method]} · {ready.saved.result.mode === "RETAIL" ? "Retail" : "Pantry"} network · units as in the plan</p>
+          <p>Method {V1_METHOD_LABEL[method]} · {ready.saved.result.mode === "RETAIL" ? "Retail" : "Pantry"} network</p>
+          <PlanNotes saved={ready.saved} />
           <p className="font-semibold">{SIMULATED_NOTE}</p>
           <p>{ready.decisions.non_additive_label}</p>
           {rows.length === 0 ? <p>No actions selected.</p> : (

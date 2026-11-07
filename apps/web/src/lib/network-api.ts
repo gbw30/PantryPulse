@@ -2,6 +2,8 @@ import { api, ApiError, apiRaw, apiText, apiWrite, type Schema } from "./plannin
 
 /** Ids from the page URL or a response stay one path segment (no client-side path traversal). */
 const seg = encodeURIComponent;
+/** Job states after which `GET /jobs/{id}` will not change. */
+export const JOB_ENDED = new Set<Schema["AttemptState"]>(["SUCCEEDED", "FAILED", "TIMED_OUT", "INTERRUPTED", "CANCELLED", "EXPIRED"]);
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const COMPARISON_URL = new RegExp(`^/api/v1/networks/${UUID}/comparisons/${UUID}$`, "i");
 

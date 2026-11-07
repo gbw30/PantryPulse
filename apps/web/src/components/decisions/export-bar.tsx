@@ -1,7 +1,23 @@
+import { useId } from "react";
 import Link from "next/link";
+import { NO_INBOUND } from "@/components/shell/network-switcher";
 import { Button } from "@/components/ui/button";
+import type { Schema } from "@/lib/planning-api";
 
 export const SIMULATED_NOTE = "simulated plan; no stock was reserved or moved";
+
+/** The frozen scenario's notes (V1-SPEC §6.1), plus "no scheduled deliveries provided" when it had no inbound.csv. */
+export function PlanNotes({ saved }: { saved: Schema["SavedComparisonV3"] }) {
+  const id = useId();
+  const notes = [...saved.assumptions, ...(saved.inbound_file_provided ? [] : [NO_INBOUND])];
+  if (notes.length === 0) return null;
+  return (
+    <div className="grid gap-0.5 text-xs">
+      <p id={id} className="font-medium">Plan notes</p>
+      <ul aria-labelledby={id} className="ml-4 list-disc text-muted-foreground">{notes.map((note) => <li key={note}>{note}</li>)}</ul>
+    </div>
+  );
+}
 
 const actions = (n: number) => `${n} action${n === 1 ? "" : "s"}`;
 

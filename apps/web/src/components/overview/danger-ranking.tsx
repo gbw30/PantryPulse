@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { SampleBadge, useNetwork } from "@/components/shell/network-switcher";
+import { InboundNote, SampleBadge, useNetwork } from "@/components/shell/network-switcher";
 import { networkApi, type Network } from "@/lib/network-api";
 import { ApiError, type Schema } from "@/lib/planning-api";
 import { cn } from "@/lib/utils";
@@ -161,6 +161,7 @@ function RankingSection({ network, forecastRunId }: { network: Network; forecast
         <h2 id="danger-heading" className="text-lg font-semibold">Danger ranking · {network.name}</h2>
         {network.is_sample && <SampleBadge />}
       </div>
+      <InboundNote provided={network.inbound_file_provided} />
       {!forecastRunId && <p className="text-sm text-muted-foreground">Run a forecast for this network to rank its locations by danger.</p>}
       {forecastRunId && (
         <div className={cn("grid min-w-0 gap-4", location && "lg:grid-cols-[minmax(0,1fr)_24rem]")}>

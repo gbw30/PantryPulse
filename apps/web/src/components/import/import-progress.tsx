@@ -1,6 +1,7 @@
+import { NO_INBOUND } from "@/components/shell/network-switcher";
 import type { ImportStatus } from "@/lib/network-api";
 
-export const NO_INBOUND = "no scheduled deliveries provided";
+export { NO_INBOUND };
 
 const PHASE_LABEL: Record<ImportStatus["phase"], string> = {
   uploading: "Uploading files", staging: "Reading files", validating: "Checking every row",

@@ -22,7 +22,7 @@ export function EnrichmentStatusPanel({ status, onRetry, onSaveAttributes }: Pro
     setRetry({ busy: true, message: null });
     try {
       const job = await onRetry();
-      setRetry({ busy: false, message: `Lookups queued (job ${job.job_id.slice(0, 8)}). Reload this page after they finish to see the results.` });
+      setRetry({ busy: false, message: `Lookups queued (job ${job.job_id.slice(0, 8)}). This list updates when they finish.` });
     } catch (error) {
       setRetry({ busy: false, message: `Couldn't retry (${(error instanceof ApiError ? error.code : "REQUEST_FAILED").replaceAll("_", " ").toLowerCase()}).` });
     }

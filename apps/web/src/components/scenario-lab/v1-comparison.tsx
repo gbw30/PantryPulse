@@ -4,13 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { SampleBadge, useNetwork } from "@/components/shell/network-switcher";
 import { Button } from "@/components/ui/button";
 import { modeSummary } from "@/lib/mode-vocabulary";
-import { networkApi, type Network } from "@/lib/network-api";
+import { JOB_ENDED as TERMINAL, networkApi, type Network } from "@/lib/network-api";
 import { ApiError, type Schema } from "@/lib/planning-api";
 import { V1_METHODS, type V1Measure, type V1Method } from "./model";
 import { MethodComparisonResults } from "./results";
 import { ComparisonSetup, type FreezeOptions } from "./wizard";
 
-const TERMINAL = new Set<Schema["AttemptState"]>(["SUCCEEDED", "FAILED", "TIMED_OUT", "INTERRUPTED", "CANCELLED", "EXPIRED"]);
 const POLL_MS = 1000;
 
 type Shown = { saved: Schema["SavedComparisonV3"]; scenario: Schema["ScenarioV3"]; requested: V1Method[] };

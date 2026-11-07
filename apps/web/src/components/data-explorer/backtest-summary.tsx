@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { SampleBadge, useNetwork } from "@/components/shell/network-switcher";
+import { InboundNote, SampleBadge, useNetwork } from "@/components/shell/network-switcher";
 import { networkApi, type Network } from "@/lib/network-api";
 import { ApiError, type Schema } from "@/lib/planning-api";
 import { TrustPanel } from "./trust-panel";
@@ -58,6 +58,7 @@ function Trust({ network, forecastJobId }: { network: Network; forecastJobId?: s
         <h2 id="trust-heading" className="text-lg font-semibold">Forecast trust · {network.name}</h2>
         {network.is_sample && <SampleBadge />}
       </div>
+      <InboundNote provided={network.inbound_file_provided} />
       <p className="text-xs text-muted-foreground">Forecasts are projections. Accuracy is measured over the last 4 weekly origins of your own history (needs 35+ days).</p>
       {!forecastJobId && <p className="text-sm text-muted-foreground">Run a forecast for this network to see how far to trust it.</p>}
       {forecastJobId && load.status === "loading" && <p role="status" className="text-sm text-muted-foreground">Loading forecast accuracy…</p>}

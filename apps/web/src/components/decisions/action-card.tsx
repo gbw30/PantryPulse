@@ -5,9 +5,9 @@ import type { Schema } from "@/lib/planning-api";
 
 type Action = Schema["DecisionAction"];
 
-/** "40 units lower" / "unchanged". A delta is this plan minus the same plan without this one transfer. */
-function change(delta: number) {
-  return delta === 0 ? "unchanged" : `${formatUnits(Math.abs(delta), "unit")} ${delta < 0 ? "lower" : "higher"}`;
+/** "40 cases lower" / "unchanged", in the product's unit. A delta is this plan minus the same plan without this one transfer. */
+function change(delta: number, unit: string) {
+  return delta === 0 ? "unchanged" : `${formatUnits(Math.abs(delta), unit)} ${delta < 0 ? "lower" : "higher"}`;
 }
 
 function usdChange(delta: string) {
@@ -23,9 +23,9 @@ export function effectLines(action: Action, mode: NetworkMode, usdUnavailableRea
     ? `Value lost (USD): ${usdChange(effect.usd_delta)}`
     : `USD effect unavailable: ${usdUnavailableReason ?? "this plan was compared in units"}`;
   return {
-    receiver: `Receiver ${short}: ${change(effect.receiver_unmet_delta)}`,
-    sender: `Sender ${short}: ${change(effect.sender_unmet_delta)}`,
-    expired: `Expired: ${change(effect.expired_delta)}`,
+    receiver: `Receiver ${short}: ${change(effect.receiver_unmet_delta, effect.unit)}`,
+    sender: `Sender ${short}: ${change(effect.sender_unmet_delta, effect.unit)}`,
+    expired: `Expired: ${change(effect.expired_delta, effect.unit)}`,
     usd,
   };
 }
