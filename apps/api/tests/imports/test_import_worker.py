@@ -122,6 +122,9 @@ def test_commit_runs_the_job_and_publishes_one_version(lane):
         "SELECT count(*) FROM pg_inherits i JOIN pg_class c ON c.oid = i.inhrelid "
         "JOIN pg_class p ON p.oid = i.inhparent WHERE c.relname = p.relname || '_' || :hex"),
         hex=version.hex) == 2  # both history partitions attached under their version
+    assert _count(lane.engine, (
+        "SELECT count(*) FROM pg_constraint WHERE contype = 'f' AND conrelid = "
+        "to_regclass('net_demand_history_' || :hex)"), hex=version.hex) == 3  # the parent's, reused
     assert _staged(lane.engine) == []
     assert not list((lane.base / str(import_id)).glob("attempt-*"))
 

@@ -354,7 +354,10 @@ def _load_history(conn: sa.Connection, name: str, raw: str, attempt_id: UUID, or
         f"CREATE TABLE {part} (LIKE {table} INCLUDING DEFAULTS INCLUDING CONSTRAINTS)",
         f"INSERT INTO {part} ({columns}) {select}",
         f"ALTER TABLE {part} ADD PRIMARY KEY (dataset_version_id, location_id, product_id, day)",
-        f"ALTER TABLE {part} ADD FOREIGN KEY (organization_id) REFERENCES organizations (id)",
+        # ON DELETE RESTRICT as on the parent, so ATTACH reuses each FK instead of adding and
+        # validating a second copy.
+        f"ALTER TABLE {part} ADD FOREIGN KEY (organization_id) REFERENCES organizations (id) "
+        f"ON DELETE RESTRICT",
         f"ALTER TABLE {part} ADD CHECK (dataset_version_id = '{version_id}')",
     ):
         conn.execute(sa.text(statement), {"org": org, "ver": version_id})
@@ -404,9 +407,11 @@ def _commit(conn: sa.Connection, run: repo.Run, attempt_id: UUID, step: Mapping[
         part, final = stage_table(attempt_id, suffix), f"{table}_{version_id.hex}"
         for statement in (
             f"ALTER TABLE {part} ADD FOREIGN KEY (organization_id, dataset_version_id, "
-            f"location_id) REFERENCES net_locations (organization_id, dataset_version_id, id)",
+            f"location_id) REFERENCES net_locations (organization_id, dataset_version_id, id) "
+            f"ON DELETE RESTRICT",
             f"ALTER TABLE {part} ADD FOREIGN KEY (organization_id, dataset_version_id, "
-            f"product_id) REFERENCES net_products (organization_id, dataset_version_id, id)",
+            f"product_id) REFERENCES net_products (organization_id, dataset_version_id, id) "
+            f"ON DELETE RESTRICT",
             f"ALTER TABLE {part} RENAME TO {final}",
             f"ALTER TABLE {table} ATTACH PARTITION {final} FOR VALUES IN ('{version_id}')",
         ):
