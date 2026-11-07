@@ -1,6 +1,6 @@
 # Resuming Wave 1 after the 2026-11-07 pause
 
-Wave 1 paused on 2026-11-07. Every lane's work was committed and pushed with a clean worktree, and each lane wrote a "Pause point" section in its status file (`docs/plans/v1/status/w1-<lane>.md` on its branch). The lead CRs are in PR #103 (`w1/cr-scenario-window-policy`), which is **not merged** yet. See the W1 row in `docs/pantrypulse/BOARD.md`.
+Wave 1 paused on 2026-11-07. Lane heads at the pause: data `7a723f0`, solver `9014366`, web `ce7d7df`, all pushed and clean. Every lane's work was committed and pushed with a clean worktree, and each lane wrote a "Pause point" section in its status file (`docs/plans/v1/status/w1-<lane>.md` on its branch). The lead CRs are in PR #103 (`w1/cr-scenario-window-policy`), which is **not merged** yet. See the W1 row in `docs/pantrypulse/BOARD.md`.
 
 ## 0. Before opening any session (one WSL terminal)
 
@@ -25,6 +25,7 @@ If the old conversation is gone, start `claude` there and paste:
 > 3. Merge with `gh pr merge 103 --merge`.
 > 4. Tell each lane to merge origin/v1-local (no rebase).
 > 5. Bring me the data lane's gate-timeout question.
+> 6. Bring me the solver's Retail bench finding: 123 of the 209 at-risk products (150 in USD) get a capacity share too small to move one unit under the advance split. Ask whether to raise a localized-weight option. Also review its EGP rule that skips, with a label, any product with fewer than two pantries that have demand.
 
 Wait until the orchestrator reports PR #103 merged before you resume the data and solver lanes; the web lane can start right away.
 
@@ -54,7 +55,8 @@ Then paste the lane's prompt below. If its old conversation is gone, start plain
 
 > Resume lane w1-solver from your status file's "Pause point".
 > 1. Run `git fetch origin && git merge origin/v1-local` (no rebase). Run `set -a; . ./.env.lane; set +a`.
-> 2. Finish any `wip(w1-solver)` work first, then build the Pantry halves of S02/S04/S05/S07:
+> 2. Finish the `wip` commit `3b60263` first: rename `tests/optimization/pending_cr1_pantry_methods.py` back to a collected `test_*.py` name and run it against the real CR-1 schema. It has only run against a local stand-in so far.
+>    Then run the Pantry bench and build the Pantry halves of S02/S04/S05/S07:
 >    - use planning_days and the policy from or-input-v3;
 >    - comparison_id = job_id;
 >    - pre-publication reads return 404 COMPARISON_NOT_FOUND.
