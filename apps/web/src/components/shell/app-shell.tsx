@@ -1,5 +1,6 @@
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar, type NavKey } from "./app-sidebar";
+import { NetworkProvider } from "./network-switcher";
 import { PresenterProvider } from "./presenter-session";
 import { TopBar, type TopBarSearch } from "./top-bar";
 
@@ -21,21 +22,23 @@ export function AppShell({ active, horizonLabel, search, contentElement = "main"
   const Content = contentElement;
   return (
     <PresenterProvider>
-      <SidebarProvider style={{ "--sidebar-width": "clamp(15rem, 18.9vw, 17rem)" } as React.CSSProperties}>
-        <a
-          href="#main-content"
-          className="sr-only z-50 rounded-md bg-card px-3 py-2 text-sm font-medium text-foreground focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:ring-2 focus:ring-ring"
-        >
-          Skip to main content
-        </a>
-        <AppSidebar active={active} />
-        <div className="flex min-h-svh min-w-0 flex-1 flex-col bg-background">
-          <TopBar search={search} horizonLabel={horizonLabel} />
-          <Content id="main-content" tabIndex={-1} className="flex min-w-0 flex-1 flex-col outline-none">
-            {children}
-          </Content>
-        </div>
-      </SidebarProvider>
+      <NetworkProvider>
+        <SidebarProvider style={{ "--sidebar-width": "clamp(15rem, 18.9vw, 17rem)" } as React.CSSProperties}>
+          <a
+            href="#main-content"
+            className="sr-only z-50 rounded-md bg-card px-3 py-2 text-sm font-medium text-foreground focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:ring-2 focus:ring-ring"
+          >
+            Skip to main content
+          </a>
+          <AppSidebar active={active} />
+          <div className="flex min-h-svh min-w-0 flex-1 flex-col bg-background">
+            <TopBar search={search} horizonLabel={horizonLabel} />
+            <Content id="main-content" tabIndex={-1} className="flex min-w-0 flex-1 flex-col outline-none">
+              {children}
+            </Content>
+          </div>
+        </SidebarProvider>
+      </NetworkProvider>
     </PresenterProvider>
   );
 }

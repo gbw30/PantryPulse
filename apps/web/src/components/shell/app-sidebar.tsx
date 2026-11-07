@@ -11,6 +11,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { NetworkSwitcher } from "./network-switcher";
 import { PresenterFooter } from "./presenter-footer";
 
 // "methodology" (research and audit, blueprint §7) is a utility destination, not one of the four
@@ -40,11 +41,12 @@ export function AppSidebar({ active }: { active: NavKey }) {
   const hasUnbuilt = NAV.some((item) => !item.built);
   return (
     <Sidebar collapsible="offcanvas" aria-label="Main navigation">
-      <SidebarHeader className="px-4 pt-5 pb-3">
+      <SidebarHeader className="gap-4 px-4 pt-5 pb-3">
         <Link href="/overview" className="flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring">
           <BrandMark />
           <span className="text-lg font-semibold tracking-tight">PantryPulse</span>
         </Link>
+        <NetworkSwitcher />
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup className="px-3">

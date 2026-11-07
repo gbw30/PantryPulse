@@ -4,14 +4,16 @@
 
 export type ExplorerTabKey = "dashboard" | "pulse" | "operations" | "inventory" | "inputs";
 
-export type ExplorerTab = { key: ExplorerTabKey; label: string; href: string; built: boolean; presenterOnly: boolean };
+// `stockChanging` subviews (receipts, posting, adjustments, lot declarations) stay built but are left out
+// of v1 navigation: in v1 the app never changes its own stock (V1-SPEC §8).
+export type ExplorerTab = { key: ExplorerTabKey; label: string; href: string; built: boolean; presenterOnly: boolean; stockChanging?: true };
 
 export const EXPLORER_TABS: readonly ExplorerTab[] = [
   { key: "dashboard", label: "Dashboard", href: "/data", built: true, presenterOnly: false },
   { key: "pulse", label: "Seven-Day Pulse", href: "/data/pulse", built: true, presenterOnly: false },
-  { key: "operations", label: "Operations Board", href: "/data/operations", built: true, presenterOnly: false },
-  { key: "inventory", label: "Inventory & Lots", href: "/data/inventory", built: true, presenterOnly: false },
-  { key: "inputs", label: "Data input", href: "/data/inputs", built: true, presenterOnly: true },
+  { key: "operations", label: "Operations Board", href: "/data/operations", built: true, presenterOnly: false, stockChanging: true },
+  { key: "inventory", label: "Inventory & Lots", href: "/data/inventory", built: true, presenterOnly: false, stockChanging: true },
+  { key: "inputs", label: "Data input", href: "/data/inputs", built: true, presenterOnly: true, stockChanging: true },
 ];
 
 export function explorerTab(key: ExplorerTabKey) {

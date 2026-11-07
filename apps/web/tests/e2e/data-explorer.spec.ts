@@ -230,13 +230,12 @@ for (const viewport of WIDTHS) {
     await expect(page.getByText(LIVE_PILL, { exact: true }).first()).toBeVisible();
     await expect(page.getByText(FIXTURE_LABEL)).toHaveCount(0);
 
-    // Header: tabs from one config; all five built since PP-56 integration; Data input only for presenters.
+    // Header: tabs from one config. The stock-changing subviews stay built but are out of v1 navigation
+    // (V1-SPEC §8, W1-W02), even for a presenter.
     const tabs = page.getByRole("navigation", { name: "Data Explorer views" });
     await expect(tabs.getByRole("link", { name: "Dashboard" })).toHaveAttribute("aria-current", "page");
     await expect(tabs.getByRole("link", { name: "Seven-Day Pulse" })).toHaveAttribute("href", /\/data\/pulse/);
-    await expect(tabs.getByRole("link", { name: "Operations Board" })).toHaveAttribute("href", /\/data\/operations/);
-    await expect(tabs.getByRole("link", { name: "Inventory & Lots" })).toHaveAttribute("href", /\/data\/inventory/);
-    await expect(tabs.getByRole("link", { name: "Data input" })).toHaveAttribute("href", /\/data\/inputs/);
+    await expect(tabs.getByRole("link")).toHaveCount(2);
     // Forecast-run chip: id prefix, recorded time and provider.
     const chip = page.locator("[data-run-chip]");
     await expect(chip).toContainText(FORECAST.slice(0, 8));
