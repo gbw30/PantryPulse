@@ -69,14 +69,14 @@ def route_rows(locations: Sequence[GeoLocation],
 
     A blank routes.csv travel_days overrides nothing, so the estimate and its label stay; the
     validator rejects such a row when either end has no coordinates."""
-    rows = {(r.from_location_id, r.to_location_id): _row(r)
+    rows = {(r.from_location_id, r.to_location_id): candidate_row(r)
             for r in candidate_routes(locations)}
     by_id = {loc.id: loc for loc in locations}
     for o in overrides:
         pair = (o.from_location_id, o.to_location_id)
         row = rows.get(pair)
         if row is None and pair[0] in by_id and pair[1] in by_id:
-            row = _row(_route(by_id[pair[0]], by_id[pair[1]], Decimal("1.3"), 45))
+            row = candidate_row(_route(by_id[pair[0]], by_id[pair[1]], Decimal("1.3"), 45))
         if row is None:  # given travel_days, unlocated ends: no distance known
             row = {"from": pair[0], "to": pair[1], "distance_miles": None, "road_hours": None}
         if o.travel_days is not None:
@@ -87,7 +87,7 @@ def route_rows(locations: Sequence[GeoLocation],
     return list(rows.values())
 
 
-def _row(route: CandidateRoute, mph: int = 45) -> dict[str, Any]:
+def candidate_row(route: CandidateRoute, mph: int = 45) -> dict[str, Any]:
     return {"from": route.from_location_id, "to": route.to_location_id,
             "method": API_TO_DB[route.method], "distance_miles": route.road_miles,
             "road_hours": (route.road_miles / mph).quantize(MILES),

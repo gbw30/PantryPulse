@@ -11,7 +11,7 @@
 | W1-D03 | done | `22fb017` | `uv run --frozen pytest -q tests/imports tests/enrichment tests/test_v1_contract.py` → 121 passed, 0 skipped (22 in `test_templates.py`); `ruff check .` → clean |
 | W1-D04 | done | see `git log --grep W1-D04` | `uv run --frozen pytest -q tests/test_v1_contract.py tests/imports tests/enrichment` (PostgreSQL `pantrypulse_data_test`, schema `w1_data_import_test`) → 132 passed, 0 skipped; `ruff check .` → clean |
 | W1-D05 | in progress: create, commit admission, status, network reads done; worker waits for the lead's load hook (CR-w1-data-2 decided) | see `git log --grep W1-D05` | `uv run --frozen pytest -q tests/imports/test_import_job.py` → 11 passed, 0 skipped |
-| W1-D06 | todo (ACS: bundled table per CR-w1-data-1, decided) | — | — |
+| W1-D06 | in progress: Census client, ACS table lookup, apply/refresh, attributes, EGP blockers done; enrichment.v1 worker, status and retry next | see `git log --grep W1-D06` | `uv run --frozen pytest -q tests/enrichment tests/imports tests/test_v1_contract.py` → 168 passed, 0 skipped |
 | W1-D07 | done | see `git log --grep W1-D07` | `uv run --frozen pytest -q tests/enrichment tests/imports tests/test_v1_contract.py` → 149 passed, 0 skipped; quick gate PASS |
 | W1-D08 | todo | — | — |
 | W1-D09 | todo | — | — |
@@ -40,6 +40,10 @@
 - A failed import keeps its run, errors and uploaded files (W0-08 §4); a successful commit deletes the files. W0-08 §2 says files go "after a commit or an abort"; I read "abort" as an explicit user abort, which no route offers yet. — W1-D04.
 - `routes.csv` rows are stored with the computed routes at commit (`distance.route_rows`). A blank `travel_days` overrides nothing: the straight-line estimate and its `straight_line_estimate` label stay, and the row is marked `override`. A blank `travel_days` where either end has no coordinates is an import row error (`travel_days`, MALFORMED, fix: enter days or add latitude/longitude), so no stored route lacks `travel_days` (orchestrator guidance). — W1-D04/D07.
 - Routes are computed at import only for locations with coordinates; locations geocoded later get theirs when W1-D06 refreshes routes after geocoding. `net_routes.distance_miles` stores road miles (straight × 1.3); `road_hours` = road miles / 45. — W1-D07.
+- Enrichment fills only unknown fields: given coordinates are never geocoded (and so get no tract and no ACS rates: they stay EGP blockers until a manual value or an exclusion), geocoded coordinates and looked-up rates are never overwritten, and manual values (template or `PUT …/attributes`) live in their own columns beside the looked-up ones. The attribute state is excluded > manual > known (both rates) > unknown. — W1-D06.
+- Census `Non_Exact` matches are stored but listed with the unmatched addresses, the hint showing the address Census matched (S5 found it can flip the street direction). — W1-D06.
+- ACS source text is `ACS 5-year {year}, tract {11-character GEOID}` (the full GEOID; a 6-digit tract code repeats across counties). `fetched_at` is the bundled table's `generated_at`, when the numbers left Census. `acs_source` stores `ACS5 B17001,B22003`. A missing table leaves rates unknown and says so in `last_error`. — W1-D06.
+- EGP blockers are pantries only (EGP weighs receiving pantries; hubs never receive). — W1-D06.
 - Candidate routes: "k=10 nearest pantries + all hubs ≤150 mi (lead call 2026-11-07)". Each receiver gets every hub/DC within 150 miles plus the 10 nearest other senders within 150 miles; hubs never use up a pantry slot. A receiver with no hub within 150 miles gets no hub route (unreachable in HUB_ONLY; the radius is not stretched). — W1-D07.
 - Removed the W1-D04 upload row from `STUBS`; its "streams past the 64 KB boundary" proof moved to `test_upload_over_cap_is_413_and_partial_file_deleted` (a 70,000-byte upload returns 200). — W1-D04.
 
