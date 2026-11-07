@@ -19,7 +19,7 @@ from alembic import command
 import tests.integration.fake_driver as fake_driver
 from app.repositories import imports as repo
 from app.repositories.jobs import QueueRepository, TrustedScope, create_queue_engine
-from app.schemas.v1_imports import ImportCommit
+from app.schemas.v1_imports import ImportCommit, ImportCreate
 from app.services.enrichment.api import enrichment_status
 from app.services.enrichment.census import CensusClient
 from app.services.imports import api
@@ -206,6 +206,29 @@ def test_rejected_publication_discards_the_staged_tables(lane, monkeypatch):
     assert (status.phase, status.failure.kind) == ("failed", "JOB_FAILED")
     assert _count(lane.engine, "SELECT count(*) FROM networks WHERE name = :n",
                   n=request.network.name) == 0
+
+
+def test_a_failed_reimport_blocks_neither_the_network_nor_its_own_retry(lane, monkeypatch):
+    first, job_id = _commit(lane, FILES)
+    assert _settle(lane, first, job_id).state == AttemptState.SUCCEEDED
+    again = ImportCreate(network_id=api.import_status(lane, SCOPE, first).network_id)
+    publish = lane.publisher.publish
+
+    def reject(connection, identity, package):
+        raise PublicationRejected("IMPORT_NOT_FOUND")
+
+    monkeypatch.setattr(lane.publisher, "publish", reject)
+    failed, failed_job = _commit(lane, FILES, again)
+    assert _settle(lane, failed, failed_job).state == AttemptState.FAILED
+    assert api.import_status(lane, SCOPE, failed).phase == "failed"
+    monkeypatch.setattr(lane.publisher, "publish", publish)
+    other, other_job = _commit(lane, FILES, again)  # not IMPORT_IN_PROGRESS: nothing runs
+    assert _settle(lane, other, other_job).state == AttemptState.SUCCEEDED
+    retried = api.commit_import(lane, SCOPE, failed, ImportCommit(as_of_date=AS_OF),
+                                f"retry-{failed}")  # "Commit the import again"
+    assert retried.job_id != failed_job
+    assert _settle(lane, failed, retried.job_id).state == AttemptState.SUCCEEDED
+    assert api.import_status(lane, SCOPE, failed).phase == "done"
 
 
 # --- enrichment.v1 queued with the publication (CR-w1-data-5) -----------------------------

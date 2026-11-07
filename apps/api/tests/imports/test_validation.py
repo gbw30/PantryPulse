@@ -110,9 +110,18 @@ def test_over_envelope_location():
 
 
 def test_history_after_as_of_date_rejected():
-    error = _only_error(demand_history=DEMAND + "P1,RICE,2026-11-04,1,demand\n")
+    error = _only_error(demand_history=DEMAND + "P1,RICE,2026-11-05,1,demand\n")
     assert (error.file, error.line, error.column, error.code) == (
         "demand_history", 4, "date", "AFTER_AS_OF_DATE")
+
+
+def test_history_on_the_as_of_date_accepted():
+    """V1-SPEC §6.1 rejects history dated after as_of_date; the forecast keeps history up to and
+    including its cutoff (= as_of_date), and planning starts the day after."""
+    report = validate_files(_files(demand_history=DEMAND + "P1,RICE,2026-11-04,1,demand\n"),
+                            PANTRY)
+    assert report.ok, report.errors
+    assert report.rows.demand_history[-1].day == date(2026, 11, 4)
 
 
 def test_history_older_than_90_days_rejected():
@@ -215,6 +224,13 @@ def test_non_utf8_file_rejected_with_reason():
     error = _only_error(products=latin1)
     assert (error.file, error.line, error.code) == ("products", 2, "MALFORMED")
     assert "UTF-8" in error.reason and "UTF-8" in error.fix
+
+
+def test_nul_character_rejected_before_the_bulk_load():
+    error = _only_error(locations=LOCATIONS.replace("North Hub", "North\x00Hub"))
+    assert (error.file, error.line, error.column, error.code) == ("locations", 2, "name",
+                                                                  "MALFORMED")
+    assert "NUL" in error.reason and error.fix
 
 
 def test_ids_case_sensitive_after_trim():

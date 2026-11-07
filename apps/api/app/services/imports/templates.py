@@ -79,8 +79,8 @@ GUIDE: dict[str, tuple[str | None, str, str]] = {
                      "Non-expiring stock is never counted as expired."),
     "received_date": ("date (YYYY-MM-DD)", "Optional. When the batch arrived.",
                       "Kept for reference; no effect on the plan."),
-    "date": ("date (YYYY-MM-DD)", "The day the row describes, before the as-of date.",
-             "History dated on or after the as-of date is rejected (no future data)."),
+    "date": ("date (YYYY-MM-DD)", "The day the row describes, on or before the as-of date.",
+             "History dated after the as-of date is rejected (no future data)."),
     "basis": (None, f"demand (requests or need) or sales. Rows with sales are labeled "
               f"\"{SALES_LABEL}\" everywhere.",
               "Forecasts are built from this history; sales can understate demand."),

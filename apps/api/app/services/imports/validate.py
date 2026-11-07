@@ -284,6 +284,13 @@ class Validator:
                            "Make the row match the header: one value per column, and quote "
                            "any value that contains a comma")
                     continue
+                nul = next((col for col, cell in zip(head, cells, strict=True) if "\x00" in cell),
+                           None)
+                if nul is not None:  # valid UTF-8, but PostgreSQL text can't hold it (COPY fails)
+                    report(name, line, nul, "MALFORMED",
+                           "the value contains a NUL character (0x00), which can't be stored",
+                           "Delete the hidden character from this cell, or re-save the file as "
+                           "CSV UTF-8")  # the row still checks the rest: an error saves nothing
                 yield line, dict(zip(head, (cell.strip() for cell in cells), strict=True))
         except csv.Error as exc:
             report(name, reader.line_num, None, "MALFORMED", f"the row can't be read: {exc}",
@@ -441,10 +448,10 @@ class Validator:
                     row.fail("basis", "MALFORMED", "basis must be demand or sales",
                              "Enter demand (requests or need) or sales (what was sold or "
                              "given out)", cells["basis"])
-            if day is not None and day >= self.as_of:
+            if day is not None and day > self.as_of:
                 row.fail("date", "AFTER_AS_OF_DATE",
-                         f"{day} is on or after the as-of date {self.as_of} (no future history)",
-                         f"Remove rows dated {self.as_of} or later, or move the as-of date",
+                         f"{day} is after the as-of date {self.as_of} (no future history)",
+                         f"Remove rows dated after {self.as_of}, or move the as-of date",
                          cells["date"])
             elif day is not None and (self.as_of - day).days > window:
                 row.fail("date", "OVER_ENVELOPE",

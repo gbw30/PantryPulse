@@ -67,9 +67,13 @@ def commit_import(
     status_url = f"/api/v1/imports/{import_id}"
     with rt.engine.begin() as conn:
         run = repo.get_run(conn, import_id, lock=True)
-        if run.job_id is not None:  # committing is one-shot: the same job, never a second one
-            return ImportAccepted(import_id=import_id, job_id=run.job_id, status_url=status_url)
-        if run.phase != "uploading":
+        if run.job_id is not None:
+            if not _ended(rt, run.organization_id, run.job_id):
+                # one job while it runs or once it has run: the same job, never a second one
+                return ImportAccepted(import_id=import_id, job_id=run.job_id,
+                                      status_url=status_url)
+            # it stopped before committing and the files are kept: commit again with a new job
+        elif run.phase != "uploading":
             raise AccessError("IMPORT_NOT_UPLOADING", 409)
         present = {f["name"] for f in run.files}
         missing = [name for name in REQUIRED_TEMPLATES if name not in present]
@@ -82,11 +86,12 @@ def commit_import(
             # The network row lock serializes concurrent commits for one network.
             conn.execute(sa.text("SELECT 1 FROM networks WHERE id = :n FOR UPDATE"),
                          {"n": run.network_id})
-            busy = conn.scalar(sa.text(
-                "SELECT count(*) FROM import_runs WHERE network_id = :n AND id <> :id AND "
+            running = conn.execute(sa.text(
+                "SELECT organization_id, job_id FROM import_runs WHERE network_id = :n AND "
+                "id <> :id AND job_id IS NOT NULL AND "
                 "phase IN ('staging', 'validating', 'committing')"),
-                {"n": run.network_id, "id": import_id})
-            if busy:
+                {"n": run.network_id, "id": import_id}).all()
+            if not all(_ended(rt, org, job_id) for org, job_id in running):
                 raise AccessError("IMPORT_IN_PROGRESS", 409)
         accepted = rt.queue.submit(
             TrustedScope(run.organization_id, scope.actor_ref), CONTRACT,
@@ -96,6 +101,11 @@ def commit_import(
         repo.set_phase(conn, import_id, "staging", job_id=accepted.job_id,
                        progress={"unit": "rows", "done": 0, "total": None})
     return ImportAccepted(import_id=import_id, job_id=accepted.job_id, status_url=status_url)
+
+
+def _ended(rt, organization_id: UUID, job_id: UUID) -> bool:
+    """The job stopped without committing (the run's stored phase still reads running)."""
+    return rt.queue.get_job(TrustedScope(organization_id, "status"), job_id).state in FAILED_JOBS
 
 
 def import_status(rt, scope, import_id: UUID) -> ImportStatus:

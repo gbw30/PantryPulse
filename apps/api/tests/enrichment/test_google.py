@@ -31,7 +31,9 @@ from app.services.enrichment.google import (
     google_step,
     preview_lookups,
 )
+from app.services.jobs.contracts import canonical_json
 from app.services.presenter_access import AccessError
+from app.workers.enrichment import GOOGLE_REGISTRATION, GoogleHandler
 from tests.enrichment.test_distance import LOCATED
 from tests.imports.test_import_postgres import _import
 from tests.integration.wq_support import alembic_config, database_url, reset_schema
@@ -101,6 +103,18 @@ def test_route_not_found_keeps_no_distance():
 
 
 @pytest.mark.integration
+def test_the_largest_lookup_payload_fits_the_registered_input_bound():
+    """The handler's own maximum (100 receivers × 99 senders, the longest 6-decimal
+    coordinates), encoded as the queue measures it, must not be refused as too large."""
+    far = ["-89.999999", "-179.999999"]
+    validated = GoogleHandler().validate_input({
+        "dataset_version_id": str(uuid.uuid4()), "lookups": [[*far, [far] * 99]] * 100})
+    package = {"contract": GOOGLE_REGISTRATION.contract,
+               "input_schema_version": GOOGLE_REGISTRATION.input_schema_version,
+               "input": validated}
+    assert len(canonical_json(package).encode()) <= GOOGLE_REGISTRATION.max_input_bytes
+
+
 def test_no_google_call_without_key(engine, network):
     transport = Routes()
     with pytest.raises(GoogleUnavailable):
