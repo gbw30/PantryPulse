@@ -7,7 +7,7 @@ from uuid import UUID
 
 from pydantic import Field, model_validator
 
-from app.schemas.or_inputs import ORContract
+from app.schemas.or_inputs import Bool, ORContract
 from app.schemas.v1_planning import Basis, Id, NetworkMode
 from app.services.jobs.contracts import AttemptState
 
@@ -30,7 +30,7 @@ class Network(ORContract):
     location_count: int = Field(ge=0)
     product_count: int = Field(ge=0)
     # Latest version had an inbound.csv; False → "no scheduled deliveries provided" (CR-w1-web-6)
-    inbound_file_provided: bool | None
+    inbound_file_provided: Bool | None
 
     @model_validator(mode="after")
     def inbound_flag_with_version(self) -> Self:

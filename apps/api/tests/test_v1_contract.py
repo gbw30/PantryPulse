@@ -477,6 +477,8 @@ def test_network_says_whether_inbound_was_provided():  # CR-w1-web-6 (b)
     imported, pending = (Network.model_validate(n) for n in _example("NetworkList")["networks"])
     assert imported.inbound_file_provided is True
     assert pending.inbound_file_provided is None  # no dataset version yet
+    with pytest.raises(ValidationError, match="bool_type"):  # strict, like SavedComparisonV3
+        Network.model_validate({**_example("Network"), "inbound_file_provided": 1})
     with pytest.raises(ValidationError, match="INBOUND_FLAG_NEEDS_A_DATASET_VERSION"):
         Network.model_validate({**_example("Network"), "inbound_file_provided": None})
     with pytest.raises(ValidationError, match="INBOUND_FLAG_NEEDS_A_DATASET_VERSION"):
