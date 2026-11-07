@@ -55,8 +55,8 @@
 
 | Gate | Commit | Result |
 |---|---|---|
-| `node scripts/quality/run.cjs quick` | | |
-| `node scripts/quality/run.cjs full` (with `.env.lane`) | | |
+| `node scripts/quality/run.cjs quick` (standard env: PP_TEST_DATABASE_URL, PP19_* unset) | bfdb21e | PASS, exit 0 (web typecheck, web lint, api lint, api tests). Its api-tests step (`uv run --frozen pytest -q -rs`) → 1355 passed, 231 skipped. Every skip is PostgreSQL-gated and none counts as validation. 136 are "NOT RUN: PP_TEST_DATABASE_URL is not set": `test_supervisor` 54, `test_job_queue` 40, `test_v1_schema` 18, `test_job_migrations` 11, `test_local_bootstrap` 10, `test_worker_slice` 9, `test_comparison_v3_postgres` 5, `wq_support` 4, `test_v1_locations` 2, `test_long_solver_runtime` 1. 95 are the PP19 isolated-schema opt-in: `test_operational_postgres` 25, `test_stock_postgres` 17, `test_stock_adjustment_api_postgres` 9, `test_operations_api_postgres` 7, `test_forecast_api_postgres` 6, `test_inventory_api_postgres` 5, `test_planning_api_postgres` 4, `test_planning_postgres` 4 |
+| `node scripts/quality/run.cjs full` (with `.env.lane`, `PP19_TEST_SCHEMA_ISOLATION=1`) | bfdb21e | PASS, exit 0, all 8 steps (quick 4 + web unit tests, web build, contract drift, database migrations). Same env, api-tests step `uv run --frozen pytest -q -rs` → 1586 passed, 0 skipped, 210.7 s (limit 480 s); migrations step → 36 passed, 0 skipped |
 | `/devkit:ship-check` | | |
 
 ## Decisions made inside the lane
