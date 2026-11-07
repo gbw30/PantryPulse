@@ -51,4 +51,4 @@
   - USD with one price missing.
   Each reproduced failure becomes a fix packet or a wave-3 task.
 - [ ] **Step 2:** decide with Gabriel every open CR from the wave-1 status files. Land the approved ones (contract, schema) on `v1-local`, and regenerate the contract.
-- [ ] **Step 3:** light re-plan. Update `wave-3.md` and `prompts/w3-*.md` with any interface change, then send the wave-end report, run `/vault-wrap-up`, set up the W3 worktrees and send the wave-start report. **Gabriel approves the wave 3 start.**
+- [ ] **Step 3:** light re-plan. Update `wave-3.md` and `prompts/w3-*.md` with any interface change, then send the wave-end report, consolidate the lanes' "Gotchas", set up the W3 worktrees and send the wave-start report. **Gabriel approves the wave 3 start.**

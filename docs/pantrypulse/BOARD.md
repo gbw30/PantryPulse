@@ -10,7 +10,7 @@ The plan is [docs/plans/v1/](../plans/v1/README.md), which implements [V1-SPEC](
 
 | Wave | Lanes (at most 3) | Mode | Tasks | Acceptance IDs | Status |
 |---|---|---|---|---|---|
-| W0 Foundation | orchestrator (spikes S1, S4 in-session) | orchestrator + A | W0-01…W0-10 | A02, A04, A21, A22 (+ S1/S3/S4 findings) | IN PROGRESS on local `w0/foundation` (base `7067b0b`, unpushed): done W0-01…W0-09 (W0-06 S3: Windows + WSL clean clones pass, `spikes/S3-docker.md`); next W0-10 |
+| W0 Foundation | orchestrator (spikes S1, S4 in-session) | orchestrator + A | W0-01…W0-10 | A02, A04, A21, A22 (+ S1/S3/S4 findings) | IN PROGRESS on local `w0/foundation` (base `7067b0b`, unpushed): done W0-01…W0-09 (W0-06 S3: Windows + WSL clean clones pass, `spikes/S3-docker.md`); W0-10: verifier reviews done, or-input-v3 validator fix `428d014`, spike findings applied to wave-1/3; waiting on Gabriel for the PR and merge into v1-local |
 | W1 | `w1-data`, `w1-solver`, `w1-web` | B | W1-D01…D09, W1-S01…S07, W1-W01…W08 | A06–A11, A13–A17, A20, A21, A23 | NOT STARTED |
 | W2 Integrate W1 | orchestrator | orchestrator + A | W2-01…W2-06 | A22 + backend journey | NOT STARTED |
 | W3 | `w3-forecast`, `w3-samples`, `w3-web` | B | W3-F01…F06, W3-P01…P04, W3-W01…W03 | A02, A05, A06, A08, A12, A13, A17, A20, A23 | NOT STARTED |

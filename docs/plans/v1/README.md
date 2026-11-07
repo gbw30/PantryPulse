@@ -195,9 +195,8 @@ All lanes share the existing CI-style PostgreSQL container `pp-ci-postgres` (`12
 | `apps/api/.env.demo` | connected demo settings |
 | `apps/web/.env.local` | proxy origin and token (overridden per lane by `.env.lane`) |
 | `.claude/settings.local.json` | local permission allowances |
-| `.claude/vault-scope.json` | vault scope; lanes still **never write** to the vault |
 
-**Generated per worktree:** `.env.lane` (gitignored by the existing `.env.*` rule). It contains `PP_API_PORT`, `PLAYWRIGHT_PORT`, `PANTRYPULSE_API_ORIGIN=http://127.0.0.1:<API port>`, `PP_WEB_PORT`, `COMPOSE_PROJECT_NAME`, `PP_TEST_DATABASE_URL` and `PP19_TEST_DATABASE_URL`. The URLs are built from the orchestrator's existing test URL with only the database name changed. Lanes load it with `set -a; . ./.env.lane; set +a`. Shell exports take precedence over `.env.local` in Next.js. `.env.lane` **never** holds `PP_PRESENTER_PASSWORD_HASH`: the `$` in the scrypt hash breaks shell loading (vault note "Loading demo-ci-env Output With eval Breaks Presenter Login").
+**Generated per worktree:** `.env.lane` (gitignored by the existing `.env.*` rule). It contains `PP_API_PORT`, `PLAYWRIGHT_PORT`, `PANTRYPULSE_API_ORIGIN=http://127.0.0.1:<API port>`, `PP_WEB_PORT`, `COMPOSE_PROJECT_NAME`, `PP_TEST_DATABASE_URL` and `PP19_TEST_DATABASE_URL`. The URLs are built from the orchestrator's existing test URL with only the database name changed. Lanes load it with `set -a; . ./.env.lane; set +a`. Shell exports take precedence over `.env.local` in Next.js. `.env.lane` **never** holds `PP_PRESENTER_PASSWORD_HASH`: the `$` in the scrypt hash expands during shell loading, so every presenter login returns 401.
 
 **Per-worktree setup:** `npm ci`, `uv sync --frozen --project apps/api`, `npx playwright install chromium`. The Stop hook runs the quick gate inside every lane session, so these must exist.
 
@@ -240,7 +239,7 @@ Lanes code against these names. W0-08 may adjust them before the freeze. If it d
 | `GET /networks/{id}/routes` | `RouteList` (each route carries `method`, `fetched_at`) | W1-D07/D08 |
 | `GET /settings`, `PUT /settings/google-maps-key`, `DELETE /settings/google-maps-key` | `LocalSettings{google_maps_configured: bool}`; the key is write-only | W1-D08 |
 | `POST /networks/{id}/routes/google-preview`, `POST /networks/{id}/routes/google-fetch` | `GoogleLookupPreview{lookups}`, 202 | W1-D08 |
-| `POST /networks/{id}/scenarios` | existing `ScenarioResult` | W1-D09 |
+| `POST /networks/{id}/scenarios` | `ScenarioV3` | W1-D09 |
 | `POST /networks/{id}/forecasts`, `GET /forecasts/{job_id}/backtest` | `ForecastAccepted`, `BacktestResult` | W3-F02/F03 |
 | `GET /networks/{id}/danger?forecast_run_id=` | `DangerRanking` | W3-F05 |
 | `POST /networks/{id}/comparisons` (`scenario_id`, `methods[]`, `measure`), `GET /networks/{id}/comparisons/{comparison_id}` | `ForecastAccepted`, `SavedComparisonV3` (per-method result, verification, `usd_unavailable_reason`) | W1-S04 |

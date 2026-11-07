@@ -28,7 +28,7 @@ Status values: `todo`, `in progress`, `done`, `blocked (<reason or CR id>)`.
 
 ## Gotchas
 
-- `<non-obvious finding>` — the orchestrator moves durable ones to the vault at wave end.
+- `<non-obvious finding>` — the orchestrator consolidates durable ones at wave end.
 
 ## Change requests
 

@@ -41,4 +41,4 @@
 - [ ] **Step 1:** ask Gabriel: "Create tag `v1.0.0` on <SHA>?" Only after a yes: tag and push. `release.yml` publishes the images.
 - [ ] **Step 2:** ask Gabriel: "Make the `pantrypulse-api` and `pantrypulse-web` GHCR packages public?" Only after a yes.
 - [ ] **Step 3 (Gabriel):** on clean Windows 11 and Ubuntu machines, plain `docker compose up` pulls the images with no local build. Record the first-run times, and update the README so that plain `up` is the default.
-- [ ] **Step 4:** final report. ACCEPTANCE-MATRIX shows V1-A01…V1-A24 with evidence, or an explicit open item. Update BOARD.md, then run `/vault-wrap-up`.
+- [ ] **Step 4:** final report. ACCEPTANCE-MATRIX shows V1-A01…V1-A24 with evidence, or an explicit open item. Update BOARD.md.

@@ -25,3 +25,9 @@ V1-D15 step reached: **1**. No lower envelope and no raised ceilings.
 - Independent review of the spike's capacity split and coupling check (verifier) before `w1-solver` copies the approach.
 - Record per-product gaps for FEASIBLE (not OPTIMAL) products, and show FEASIBLE products honestly.
 - The pool workers hold ~4.9 GB in total (six scenario copies). Keep that under the 8 GiB worker limit when a network has more at-risk products.
+
+## W0-10 review of the spike (verifier, 2026-11-06)
+
+- The split never exceeds a shared limit, and the spike's `coupling_check` is independent of it and catches a planted violation. Both hold.
+- Corrections that W1-S05 carries as tests: split by need × handling units, not raw units; report products whose share is below one unit's handling (170 of 194 at-risk products in the spike); split the cost budget, which the spike copied whole to every product; make storage bind across products; assert the union check instead of only logging it.
+- §3 is too strong: per-product objectives don't sum to a network optimum, and FEASIBLE products add time-limit noise (the EGP total moved from 949.51 to 955.88 between runs). Report per-product status and gap, and network totals of physical quantities only.

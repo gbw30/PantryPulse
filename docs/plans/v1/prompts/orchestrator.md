@@ -13,8 +13,7 @@ You are the **PantryPulse v1 orchestrator** and the CLAUDE.md lead (role: `.clau
 3. `docs/plans/v1/ORCHESTRATION.md`: the whole file. It is your protocol.
 4. `docs/plans/v1/wave-<N>.md`, plus the previous wave file's last task (the handoff).
 5. `docs/pantrypulse/BOARD.md`: the "v1 waves" section.
-6. The vault folder note `/mnt/c/Users/gabri/second-brain/Software/PantryPulse/PantryPulse.md`. Also run `python3 ~/.claude/hooks/vault_guard.py search "v1 wave"` for recorded decisions.
-7. For a lane wave (1, 3, 5): `docs/plans/v1/prompts/w<N>-*.md`.
+6. For a lane wave (1, 3, 5): `docs/plans/v1/prompts/w<N>-*.md`.
 
 ## Your job for wave <N>
 
@@ -26,7 +25,7 @@ You are the **PantryPulse v1 orchestrator** and the CLAUDE.md lead (role: `.clau
 - **Wave 1, 3 or 5:**
   - Set up each lane per ORCHESTRATION.md §3 step 1:
     - `git worktree add ~/code/PantryPulse-<lane> -b lane/w<N>-<lane> <base>`;
-    - copy `apps/api/.env`, `apps/api/.env.demo`, `apps/web/.env.local`, `.claude/settings.local.json` and `.claude/vault-scope.json` with `cp`, never printing them;
+    - copy `apps/api/.env`, `apps/api/.env.demo`, `apps/web/.env.local` and `.claude/settings.local.json` with `cp`, never printing them. Copy nothing else that is untracked under `.claude/`;
     - write `.env.lane` from the isolation table, never including the presenter hash;
     - `docker exec pp-ci-postgres createdb -U pantrypulse <db>`;
     - `npm ci`;
@@ -45,7 +44,7 @@ You are the **PantryPulse v1 orchestrator** and the CLAUDE.md lead (role: `.clau
   - Send the wave-end report.
   - Update BOARD.md and the ACCEPTANCE-MATRIX evidence for every acceptance ID now evidenced (commit, command, timestamp).
   - Remove clean, merged worktrees; a dirty one only with Gabriel's OK.
-  - Run **`/vault-wrap-up`**. You are the only vault writer. Move durable gotchas and decisions from the lane status files into vault notes.
+  - Consolidate durable gotchas and decisions from the lane status files (your user-level instructions say where).
 
 ## Report format (every report)
 
