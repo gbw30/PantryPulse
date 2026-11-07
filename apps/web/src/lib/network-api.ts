@@ -45,6 +45,9 @@ export const networkApi = {
   /** The server's plan CSV for the chosen actions (each row carries the scenario hash and the simulation note). */
   exportPlan: (networkId: string, comparisonId: string, method: Schema["MethodResult"]["method"], actionIds: string[]) =>
     apiText(`networks/${seg(networkId)}/comparisons/${seg(comparisonId)}/methods/${seg(method)}/export`, { action_ids: actionIds }),
+  locations: (networkId: string) => api<Schema["LocationList"]>(`networks/${seg(networkId)}/locations`),
+  projection: (networkId: string, forecastRunId: string, locationId: string) => api<Schema["LocationProjection"]>(
+    `networks/${seg(networkId)}/projection?${new URLSearchParams({ forecast_run_id: forecastRunId, location_id: locationId })}`),
   job: (jobId: string) => api<Schema["ForecastJob"]>(`jobs/${seg(jobId)}`),
   settings: () => api<Schema["LocalSettings"]>("settings"),
   /** Write-only: the key is sent once and never read back. */

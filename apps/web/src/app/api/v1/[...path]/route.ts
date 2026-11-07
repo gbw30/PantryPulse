@@ -32,7 +32,7 @@ async function proxy(request: Request) {
   // v1 routes (W0-08 frozen contract); location IDs are user CSV IDs: one path segment, no encoded slash.
   const v1 = {
     GET: ["networks", "templates", "settings", `${net}`, `templates/(${TEMPLATE_FILES})\\.csv`,
-      `${net}/(enrichment|routes|danger)`, `forecasts/${uuid}/backtest`, `${net}/comparisons/${uuid}`,
+      `${net}/(enrichment|routes|danger|locations|projection)`, `forecasts/${uuid}/backtest`, `${net}/comparisons/${uuid}`,
       `${comparison}/actions`],
     POST: [`${net}/enrichment/retry`, `${net}/routes/google-(preview|fetch)`,
       `${net}/(scenarios|forecasts|comparisons)`, `${comparison}/export`],
@@ -58,6 +58,7 @@ async function proxy(request: Request) {
   const queryKeys = request.method !== "GET" ? undefined : ([
     ["planning-catalog", ["before", "before_id"]], ["templates", ["mode"]],
     [`templates/(${TEMPLATE_FILES})\\.csv`, ["kind"]], [`${net}/danger`, ["forecast_run_id"]],
+    [`${net}/projection`, ["forecast_run_id", "location_id"]],
   ] as const).find(([route]) => new RegExp(`^${route}$`).test(path))?.[1] as readonly string[] | undefined;
   const keys = [...incoming.searchParams.keys()];
   const query = !incoming.search ||

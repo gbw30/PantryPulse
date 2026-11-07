@@ -171,6 +171,26 @@ test("planning proxy allowlist preserves bounded catalog paging and rejects arbi
   assert.equal(fetchMock.mock.calls.length, 4);
 });
 
+test("v1 proxy allows a network's locations and one location's projection, with only its two query keys", async (t) => {
+  process.env.PANTRYPULSE_API_ORIGIN = "http://127.0.0.1:8000";
+  process.env.PP_TRUSTED_PROXY_TOKEN = "test-proxy-secret";
+  t.after(() => {
+    delete process.env.PANTRYPULSE_API_ORIGIN;
+    delete process.env.PP_TRUSTED_PROXY_TOKEN;
+  });
+  const fetchMock = t.mock.method(globalThis, "fetch", async () => Response.json({ ok: true }));
+  const net = "networks/8b2f4c1e-3a5d-4e6f-9a7b-1c2d3e4f5a60";
+  const run = "61829304-5e7f-4091-8c2d-4e5f60718293";
+  for (const path of [`${net}/locations`, `${net}/projection?forecast_run_id=${run}&location_id=P-12`]) {
+    assert.equal((await GET(new Request(`http://localhost:3000/api/v1/${path}`))).status, 200, path);
+  }
+  for (const path of [`${net}/locations?location_id=P-12`, `${net}/projection?forecast_run_id=${run}&network_id=x`,
+    `${net}/projection?location_id=a&location_id=b`, "networks/not-a-uuid/locations", `${net}/locations/P-12`]) {
+    assert.equal((await GET(new Request(`http://localhost:3000/api/v1/${path}`))).status, 404, path);
+  }
+  assert.equal(fetchMock.mock.calls.length, 2);
+});
+
 test("local install reads the proxy token from the shared file, never the client", async (t) => {
   const { mkdtemp, writeFile, rm } = await import("node:fs/promises");
   const { join } = await import("node:path");
