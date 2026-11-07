@@ -81,12 +81,13 @@ def _effect(s, packed, with_plan, transfer_id) -> ActionEffect:
                 delta["unmet", d.location_id] += sign * d.unmet
                 delta["expired"] += sign * d.expired
     sender, receiver = delta["unmet", ends[0]], delta["unmet", ends[1]]
-    price = next(p.unit_value_usd for p in s.products if p.id == t.product_id)
+    product = next(p for p in s.products if p.id == t.product_id)
     usd = None
-    if s.mode == "RETAIL" and price is not None:
-        usd = money(Decimal(price) * (sender + receiver + delta["expired"]))
+    if s.mode == "RETAIL" and product.unit_value_usd is not None:
+        usd = money(Decimal(product.unit_value_usd) * (sender + receiver + delta["expired"]))
     return ActionEffect(
         product_id=t.product_id,
+        unit=product.unit,
         sender_unmet_delta=sender,
         receiver_unmet_delta=receiver,
         expired_delta=delta["expired"],

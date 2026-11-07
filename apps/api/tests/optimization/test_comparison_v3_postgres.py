@@ -198,6 +198,8 @@ def test_comparison_is_404_until_published_then_readable(api):
     assert accepted.headers["Location"] == job["status_url"] == f"/api/v1/jobs/{job['job_id']}"
     early = client.get(job["result_url"])
     assert early.status_code == 404 and code(early) == "COMPARISON_NOT_FOUND"
+    queued = client.get(job["status_url"])  # CR-w1-solver-5: under the network's organization
+    assert queued.status_code == 200 and queued.json()["state"] == "QUEUED", queued.text
 
     claim, package = run(rt.queue, own)
     assert claim.job_id == UUID(job["job_id"])
@@ -205,9 +207,14 @@ def test_comparison_is_404_until_published_then_readable(api):
     assert manifest == dict(
         result_ref=job["job_id"], planning_ready=True, comparison_outcome="SUCCEEDED"
     )
+    done = client.get(job["status_url"])
+    assert done.status_code == 200 and done.json()["state"] == "SUCCEEDED", done.text
     saved = client.get(job["result_url"])
     assert saved.status_code == 200, saved.text
     body = saved.json()
+    frozen, _ = load("retail-usd-flip")  # the seeded scenario's notes (CR-w1-web-6)
+    assert body["assumptions"] == list(frozen.assumptions)
+    assert body["inbound_file_provided"] is frozen.inbound_file_provided
     assert (body["id"], body["network_id"]) == (job["job_id"], str(ids["net"]))
     assert body["scenario_id"] == str(ids["scenario"])
     assert body["result"] == package["comparison"]

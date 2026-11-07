@@ -34,6 +34,8 @@ def saved(s, measure="UNITS"):
         scenario_id=SCENARIO,
         recorded_at=datetime(2026, 11, 7, tzinfo=UTC),
         result=result,
+        assumptions=s.assumptions,
+        inbound_file_provided=s.inbound_file_provided,
     )
 
 
@@ -126,6 +128,21 @@ def test_no_scheduled_deliveries_note_when_no_inbound():
         assert exported and {r["note"] for r in exported} == {note + solved}
 
 
+def test_capacity_note_when_capacity_was_not_provided():  # CR-w1-web-6
+    s, _ = load("retail-usd-no-flip")
+    assumed = s.model_copy(
+        update={"assumptions": (*s.assumptions, "capacity not provided — no limit assumed")}
+    )
+    no_inbound = "; no scheduled deliveries provided"
+    capacity = "; capacity not provided — no limit assumed"
+    for scenario, note in ((s, no_inbound), (assumed, capacity + no_inbound)):
+        comparison = saved(scenario)
+        ids = [t.id for t in comparison.result.methods[2].transfers]
+        exported = rows(export_plan_csv(comparison, "RETAIL_OPTIMIZED", ids, scenario=scenario))
+        solved = f"; {PER_PRODUCT_LABEL}; product solved OPTIMAL"
+        assert exported and {r["note"] for r in exported} == {SIMULATED_NOTE + note + solved}
+
+
 def test_export_rejects_unverified_method():
     s, _ = load("retail-expiry-transfer")
     comparison = saved(s)
@@ -165,6 +182,8 @@ def test_export_pantry_plan():
         scenario_id=SCENARIO,
         recorded_at=datetime(2026, 11, 7, tzinfo=UTC),
         result=result,
+        assumptions=s.assumptions,
+        inbound_file_provided=s.inbound_file_provided,
     )
     ids = [t.id for t in result.methods[1].transfers]
     exported = rows(export_plan_csv(comparison, "MOST_URGENT_FIRST", ids, scenario=s))

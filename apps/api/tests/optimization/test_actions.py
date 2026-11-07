@@ -96,6 +96,12 @@ def test_effect_equals_independent_reprojection():
     assert (by_product["Q"].receiver_unmet_delta, by_product["Q"].usd_delta) == (-10, "-100.00")
 
 
+def test_effect_names_the_product_unit():  # CR-w1-web-5
+    s, _, actions = actions_for("retail-usd-no-flip")
+    units = {p.id: p.unit for p in s.products}
+    assert {(a.effect.product_id, a.effect.unit) for a in actions.actions} == set(units.items())
+
+
 def test_no_total_effect_field():
     assert not any("total" in name for name in DecisionActions.model_fields)
     assert not any("total" in name for name in ActionEffect.model_fields)

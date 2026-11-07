@@ -71,14 +71,17 @@ def _read(rt, scope, network_id, comparison_id):
         if row is None:
             raise HistoryRejected("COMPARISON_NOT_FOUND", 404)
         scenario = _scenario(conn, scope, network_id, row["scenario_id"])
+    frozen = ORInputV3.model_validate(scenario["payload"])
     saved = SavedComparisonV3(
         id=row["id"],
         network_id=row["network_id"],
         scenario_id=row["scenario_id"],
         recorded_at=row["recorded_at"],
         result=row["result"],
+        assumptions=frozen.assumptions,  # copied from the frozen scenario (CR-w1-web-6)
+        inbound_file_provided=frozen.inbound_file_provided,
     )
-    return saved, ORInputV3.model_validate(scenario["payload"])
+    return saved, frozen
 
 
 def submit_comparison(

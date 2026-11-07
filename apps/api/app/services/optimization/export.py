@@ -15,6 +15,7 @@ from app.services.optimization.v3 import PER_PRODUCT_LABEL
 
 SIMULATED_NOTE = "simulated plan; no stock was reserved or moved"
 NO_INBOUND_NOTE = "no scheduled deliveries provided"
+CAPACITY_NOTE = "capacity not provided — no limit assumed"
 FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
 COLUMNS = (
     "scenario_id",
@@ -59,9 +60,12 @@ def export_plan_csv(
         raise KeyError(", ".join(missing))
     products = {p.id: p for p in scenario.products}
     names = {loc.id: loc.name for loc in scenario.locations}
-    note = (
-        SIMULATED_NOTE if scenario.inbound_file_provided else f"{SIMULATED_NOTE}; {NO_INBOUND_NOTE}"
-    )
+    notes = [SIMULATED_NOTE]
+    if CAPACITY_NOTE in scenario.assumptions:
+        notes.append(CAPACITY_NOTE)
+    if not scenario.inbound_file_provided:
+        notes.append(NO_INBOUND_NOTE)
+    note = "; ".join(notes)
     out = io.StringIO()
     writer = csv.writer(out, lineterminator="\n")
     writer.writerow(COLUMNS)
