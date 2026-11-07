@@ -236,3 +236,89 @@ def verify_plan(scenario, transfers) -> PlanReport:
             violations.append("STORAGE_CAPACITY")
     unique = tuple(dict.fromkeys(violations))
     return PlanReport(not unique, unique, plan.days, plan.sublots, packed, tuple(above))
+
+
+def product_violations(s, product_id, quantities, shares, baseline) -> tuple[str, ...]:
+    """One product's plan against its pre-split shares (heuristic feasibility probe).
+
+    Projects only the locations the plan touches (projection is per location × product), so a
+    heuristic can probe many quantities cheaply. Not a substitute for verify_plan, which checks
+    the union plan against the raw scenario before anything is published.
+    """
+    touched = {loc for key in quantities for loc in key[1:]}
+    if not touched:
+        return ()
+    product = next(p for p in s.products if p.id == product_id)
+
+    def mine(rows):
+        return tuple(r for r in rows if r.product_id == product_id and r.location_id in touched)
+
+    sub = s.model_copy(
+        update={
+            "products": (product,),
+            "batches": mine(s.batches),
+            "demand": mine(s.demand),
+            "inbound": mine(s.inbound),
+            "reserves": mine(s.reserves),
+        }
+    )
+    try:
+        packed = pack_v3(sub, quantities)
+    except ValueError as exc:
+        return (str(exc),)
+    violations = []
+    window = window_days(s)
+    for lot in project_v3(sub, packed).sublots:
+        if sum(lot.consumed[:window]) != lot.units:
+            violations.append("TRANSFER_NOT_CONSUMED_IN_WINDOW")
+    base = {(d.location_id, d.day): d for d in baseline if d.product_id == product_id}
+    first = s.first_planning_date
+    if s.mode == "PANTRY":
+        incoming = defaultdict(int)
+        for p in packed:
+            incoming[p.transfer.to_location_id] += p.transfer.quantity
+        for loc, units in incoming.items():
+            need = sum(
+                base[loc, first + timedelta(days=i)].unmet
+                for i in range(window)
+                if (loc, first + timedelta(days=i)) in base
+            )
+            if units > need:
+                violations.append("BASELINE_NEED_OVERDELIVERY")
+    senders = {p.transfer.from_location_id for p in packed}
+    floors = {r.location_id: r.floor for r in sub.reserves}
+    for d in project_v3(sub, packed, include_inbound_transfers=False).days:
+        if d.location_id in senders and (d.unmet or d.on_hand < floors.get(d.location_id, 0)):
+            violations.append("DONOR_PROTECTION")
+    h = product.handling_units_per_unit
+    routes = {(r.from_location_id, r.to_location_id): r for r in s.routes}
+    dispatch, receiving = defaultdict(int), defaultdict(int)
+    total, cost = 0, Fraction(0)
+    for p in packed:
+        t = p.transfer
+        load = t.quantity * h
+        share = shares.route.get((t.from_location_id, t.to_location_id))
+        if share is not None and load > share:
+            violations.append("ROUTE_CAPACITY")
+        dispatch[t.from_location_id] += load
+        receiving[t.to_location_id, t.arrival_date] += load
+        total += load
+        cost += cost_minor(routes[t.from_location_id, t.to_location_id], t.quantity, h)
+
+    def over(loads, limits):
+        return any(limits.get(k) is not None and load > limits[k] for k, load in loads.items())
+
+    if over(dispatch, shares.dispatch):
+        violations.append("DISPATCH_CAPACITY")
+    if over(receiving, shares.receiving):
+        violations.append("RECEIVING_CAPACITY")
+    if shares.global_handling is not None and total > shares.global_handling:
+        violations.append("GLOBAL_HANDLING_CAPACITY")
+    if shares.cost_minor is not None and cost > shares.cost_minor:
+        violations.append("TRANSPORT_COST_BUDGET")
+    for d in project_v3(sub, packed).days:
+        room = shares.storage_room.get((d.location_id, d.day))
+        start = base[d.location_id, d.day].on_hand if (d.location_id, d.day) in base else 0
+        if room is not None and h * d.on_hand > h * start + room:
+            violations.append("STORAGE_CAPACITY")
+    return tuple(dict.fromkeys(violations))

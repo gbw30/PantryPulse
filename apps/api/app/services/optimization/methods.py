@@ -58,15 +58,28 @@ def run_method(
     if method in OPTIMIZING:
         return _optimized(s, method, measure, baseline, search_seconds)
     if method == "NO_TRANSFERS":
-        quantities = {}
-    else:
-        from app.services.optimization.baselines import heuristic
+        products = tuple(
+            ProductSolve(product_id=p.id, native_status=None, gap=None, label=None)
+            for p in s.products
+        )
+        return assemble(s, method, measure, baseline, {}, None, products, {})
+    from app.services.optimization.baselines import heuristic
 
-        quantities = heuristic(s, method, baseline)
+    plan = heuristic(s, method, measure, baseline)
     products = tuple(
-        ProductSolve(product_id=p.id, native_status=None, gap=None, label=None) for p in s.products
+        ProductSolve(
+            product_id=p.id,
+            native_status=None,
+            gap=None,
+            label=NOT_AT_RISK_LABEL
+            if p.id not in plan.risky
+            else STARVED_LABEL
+            if p.id in plan.starved
+            else None,
+        )
+        for p in s.products
     )
-    return assemble(s, method, measure, baseline, quantities, None, products, {})
+    return assemble(s, method, measure, baseline, plan.quantities, None, products, {})
 
 
 def _optimized(s, method, measure, baseline, search_seconds) -> MethodResult:

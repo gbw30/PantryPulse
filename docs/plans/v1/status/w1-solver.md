@@ -7,7 +7,7 @@
 | Task | Status | Commit | Evidence (command → result) |
 |---|---|---|---|
 | W1-S01 | done (failing tests committed `xfail(strict=True)`; marks removed in W1-S03) | see `git log` | `uv run --frozen pytest -q -p no:cacheprovider tests/optimization/test_retail_oracle.py` → 24 xfailed (`NotImplementedV1` / missing `verify_plan`), 0 passed, 0 skipped |
-| W1-S02 | todo (Pantry baselines need CR-w1-solver-1) | — | — |
+| W1-S02 | in progress: NO_TRANSFERS, SOONEST_EXPIRY_FIRST and the shared heuristic machinery (incl. EQUAL_SHARE/MOST_URGENT_FIRST code) done; the Pantry tests (equal-share/most-urgent hand values, Pantry hubs) wait on CR-w1-solver-1 | see `git log` | `uv run --frozen pytest -q -p no:cacheprovider tests/optimization/test_baselines.py` → 19 passed, 0 skipped; `tests/optimization` → 221 passed |
 | W1-S03 | done for Retail; `test_bd51_relaxed_retail_only` Pantry half waits on CR-w1-solver-1 (Retail half `test_bd51_relaxed_retail_selling_on_day_5_counts` passes) | see `git log` | `uv run --frozen pytest -q -p no:cacheprovider tests/optimization/test_retail_oracle.py tests/optimization/test_retail_optimized.py` → 37 passed, 0 skipped; `tests/optimization` → 202 passed; `node scripts/quality/run.cjs quick` → PASS |
 | W1-S04 | todo (Pantry methods need CR-w1-solver-1) | — | — |
 | W1-S05 | todo | — | — |
@@ -32,6 +32,7 @@
 - **Method-level native status:** OPTIMAL if every solved product is OPTIMAL, FEASIBLE if any is FEASIBLE; any product without a solution fails the method with that status and no plan (`NO_SOLUTION:<ids>`). A method that solved nothing has `native_status = None`. Each product's own status and FEASIBLE gap are in `products`.
 - **Pantry + USD** raises `ValueError("MEASURE_NOT_IN_MODE")`: the optimization package may not import `app.services.jobs` (`test_or_scope.py`), so the submit layer maps it to 422.
 - **TDD note for W1-S03:** the S01 oracle tests drove the implementation; the extra S03 tests then passed on first run, so each was mutation-checked instead (ignoring edited weights fails `test_weights_editable`; relabeling FEASIBLE fails `test_native_status_preserved`). `test_native_status_preserved` patches `CpSolver.status_name` to report FEASIBLE while keeping CP-SAT's real solution.
+- **Heuristics share the optimizers' feasible region:** same at-risk screen and the same per-product shares (`decompose.split`, in the comparison's measure); each request takes the largest quantity `verify.product_violations` accepts (binary search), and `verify_plan` re-checks the union. Tie-breaks are written at the top of `baselines.py`.
 - **Oracle test names:** one parametrized `test_fixture_matches_oracle[<fixture>-<measure>]` instead of six functions; the ids carry the fixture name.
 
 ## Gotchas
