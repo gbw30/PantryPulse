@@ -85,6 +85,8 @@ def run_import(engine: sa.Engine, import_id: UUID, as_of_date: date | None, base
                actor: str, on_phase: Callable[[str], None] | None = None) -> ImportOutcome:
     with engine.connect() as conn:
         run = repo.get_run(conn, import_id)
+        if run.phase in ("done", "failed"):  # a retried job never imports twice
+            return _finished(conn, run)
         network = _network_settings(conn, run)
     settings = ImportSettings(mode=network["mode"], timezone=network["timezone"],
                               as_of_date=as_of_date)
@@ -132,6 +134,16 @@ def run_import(engine: sa.Engine, import_id: UUID, as_of_date: date | None, base
                                     product_id=r.product_id, quantity=r.quantity,
                                     arrival_date=r.arrival_date)
               for r in rows.inbound if not r.within_horizon))
+
+
+def _finished(conn: sa.Connection, run: repo.Run) -> ImportOutcome:
+    version = conn.execute(sa.text(
+        "SELECT id, as_of_date FROM dataset_versions WHERE import_run_id = :r"),
+        {"r": run.id}).one_or_none()
+    errors = tuple(repo.stored_errors(conn, run.id))
+    return ImportOutcome(run.id, version is not None, run.network_id,
+                         version.id if version else None, version.as_of_date if version else None,
+                         run.error_count, errors)
 
 
 def _network_settings(conn: sa.Connection, run: repo.Run) -> dict[str, Any]:

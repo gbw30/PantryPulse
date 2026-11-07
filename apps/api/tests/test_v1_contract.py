@@ -88,12 +88,7 @@ KEYED = {"Idempotency-Key": "contract-test-1"}
 NEW_NETWORK = {"name": "N", "mode": "PANTRY", "timezone": "America/New_York"}
 ACTIONS = f"/networks/{NET}/comparisons/{CMP}/methods/EQUAL_SHARE"
 STUBS = [
-    ("GET", "/networks", None, None, "W1-D05"),
-    ("GET", f"/networks/{NET}", None, None, "W1-D05"),
     ("GET", "/templates/locations.csv?kind=example", None, None, "W3-P03"),
-    ("POST", "/imports", {"network": NEW_NETWORK}, None, "W1-D05"),
-    ("POST", f"/imports/{IMP}/commit", {}, KEYED, "W1-D05"),
-    ("GET", f"/imports/{IMP}", None, None, "W1-D05"),
     ("GET", f"/networks/{NET}/enrichment", None, None, "W1-D06"),
     ("POST", f"/networks/{NET}/enrichment/retry", {}, KEYED, "W1-D06"),
     ("PUT", f"/networks/{NET}/locations/{LOC}/attributes", {"excluded": True}, None, "W1-D06"),

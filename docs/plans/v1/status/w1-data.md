@@ -10,8 +10,8 @@
 | W1-D02 | done | `2d14868` | `uv run --frozen pytest -q tests/imports/test_validation.py` → 39 passed, 0 skipped; `ruff check .` → clean |
 | W1-D03 | done | `22fb017` | `uv run --frozen pytest -q tests/imports tests/enrichment tests/test_v1_contract.py` → 121 passed, 0 skipped (22 in `test_templates.py`); `ruff check .` → clean |
 | W1-D04 | done | see `git log --grep W1-D04` | `uv run --frozen pytest -q tests/test_v1_contract.py tests/imports tests/enrichment` (PostgreSQL `pantrypulse_data_test`, schema `w1_data_import_test`) → 132 passed, 0 skipped; `ruff check .` → clean |
-| W1-D05 | todo | — | — |
-| W1-D06 | todo (ACS part depends on CR-w1-data-1) | — | — |
+| W1-D05 | in progress: create, commit admission, status, network reads done; worker waits for the lead's load hook (CR-w1-data-2 decided) | see `git log --grep W1-D05` | `uv run --frozen pytest -q tests/imports/test_import_job.py` → 11 passed, 0 skipped |
+| W1-D06 | todo (ACS: bundled table per CR-w1-data-1, decided) | — | — |
 | W1-D07 | todo | — | — |
 | W1-D08 | todo | — | — |
 | W1-D09 | todo | — | — |
@@ -41,6 +41,8 @@
 - `routes.csv` is validated but not yet stored: `net_routes.travel_days` is NOT NULL and a CSV row may leave it blank until coordinates exist. Stored with the computed routes in W1-D07. — W1-D04.
 - Removed the W1-D04 upload row from `STUBS`; its "streams past the 64 KB boundary" proof moved to `test_upload_over_cap_is_413_and_partial_file_deleted` (a 70,000-byte upload returns 200). — W1-D04.
 
+- Commit admission needs a READY supervisor advertising `import.v1` (`policies.admission_outcome`), so in production `POST /imports/{id}/commit` answers 503 `COMPUTE_UNAVAILABLE` until the worker is built. Job tests simulate an advertising supervisor and cancel their queued jobs (`max_queued` is 2). `import_status` reports a run whose job ended FAILED/TIMED_OUT/INTERRUPTED/CANCELLED/EXPIRED without a commit as `failed` / `JOB_FAILED`. Committing is one-shot: a repeated commit returns the run's existing job. — W1-D05.
+
 ## Gotchas
 
 - The Census Data API now requires a key for every data request (302 to `missing_key.html`); variable metadata still works keyless. — S5.
@@ -58,7 +60,15 @@
   - **C.** No ACS lookup in v1: manual entry or explicit exclusion only. Smallest change, but every EGP network starts fully blocked.
 - **Why:** live calls on 2026-11-07 to `api.census.gov/data/{2024,2023}/acs/acs5` (tract and state queries) all returned 302 to `missing_key.html`: "A valid key must be included with each data API request." V1-SPEC §6.3 says "key optional at low volume". Recorded in `apps/api/tests/fixtures/census/acs-missing-key.json`; details in `docs/plans/v1/spikes/S5-census.md`. Getting a key is a secret (lane rule 5) and the spec doesn't settle the alternative (rule 4).
 - **Unblocks:** the ACS half of W1-D06 (`test_matched_address_stores_coordinates_tract_and_source` source string, `test_retry_fills_unknown_fields` for attributes) and the planned `acs-tract-fl.json` fixture / `test_acs_fixture_has_poverty_and_snap` (W1-D01). Geocoding, outage handling, manual overrides and EGP blockers can proceed.
-- **Status:** open
+- **Status:** decided 2026-11-07 (Gabriel, relayed by the orchestrator): **option A, whole US**. The lead generates and commits `apps/api/app/services/enrichment/data/acs5-2024-tracts.csv.gz` (header `geoid,poverty_universe,poverty_below,snap_households,snap_received`; B17001_001/_002, B22003_001/_002; empty cell = not published → unknown, never 0; 0 universe → unknown rate) and `acs5-2024-tracts.json` (vintage, survey, tables, source_urls, sha256, rows, generated_at) from the keyless bulk ACS summary files on www2.census.gov. The lane builds the lookup test-first with its own tiny fixture in that format, and merges `origin/v1-local` when the real file lands. Source text: "Source: ACS 5-year 2024, tract NNNN".
+
+### CR-w1-data-2 — Where the `import.v1` job may touch the database
+- **File(s):** `apps/api/app/services/jobs/registry.py` (`Registration`), `apps/api/app/workers/process_driver.py` (`_ENV_ALLOWLIST`, `_child_env`), and the place that starts a step child with its registration.
+- **Exact change (recommended, option 1):** add `child_env: tuple[str, ...] = ()` to `Registration`; when starting a step child, pass `os.environ[k]` for `k in registration.child_env` in addition to `_ENV_ALLOWLIST`. Register `import.v1` with `child_env=("DATABASE_URL", "PP_DATABASE_SCHEMA", "PP_IMPORT_DIR")` (the lane sets that in `workers/imports.py`). The step child then runs `run_import` (W1-D04) in its own transaction and returns `{dataset_version_id, network_id, error_count}`; `publish` only re-reads `import_runs`/`dataset_versions` to confirm them (milliseconds). `run_import` is idempotent for a run already `done`, so a retry after a fenced publication doesn't import twice. `enrichment.v1` and `routes-google.v1` would need the same for W1-D06/D08.
+- **Option 2 (no framework change):** the child validates and writes canonical COPY-ready files to the imports volume; `publish` COPYs them and commits. Measured parts from S4: COPY 5.5 s + commit 5.2 s at 4.5 M rows, so roughly 12–15 s **holding the queue's `compute_control` lock**, during which every admission and claim on the install waits (and may hit its lock timeout).
+- **Why:** `QueueRepository.publish` holds the `compute_control` row lock for its whole transaction (`apps/api/app/repositories/jobs.py:1189`, via `_lock_claimed` → `_lock_control`), so the import can't run there at full size. Step children get only the env allowlist at `apps/api/app/workers/process_driver.py:25` (no `DATABASE_URL`, `PP_DATABASE_SCHEMA` or `PP_IMPORT_DIR`), so a step can't COPY or commit. Both are lead-owned.
+- **Unblocks:** the `import.v1` handler/publisher in `apps/api/app/workers/imports.py` (W1-D05) and its job-level tests; likewise the enrichment workers (W1-D06/D08).
+- **Status:** decided 2026-11-07 (Gabriel, relayed by the orchestrator): **neither option.** Import steps keep no DB access (`test_child_environment_carries_no_database_secrets` stays) and `publish` does no bulk load. Steps validate and write load-ready files; a new lead-owned framework hook runs in the supervisor after the steps and before `publish`, outside the queue lock, and bulk-loads into an unattached per-version table with its keys (S4 e4); `publish` inserts the network/version/location/product rows, adds the FKs and ATTACHes (about 1 s under the lock). All-or-nothing holds; the hook drops its staged tables when the attempt doesn't publish. The lane waits for the hook signature before changing the commit path; `run_import` (one transaction) stays as the tested reference until then.
 
 ## Escalations
 
