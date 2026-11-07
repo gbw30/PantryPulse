@@ -115,10 +115,7 @@ def test_unimplemented_routes_return_501_with_task_id(client, method, path, body
 
 
 def test_network_scoped_job_routes_return_501(client):
-    scenario = {"dataset_version_id": str(uuid4()), "forecast_run_id": str(uuid4()),
-                "transfer_mode": "HUB_ONLY"}
     for path, body, task in (
-        (f"/networks/{NET}/scenarios", scenario, "W1-D09"),
         (f"/networks/{NET}/forecasts", {"dataset_version_id": str(uuid4())}, "W3-F03"),
         (f"/networks/{NET}/comparisons",
          {"scenario_id": str(uuid4()), "methods": ["NO_TRANSFERS"], "measure": "UNITS"}, "W1-S04"),

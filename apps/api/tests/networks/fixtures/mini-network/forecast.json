@@ -1,0 +1,14 @@
+{
+  "comment": "Fixture forecast run for the mini network (W1-D09): series by external id; tests/networks/test_build_scenario.py maps them to the imported net_locations/net_products ids. Providers are labeled fixture stand-ins.",
+  "data_cutoff_date": "2026-11-04",
+  "series": [
+    {"location": "P1", "product": "RICE", "target": "DEMAND", "status": "AVAILABLE", "basis": "REQUESTED",
+     "provider": "SEASONAL_NAIVE", "fallback_reason": null, "central": [3.0, 2.5, 0.0, 4.2, 3.0, 1.0, 2.0]},
+    {"location": "P2", "product": "RICE", "target": "DEMAND", "status": "AVAILABLE", "basis": "FULFILLED_PROXY",
+     "provider": "MOVING_AVERAGE", "fallback_reason": "seasonal-naive history too short", "central": [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5]},
+    {"location": "P3", "product": "BEANS", "target": "DEMAND", "status": "INSUFFICIENT_DATA", "basis": "REQUESTED",
+     "provider": null, "fallback_reason": null, "central": null},
+    {"location": "P1", "product": "RICE", "target": "DONATION", "status": "AVAILABLE", "basis": "RECEIVED",
+     "provider": "SEASONAL_NAIVE", "fallback_reason": null, "central": [5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0]}
+  ]
+}
