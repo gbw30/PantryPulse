@@ -23,6 +23,12 @@
             "title": "Sender Unmet Delta",
             "type": "integer"
           },
+          "unit": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Unit",
+            "type": "string"
+          },
           "usd_delta": {
             "anyOf": [
               {
@@ -37,6 +43,7 @@
         },
         "required": [
           "product_id",
+          "unit",
           "sender_unmet_delta",
           "receiver_unmet_delta",
           "expired_delta",
@@ -4934,6 +4941,17 @@
             "title": "Id",
             "type": "string"
           },
+          "inbound_file_provided": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inbound File Provided"
+          },
           "is_sample": {
             "title": "Is Sample",
             "type": "boolean"
@@ -4974,7 +4992,8 @@
           "dataset_version_id",
           "as_of_date",
           "location_count",
-          "product_count"
+          "product_count",
+          "inbound_file_provided"
         ],
         "title": "Network",
         "type": "object"
@@ -7215,10 +7234,21 @@
       "SavedComparisonV3": {
         "additionalProperties": false,
         "properties": {
+          "assumptions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Assumptions",
+            "type": "array"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "inbound_file_provided": {
+            "title": "Inbound File Provided",
+            "type": "boolean"
           },
           "network_id": {
             "format": "uuid",
@@ -7244,7 +7274,9 @@
           "network_id",
           "scenario_id",
           "recorded_at",
-          "result"
+          "result",
+          "assumptions",
+          "inbound_file_provided"
         ],
         "title": "SavedComparisonV3",
         "type": "object"

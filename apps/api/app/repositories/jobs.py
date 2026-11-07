@@ -39,6 +39,7 @@ from app.services.jobs.policies import (
     heartbeat_status,
 )
 from app.services.jobs.registry import (
+    FollowUp,
     InputRejected,
     PublicationIdentity,
     PublicationRejected,
@@ -47,6 +48,7 @@ from app.services.jobs.registry import (
 )
 
 IDEMPOTENCY_KEY = re.compile(r"[A-Za-z0-9._:-]{1,128}")
+REASON_CODE = re.compile(r"[A-Z][A-Z0-9_]{0,63}")  # compute_audit_events.reason_code CHECK
 _SCHEMA_NAME = re.compile(r"[a-z_][a-z0-9_]{0,62}")
 _OCCUPYING = tuple(s.value for s in LANE_OCCUPYING_STATES)
 
@@ -573,6 +575,17 @@ class QueueRepository:
         *, deduplicate: bool = False,
     ) -> Accepted:
         """Validate, then durably admit. Returns only after COMMIT (202 semantics)."""
+        submission = self._submission(contract, payload, idempotency_key, deduplicate)
+        with self._tx() as conn:
+            result = self._admit(conn, scope, submission, idempotency_key, deduplicate)
+        if isinstance(result, AdmissionOutcome):
+            raise AdmissionRejected("new computation rejected", code=result.value)
+        return result
+
+    def _submission(
+        self, contract: str, payload: Mapping[str, Any], idempotency_key: str, deduplicate: bool
+    ) -> tuple[Any, dict[str, Any], str, str]:
+        """Lock-free validation: (registration, validated input, encoded package, request hash)."""
         try:
             registration = self.registry.get(contract)
         except UnregisteredContract:
@@ -592,111 +605,119 @@ class QueueRepository:
         # Keep existing non-deduplicating command hashes backwards-compatible.
         request_sha = sha256_hex({"action": "SUBMIT", "package": package,
                                   **({"deduplicate": True} if deduplicate else {})})
-        rejection: AdmissionOutcome | None = None
-        with self._tx() as conn:
-            # Hash and store exactly what JSONB keeps (it rewrites e.g. -0.0 and 1e16), so the
-            # claim/publish re-hash of the stored package matches; reject what it cannot keep.
-            stored = self._jsonb_normalized(conn, encoded)
-            if registration.handler.validate_input(stored["input"]) != stored["input"]:
-                raise InputRejected("INPUT_NOT_REPRESENTABLE", "input changes when stored")
-            encoded = _json(stored)
-            input_sha = sha256_hex(stored)
-            ctl, now = self._lock_control(conn)
-            existing = self._find_command(conn, scope, CommandAction.SUBMIT, idempotency_key)
-            if existing is not None:
-                if existing["request_sha256"] != request_sha:
-                    raise IdempotencyConflict("idempotency key reused with a different request")
-                r = existing["response"]
-                return Accepted(
-                    uuid.UUID(r["job_id"]),
-                    uuid.UUID(r["attempt_id"]),
-                    AttemptState(r["state"]),
-                    True,
-                )
-            self._expire_overdue(conn, now)
-            if deduplicate:
-                # The lane lock serializes lookup+admission with publication. Failed,
-                # stopping and incomplete results never qualify. Reuse is available
-                # during compute outage; GET still performs no queue mutations.
-                duplicate = conn.execute(sa.text(
-                    "SELECT j.job_id, a.attempt_id, a.state FROM compute_jobs j "
-                    "JOIN compute_attempts a ON a.attempt_id = j.current_attempt_id "
-                    "WHERE j.organization_id = :o AND j.lane_id = :l "
-                    "AND j.handler_contract = :c AND j.input_sha256 = :sha "
-                    "AND (a.state IN ('QUEUED', 'RUNNING') OR (a.state = 'SUCCEEDED' "
-                    "AND a.result_manifest->>'planning_ready' = 'true')) "
-                    "ORDER BY j.created_at DESC LIMIT 1"
-                ), {"o": scope.organization_id, "l": self.lane_id,
-                    "c": contract, "sha": input_sha}).mappings().one_or_none()
-                if duplicate is not None:
-                    response = {"job_id": str(duplicate["job_id"]),
-                                "attempt_id": str(duplicate["attempt_id"]),
-                                "state": duplicate["state"]}
-                    self._record_command(conn, scope, CommandAction.SUBMIT, idempotency_key,
-                                         request_sha, duplicate["job_id"], duplicate["attempt_id"],
-                                         response, now)
-                    self._audit(conn, "COMMAND_REUSED", job_id=duplicate["job_id"],
-                                attempt_id=duplicate["attempt_id"],
-                                details={"action": "SUBMIT", "input_sha256": input_sha})
-                    return Accepted(duplicate["job_id"], duplicate["attempt_id"],
-                                    AttemptState(duplicate["state"]), True)
-            outcome = self._admission(conn, ctl, now, registration.contract, validated)
-            if outcome is not AdmissionOutcome.ACCEPT:
-                rejection = outcome
-            else:
-                job_id = uuid.uuid4()
-                attempt_id = self._insert_attempt(
-                    conn, job_id=job_id, number=1, organization_id=scope.organization_id, now=now
-                )
-                conn.execute(
-                    sa.text(
-                        "INSERT INTO compute_jobs (job_id, lane_id, organization_id,"
-                        " requested_by_ref, operation_kind, handler_contract,"
-                        " input_schema_version, input_package, input_sha256, current_attempt_id,"
-                        " state, created_at, updated_at) VALUES (:j, :l, :o, :actor, :kind, :c,"
-                        " :v, CAST(:pkg AS jsonb), :sha, :a, 'QUEUED', :now, :now)"
-                    ),
-                    {
-                        "j": job_id,
-                        "l": self.lane_id,
-                        "o": scope.organization_id,
-                        "actor": scope.actor_ref,
-                        "kind": registration.operation_kind.value,
-                        "c": registration.contract,
-                        "v": registration.input_schema_version,
-                        "pkg": encoded,
-                        "sha": input_sha,
-                        "a": attempt_id,
-                        "now": now,
-                    },
-                )
-                response = {"job_id": str(job_id), "attempt_id": str(attempt_id), "state": "QUEUED"}
-                command_id = self._record_command(
-                    conn,
-                    scope,
-                    CommandAction.SUBMIT,
-                    idempotency_key,
-                    request_sha,
-                    job_id,
-                    attempt_id,
-                    response,
-                    now,
-                )
-                self._audit(
-                    conn,
-                    "COMMAND_ACCEPTED",
-                    job_id=job_id,
-                    attempt_id=attempt_id,
-                    to_state="QUEUED",
-                    details={
-                        "action": "SUBMIT",
-                        "command_id": str(command_id),
-                        "input_sha256": input_sha,
-                        "contract": registration.contract,
-                    },
-                )
-        if rejection is not None:
-            raise AdmissionRejected("new computation rejected", code=rejection.value)
+        return registration, validated, encoded, request_sha
+
+    def _admit(
+        self, conn: sa.Connection, scope: TrustedScope,
+        submission: tuple[Any, dict[str, Any], str, str], idempotency_key: str, deduplicate: bool,
+        locked: tuple[Mapping[str, Any], datetime] | None = None,
+        enqueue_now: datetime | None = None,
+    ) -> Accepted | AdmissionOutcome:
+        """Admit inside the caller's transaction; `locked` is a control row it already holds
+        and the time it was read, which admission is judged at. `enqueue_now`, when given,
+        stamps the new job and starts its queue window instead."""
+        registration, validated, encoded, request_sha = submission
+        # Hash and store exactly what JSONB keeps (it rewrites e.g. -0.0 and 1e16), so the
+        # claim/publish re-hash of the stored package matches; reject what it cannot keep.
+        stored = self._jsonb_normalized(conn, encoded)
+        if registration.handler.validate_input(stored["input"]) != stored["input"]:
+            raise InputRejected("INPUT_NOT_REPRESENTABLE", "input changes when stored")
+        encoded = _json(stored)
+        input_sha = sha256_hex(stored)
+        ctl, now = locked or self._lock_control(conn)
+        existing = self._find_command(conn, scope, CommandAction.SUBMIT, idempotency_key)
+        if existing is not None:
+            if existing["request_sha256"] != request_sha:
+                raise IdempotencyConflict("idempotency key reused with a different request")
+            r = existing["response"]
+            return Accepted(
+                uuid.UUID(r["job_id"]),
+                uuid.UUID(r["attempt_id"]),
+                AttemptState(r["state"]),
+                True,
+            )
+        self._expire_overdue(conn, now)
+        if deduplicate:
+            # The lane lock serializes lookup+admission with publication. Failed,
+            # stopping and incomplete results never qualify. Reuse is available
+            # during compute outage; GET still performs no queue mutations.
+            duplicate = conn.execute(sa.text(
+                "SELECT j.job_id, a.attempt_id, a.state FROM compute_jobs j "
+                "JOIN compute_attempts a ON a.attempt_id = j.current_attempt_id "
+                "WHERE j.organization_id = :o AND j.lane_id = :l "
+                "AND j.handler_contract = :c AND j.input_sha256 = :sha "
+                "AND (a.state IN ('QUEUED', 'RUNNING') OR (a.state = 'SUCCEEDED' "
+                "AND a.result_manifest->>'planning_ready' = 'true')) "
+                "ORDER BY j.created_at DESC LIMIT 1"
+            ), {"o": scope.organization_id, "l": self.lane_id,
+                "c": registration.contract, "sha": input_sha}).mappings().one_or_none()
+            if duplicate is not None:
+                response = {"job_id": str(duplicate["job_id"]),
+                            "attempt_id": str(duplicate["attempt_id"]),
+                            "state": duplicate["state"]}
+                self._record_command(conn, scope, CommandAction.SUBMIT, idempotency_key,
+                                     request_sha, duplicate["job_id"], duplicate["attempt_id"],
+                                     response, now)
+                self._audit(conn, "COMMAND_REUSED", job_id=duplicate["job_id"],
+                            attempt_id=duplicate["attempt_id"],
+                            details={"action": "SUBMIT", "input_sha256": input_sha})
+                return Accepted(duplicate["job_id"], duplicate["attempt_id"],
+                                AttemptState(duplicate["state"]), True)
+        outcome = self._admission(conn, ctl, now, registration.contract, validated)
+        if outcome is not AdmissionOutcome.ACCEPT:
+            return outcome
+        now = enqueue_now or now
+        job_id = uuid.uuid4()
+        attempt_id = self._insert_attempt(
+            conn, job_id=job_id, number=1, organization_id=scope.organization_id, now=now
+        )
+        conn.execute(
+            sa.text(
+                "INSERT INTO compute_jobs (job_id, lane_id, organization_id,"
+                " requested_by_ref, operation_kind, handler_contract,"
+                " input_schema_version, input_package, input_sha256, current_attempt_id,"
+                " state, created_at, updated_at) VALUES (:j, :l, :o, :actor, :kind, :c,"
+                " :v, CAST(:pkg AS jsonb), :sha, :a, 'QUEUED', :now, :now)"
+            ),
+            {
+                "j": job_id,
+                "l": self.lane_id,
+                "o": scope.organization_id,
+                "actor": scope.actor_ref,
+                "kind": registration.operation_kind.value,
+                "c": registration.contract,
+                "v": registration.input_schema_version,
+                "pkg": encoded,
+                "sha": input_sha,
+                "a": attempt_id,
+                "now": now,
+            },
+        )
+        response = {"job_id": str(job_id), "attempt_id": str(attempt_id), "state": "QUEUED"}
+        command_id = self._record_command(
+            conn,
+            scope,
+            CommandAction.SUBMIT,
+            idempotency_key,
+            request_sha,
+            job_id,
+            attempt_id,
+            response,
+            now,
+        )
+        self._audit(
+            conn,
+            "COMMAND_ACCEPTED",
+            job_id=job_id,
+            attempt_id=attempt_id,
+            to_state="QUEUED",
+            details={
+                "action": "SUBMIT",
+                "command_id": str(command_id),
+                "input_sha256": input_sha,
+                "contract": registration.contract,
+            },
+        )
         return Accepted(job_id, attempt_id, AttemptState.QUEUED, False)
 
     def _locked_scoped_job(
@@ -1359,7 +1380,7 @@ class QueueRepository:
             transaction = conn.begin()
             try:
                 self._set_timeouts(conn, self._lock_timeout_ms, self._statement_timeout_ms)
-                _, now, job, attempt = self._lock_claimed(conn, own, claim)
+                ctl, now, job, attempt = self._lock_claimed(conn, own, claim)
                 deadline = attempt["execution_deadline_at"]
                 if job["current_attempt_id"] != claim.attempt_id:
                     raise Fenced("attempt is no longer current")
@@ -1383,6 +1404,7 @@ class QueueRepository:
                 manifest = registration.publisher.publish(conn, identity, package)
                 if not isinstance(manifest, dict):
                     raise PublicationRejected(ReasonCode.OUTPUT_INVALID.value)
+                self._admit_follow_ups(conn, ctl, now, job, identity, registration, manifest)
                 encoded = _json(manifest)
                 final_now = conn.scalar(sa.text("SELECT clock_timestamp()"))
                 if final_now >= deadline:
@@ -1420,6 +1442,75 @@ class QueueRepository:
             raise QueueStorageUnavailable("queue storage unavailable") from exc
         finally:
             conn.close()
+
+    def _admit_follow_ups(
+        self, conn: sa.Connection, ctl: Mapping[str, Any], lock_now: datetime,
+        job: Mapping[str, Any], identity: PublicationIdentity, registration: Any,
+        manifest: dict[str, Any],
+    ) -> None:
+        """Queue the publisher's follow-up jobs in the publication's transaction.
+
+        A failing hook or follow-up never fails the publication (CR-w1-data-5): it is rolled
+        back alone in a savepoint and audited with a code and an error type only. Storage
+        errors are the exception: they fail the whole publication, which is then retried,
+        so a passing timeout never drops the follow-up.
+        """
+        hook = getattr(registration.publisher, "follow_ups", None)
+        if hook is None:
+            return
+        try:
+            with conn.begin_nested():
+                follows = list(hook(conn, identity, manifest))
+                if not all(isinstance(f, FollowUp) for f in follows):
+                    raise TypeError("follow_ups must return FollowUp items")
+        except (OperationalError, InterfaceError):
+            raise
+        except Exception as exc:  # noqa: BLE001 - a publisher bug never loses the publication
+            self._follow_up_rejected(conn, identity, None, "FOLLOW_UP_HOOK_FAILED", exc)
+            return
+        scope = TrustedScope(job["organization_id"], job["requested_by_ref"])
+        for follow in follows:
+            # Unguessable, so no client key can claim it; the shared transaction already
+            # makes the admission exactly-once.
+            key = f"follow-up:{uuid.uuid4().hex}"
+            try:
+                with conn.begin_nested():
+                    # Liveness is judged at lock time: this publishing supervisor holds the
+                    # control row, so its heartbeat can't advance until we commit.
+                    now = conn.scalar(sa.text("SELECT clock_timestamp()"))
+                    submission = self._submission(follow.contract, follow.payload, key, False)
+                    result = self._admit(conn, scope, submission, key, False,
+                                         locked=(ctl, lock_now), enqueue_now=now)
+                    if isinstance(result, AdmissionOutcome):
+                        raise AdmissionRejected("follow-up rejected", code=result.value)
+            except (OperationalError, InterfaceError):
+                raise
+            except Exception as exc:  # noqa: BLE001 - e.g. a stub handler's NotImplementedError
+                code = getattr(exc, "code", None)  # a database error's code is not a reason
+                if not (isinstance(code, str) and REASON_CODE.fullmatch(code)):
+                    code = "FOLLOW_UP_FAILED"
+                self._follow_up_rejected(conn, identity, follow.contract, code, exc)
+            else:
+                self._audit(
+                    conn,
+                    "FOLLOW_UP_QUEUED",
+                    job_id=identity.job_id,
+                    attempt_id=identity.attempt_id,
+                    details={"contract": follow.contract, "follow_up_job_id": str(result.job_id)},
+                )
+
+    def _follow_up_rejected(
+        self, conn: sa.Connection, identity: PublicationIdentity, contract: str | None,
+        code: str, exc: BaseException,
+    ) -> None:
+        self._audit(
+            conn,
+            "FOLLOW_UP_REJECTED",
+            job_id=identity.job_id,
+            attempt_id=identity.attempt_id,
+            reason_code=str(code),
+            details={"contract": contract, "error_type": type(exc).__name__},
+        )
 
     def reconcile_publication(self, own: Ownership, claim: ClaimedAttempt) -> str:
         """Resolve an uncertain COMMIT by identity: COMMITTED, ABSENT or OTHER_<state>."""

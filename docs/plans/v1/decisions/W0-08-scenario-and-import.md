@@ -74,3 +74,19 @@ An import either succeeds completely or leaves nothing behind, including the net
 - `GET /networks/{id}/forecasts` → `ForecastRunList`, newest first, `forecast_run_id` null until the job publishes. Frozen with a 501 stub; W3-F03 builds it. Until then the web lane keeps `?forecast_run_id=`.
 - `GET /networks/{id}/projection?forecast_run_id=&location_id=` → `LocationProjection`: per product, in the product's own unit, `null` = unknown, no cross-product totals. Frozen with a 501 stub; W3-F05 builds it. The site inspector is built against the example now and goes live in W4.
 - Data lane lead call (same day): candidate routes are every hub/DC within 150 miles plus the k = 10 nearest non-hub senders within 150 miles, so a `HUB_ONLY` plan can always reach a receiver that has a hub in range.
+
+## 7. Second W1 batch (Gabriel, 2026-11-07)
+
+- **E-1, Retail weights:** at least one of `w_exp` and `w_lost` must be above 0. Both at 0 makes the RETAIL_OPTIMIZED objective constant. `RetailWeights` rejects it with `RETAIL_WEIGHTS_ALL_ZERO`, and the web form shows the same rule. One weight at 0 stays allowed.
+- **CR-w1-web-5:** `ActionEffect.unit` is the product's own unit (e.g. "case"). The solver fills it when it builds actions.
+- **CR-w1-web-6, no new route:**
+  - `SavedComparisonV3` carries the frozen scenario's `assumptions` and `inbound_file_provided`.
+  - `Network.inbound_file_provided` is the latest dataset version's flag. It is null exactly when `dataset_version_id` is null.
+  - The plan CSV carries the same notes (solver lane).
+- **CR-w1-web-4 deferred** to the W2 contract pass (W2-06). It is the v1 forecast series read and the per-location accuracy roll-up, defined together with the D09 forecast-run interface that W3-F03 builds.
+- **CR-w1-data-4 / CR-w1-solver-4:** `import.v1`, `routes-google.v1` (data) and `or-comparison.v3` (solver) are advertised for execution. Each lane edits the one advertisement assertion in `tests/workers/test_v1_job_kinds.py`, and the lead resolves the overlap at integration.
+- **CR-w1-data-5, enrichment after an import:** the import publisher queues `enrichment.v1` through the optional `Publisher.follow_ups` hook. The follow-up is admitted in the publication's own locked transaction, so it exists only if the import commits. A rejected follow-up is audited and never fails the import. See `apps/api/app/services/jobs/registry.py`.
+- **CR-w1-solver-5, job status for v1 jobs:** `GET /api/v1/jobs/{job_id}` keeps its URL. For the v1 network job kinds (`import.v1`, `enrichment.v1`, `routes-google.v1`, `or-comparison.v3`), the server resolves the owning network's organization (W0-network-model §2); other kinds stay on the session's organization. Known limits:
+  - cancel and retry still refuse v1 jobs (W2 candidate);
+  - a first import's job answers only once its network row exists, so imports report through `/imports/{id}`, their status URL.
+- **Import publish lock:** 4.47 s at the envelope maximum (4.5 M demand rows; `net_batches` INSERT is 3.53 s of it) is accepted for W1. W2 runs `bench_import.py` on the Windows Docker stack. Above 3.5 s there, `net_batches` becomes version-partitioned like the history tables.
