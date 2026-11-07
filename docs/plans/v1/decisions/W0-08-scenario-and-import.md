@@ -20,7 +20,7 @@ Source: [S4-bulk-import.md](../spikes/S4-bulk-import.md), recommendations 1, 2 a
 | Route | Does | Returns |
 |---|---|---|
 | `POST /imports` | JSON with either `{network: {name, mode, timezone}}` (new network) or `{network_id}` (re-import). Creates the network for a new import, plus an `import_runs` row in phase `uploading`. `import_runs.network_id` is NOT NULL in `ppv1_0008`, so the network exists before any file arrives. | 201 `ImportCreated{import_id, network_id}` |
-| `POST /imports/{import_id}/files/{name}` | One template file as streamed multipart (python-multipart `MultipartParser` on `request.stream()`). Byte cap of 160 MiB, counted while streaming. Stored on the `imports` volume shared by `api` and `worker`, and recorded in `import_runs.files` with its byte count and sha256. Re-posting the same name replaces the file. | 200 `ImportFile{name, bytes, sha256}`; 413 naming the limit (partial file deleted); 409 once the import has left `uploading` |
+| `POST /imports/{import_id}/files/{name}` | One template file as a raw `text/csv` body, streamed from `request.stream()` (no multipart: the name is in the path, and a fixed content type avoids Windows labeling `.csv` as `application/vnd.ms-excel`; S4 measured raw-body uploads flat too). Byte cap of 160 MiB, counted while streaming. Stored on the `imports` volume shared by `api` and `worker`, and recorded in `import_runs.files` with its byte count and sha256. Re-posting the same name replaces the file. | 200 `ImportFile{name, bytes, sha256}`; 413 naming the limit (partial file deleted); 409 once the import has left `uploading` |
 | `POST /imports/{import_id}/commit` | JSON `{as_of_date?}`. The value travels in the job payload, and when absent the job defaults it to the day after the last history date (V1-SPEC §6.1). Required files are checked before the job is admitted. | 202 `ImportAccepted{import_id, job_id}` (`import.v1`); 422 naming the missing files |
 | `GET /imports/{import_id}` | Job-backed status | `ImportStatus{phase, files[], progress{unit, done, total}, error_count, errors_truncated, errors[RowError], outside_horizon_inbound[], dataset_version_id}` |
 
@@ -45,3 +45,8 @@ Source: [S4-bulk-import.md](../spikes/S4-bulk-import.md), recommendations 1, 2 a
 - **Browser straight to the API:** the API isn't published, and this breaks the same-origin proxy rule (V1-SPEC §4).
 - **A mounted `./import/` folder:** moves the guided import out of the UI (V1-SPEC §1, step 2), adds Windows bind-mount and path friction against A18, and makes the inputs mutable. It's a possible power-user extra later, not v1.
 - **One zip of all CSVs:** needs zip-bomb limits and per-member error paths, and gains nothing on loopback.
+
+## 3. Follow-on contract calls (Gabriel, 2026-11-06)
+
+- **v1 forecasts and comparisons live under `/networks/{id}/…`:** `POST /networks/{id}/forecasts`, `POST /networks/{id}/comparisons`, `GET /networks/{id}/comparisons/{comparison_id}`, and its `methods/{method}/actions` and `methods/{method}/export`. Extending `POST /comparisons`, `GET /comparisons/{id}` and `POST /forecasts` would have changed v2's request and response models.
+- **Unbuilt routes answer 501 in the existing error envelope:** `{"error": {"code": "NOT_IMPLEMENTED", "message": ..., "details": {"task": "<task id>"}}, "request_id": ...}`. The web client keeps one error parser, and the request ID is kept.

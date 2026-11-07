@@ -11,6 +11,7 @@ async function proxyToken() {
 // W0-08 decision: 143 MB maximum-envelope history file plus headroom, counted while streaming.
 const UPLOAD_CAP = 160 * 1024 * 1024;
 const TEMPLATE_FILES = "locations|products|inventory|demand_history|routes|inbound|donation_history";
+const METHODS = "NO_TRANSFERS|EQUAL_SHARE|MOST_URGENT_FIRST|CLASSICAL_GP|EGP_PI_INSPIRED|SOONEST_EXPIRY_FIRST|RETAIL_OPTIMIZED";
 
 function failure(code: string, status: number) {
   const requestId = crypto.randomUUID();
@@ -26,7 +27,19 @@ async function proxy(request: Request) {
   const uuid = "[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}";
   const upload = request.method === "POST" &&
     new RegExp(`^imports/${uuid}/files/(${TEMPLATE_FILES})$`).test(path);
-  const allowed = upload || (request.method === "GET"
+  const net = `networks/${uuid}`;
+  const comparison = `${net}/comparisons/${uuid}/methods/(${METHODS})`;
+  // v1 routes (W0-08 frozen contract); location IDs are user CSV IDs: one path segment, no encoded slash.
+  const v1 = {
+    GET: ["networks", "templates", "settings", `${net}`, `templates/(${TEMPLATE_FILES})\\.csv`,
+      `${net}/(enrichment|routes|danger)`, `forecasts/${uuid}/backtest`, `${net}/comparisons/${uuid}`,
+      `${comparison}/actions`],
+    POST: [`${net}/enrichment/retry`, `${net}/routes/google-(preview|fetch)`,
+      `${net}/(scenarios|forecasts|comparisons)`, `${comparison}/export`],
+    PUT: [`${net}/locations/(?:(?!%2[fF]|%5[cC])[^/]){1,192}/attributes`, "settings/google-maps-key"],
+    DELETE: ["settings/google-maps-key"],
+  }[request.method] ?? [];
+  const allowed = upload || v1.some((route) => new RegExp(`^${route}$`).test(path)) || (request.method === "GET"
     ? ["health", "forecast-catalog", "planning-catalog", "operational-catalog", "supplies", "scenarios", "dashboard/summary", "allocation-methodology"].includes(path) ||
       new RegExp(`^(jobs|forecasts|scenarios|comparisons|planning-assumptions|receipts|supplies|plans|shortages|imports)/${uuid}$`).test(path) ||
       new RegExp(`^inventory/sites/${uuid}/products/${uuid}$`).test(path) ||
@@ -41,11 +54,15 @@ async function proxy(request: Request) {
       new RegExp(`^scenarios/${uuid}/(plans|compare-methods)$`).test(path) ||
       new RegExp(`^plans/${uuid}/review$`).test(path) ||
       new RegExp(`^inventory/sites/${uuid}/products/${uuid}/adjustments$`).test(path)));
-  const paging = path === "planning-catalog" && request.method === "GET" &&
-    [...incoming.searchParams.keys()].every((key) => ["before", "before_id"].includes(key)) &&
-    incoming.searchParams.getAll("before").length <= 1 &&
-    incoming.searchParams.getAll("before_id").length <= 1;
-  if (!allowed || (incoming.search && !paging)) return failure("NOT_FOUND", 404);
+  // Query keys each GET route accepts, each at most once; any other query is refused.
+  const queryKeys = request.method !== "GET" ? undefined : ([
+    ["planning-catalog", ["before", "before_id"]], ["templates", ["mode"]],
+    [`templates/(${TEMPLATE_FILES})\\.csv`, ["kind"]], [`${net}/danger`, ["forecast_run_id"]],
+  ] as const).find(([route]) => new RegExp(`^${route}$`).test(path))?.[1] as readonly string[] | undefined;
+  const keys = [...incoming.searchParams.keys()];
+  const query = !incoming.search ||
+    (!!queryKeys && keys.every((key) => queryKeys.includes(key)) && new Set(keys).size === keys.length);
+  if (!allowed || !query) return failure("NOT_FOUND", 404);
   const origin = request.headers.get("origin");
   // NextRequest normalizes loopback URLs to localhost and may use the server's
   // bind hostname. Host retains the browser-facing authority. Never trust a
@@ -58,7 +75,7 @@ async function proxy(request: Request) {
   } catch {
     return failure("ORIGIN_FORBIDDEN", 403);
   }
-  if (request.method === "POST" && origin !== browserOrigin) {
+  if (request.method !== "GET" && origin !== browserOrigin) {
     return failure("ORIGIN_FORBIDDEN", 403);
   }
   const base = process.env.PANTRYPULSE_API_ORIGIN;
@@ -103,7 +120,7 @@ async function proxy(request: Request) {
         controller.error(new Error("INPUT_TOO_LARGE"));
       },
     }));
-  } else if (request.method === "POST") {
+  } else if (request.method === "POST" || request.method === "PUT") {
     const reader = request.body?.getReader();
     const chunks: Uint8Array[] = [];
     let size = 0;
@@ -145,3 +162,5 @@ async function proxy(request: Request) {
 
 export async function GET(request: Request) { return proxy(request); }
 export async function POST(request: Request) { return proxy(request); }
+export async function PUT(request: Request) { return proxy(request); }
+export async function DELETE(request: Request) { return proxy(request); }

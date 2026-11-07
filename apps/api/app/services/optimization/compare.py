@@ -116,3 +116,13 @@ def compare(scenario, settings=None):
         ),
         expected_settings=settings,
     )
+
+
+def compare_methods(scenario, methods, measure):
+    """v1 N-method comparison on one or-input-v3 scenario (W0-08 stub; W1-S04 implements).
+
+    Signature: (ORInputV3, Sequence[AllocationMethod], Measure) -> ComparisonResultV3.
+    """
+    from app.services.v1_errors import NotImplementedV1
+
+    raise NotImplementedV1("W1-S04")

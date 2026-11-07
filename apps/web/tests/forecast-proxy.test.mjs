@@ -282,3 +282,54 @@ test("v1 import routes: only template names, only CSV bodies, plus create/commit
   assert.equal((await GET(new Request(`http://localhost:3000/api/v1/imports/${importId}`))).status, 200);
   assert.deepEqual(seen, ["imports", `imports/${importId}/commit`, `imports/${importId}`]);
 });
+
+test("every v1 route is forwarded; neighbours and stray queries are not", async (t) => {
+  process.env.PANTRYPULSE_API_ORIGIN = "http://127.0.0.1:8000";
+  process.env.PP_TRUSTED_PROXY_TOKEN = "test-proxy-secret";
+  t.after(() => {
+    delete process.env.PANTRYPULSE_API_ORIGIN;
+    delete process.env.PP_TRUSTED_PROXY_TOKEN;
+  });
+  const { PUT, DELETE } = await import("../src/app/api/v1/[...path]/route.ts");
+  const handlers = { GET, POST, PUT, DELETE };
+  const seen = [];
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    seen.push(`${options.method} ${url.slice("http://127.0.0.1:8000/api/v1/".length)}`);
+    return Response.json({}, { status: 200 });
+  });
+  const net = "44444444-4444-4444-8444-444444444444";
+  const cmp = "55555555-5555-4555-8555-555555555555";
+  const run = "66666666-6666-4666-8666-666666666666";
+  const forwarded = [
+    "GET networks", `GET networks/${net}`, "GET templates", "GET templates?mode=RETAIL",
+    "GET templates/locations.csv?kind=example", `GET networks/${net}/enrichment`,
+    `GET networks/${net}/routes`, "GET settings", `GET networks/${net}/danger?forecast_run_id=${run}`,
+    `GET forecasts/${run}/backtest`, `GET networks/${net}/comparisons/${cmp}`,
+    `GET networks/${net}/comparisons/${cmp}/methods/EQUAL_SHARE/actions`,
+    `POST networks/${net}/enrichment/retry`, `POST networks/${net}/routes/google-preview`,
+    `POST networks/${net}/routes/google-fetch`, `POST networks/${net}/scenarios`,
+    `POST networks/${net}/forecasts`, `POST networks/${net}/comparisons`,
+    `POST networks/${net}/comparisons/${cmp}/methods/RETAIL_OPTIMIZED/export`,
+    `PUT networks/${net}/locations/Store%2012/attributes`, "PUT settings/google-maps-key",
+    "DELETE settings/google-maps-key",
+  ];
+  const call = (route) => {
+    const [method, path] = route.split(" ");
+    return handlers[method](new Request(`http://localhost:3000/api/v1/${path}`, {
+      method, headers: { Origin: "http://localhost:3000" },
+      ...(["POST", "PUT"].includes(method) ? { body: "{}" } : {}),
+    }));
+  };
+  for (const route of forwarded) assert.equal((await call(route)).status, 200, route);
+  assert.deepEqual(seen, forwarded);
+  for (const route of [
+    "GET networks?organization_id=spoof", "GET templates/secrets.csv", `GET templates?mode=A&mode=B`,
+    `GET networks/${net}/comparisons/${cmp}/methods/DROP_TABLES/actions`, "DELETE networks",
+    `PUT networks/${net}`, "POST settings", `PUT networks/${net}/locations/a%2Fb/attributes`,
+  ]) assert.equal((await call(route)).status, 404, route);
+  const evil = await PUT(new Request("http://localhost:3000/api/v1/settings/google-maps-key", {
+    method: "PUT", body: "{}", headers: { Origin: "https://evil.example" },
+  }));
+  assert.equal(evil.status, 403);
+  assert.equal(seen.length, forwarded.length);
+});
