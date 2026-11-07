@@ -9,7 +9,7 @@
 | W1-S01 | done (failing tests committed `xfail(strict=True)`; marks removed in W1-S03) | see `git log` | `uv run --frozen pytest -q -p no:cacheprovider tests/optimization/test_retail_oracle.py` → 24 xfailed (`NotImplementedV1` / missing `verify_plan`), 0 passed, 0 skipped |
 | W1-S02 | in progress: NO_TRANSFERS, SOONEST_EXPIRY_FIRST and the shared heuristic machinery (incl. EQUAL_SHARE/MOST_URGENT_FIRST code) done; the Pantry tests (equal-share/most-urgent hand values, Pantry hubs) wait on CR-w1-solver-1 | see `git log` | `uv run --frozen pytest -q -p no:cacheprovider tests/optimization/test_baselines.py` → 19 passed, 0 skipped; `tests/optimization` → 221 passed |
 | W1-S03 | done for Retail; `test_bd51_relaxed_retail_only` Pantry half waits on CR-w1-solver-1 (Retail half `test_bd51_relaxed_retail_selling_on_day_5_counts` passes) | see `git log` | `uv run --frozen pytest -q -p no:cacheprovider tests/optimization/test_retail_oracle.py tests/optimization/test_retail_optimized.py` → 37 passed, 0 skipped; `tests/optimization` → 202 passed; `node scripts/quality/run.cjs quick` → PASS |
-| W1-S04 | todo (Pantry methods need CR-w1-solver-1) | — | — |
+| W1-S04 | in progress: pure `compare_methods` done for Retail (independent failures, publication re-verification, v2 regression); Pantry five-method test waits on CR-w1-solver-1; `or-comparison.v3` worker publisher and `api_v3` submit/get blocked on CR-w1-solver-3 | see `git log` | `uv run --frozen pytest -q -p no:cacheprovider tests/optimization/test_compare_v3.py` → 9 passed, 0 skipped; `tests/optimization` → 230 passed |
 | W1-S05 | todo | — | — |
 | W1-S06 | todo | — | — |
 | W1-S07 | todo | — | — |
@@ -33,6 +33,8 @@
 - **Pantry + USD** raises `ValueError("MEASURE_NOT_IN_MODE")`: the optimization package may not import `app.services.jobs` (`test_or_scope.py`), so the submit layer maps it to 422.
 - **TDD note for W1-S03:** the S01 oracle tests drove the implementation; the extra S03 tests then passed on first run, so each was mutation-checked instead (ignoring edited weights fails `test_weights_editable`; relabeling FEASIBLE fails `test_native_status_preserved`). `test_native_status_preserved` patches `CpSolver.status_name` to report FEASIBLE while keeping CP-SAT's real solution.
 - **Heuristics share the optimizers' feasible region:** same at-risk screen and the same per-product shares (`decompose.split`, in the comparison's measure); each request takes the largest quantity `verify.product_violations` accepts (binary search), and `verify_plan` re-checks the union. Tie-breaks are written at the top of `baselines.py`.
+- **`compare_methods` gains keyword-only `scenario_id`, `scenario_hash` (and `search_seconds`)**: the frozen positional signature `(ORInputV3, methods, measure)` is unchanged, but `ComparisonResultV3` requires both ids and neither is derivable from `ORInputV3`. The orchestrator is told so the README interface row can be updated at integration.
+- **Publication re-verification:** `compare_methods` re-runs `verify_plan` and recomputes effects for every result that claims verification; one that doesn't replay is published unverified with `PUBLICATION_VERIFICATION_FAILED:<violations>` and no plan. A method that raises is reported as `METHOD_ERROR:<type>` and the others still publish.
 - **Oracle test names:** one parametrized `test_fixture_matches_oracle[<fixture>-<measure>]` instead of six functions; the ids carry the fixture name.
 
 ## Gotchas
@@ -54,6 +56,15 @@
 - **Why:** per product, the USD objective is `price × units objective`, so without a value-weighted split no plan can change between measures (escalation below). This formula keeps the units weight (the handling footprint of the need, which is what capacity measures) and scales it by value, so with equal prices it reduces exactly to the units split; `need × value` alone would not.
 - **Unblocks:** W1-S01 `retail-usd-flip` (binding capacity, plan changes) and `retail-usd-no-flip` (non-binding, same plan).
 - **Status:** approved by Gabriel via the orchestrator, 2026-11-07.
+
+### CR-w1-solver-3 — persistence for v3 scenarios and comparisons
+- **File(s):** a new migration (`ppv1_0011`), `apps/api/app/models/` (lead-only); then `apps/api/app/workers/optimization.py` `V3_REGISTRATION` publisher and `apps/api/app/services/optimization/api_v3.py` (this lane).
+- **Exact change (proposal):** two owned tables, network-scoped like `net_*`:
+  - `planning_scenarios_v3(id, organization_id, network_id, recorded_at, content_hash CHAR(64), payload JSONB)`. This backs `ScenarioV3`; W1-D09 `create_scenario` writes it.
+  - `planning_comparisons_v3(id, organization_id, network_id, scenario_id → planning_scenarios_v3, job_id, attempt_id, measure, recorded_at, result JSONB)`. This backs `SavedComparisonV3`, with the same job/attempt foreign keys and publication fence as `planning_comparisons`.
+- **Why:** no table holds a `ScenarioV3` or a `SavedComparisonV3`. The v2 `planning_scenarios`/`planning_comparisons` are keyed to v2 forecast runs, `planning_assumptions` and the v2 operational hash (`app/models/optimization.py:25-73`). So the `or-comparison.v3` worker can't load a frozen scenario or publish a result, and `api_v3.submit_comparison`/`get_comparison` have nothing to read or write.
+- **Unblocks:** W1-S04 worker publisher and `api_v3` submit/get; W1-S06 `comparison_actions` and W1-S07 `export_comparison` (both read a saved comparison). The pure functions (`compare_methods`, `decision_actions`, `export_plan_csv`) proceed meanwhile.
+- **Status:** open.
 
 ## Escalations
 

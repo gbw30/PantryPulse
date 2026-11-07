@@ -53,7 +53,7 @@ def run_method(
         raise ValueError("MEASURE_NOT_IN_MODE")  # Pantry is measured in units; the API maps 422
     reason = usd_unavailable_reason(s)
     if measure == "USD" and reason:
-        return _failed(s, method, measure, None, "USD_UNAVAILABLE", ())
+        return failed_result(s, method, measure, None, "USD_UNAVAILABLE", ())
     baseline = project_v3(s).days
     if method in OPTIMIZING:
         return _optimized(s, method, measure, baseline, search_seconds)
@@ -118,7 +118,9 @@ def _optimized(s, method, measure, baseline, search_seconds) -> MethodResult:
     )
     if failed:
         status = outcomes[failed[0]].native_status
-        return _failed(s, method, measure, status, f"NO_SOLUTION:{','.join(failed)}", products)
+        return failed_result(
+            s, method, measure, status, f"NO_SOLUTION:{','.join(failed)}", products
+        )
     status = None if not statuses else "FEASIBLE" if "FEASIBLE" in statuses else "OPTIMAL"
     quantities = {k: v for o in outcomes.values() for k, v in o.quantities.items()}
     native = {p: o.primary for p, o in outcomes.items()}
@@ -134,17 +136,17 @@ def assemble(s, method, measure, baseline, quantities, status, products, native)
     try:
         packed = pack(s, quantities)
     except ValueError as exc:
-        return _failed(s, method, measure, status, f"PACKING_FAILED:{exc}", products)
+        return failed_result(s, method, measure, status, f"PACKING_FAILED:{exc}", products)
     transfers = tuple(p.transfer for p in packed)
     report = verify_plan(s, transfers)
     if not report.passed:
         reason = f"VERIFICATION_FAILED:{','.join(report.violations)}"
-        return _failed(s, method, measure, status, reason, products)
+        return failed_result(s, method, measure, status, reason, products)
     replay = product_objectives(s, report.days, method)
     mismatched = sorted(p for p, value in native.items() if replay.get(p, 0) != value)
     if mismatched:
         reason = f"NATIVE_OBJECTIVE_REPLAY_MISMATCH:{','.join(mismatched)}"
-        return _failed(s, method, measure, status, reason, products)
+        return failed_result(s, method, measure, status, reason, products)
     labels = [PER_PRODUCT_LABEL] if method in OPTIMIZING else []
     if s.mode == "RETAIL" and measure == "UNITS" and len(s.products) > 1:
         labels.append(UNITS_NOT_SUMMED)
@@ -166,7 +168,7 @@ def assemble(s, method, measure, baseline, quantities, status, products, native)
     )
 
 
-def _failed(s, method, measure, status, reason, products) -> MethodResult:
+def failed_result(s, method, measure, status, reason, products) -> MethodResult:
     return MethodResult(
         method=method,
         measure=measure,

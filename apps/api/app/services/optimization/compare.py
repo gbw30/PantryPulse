@@ -3,8 +3,17 @@
 import re
 
 from app.schemas.or_outputs import ComparisonResult, MethodOutcome
+from app.schemas.v1_planning import ComparisonResultV3, require_methods_for_mode
 from app.services.optimization.canonical import operational_hash
+from app.services.optimization.methods import (
+    PER_PRODUCT_SEARCH_S,
+    effects,
+    failed_result,
+    run_method,
+)
+from app.services.optimization.projection import project_v3
 from app.services.optimization.service import solve_one
+from app.services.optimization.verify import verify_plan
 
 
 def assemble(scenario, outcomes, *, expected_settings=None):
@@ -118,11 +127,58 @@ def compare(scenario, settings=None):
     )
 
 
-def compare_methods(scenario, methods, measure):
-    """v1 N-method comparison on one or-input-v3 scenario (W0-08 stub; W1-S04 implements).
+def compare_methods(
+    scenario,
+    methods,
+    measure,
+    *,
+    scenario_id,
+    scenario_hash,
+    search_seconds=PER_PRODUCT_SEARCH_S,
+):
+    """or-comparison.v3: every requested method on one frozen or-input-v3 scenario.
 
-    Signature: (ORInputV3, Sequence[AllocationMethod], Measure) -> ComparisonResultV3.
+    Methods fail independently: a failed or erroring method is reported with its status and
+    no plan while the others still publish. Before publication each claimed-verified result is
+    re-checked here against the raw scenario (verify_plan, effects); a result that doesn't
+    replay is published as unverified, with no plan.
     """
-    from app.services.v1_errors import NotImplementedV1
+    require_methods_for_mode(scenario.mode, methods)
+    if scenario.mode == "PANTRY" and measure != "UNITS":
+        raise ValueError("MEASURE_NOT_IN_MODE")
+    baseline = project_v3(scenario).days
+    results = []
+    for method in methods:
+        try:
+            result = run_method(scenario, method, measure, search_seconds=search_seconds)
+        except Exception as exc:  # report and keep the other methods (V1-A14 "honestly")
+            result = failed_result(
+                scenario, method, measure, None, f"METHOD_ERROR:{type(exc).__name__}", ()
+            )
+        results.append(publishable(scenario, baseline, result))
+    return ComparisonResultV3(
+        scenario_id=scenario_id,
+        scenario_hash=scenario_hash,
+        mode=scenario.mode,
+        measure=measure,
+        methods=tuple(results),
+    )
 
-    raise NotImplementedV1("W1-S04")
+
+def publishable(scenario, baseline, result):
+    if not result.verified:
+        return result
+    report = verify_plan(scenario, result.transfers)
+    problems = list(report.violations)
+    if report.passed and effects(baseline, report.days) != result.effects:
+        problems.append("EFFECTS_MISMATCH")
+    if not problems:
+        return result
+    return failed_result(
+        scenario,
+        result.method,
+        result.measure,
+        result.native_status,
+        f"PUBLICATION_VERIFICATION_FAILED:{','.join(problems)}",
+        result.products,
+    )
