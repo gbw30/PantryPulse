@@ -12,7 +12,7 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 from app.models.operational import Base, OwnedIdentity, check, fk, instant, owned, uid
 
-MODES = ("pantry", "retail")
+MODES = ("PANTRY", "RETAIL")  # the API's NetworkMode, stored as is (ppv1_0010)
 ROLES = ("hub", "pantry", "distribution_center", "store")
 FILES = ("locations", "products", "inventory", "demand_history", "routes", "inbound",
          "donation_history")

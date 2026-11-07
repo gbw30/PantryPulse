@@ -7,6 +7,8 @@ transaction as the data. A failed first import leaves no network.
 Each stored import error also keeps its `fix` (what to change in the file), so the status
 endpoint can rebuild RowError after the job ends.
 
+`networks.mode` now stores the API's NetworkMode spelling (PANTRY, RETAIL) instead of lowercase.
+
 Downgrade refuses while any run has no network (it cannot restore NOT NULL without one).
 """
 
@@ -19,7 +21,18 @@ branch_labels = None
 depends_on = None
 
 
+def _modes(case, *modes):
+    """Respell existing rows; the fixed-mode trigger is paused only for this conversion."""
+    listed = ", ".join(f"'{m}'" for m in modes)
+    op.execute("ALTER TABLE networks DROP CONSTRAINT ck_networks_mode")
+    op.execute("ALTER TABLE networks DISABLE TRIGGER ppv1_mode_fixed")
+    op.execute(f"UPDATE networks SET mode = {case}(mode)")
+    op.execute("ALTER TABLE networks ENABLE TRIGGER ppv1_mode_fixed")
+    op.execute(f"ALTER TABLE networks ADD CONSTRAINT ck_networks_mode CHECK (mode IN ({listed}))")
+
+
 def upgrade():
+    _modes("upper", "PANTRY", "RETAIL")
     op.execute("ALTER TABLE import_runs ADD COLUMN new_network JSONB")
     op.execute("ALTER TABLE import_runs ALTER COLUMN network_id DROP NOT NULL")
     op.execute("ALTER TABLE import_runs ADD CONSTRAINT ck_import_runs_network_or_new "
@@ -35,6 +48,7 @@ def downgrade():
         sa.text("SELECT EXISTS (SELECT 1 FROM import_runs WHERE network_id IS NULL)")
     ).scalar():
         raise RuntimeError("V1_DATA_PRESENT: import runs without a network exist")
+    _modes("lower", "pantry", "retail")
     op.execute("ALTER TABLE import_errors DROP COLUMN fix")
     op.execute("ALTER TABLE import_runs DROP CONSTRAINT ck_import_runs_done_has_network")
     op.execute("ALTER TABLE import_runs DROP CONSTRAINT ck_import_runs_network_or_new")

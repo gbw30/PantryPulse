@@ -39,7 +39,7 @@ def _tables(conn):
     return set(sa.inspect(conn).get_table_names(schema=SCHEMA))
 
 
-def _network(conn, mode="pantry"):
+def _network(conn, mode="PANTRY"):
     """Create organization → network → dataset version → one location and one product."""
     ids = {k: uuid.uuid4() for k in ("org", "net", "ver", "run", "loc", "prod")}
     q = lambda sql, **kw: conn.execute(sa.text(sql), {**{k: v for k, v in ids.items()}, **kw})  # noqa: E731
@@ -172,7 +172,7 @@ def test_donation_zero_distinct_from_null(engine):
 
 
 def test_network_mode_immutable(engine):
-    _fails(engine, "UPDATE networks SET mode = 'retail' WHERE id = :net")
+    _fails(engine, "UPDATE networks SET mode = 'RETAIL' WHERE id = :net")
     with engine.begin() as conn:
         ids = _network(conn)
         conn.execute(sa.text("UPDATE networks SET name = 'renamed' WHERE id = :net"), ids)
@@ -259,3 +259,16 @@ def test_import_errors_store_the_fix(engine):
         with pytest.raises(DBAPIError), engine.begin() as conn:
             ids = _network(conn)
             conn.execute(sa.text(ERROR_ROW), {**ids, "e": uuid.uuid4(), "fix": fix})
+
+
+def test_network_mode_uses_the_api_spelling(engine):
+    # The frozen API's NetworkMode is stored as is; a lowercase mode is rejected (ppv1_0010).
+    from typing import get_args
+
+    from app.models.networks import MODES
+    from app.schemas.v1_planning import NetworkMode
+
+    assert set(MODES) == set(get_args(NetworkMode))
+    with pytest.raises(DBAPIError, match="ck_networks_mode"):
+        with engine.begin() as conn:
+            _network(conn, mode="pantry")
