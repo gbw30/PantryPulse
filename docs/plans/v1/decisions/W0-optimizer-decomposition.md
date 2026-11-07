@@ -31,3 +31,7 @@ V1-D15 step reached: **1**. No lower envelope and no raised ceilings.
 - The split never exceeds a shared limit, and the spike's `coupling_check` is independent of it and catches a planted violation. Both hold.
 - Corrections that W1-S05 carries as tests: split by need × handling units, not raw units; report products whose share is below one unit's handling (170 of 194 at-risk products in the spike); split the cost budget, which the spike copied whole to every product; make storage bind across products; assert the union check instead of only logging it.
 - §3 is too strong: per-product objectives don't sum to a network optimum, and FEASIBLE products add time-limit noise (the EGP total moved from 949.51 to 955.88 between runs). Report per-product status and gap, and network totals of physical quantities only.
+
+## Retail USD shared-capacity split (CR-w1-solver-2, Gabriel, 2026-11-07)
+
+In Retail USD mode, shared receiving capacity is split across products in proportion to `need × handling_units_per_unit × unit_value_usd`, so the decomposed solve values capacity the way the USD objective does. Units mode keeps the need-weighted split. Built by w1-solver.
