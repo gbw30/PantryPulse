@@ -6,6 +6,7 @@ into tables named by the attempt, outside the queue lock; `publish`, inside it, 
 report, or moves the rows in and attaches the history partitions. `discard` drops the attempt's
 tables, and `prepare` clears whatever a crashed attempt left (app/services/imports/staging.py).
 Row errors are a result, not a crash: the job succeeds and the import reads `failed`.
+A committed version queues its enrichment.v1 in the same transaction (`follow_ups`, CR-w1-data-5).
 """
 
 from datetime import date
@@ -16,6 +17,7 @@ from zoneinfo import ZoneInfo
 
 from app.schemas.v1_imports import ImportSettings, RowError
 from app.schemas.v1_networks import TemplateName
+from app.services.enrichment.service import enrichment_input
 from app.services.imports.staging import (
     drop_staged,
     load_staged,
@@ -23,7 +25,13 @@ from app.services.imports.staging import (
     write_load_files,
 )
 from app.services.jobs.contracts import OperationKind, StepSpec, StepStatus
-from app.services.jobs.registry import InputRejected, PublicationRejected, Registration
+from app.services.jobs.registry import (
+    FollowUp,
+    InputRejected,
+    PublicationRejected,
+    Registration,
+)
+from app.workers.enrichment import ENRICHMENT_REGISTRATION
 
 VALIDATE = "validate"
 KEYS = {"import_id", "organization_id", "as_of_date", "mode", "timezone", "files",
@@ -99,6 +107,14 @@ class ImportPublisher:
         """Inside the queue lock: the small inserts, the history FKs and ATTACH."""
         return publish_staged(connection, identity.organization_id, identity.attempt_id,
                               package["job"], package["step"])
+
+    def follow_ups(self, connection, identity, manifest):
+        """In `publish`'s transaction: the new version's enrichment.v1 exists only if the version
+        does. Its input is the addresses still unlocated, read from the uncommitted rows."""
+        if not manifest["ok"]:
+            return []  # row errors: no version, nothing to enrich
+        payload = enrichment_input(connection, UUID(manifest["dataset_version_id"]))
+        return [FollowUp(ENRICHMENT_REGISTRATION.contract, payload)]
 
     def discard(self, engine, identity):
         drop_staged(engine, identity.attempt_id)

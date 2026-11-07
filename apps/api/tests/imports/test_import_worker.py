@@ -2,8 +2,10 @@
 """import.v1 end to end on PostgreSQL (W1-D05, CR-w1-data-2): commit submits the job; a real
 supervisor runs the DB-less `validate` step, which writes load-ready files; `prepare` bulk-loads
 them into staged tables named by the attempt (outside the queue lock); `publish` moves the small
-rows in and attaches the history under the lock. Discarded or crashed attempts leave nothing."""
+rows in and attaches the history under the lock. Discarded or crashed attempts leave nothing.
+A committed version queues its enrichment.v1 in the same transaction (CR-w1-data-5)."""
 
+import contextlib
 import dataclasses
 import time
 import uuid
@@ -18,6 +20,8 @@ import tests.integration.fake_driver as fake_driver
 from app.repositories import imports as repo
 from app.repositories.jobs import QueueRepository, TrustedScope, create_queue_engine
 from app.schemas.v1_imports import ImportCommit
+from app.services.enrichment.api import enrichment_status
+from app.services.enrichment.census import CensusClient
 from app.services.imports import api
 from app.services.imports.staging import job_input
 from app.services.jobs.contracts import TERMINAL_STATES, AttemptState, StepStatus
@@ -28,9 +32,11 @@ from app.services.jobs.registry import (
     PublicationRejected,
     Registry,
 )
+from app.workers.enrichment import ENRICHMENT_REGISTRATION, EnrichmentHandler, EnrichmentPublisher
 from app.workers.imports import REGISTRATION, ImportHandler, ImportPublisher
 from app.workers.supervisor import Supervisor, SupervisorConfig
 from tests.enrichment.test_enrichment_job import PROFILE, QUIET
+from tests.enrichment.test_enrichment_postgres import Census, acs  # noqa: F401
 from tests.imports.test_import_job import _new, _upload
 from tests.imports.test_import_postgres import FILES, NEW, _write
 from tests.integration.wq_support import alembic_config, database_url, reset_schema
@@ -55,20 +61,39 @@ def engine():
     reset_schema(url, SCHEMA)
 
 
-@pytest.fixture
-def lane(engine, tmp_path, monkeypatch):
-    monkeypatch.setenv("PP_IMPORT_DIR", str(tmp_path))
+@contextlib.contextmanager
+def _running(engine, base, monkeypatch, *more):
+    monkeypatch.setenv("PP_IMPORT_DIR", str(base))
     monkeypatch.setattr(fake_driver, "_behavior_for", lambda validated, step: QUIET)
     monkeypatch.setattr(fake_driver, "_with_behavior", lambda validated, step, b: validated)
-    registry = Registry([dataclasses.replace(REGISTRATION, publisher=ImportPublisher())])
+    registry = Registry([dataclasses.replace(REGISTRATION, publisher=ImportPublisher()), *more])
     queue = QueueRepository(engine, registry=registry, profile=IMPORT_PROFILE)
     supervisor = Supervisor(queue, registry, fake_driver.FakeDriver(registry=registry),
                             SupervisorConfig(registry_name="test", profile=IMPORT_PROFILE,
                                              tick_s=0.02))
     assert supervisor.start()
-    yield SimpleNamespace(engine=engine, queue=queue, supervisor=supervisor, base=tmp_path,
-                          publisher=registry.get("import.v1").publisher)
-    supervisor.shutdown_drain(timeout_s=5)
+    try:
+        yield SimpleNamespace(engine=engine, queue=queue, supervisor=supervisor, base=base,
+                              publisher=registry.get("import.v1").publisher)
+    finally:
+        supervisor.shutdown_drain(timeout_s=5)
+
+
+@pytest.fixture
+def lane(engine, tmp_path, monkeypatch):
+    """import.v1 only: an enrichment follow-up is rejected as an unknown contract."""
+    with _running(engine, tmp_path, monkeypatch) as running:
+        yield running
+
+
+@pytest.fixture
+def enriching(engine, tmp_path, monkeypatch, acs):  # noqa: F811
+    """import.v1 and enrichment.v1 (replayed Census answers) on one supervisor."""
+    enrichment = dataclasses.replace(
+        ENRICHMENT_REGISTRATION, handler=EnrichmentHandler(CensusClient(Census())),
+        publisher=EnrichmentPublisher(lambda: acs))
+    with _running(engine, tmp_path, monkeypatch, enrichment) as running:
+        yield running
 
 
 def _commit(lane, files, request=None):
@@ -181,6 +206,71 @@ def test_rejected_publication_discards_the_staged_tables(lane, monkeypatch):
     assert (status.phase, status.failure.kind) == ("failed", "JOB_FAILED")
     assert _count(lane.engine, "SELECT count(*) FROM networks WHERE name = :n",
                   n=request.network.name) == 0
+
+
+# --- enrichment.v1 queued with the publication (CR-w1-data-5) -----------------------------
+
+def _enrichment_jobs(engine) -> list[tuple]:
+    with engine.connect() as conn:
+        return conn.execute(sa.text(
+            "SELECT job_id, organization_id, requested_by_ref, input_package -> 'input' "
+            "FROM compute_jobs WHERE handler_contract = 'enrichment.v1' "
+            "ORDER BY created_at")).all()
+
+
+def test_a_committed_import_queues_one_enrichment_job_that_then_runs(enriching):
+    before = _enrichment_jobs(enriching.engine)
+    import_id, job_id = _commit(enriching, FILES)
+    assert _settle(enriching, import_id, job_id).state == AttemptState.SUCCEEDED
+    status = api.import_status(enriching, SCOPE, import_id)
+    with enriching.engine.connect() as conn:
+        org = repo.get_run(conn, import_id).organization_id
+    [(enrich_id, enrich_org, actor, payload)] = _enrichment_jobs(enriching.engine)[len(before):]
+    assert (enrich_org, actor) == (org, SCOPE.actor_ref)  # the importer's organization and actor
+    with enriching.engine.connect() as conn:
+        queued = conn.scalars(sa.text(
+            "SELECT details FROM compute_audit_events "
+            "WHERE job_id = :j AND event_type = 'FOLLOW_UP_QUEUED'"), {"j": job_id}).all()
+    assert queued == [{"contract": "enrichment.v1", "follow_up_job_id": str(enrich_id)}]
+    assert enriching.queue.get_job(TrustedScope(org, "test"), enrich_id).state == (
+        AttemptState.QUEUED)
+    assert payload == {"dataset_version_id": str(status.dataset_version_id), "addresses": [
+        ["H1", "301 S Monroe St", "Tallahassee", "FL", "32301"],
+        ["P1", "201 E University Ave", "Gainesville", "FL", "32601"]]}
+    end = time.monotonic() + 15
+    while (enriched := enrichment_status(enriching, SCOPE, status.network_id)).state == "running":
+        assert time.monotonic() < end, "enrichment.v1 did not settle"
+        enriching.supervisor.tick()
+        time.sleep(0.01)
+    assert (enriched.state, enriched.job_id) == ("done", enrich_id)
+
+
+def test_an_import_that_saves_nothing_queues_no_enrichment(enriching, monkeypatch):
+    before = len(_enrichment_jobs(enriching.engine))
+    import_id, job_id = _commit(enriching, BAD)  # row errors: the job succeeds, nothing saved
+    assert _settle(enriching, import_id, job_id).state == AttemptState.SUCCEEDED
+
+    def reject(connection, identity, package):
+        raise PublicationRejected("IMPORT_NOT_FOUND")
+
+    monkeypatch.setattr(enriching.publisher, "publish", reject)
+    import_id, job_id = _commit(enriching, FILES)
+    assert _settle(enriching, import_id, job_id).state == AttemptState.FAILED
+    assert len(_enrichment_jobs(enriching.engine)) == before
+
+
+def test_a_rejected_enrichment_still_commits_the_import(lane):
+    import_id, job_id = _commit(lane, FILES)  # enrichment.v1 is not registered on this lane
+    assert _settle(lane, import_id, job_id).state == AttemptState.SUCCEEDED
+    status = api.import_status(lane, SCOPE, import_id)
+    assert status.phase == "done"
+    with lane.engine.connect() as conn:
+        audited = conn.execute(sa.text(
+            "SELECT reason_code, details FROM compute_audit_events "
+            "WHERE job_id = :j AND event_type = 'FOLLOW_UP_REJECTED'"), {"j": job_id}).all()
+    [(reason, details)] = audited  # details also name the error type
+    assert (reason, details["contract"]) == ("UNKNOWN_CONTRACT", "enrichment.v1")
+    assert enrichment_status(lane, SCOPE, status.network_id).state == "not_started"
 
 
 # --- the hooks, called directly ---------------------------------------------------------
