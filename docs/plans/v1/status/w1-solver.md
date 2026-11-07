@@ -16,40 +16,55 @@
 
 ## Progress (2026-11-07)
 
-- **Done:** every task W1-S01–S07 in both modes. #103 merged into the lane (18799a6); the Pantry tests run on the CR-1 schema (4b18119); localized capacity split (de0c53c); Pantry bench (e49e35c); `or-comparison.v3` worker, `api_v3`, Pantry S05–S07 tests (this commit).
-- **Next:** quick and full gates, `/devkit:ship-check`, the PR.
+- **Done:** every task W1-S01–S07 in both modes. #103 merged into the lane (18799a6); the Pantry tests run on the CR-1 schema (4b18119); localized capacity split (de0c53c); Pantry bench (e49e35c); `or-comparison.v3` worker, `api_v3`, Pantry S05–S07 tests (bfdb21e); ship-check review fixes and network-scoped `api_v3` (ea6fad1); final benches at ea6fad1.
+- **Next:** quick and full gates on the final commit, then the PR.
+- **Waiting on the lead (batch 2, Gabriel-approved web CRs; merge `origin/v1-local` only on the lead's signal):** fill `ActionEffect.unit` (the product's `ProductV3.unit`), `SavedComparisonV3.assumptions` and `.inbound_file_provided` (copied from the frozen scenario), and the CSV note "capacity not provided — no limit assumed" when that assumption is present (CR-w1-web-5/-6). E-1 (`RETAIL_WEIGHTS_ALL_ZERO`) needs nothing here: no fixture, test or bench uses w_exp = w_lost = 0.
 - **Interpretations for lead review (W1-S04/S06/S07 wiring):**
-  - Only `COMPARISON_NOT_FOUND` is specified. I chose the other codes: submit with an unknown or other tenant's scenario → 404 `SCENARIO_NOT_FOUND`; a method not in the comparison → 404 `METHOD_NOT_IN_COMPARISON`; actions or export of an unverified method → 409 `RESULT_NOT_VERIFIED`; export with an action id not in the plan → 422 `UNKNOWN_ACTION_ID`. All are `HistoryRejected(code, status)`, mapped by `main.domain_error`.
+  - Only `COMPARISON_NOT_FOUND` is specified. I chose the other codes: unknown network → 404 `NETWORK_NOT_FOUND`; submit with a scenario that isn't in the path's network → 404 `SCENARIO_NOT_FOUND`; a method not in the comparison → 404 `METHOD_NOT_IN_COMPARISON`; actions or export of an unverified method → 409 `RESULT_NOT_VERIFIED`; export with an action id not in the plan → 422 `UNKNOWN_ACTION_ID`. All are `HistoryRejected(code, status)`, mapped by `main.domain_error`.
+  - Tenancy (lead-approved 2026-11-07): `api_v3` runs each request under the organization of the network in its path (`networks.organization_id`, W0-network-model §1–2), with the session's actor. The PostgreSQL tests log in under a separate presenter organization and assert that the job and the comparison row carry the network's organization. W2 consolidates the per-lane lookups into one helper.
   - `planning_ready` (the dedupe flag) is true only when every requested method verified, as in v2, so a comparison with a timed-out method can be rerun with the same input. `comparison_outcome` is SUCCEEDED / PARTIAL / FAILED.
-  - The publisher checks the scenario row (organization, network, content hash, payload) and the package identity inside the publication transaction. It doesn't re-run `verify_plan` there: `validate()` already re-verified every claimed plan in the parent, and a 100 × 500 union check inside the fenced transaction would hold the publication lock for seconds.
+  - The publisher checks the scenario row (organization, network, content hash, payload) and the package identity inside the publication transaction. It doesn't rebuild the methods there: `validate()` already rebuilt every claimed-verified result in the parent (`compare.publishable`), and a 100 × 500 union check inside the fenced transaction would hold the publication lock for seconds.
   - Orphans: `planning_comparisons_v3` rows are immutable (UPDATE/DELETE trigger), and the row is inserted in the same transaction as the SUCCEEDED transition, so an uncertain commit leaves the row and the success together or neither. `test_uncertain_commit_leaves_one_row_or_none_and_retry_never_doubles` shows COMMITTED → one row; ABSENT → no row, FAILED, then a retry publishes exactly one row for the retry attempt.
   - `tests/optimization/test_or_scope.py` exempts only `api_v3.py` (W0-08a froze the router-facing adapter there with a runtime argument; it reads the v1 tables). Every other OR module still may not import SQLAlchemy, models or repositories, and none may import `api_v3` (new check; three import forms mutation-tested).
   - `tests/test_v1_contract.py`: the comparisons GET/actions/export rows and the comparisons submit entry are deleted, as ORCHESTRATION §8 allows. `tests/workers/test_v1_job_kinds.py`: CR-w1-solver-4.
-- **Scale benches (W1-S05).** Command, from `apps/api` with `.env.lane` loaded: `taskset -c 0-5 uv run --frozen python ../../scripts/or/bench_v1.py --locations 100 --products 500 --mode {retail|pantry}`. Each run writes its mode into `docs/optimization/evidence/v1-scale.json`. Both ran on 6 CPUs, WSL2, seed 20261104, on a network of 100 locations, 500 products, 69 961 batches, 48 000 demand series and 960 routes. Ceilings: 330 s per method, 690 s per comparison. Every method result is verified, and every union check passes.
-  - **Retail.** Tree de0c53c (localized split). Comparison wall time UNITS 130.9 s, USD 124.5 s. Total 284.0 s, peak RSS 1.45 GB, exit 0. At-risk 209/500, starved 0/209. Before the localized split it was 123/209 (USD 150/209).
+- **Scale benches (W1-S05, V1-A17 evidence).** Command, from `apps/api` with `.env.lane` loaded: `taskset -c 0-5 uv run --frozen python ../../scripts/or/bench_v1.py --locations 100 --products 500 --mode {retail|pantry}`. Each run writes its mode into `docs/optimization/evidence/v1-scale.json`. Runs used 6 CPUs, WSL2, seed 20261104, on a network of 100 locations, 500 products, 69 961 batches, 48 000 demand series and 960 routes. Ceilings: 330 s per method, 690 s per comparison.
+  - **Final, tree ea6fad1** (after the review fixes; this is what `v1-scale.json` holds). Every method result is verified, and every union check passes.
+    - Retail: comparison wall time UNITS 143.9 s, USD 145.2 s. Total 321.4 s (`/usr/bin/time` 5:21.94), peak RSS 1.45 GB, exit 0. At-risk 209/500, starved 0.
+    - Pantry (`DEFAULT_PANTRY_POLICY`, `planning_days` 3, vulnerability for every pantry): five methods, UNITS 249.6 s. Total 275.2 s (4:35.90), peak RSS 1.10 GB, exit 0. At-risk 209/500, starved 0, no singleton RP groups.
 
-    | Measure | Method | Status | Transfers |
+    | Mode / measure | Method | Status | Transfers |
     |---|---|---|---|
-    | UNITS | NO_TRANSFERS | — | 0 |
-    | UNITS | SOONEST_EXPIRY_FIRST | — | 8 429 |
-    | UNITS | RETAIL_OPTIMIZED | OPTIMAL ×209 | 8 025 |
-    | USD | NO_TRANSFERS | — | 0 |
-    | USD | SOONEST_EXPIRY_FIRST | — | 9 486 |
-    | USD | RETAIL_OPTIMIZED | OPTIMAL ×209 | 8 775 |
+    | Retail UNITS | NO_TRANSFERS | — | 0 |
+    | Retail UNITS | SOONEST_EXPIRY_FIRST | — | 8 429 |
+    | Retail UNITS | RETAIL_OPTIMIZED | OPTIMAL ×209 | 8 025 |
+    | Retail USD | NO_TRANSFERS | — | 0 |
+    | Retail USD | SOONEST_EXPIRY_FIRST | — | 9 486 |
+    | Retail USD | RETAIL_OPTIMIZED | OPTIMAL ×209 | 8 775 |
+    | Pantry UNITS | NO_TRANSFERS | — | 0 |
+    | Pantry UNITS | EQUAL_SHARE | — | 3 473 |
+    | Pantry UNITS | MOST_URGENT_FIRST | — | 3 473 |
+    | Pantry UNITS | CLASSICAL_GP | OPTIMAL ×209 | 4 062 |
+    | Pantry UNITS | EGP_PI_INSPIRED | OPTIMAL ×209 | 4 091 |
 
-  - **Pantry.** Tree de0c53c, `DEFAULT_PANTRY_POLICY`, `planning_days` 3, a vulnerability row for every pantry. Comparison wall time UNITS 220.2 s (five methods). Total 247.2 s (`/usr/bin/time`: 4:07.76), peak RSS 1.02 GB, exit 0. At-risk 209/500, starved 0, no singleton RP groups.
-
-    | Method | Status | Transfers |
-    |---|---|---|
-    | NO_TRANSFERS | — | 0 |
-    | EQUAL_SHARE | — | 3 473 |
-    | MOST_URGENT_FIRST | — | 3 473 |
-    | CLASSICAL_GP | OPTIMAL ×209 | 4 062 |
-    | EGP_PI_INSPIRED | OPTIMAL ×209 | 4 091 |
-
-    EQUAL_SHARE and MOST_URGENT_FIRST report the same transfer count. The bench records counts, not plans, so whether the two plans are identical is unverified. On `pantry-four-methods` the two plans differ.
-
+    Plans and statuses match the earlier runs. Publication now rebuilds every claimed-verified result, which adds about 13–30 s per comparison. EQUAL_SHARE and MOST_URGENT_FIRST report the same transfer count. The bench records counts, not plans, so whether the two plans are identical is unverified; on `pantry-four-methods` they differ.
+  - Earlier runs, for the record: Retail at de0c53c, UNITS 130.9 s and USD 124.5 s, starved 0/209. Before the localized split it was 123/209 (USD 150/209). Pantry at de0c53c: 220.2 s.
   - History: the first Retail run timed out at 25 min because SOONEST_EXPIRY_FIRST took more than 23 min. Three probe fixes (6b46700 and later) brought the full Retail comparison under the ceilings.
+
+## Ship-check review (project `verifier`, candidate b0531b8)
+
+| Finding | Severity | Disposition |
+|---|---|---|
+| F1: EGP split capacity without its singleton products, so its feasible region differed from the other methods' | High | Fixed in ea6fad1: every method splits over every at-risk product (`test_singleton_product_keeps_the_shared_split`) |
+| F2: the starvation screen ignored storage, so a product with no storage room was reported OPTIMAL with 0 moves | Medium | Fixed in ea6fad1: the screen counts storage on the days a unit waits at the receiver, and only receivers with need (`test_storage_share_too_small_is_starved_not_optimized`; both halves mutation-checked) |
+| F3: publication re-checked only the plan and effects; objective, labels and status could be tampered | Medium | Fixed in ea6fad1: `publishable` rebuilds the whole result from the raw scenario and its own plan (`test_tampered_result_fields_are_published_unverified[...]`, `test_product_status_relabel_is_published_unverified`). Per-product native statuses remain solver claims; only their consistency is checkable without re-solving |
+| F4: export didn't say "optimized per product…" or name solved products | Medium | Fixed in ea6fad1: per-row note for optimizing methods (`test_export_says_optimized_per_product_and_names_each_solved_product`) |
+| F5: CR-w1-solver-4 not recorded outside the test comment | Low (process) | Recorded under Change requests below; the lead records it in BOARD/decisions |
+| S4: CSV formula injection from imported names | Low | Fixed in ea6fad1 (`test_export_neutralizes_spreadsheet_formulas`) |
+| No TEST-EGP-04 ablation; no RP equality boundary | Gap | Added: `test_penalty_ablation_changes_the_egp_plan` (γ_AP = 0 changes the plan; with AP off, γ_RP = 0 changes it again; γ_RP = 0 alone does not on this fixture), `test_rp_flag_unset_at_equality`; mutation-checked |
+| S1: `verify_plan` shares FEFO packing, candidates and the projection with the solver path; only the shared-limit sums are re-derived independently | Design, open | Recorded. Hand-derived FEFO tests (`test_fefo_respected`) are the independent check today. An independent FEFO re-implementation is a candidate for W2 hardening |
+| S2: MethodResult has no seed / worker count / OR-Tools version | Low, open | Needs a contract field (lead). Every solve uses `num_workers = 1`, seed 0 (`retail.solve`) |
+| S3: Retail "expired" on day 1 includes lots already expired at the snapshot | Low, open | Effects are deltas, so actions are unaffected. Only the need weight could be inflated, and only if a frozen scenario carries already-expired lots. Whether W1-D09 excludes them is a data-lane question |
+| S5: a receiver with no local need gets no share of its limits | By decision | The localized split rule (Gabriel, 2026-11-07) |
 
 ## Gates
 
@@ -71,7 +86,7 @@
 - **TDD note for W1-S03:** the S01 oracle tests drove the implementation; the extra S03 tests then passed on first run, so each was mutation-checked instead (ignoring edited weights fails `test_weights_editable`; relabeling FEASIBLE fails `test_native_status_preserved`). `test_native_status_preserved` patches `CpSolver.status_name` to report FEASIBLE while keeping CP-SAT's real solution.
 - **Heuristics share the optimizers' feasible region:** same at-risk screen and the same per-product shares (`decompose.split`, in the comparison's measure); each request takes the largest quantity `verify.product_violations` accepts (binary search), and `verify_plan` re-checks the union. Tie-breaks are written at the top of `baselines.py`.
 - **`compare_methods` gains keyword-only `scenario_id`, `scenario_hash` (and `search_seconds`)**: the frozen positional signature `(ORInputV3, methods, measure)` is unchanged, but `ComparisonResultV3` requires both ids and neither is derivable from `ORInputV3`. Approved by the orchestrator 2026-11-07.
-- **Publication re-verification:** `compare_methods` re-runs `verify_plan` and recomputes effects for every result that claims verification; one that doesn't replay is published unverified with `PUBLICATION_VERIFICATION_FAILED:<violations>` and no plan. A method that raises is reported as `METHOD_ERROR:<type>` and the others still publish.
+- **Publication re-verification:** `compare.publishable` rebuilds every claimed-verified result from the raw scenario and its own plan (`methods.assemble`: pack, union check, effects, objective replay, labels, and the method status its products imply). A result with any differing field is published unverified with `PUBLICATION_VERIFICATION_FAILED:<fields or violations>` and no plan. A method that raises is reported as `METHOD_ERROR:<type>` and the others still publish.
 - **k-nearest (W1-S05):** `v3.candidates` keeps, per product and receiver, the `K_NEAREST = 10` nearest senders that hold eligible stock (travel days, road miles, sender id; `candidates.k_nearest`). Packing and the verifier use the same candidate set.
 - **Shared limits are split among the products that can use each limit** (the ones with a candidate on that route, sender, receiver/day or storage), by `floor_shares`; global handling and the cost budget among all at-risk products. This keeps the floor rule and never exceeds a limit, while an unrelated product on another route doesn't dilute a share.
 - **Decision actions (W1-S06):** `proven_binding` means the independent verifier rejects the same plan with one more unit on that route, and the why text names the limit ("One more unit is infeasible: …"); otherwise `inferred`. The remove-one effect keeps every other transfer's exact batches (no re-pack, no re-optimization); deltas are `with plan − without this transfer` at the sender and receiver, and USD is that unit change × `unit_value_usd` (Retail only, `None` without a price). `decision_actions` takes `comparison_id` keyword-only, like `compare_methods`. Money prints as cents when exact (`v3.money`), because the schema normalizes `"10.00"` to `"10"`.
@@ -107,6 +122,8 @@
 
 ## Gotchas
 
+- One organization per network (W0-network-model §1): a v1 request's tenant is the organization of the network in its path, not the presenter session's. Tests that log in under the network's own organization hide this; log in under a separate one.
+- `planning_comparisons_v3` rows are immutable (UPDATE/DELETE trigger). A publisher can't clean an orphan; atomic publication means there is none.
 - `ORInputV3` (`apps/api/app/schemas/v1_planning.py:206`) uses string IDs and v1 caps, so it cannot be fed to the v2 pipeline (`ORInputPackage`, UUID IDs). The v3 methods get a v3-native path that reuses the pure FEFO kernel (`services/optimization/kernel.py`).
 
 ## Change requests
@@ -133,6 +150,17 @@
 - **Why:** no table holds a `ScenarioV3` or a `SavedComparisonV3`. The v2 `planning_scenarios`/`planning_comparisons` are keyed to v2 forecast runs, `planning_assumptions` and the v2 operational hash (`app/models/optimization.py:25-73`). So the `or-comparison.v3` worker can't load a frozen scenario or publish a result, and `api_v3.submit_comparison`/`get_comparison` have nothing to read or write.
 - **Unblocks:** W1-S04 worker publisher and `api_v3` submit/get; W1-S06 `comparison_actions` and W1-S07 `export_comparison` (both read a saved comparison). The pure functions (`compare_methods`, `decision_actions`, `export_plan_csv`) proceed meanwhile.
 - **Status:** approved by Gabriel via the orchestrator, 2026-11-07. The lead writes `ppv1_0011` with `PlanningScenarioV3` → `planning_scenarios_v3` (id, organization_id, network_id, dataset_version_id, forecast_run_id, recorded_at, content_hash, payload JSONB) and `PlanningComparisonV3` → `planning_comparisons_v3` (id, organization_id, network_id, scenario_id, job_id, attempt_id, measure, recorded_at, result JSONB), both immutable, in `app/models/networks.py`, landing in the same PR as CR-w1-solver-1.
+
+### CR-w1-solver-4 — advertise the built or-comparison.v3 handler
+- **File(s):** `apps/api/tests/workers/test_v1_job_kinds.py` (lead-owned), only `test_v1_stub_handlers_are_not_advertised_for_execution`.
+- **Exact change:** drop or-comparison.v3 from the set asserted not advertised; assert {or-comparison.v2, or-comparison.v3} are advertised. `test_v1_job_kinds_registered` unchanged.
+- **Status:** approved by Gabriel via the orchestrator, 2026-11-07; landed with the real handler in bfdb21e.
+
+### CR-w1-solver-5 — the job status route for v1 job kinds
+- **File(s):** `apps/api/app/routers/forecasts.py` `job_status` (lead-owned).
+- **Exact change:** admit the v1 contracts and resolve the job's organization server-side (the session's own, or a network organization on this install, per W0-network-model §2). `status_url` stays `/api/v1/jobs/{job_id}`.
+- **Why:** the route allowed only v2/forecast contracts and the session organization, so it answered 404 for every or-comparison.v3 job.
+- **Status:** approved by Gabriel, 2026-11-07; the lead lands it in the batch-2 PR. Not touched in this lane.
 
 ## Escalations
 
