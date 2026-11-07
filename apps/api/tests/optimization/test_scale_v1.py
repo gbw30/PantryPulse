@@ -12,7 +12,13 @@ from itertools import product as grid
 
 import pytest
 
-from app.schemas.v1_planning import NOT_AT_RISK_LABEL, CapacityV3, InboundV3, ReserveV3
+from app.schemas.v1_planning import (
+    NOT_AT_RISK_LABEL,
+    CapacityV3,
+    InboundV3,
+    ORInputV3,
+    ReserveV3,
+)
 from app.services.optimization import v3 as v3_module
 from app.services.optimization.decompose import (
     allot,
@@ -25,7 +31,7 @@ from app.services.optimization.decompose import (
 from app.services.optimization.methods import run_method
 from app.services.optimization.product_model import _unit_cost
 from app.services.optimization.projection import project_v3
-from app.services.optimization.v3 import STARVED_LABEL, candidates, pack
+from app.services.optimization.v3 import STARVED_LABEL, candidates, pack, quantities_of
 from app.services.optimization.verify import cost_minor, verify_plan
 from tests.optimization.test_retail_oracle import load
 
@@ -549,3 +555,79 @@ def test_verifier_never_loads_ortools():
         text=True,
     )
     assert completed.returncode == 0, completed.stderr[-2000:]
+
+
+def relay_network():
+    """Store X sends its short-dated lot x1 to Y (sells 5 a day) and receives Z's later lot z1,
+    which would expire unsold at Z (the bench 20 × 12 P009/R009 pattern, by hand)."""
+    s, _ = load("retail-expiry-transfer")
+    row = s.demand[0]
+
+    def demand(loc, per_day):
+        return row.model_copy(
+            update={
+                "location_id": loc,
+                "central_literals": (str(per_day),) * 7,
+                "targets": (per_day,) * 7,
+            }
+        )
+
+    lot = s.batches[0]
+    batches = (
+        lot.model_copy(update={"id": "x1", "location_id": "X", "quantity": 10}),  # expires Nov 4
+        s.batches[1].model_copy(update={"id": "x2", "location_id": "X", "quantity": 5}),
+        lot.model_copy(
+            update={"id": "z1", "location_id": "Z", "quantity": 2, "expiry_date": date(2026, 11, 7)}
+        ),
+    )
+    route = s.routes[0]
+    return ORInputV3.model_validate(
+        s.model_copy(
+            update={
+                "locations": tuple(
+                    s.locations[0].model_copy(update={"id": loc, "name": f"Store {loc}"})
+                    for loc in "XYZ"
+                ),
+                "batches": batches,
+                "demand": (demand("X", 1), demand("Y", 5), demand("Z", 0)),
+                "routes": tuple(
+                    route.model_copy(update={"from_location_id": a, "to_location_id": b})
+                    for a, b in (("X", "Y"), ("Z", "X"))
+                ),
+            }
+        ).model_dump()
+    )
+
+
+def test_send_and_receive_moves_different_lots_and_never_relays():
+    """INV-07: a location may send and receive the same product, but it ships only its own
+    snapshot lots, every unit it receives is sold there, and an arrival never covers a send."""
+    s = relay_network()
+
+    def transfers(x_to_y, z_to_x=0):
+        return tuple(
+            p.transfer for p in pack(s, {("P", "X", "Y"): x_to_y, ("P", "Z", "X"): z_to_x})
+        )
+
+    def expired(plan):
+        return sum(d.expired for d in project_v3(s, pack(s, quantities_of(plan))).days)
+
+    sends = transfers(7, 2)
+    report = verify_plan(s, sends)
+    assert report.passed, report.violations
+    splits = {
+        (p.transfer.from_location_id, p.transfer.to_location_id): p.splits for p in report.packed
+    }
+    assert splits == {("X", "Y"): (("x1", 7),), ("Z", "X"): (("z1", 2),)}  # own lots only
+    received = [(lot.units, sum(lot.consumed)) for lot in report.sublots]
+    assert received == [(7, 7), (2, 2)] or received == [(2, 2), (7, 7)]  # sold where received
+    assert expired(sends) < expired(transfers(7))  # the receive saves z1 from expiring at Z
+
+    # X cannot ship the 2 units it receives: 16 > its own 15 on hand
+    over = (sends[0].model_copy(update={"quantity": 16}), sends[1])
+    assert verify_plan(s, over).violations == ("SOURCE_OVERDRAWN",)
+    # X ships 9 and would sell out with Z's 2 units, but protection ignores arrivals
+    shipped = transfers(9, 2)
+    with_arrival = project_v3(s, pack(s, quantities_of(shipped))).days
+    assert not any(d.unmet for d in with_arrival if d.location_id == "X")
+    assert verify_plan(s, shipped).violations == ("DONOR_PROTECTION",)
