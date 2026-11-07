@@ -8,8 +8,8 @@
 |---|---|---|---|
 | W1-D01 | done, except the ACS poverty/SNAP fixture (blocked, CR-w1-data-1) | `5b5e45e` | `uv run --frozen pytest -q tests/enrichment/test_fixtures_shape.py` → 4 passed, 0 skipped |
 | W1-D02 | done | `2d14868` | `uv run --frozen pytest -q tests/imports/test_validation.py` → 39 passed, 0 skipped; `ruff check .` → clean |
-| W1-D03 | done | see `git log --grep W1-D03` | `uv run --frozen pytest -q tests/imports tests/enrichment tests/test_v1_contract.py` → 121 passed, 0 skipped (22 in `test_templates.py`); `ruff check .` → clean |
-| W1-D04 | todo | — | — |
+| W1-D03 | done | `22fb017` | `uv run --frozen pytest -q tests/imports tests/enrichment tests/test_v1_contract.py` → 121 passed, 0 skipped (22 in `test_templates.py`); `ruff check .` → clean |
+| W1-D04 | done | see `git log --grep W1-D04` | `uv run --frozen pytest -q tests/test_v1_contract.py tests/imports tests/enrichment` (PostgreSQL `pantrypulse_data_test`, schema `w1_data_import_test`) → 132 passed, 0 skipped; `ruff check .` → clean |
 | W1-D05 | todo | — | — |
 | W1-D06 | todo (ACS part depends on CR-w1-data-1) | — | — |
 | W1-D07 | todo | — | — |
@@ -35,6 +35,11 @@
 - `3.0` counts as FRACTIONAL (digits only), as in S4. Donation rows for the same location × product × day are summed and donors joined; demand duplicates are errors. Inbound arrivals on or before `as_of_date` are rejected (they belong in inventory.csv); arrivals after the seven-day horizon are kept and marked. — W1-D02.
 
 - Blank templates are generated from `columns.COLUMNS` (one list for validator, templates and guide); the files in `data/templates/blank/` are checked byte-equal by a test. `GET /templates` without a mode lists all four location types. Guide copy for `poverty_rate`/`snap_rate` went through `research-claims-check` (names `EGP_PI_INSPIRED`, no outcome claims). Removed the two W1-D03 rows from `STUBS` in `tests/test_v1_contract.py`. — W1-D03.
+
+- The import runs in ONE transaction (staging partition, validation + COPY, commit, ATTACH, DROP staging); a failure is a rollback, then the report is written in its own transaction. Progress goes through a second connection. Phases: `staging` = the streaming read/check pass (rows), `validating` = end-of-pass result (checks = files), `committing` (rows). — W1-D04.
+- A failed import keeps its run, errors and uploaded files (W0-08 §4); a successful commit deletes the files. W0-08 §2 says files go "after a commit or an abort"; I read "abort" as an explicit user abort, which no route offers yet. — W1-D04.
+- `routes.csv` is validated but not yet stored: `net_routes.travel_days` is NOT NULL and a CSV row may leave it blank until coordinates exist. Stored with the computed routes in W1-D07. — W1-D04.
+- Removed the W1-D04 upload row from `STUBS`; its "streams past the 64 KB boundary" proof moved to `test_upload_over_cap_is_413_and_partial_file_deleted` (a 70,000-byte upload returns 200). — W1-D04.
 
 ## Gotchas
 

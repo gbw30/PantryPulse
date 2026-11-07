@@ -92,7 +92,6 @@ STUBS = [
     ("GET", f"/networks/{NET}", None, None, "W1-D05"),
     ("GET", "/templates/locations.csv?kind=example", None, None, "W3-P03"),
     ("POST", "/imports", {"network": NEW_NETWORK}, None, "W1-D05"),
-    ("POST", f"/imports/{IMP}/files/demand_history", b"a" * 70_000, CSV, "W1-D04"),
     ("POST", f"/imports/{IMP}/commit", {}, KEYED, "W1-D05"),
     ("GET", f"/imports/{IMP}", None, None, "W1-D05"),
     ("GET", f"/networks/{NET}/enrichment", None, None, "W1-D06"),
