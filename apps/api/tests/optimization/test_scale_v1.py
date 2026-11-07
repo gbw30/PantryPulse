@@ -275,3 +275,14 @@ def test_k_nearest_routes_used(monkeypatch):
     assert {t.from_location_id for t in result.transfers} == {"D1"}
     assert sum(t.quantity for t in result.transfers) == 10  # D1's 10 bottles sell days 2-6
     assert result.transfers[0].arrival_date == FIRST + timedelta(days=1)
+
+
+def test_method_search_deadline_fails_honestly(monkeypatch):
+    """Products the method budget can't reach are never reported as optimized."""
+    from app.services.optimization import methods
+
+    monkeypatch.setattr(methods, "METHOD_SEARCH_S", 0.0)
+    result = run_method(scenario(), "RETAIL_OPTIMIZED", "UNITS")
+    assert (result.verified, result.transfers, result.native_status) == (False, (), "UNKNOWN")
+    assert result.failure_reason == "METHOD_TIME_LIMIT:P,Q"
+    assert {p.native_status for p in result.products} == {"UNKNOWN"}

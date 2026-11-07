@@ -38,9 +38,12 @@ def heuristic(s, method, measure, baseline) -> HeuristicPlan:
     cands = {p: candidates(s, p) for p in risky}
     parts = split(s, baseline, risky, measure, cands)
     quantities = {}
+    by_product = defaultdict(list)
+    for d in baseline:
+        by_product[d.product_id].append(d)
     for p in sorted(risky - parts.starved):
-        rows = [d for d in baseline if d.product_id == p]
-        senders = protected_senders(s, baseline, p)
+        rows = by_product[p]
+        senders = protected_senders(s, rows, p)
         usable = [c for c in cands[p] if c.route.from_location_id in senders]
         plan: dict = {}
         requests = deficits(s, rows)

@@ -10,7 +10,7 @@ union of the per-product plans is re-checked by verify.verify_plan against the r
 from collections import defaultdict
 from dataclasses import dataclass
 from fractions import Fraction
-from math import floor
+from math import floor, lcm
 
 from app.services.optimization.product_model import Shares
 from app.services.optimization.v3 import Candidate, dates, window_days
@@ -56,10 +56,14 @@ class Split:
 def split(s, baseline, products, measure, cands: dict[str, tuple[Candidate, ...]]) -> Split:
     info = {p.id: p for p in s.products}
     needs = need(s, baseline)
-    weight = {}
+    exact = {}
     for p in products:
         w = Fraction(needs.get(p, 0) * info[p].handling_units_per_unit)
-        weight[p] = w * Fraction(info[p].unit_value_usd) if measure == "USD" else w
+        exact[p] = w * Fraction(info[p].unit_value_usd) if measure == "USD" else w
+    # One common positive scale turns the rational weights into integers; floors are unchanged.
+    scale = lcm(*(w.denominator for w in exact.values())) if exact else 1
+    weight = {p: int(w * scale) for p, w in exact.items()}
+    days = dates(s)
     users = defaultdict(set)  # limit key -> products that can use it
     for p in products:
         for c in cands[p]:
@@ -67,20 +71,27 @@ def split(s, baseline, products, measure, cands: dict[str, tuple[Candidate, ...]
             users["route", frm, to].add(p)
             users["dispatch", frm].add(p)
             users["receiving", to, c.arrival].add(p)
-            for day in dates(s):
-                users["storage", to, day].add(p)
+            users["storage", to].add(p)
+
+    totals: dict = {}
 
     def share(cap, p, key=None):
+        """floor_shares(cap, weights of the products using this limit)[p], with cached totals."""
         if cap is None:
             return None
-        group = users[key] if key else products
-        return floor_shares(cap, {q: weight[q] for q in group})[p]
+        if key not in totals:
+            totals[key] = sum(weight[q] for q in (users[key] if key else products))
+        total = totals[key]
+        return cap * weight[p] // total if total else 0
 
     caps = {c.location_id: c for c in s.capacities}
     routes = {(r.from_location_id, r.to_location_id): r for r in s.routes}
     handling = defaultdict(int)  # baseline stock in handling units, every product
     for d in baseline:
         handling[d.location_id, d.day] += d.on_hand * info[d.product_id].handling_units_per_unit
+    by_product = defaultdict(list)
+    for d in baseline:
+        by_product[d.product_id].append(d)
     shares, starved = {}, set()
     for p in sorted(products):
         h = info[p].handling_units_per_unit
@@ -88,14 +99,17 @@ def split(s, baseline, products, measure, cands: dict[str, tuple[Candidate, ...]
         for c in cands[p]:
             frm, to = c.route.from_location_id, c.route.to_location_id
             route[frm, to] = share(routes[frm, to].capacity_per_batch, p, ("route", frm, to))
-            limit = caps[frm].dispatch if frm in caps else None
-            dispatch[frm] = share(limit, p, ("dispatch", frm))
-            limit = caps[to].receiving if to in caps else None
-            receiving[to, c.arrival] = share(limit, p, ("receiving", to, c.arrival))
-            for day in dates(s):
+            if frm not in dispatch:
+                limit = caps[frm].dispatch if frm in caps else None
+                dispatch[frm] = share(limit, p, ("dispatch", frm))
+            if (to, c.arrival) not in receiving:
+                limit = caps[to].receiving if to in caps else None
+                receiving[to, c.arrival] = share(limit, p, ("receiving", to, c.arrival))
+            if (to, days[0]) not in storage:
                 limit = caps[to].storage if to in caps else None
-                room = None if limit is None else max(0, limit - handling[to, day])
-                storage[to, day] = share(room, p, ("storage", to, day))
+                for day in days:
+                    room = None if limit is None else max(0, limit - handling[to, day])
+                    storage[to, day] = share(room, p, ("storage", to))
         budget = share(s.cost_budget_minor, p)
         shares[p] = Shares(
             route,
@@ -105,7 +119,7 @@ def split(s, baseline, products, measure, cands: dict[str, tuple[Candidate, ...]
             share(s.global_handling, p),
             None if budget is None else Fraction(budget),
         )
-        senders = protected_senders(s, baseline, p)
+        senders = protected_senders(s, by_product[p], p)
         usable = [c for c in cands[p] if c.route.from_location_id in senders]
 
         def fits(c, sh=shares[p], h=h):

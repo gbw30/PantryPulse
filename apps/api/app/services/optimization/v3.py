@@ -41,6 +41,12 @@ def usd(value: str | None) -> Decimal | None:
     return None if value is None else Decimal(value)
 
 
+def money(value: Decimal) -> str:
+    """USD as cents when exact (prices are often normalized to '10'), else the exact decimal."""
+    cents = value.quantize(Decimal("0.01"))
+    return str(cents) if cents == value else str(value)
+
+
 def route_allowed(s: ORInputV3, route: RouteV3) -> bool:
     """Topology (mode, roles) plus arrival inside the consumption window."""
     roles = {loc.id: loc.role for loc in s.locations}

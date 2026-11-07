@@ -5,6 +5,7 @@ verifier over the union plan (verify.verify_plan) and publishes a plan only when
 Units of different products are never summed (LocationEffect is per location × product).
 """
 
+import time
 from collections import defaultdict
 from decimal import Decimal
 
@@ -20,17 +21,20 @@ from app.schemas.v1_planning import (
 )
 from app.services.optimization.decompose import at_risk, protected_senders, split
 from app.services.optimization.projection import project_v3
+from app.services.optimization.retail import ProductOutcome
 from app.services.optimization.v3 import (
     PER_PRODUCT_LABEL,
     STARVED_LABEL,
     candidates,
+    money,
     pack,
 )
 from app.services.optimization.verify import verify_plan
 
-# shortcut: fixed per-product search cap from spike S1 (5 s); W1-S05 adds the method deadline
-# and the process pool for 100 × 500.
+# shortcut: fixed per-product search cap from spike S1 (5 s), solved serially within the method
+# deadline; add a process pool if a measured network needs more than METHOD_SEARCH_S.
 PER_PRODUCT_SEARCH_S = 5.0
+METHOD_SEARCH_S = 300.0  # solver search ceiling per method (CLAUDE.md: 300 s search / 330 s method)
 OPTIMIZING = ("CLASSICAL_GP", "EGP_PI_INSPIRED", "RETAIL_OPTIMIZED")
 UNITS_NOT_SUMMED = "units objective is per product; not summed across products"
 
@@ -86,17 +90,28 @@ def _optimized(s, method, measure, baseline, search_seconds) -> MethodResult:
     risky = at_risk(s, baseline)
     cands = {p: candidates(s, p) for p in risky}
     parts = split(s, baseline, risky, measure, cands)
-    outcomes = {}
+    outcomes, late = {}, []
+    by_product = defaultdict(list)
+    for d in baseline:
+        by_product[d.product_id].append(d)
+    deadline = time.monotonic() + METHOD_SEARCH_S
     for p in sorted(risky - parts.starved):
-        rows = [d for d in baseline if d.product_id == p]
-        protected = protected_senders(s, baseline, p)
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            outcomes[p] = ProductOutcome(p, "UNKNOWN", {}, None, None)
+            late.append(p)
+            continue
+        rows = by_product[p]
+        protected = protected_senders(s, rows, p)
         if method == "RETAIL_OPTIMIZED":
             from app.services.optimization.retail import solve_retail_product as solve
         else:
             from app.services.optimization.pantry import solve_pantry_product as solve
 
             solve = _bind_method(solve, method)
-        outcomes[p] = solve(s, p, cands[p], parts.shares[p], rows, protected, search_seconds)
+        outcomes[p] = solve(
+            s, p, cands[p], parts.shares[p], rows, protected, min(search_seconds, remaining)
+        )
     products = []
     for p in s.products:
         if p.id not in risky:
@@ -116,6 +131,9 @@ def _optimized(s, method, measure, baseline, search_seconds) -> MethodResult:
     failed = sorted(
         p for p, o in outcomes.items() if o.native_status not in ("OPTIMAL", "FEASIBLE")
     )
+    if late:
+        reason = f"METHOD_TIME_LIMIT:{','.join(late)}"
+        return failed_result(s, method, measure, "UNKNOWN", reason, products)
     if failed:
         status = outcomes[failed[0]].native_status
         return failed_result(
@@ -208,7 +226,7 @@ def product_objectives(s, days, method) -> dict[str, int]:
 def retail_objective(s, measure, per_product) -> str | None:
     if measure == "USD":
         prices = {p.id: Decimal(p.unit_value_usd) for p in s.products}
-        return str(sum((prices[p] * v for p, v in per_product.items()), Decimal(0)))
+        return money(sum((prices[p] * v for p, v in per_product.items()), Decimal(0)))
     return str(per_product.get(s.products[0].id, 0)) if len(s.products) == 1 else None
 
 
