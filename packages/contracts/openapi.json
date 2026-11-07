@@ -1,6 +1,50 @@
 {
   "components": {
     "schemas": {
+      "ActionEffect": {
+        "additionalProperties": false,
+        "description": "Remove-one effect of one transfer given the rest of the plan; there is no total.",
+        "properties": {
+          "expired_delta": {
+            "title": "Expired Delta",
+            "type": "integer"
+          },
+          "product_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Product Id",
+            "type": "string"
+          },
+          "receiver_unmet_delta": {
+            "title": "Receiver Unmet Delta",
+            "type": "integer"
+          },
+          "sender_unmet_delta": {
+            "title": "Sender Unmet Delta",
+            "type": "integer"
+          },
+          "usd_delta": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usd Delta"
+          }
+        },
+        "required": [
+          "product_id",
+          "sender_unmet_delta",
+          "receiver_unmet_delta",
+          "expired_delta",
+          "usd_delta"
+        ],
+        "title": "ActionEffect",
+        "type": "object"
+      },
       "AdjustedLot": {
         "additionalProperties": false,
         "properties": {
@@ -357,6 +401,153 @@
         "title": "AttributeScore",
         "type": "object"
       },
+      "BacktestResult": {
+        "additionalProperties": false,
+        "properties": {
+          "forecast_job_id": {
+            "format": "uuid",
+            "title": "Forecast Job Id",
+            "type": "string"
+          },
+          "ineligible": {
+            "items": {
+              "$ref": "#/components/schemas/IneligibleSeries"
+            },
+            "title": "Ineligible",
+            "type": "array"
+          },
+          "network_id": {
+            "format": "uuid",
+            "title": "Network Id",
+            "type": "string"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/SeriesBacktest"
+            },
+            "title": "Series",
+            "type": "array"
+          }
+        },
+        "required": [
+          "forecast_job_id",
+          "network_id",
+          "series",
+          "ineligible"
+        ],
+        "title": "BacktestResult",
+        "type": "object"
+      },
+      "BacktestScore": {
+        "additionalProperties": false,
+        "description": "V5 §7 WAPE and bias on one shared scored set (W3-F02).",
+        "properties": {
+          "bias_pct": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bias Pct"
+          },
+          "origins_evaluated": {
+            "minimum": 0.0,
+            "title": "Origins Evaluated",
+            "type": "integer"
+          },
+          "scored_points": {
+            "minimum": 0.0,
+            "title": "Scored Points",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "evaluated",
+              "not_evaluated_insufficient_history"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "wape_pct": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wape Pct"
+          }
+        },
+        "required": [
+          "origins_evaluated",
+          "wape_pct",
+          "bias_pct",
+          "status",
+          "scored_points"
+        ],
+        "title": "BacktestScore",
+        "type": "object"
+      },
+      "BatchV3": {
+        "additionalProperties": false,
+        "properties": {
+          "expiry_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expiry Date"
+          },
+          "id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "location_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Location Id",
+            "type": "string"
+          },
+          "non_expiring": {
+            "title": "Non Expiring",
+            "type": "boolean"
+          },
+          "product_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Product Id",
+            "type": "string"
+          },
+          "quantity": {
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Quantity",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "location_id",
+          "product_id",
+          "quantity",
+          "expiry_date",
+          "non_expiring"
+        ],
+        "title": "BatchV3",
+        "type": "object"
+      },
       "Body_demand_csv_api_v1_imports_demand_csv_post": {
         "properties": {
           "file": {
@@ -468,6 +659,65 @@
         "title": "Capacities",
         "type": "object"
       },
+      "CapacityV3": {
+        "additionalProperties": false,
+        "description": "Per-day capacities in handling units.\n\nNone means \"capacity not provided — no limit assumed\".",
+        "properties": {
+          "dispatch": {
+            "anyOf": [
+              {
+                "maximum": 25600000000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dispatch"
+          },
+          "location_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Location Id",
+            "type": "string"
+          },
+          "receiving": {
+            "anyOf": [
+              {
+                "maximum": 25600000000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Receiving"
+          },
+          "storage": {
+            "anyOf": [
+              {
+                "maximum": 25600000000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage"
+          }
+        },
+        "required": [
+          "location_id",
+          "receiving",
+          "dispatch",
+          "storage"
+        ],
+        "title": "CapacityV3",
+        "type": "object"
+      },
       "CommandResult": {
         "additionalProperties": false,
         "description": "Operation-specific saved details; integer quantities serialize as strings.",
@@ -515,6 +765,49 @@
           "scenario_id"
         ],
         "title": "ComparisonRequest",
+        "type": "object"
+      },
+      "ComparisonRequestV3": {
+        "additionalProperties": false,
+        "properties": {
+          "measure": {
+            "enum": [
+              "UNITS",
+              "USD"
+            ],
+            "title": "Measure",
+            "type": "string"
+          },
+          "methods": {
+            "items": {
+              "enum": [
+                "NO_TRANSFERS",
+                "EQUAL_SHARE",
+                "MOST_URGENT_FIRST",
+                "CLASSICAL_GP",
+                "EGP_PI_INSPIRED",
+                "SOONEST_EXPIRY_FIRST",
+                "RETAIL_OPTIMIZED"
+              ],
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "title": "Methods",
+            "type": "array"
+          },
+          "scenario_id": {
+            "format": "uuid",
+            "title": "Scenario Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scenario_id",
+          "methods",
+          "measure"
+        ],
+        "title": "ComparisonRequestV3",
         "type": "object"
       },
       "ComparisonResult": {
@@ -586,6 +879,55 @@
           "warnings"
         ],
         "title": "ComparisonResult",
+        "type": "object"
+      },
+      "ComparisonResultV3": {
+        "additionalProperties": false,
+        "properties": {
+          "measure": {
+            "enum": [
+              "UNITS",
+              "USD"
+            ],
+            "title": "Measure",
+            "type": "string"
+          },
+          "methods": {
+            "items": {
+              "$ref": "#/components/schemas/MethodResult"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "title": "Methods",
+            "type": "array"
+          },
+          "mode": {
+            "enum": [
+              "PANTRY",
+              "RETAIL"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "scenario_hash": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Scenario Hash",
+            "type": "string"
+          },
+          "scenario_id": {
+            "format": "uuid",
+            "title": "Scenario Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scenario_id",
+          "scenario_hash",
+          "mode",
+          "measure",
+          "methods"
+        ],
+        "title": "ComparisonResultV3",
         "type": "object"
       },
       "ConfirmedArrival": {
@@ -758,6 +1100,121 @@
         "title": "CoverageRow",
         "type": "object"
       },
+      "DangerRanking": {
+        "additionalProperties": false,
+        "properties": {
+          "forecast_run_id": {
+            "format": "uuid",
+            "title": "Forecast Run Id",
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "PANTRY",
+              "RETAIL"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "network_id": {
+            "format": "uuid",
+            "title": "Network Id",
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/DangerRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "network_id",
+          "forecast_run_id",
+          "mode",
+          "rows"
+        ],
+        "title": "DangerRanking",
+        "type": "object"
+      },
+      "DangerRow": {
+        "additionalProperties": false,
+        "properties": {
+          "band": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "title": "Band",
+            "type": "string"
+          },
+          "driving_product_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Driving Product Id",
+            "type": "string"
+          },
+          "driving_units": {
+            "minimum": 0.0,
+            "title": "Driving Units",
+            "type": "integer"
+          },
+          "first_deficit_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Deficit Date"
+          },
+          "location_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Location Id",
+            "type": "string"
+          },
+          "rank": {
+            "minimum": 1.0,
+            "title": "Rank",
+            "type": "integer"
+          },
+          "reason": {
+            "enum": [
+              "unmet",
+              "expiry"
+            ],
+            "title": "Reason",
+            "type": "string"
+          },
+          "score_ratio": {
+            "title": "Score Ratio",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "location_id",
+          "rank",
+          "score_ratio",
+          "band",
+          "reason",
+          "driving_product_id",
+          "driving_units",
+          "unit",
+          "first_deficit_date"
+        ],
+        "title": "DangerRow",
+        "type": "object"
+      },
       "DashboardSummary": {
         "additionalProperties": false,
         "properties": {
@@ -789,6 +1246,88 @@
           "latest_forecast"
         ],
         "title": "DashboardSummary",
+        "type": "object"
+      },
+      "DecisionAction": {
+        "additionalProperties": false,
+        "properties": {
+          "action_text": {
+            "title": "Action Text",
+            "type": "string"
+          },
+          "effect": {
+            "$ref": "#/components/schemas/ActionEffect"
+          },
+          "explanation_kind": {
+            "enum": [
+              "proven_binding",
+              "inferred"
+            ],
+            "title": "Explanation Kind",
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "why_text": {
+            "title": "Why Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "action_text",
+          "why_text",
+          "explanation_kind",
+          "effect"
+        ],
+        "title": "DecisionAction",
+        "type": "object"
+      },
+      "DecisionActions": {
+        "additionalProperties": false,
+        "properties": {
+          "actions": {
+            "items": {
+              "$ref": "#/components/schemas/DecisionAction"
+            },
+            "title": "Actions",
+            "type": "array"
+          },
+          "comparison_id": {
+            "format": "uuid",
+            "title": "Comparison Id",
+            "type": "string"
+          },
+          "method": {
+            "enum": [
+              "NO_TRANSFERS",
+              "EQUAL_SHARE",
+              "MOST_URGENT_FIRST",
+              "CLASSICAL_GP",
+              "EGP_PI_INSPIRED",
+              "SOONEST_EXPIRY_FIRST",
+              "RETAIL_OPTIMIZED"
+            ],
+            "title": "Method",
+            "type": "string"
+          },
+          "non_additive_label": {
+            "const": "effect of this action given the rest of the plan; effects don't add up across actions",
+            "default": "effect of this action given the rest of the plan; effects don't add up across actions",
+            "title": "Non Additive Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "comparison_id",
+          "method",
+          "actions"
+        ],
+        "title": "DecisionActions",
         "type": "object"
       },
       "DemandDay": {
@@ -1064,6 +1603,79 @@
         "title": "DemandSeries",
         "type": "object"
       },
+      "DemandSeriesV3": {
+        "additionalProperties": false,
+        "description": "Seven planning days of one location × product forecast, with its actual provenance.",
+        "properties": {
+          "actual_provider": {
+            "minLength": 1,
+            "title": "Actual Provider",
+            "type": "string"
+          },
+          "basis": {
+            "enum": [
+              "demand",
+              "sales"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "central_literals": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 7,
+            "minItems": 7,
+            "title": "Central Literals",
+            "type": "array"
+          },
+          "fallback_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fallback Reason"
+          },
+          "location_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Location Id",
+            "type": "string"
+          },
+          "product_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Product Id",
+            "type": "string"
+          },
+          "targets": {
+            "items": {
+              "maximum": 100000.0,
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "maxItems": 7,
+            "minItems": 7,
+            "title": "Targets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "location_id",
+          "product_id",
+          "basis",
+          "actual_provider",
+          "fallback_reason",
+          "central_literals",
+          "targets"
+        ],
+        "title": "DemandSeriesV3",
+        "type": "object"
+      },
       "Diagnostics": {
         "additionalProperties": false,
         "properties": {
@@ -1096,6 +1708,116 @@
           "trailing_sample_count"
         ],
         "title": "Diagnostics",
+        "type": "object"
+      },
+      "EgpBlocker": {
+        "additionalProperties": false,
+        "properties": {
+          "location_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Location Id",
+            "type": "string"
+          },
+          "missing": {
+            "items": {
+              "enum": [
+                "poverty_rate",
+                "snap_rate"
+              ],
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Missing",
+            "type": "array"
+          }
+        },
+        "required": [
+          "location_id",
+          "missing"
+        ],
+        "title": "EgpBlocker",
+        "type": "object"
+      },
+      "EnrichmentStatus": {
+        "additionalProperties": false,
+        "properties": {
+          "dataset_version_id": {
+            "format": "uuid",
+            "title": "Dataset Version Id",
+            "type": "string"
+          },
+          "egp_blockers": {
+            "items": {
+              "$ref": "#/components/schemas/EgpBlocker"
+            },
+            "title": "Egp Blockers",
+            "type": "array"
+          },
+          "job_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Id"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "locations": {
+            "items": {
+              "$ref": "#/components/schemas/LocationAttributes"
+            },
+            "title": "Locations",
+            "type": "array"
+          },
+          "network_id": {
+            "format": "uuid",
+            "title": "Network Id",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "not_started",
+              "running",
+              "done",
+              "failed"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "unmatched": {
+            "items": {
+              "$ref": "#/components/schemas/UnmatchedAddress"
+            },
+            "title": "Unmatched",
+            "type": "array"
+          }
+        },
+        "required": [
+          "network_id",
+          "dataset_version_id",
+          "state",
+          "job_id",
+          "last_error",
+          "locations",
+          "unmatched",
+          "egp_blockers"
+        ],
+        "title": "EnrichmentStatus",
         "type": "object"
       },
       "ErrorDetail": {
@@ -1193,6 +1915,26 @@
           "expires_on"
         ],
         "title": "ExpiryDeclaration",
+        "type": "object"
+      },
+      "ExportRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action_ids": {
+            "items": {
+              "maxLength": 64,
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Action Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "action_ids"
+        ],
+        "title": "ExportRequest",
         "type": "object"
       },
       "ForecastAccepted": {
@@ -2092,6 +2834,45 @@
         "title": "GoalMetric",
         "type": "object"
       },
+      "GoogleKey": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "format": "password",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Key",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "title": "GoogleKey",
+        "type": "object"
+      },
+      "GoogleLookupPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "cached": {
+            "minimum": 0.0,
+            "title": "Cached",
+            "type": "integer"
+          },
+          "lookups": {
+            "minimum": 0.0,
+            "title": "Lookups",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "lookups",
+          "cached"
+        ],
+        "title": "GoogleLookupPreview",
+        "type": "object"
+      },
       "GroupMetric": {
         "additionalProperties": false,
         "properties": {
@@ -2185,6 +2966,386 @@
           "scope"
         ],
         "title": "HealthResponse",
+        "type": "object"
+      },
+      "ImportAccepted": {
+        "additionalProperties": false,
+        "properties": {
+          "import_id": {
+            "format": "uuid",
+            "title": "Import Id",
+            "type": "string"
+          },
+          "job_id": {
+            "format": "uuid",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "status_url": {
+            "title": "Status Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "import_id",
+          "job_id",
+          "status_url"
+        ],
+        "title": "ImportAccepted",
+        "type": "object"
+      },
+      "ImportCommit": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of Date"
+          }
+        },
+        "title": "ImportCommit",
+        "type": "object"
+      },
+      "ImportCreate": {
+        "additionalProperties": false,
+        "description": "Either a new network or a re-import (new dataset version) into an existing one.",
+        "properties": {
+          "network": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NewNetwork"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "network_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Network Id"
+          }
+        },
+        "title": "ImportCreate",
+        "type": "object"
+      },
+      "ImportCreated": {
+        "additionalProperties": false,
+        "properties": {
+          "import_id": {
+            "format": "uuid",
+            "title": "Import Id",
+            "type": "string"
+          },
+          "network_id": {
+            "format": "uuid",
+            "title": "Network Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "import_id",
+          "network_id"
+        ],
+        "title": "ImportCreated",
+        "type": "object"
+      },
+      "ImportFile": {
+        "additionalProperties": false,
+        "properties": {
+          "bytes": {
+            "minimum": 0.0,
+            "title": "Bytes",
+            "type": "integer"
+          },
+          "name": {
+            "enum": [
+              "locations",
+              "products",
+              "inventory",
+              "demand_history",
+              "routes",
+              "inbound",
+              "donation_history"
+            ],
+            "title": "Name",
+            "type": "string"
+          },
+          "sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Sha256",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "bytes",
+          "sha256"
+        ],
+        "title": "ImportFile",
+        "type": "object"
+      },
+      "ImportProgress": {
+        "additionalProperties": false,
+        "properties": {
+          "done": {
+            "minimum": 0.0,
+            "title": "Done",
+            "type": "integer"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          },
+          "unit": {
+            "enum": [
+              "bytes",
+              "rows",
+              "checks"
+            ],
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "unit",
+          "done",
+          "total"
+        ],
+        "title": "ImportProgress",
+        "type": "object"
+      },
+      "ImportStatus": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of Date"
+          },
+          "dataset_version_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dataset Version Id"
+          },
+          "error_count": {
+            "minimum": 0.0,
+            "title": "Error Count",
+            "type": "integer"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/RowError"
+            },
+            "maxItems": 1000,
+            "title": "Errors",
+            "type": "array"
+          },
+          "errors_truncated": {
+            "title": "Errors Truncated",
+            "type": "boolean"
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/ImportFile"
+            },
+            "title": "Files",
+            "type": "array"
+          },
+          "import_id": {
+            "format": "uuid",
+            "title": "Import Id",
+            "type": "string"
+          },
+          "job_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Id"
+          },
+          "network_id": {
+            "format": "uuid",
+            "title": "Network Id",
+            "type": "string"
+          },
+          "outside_horizon_inbound": {
+            "items": {
+              "$ref": "#/components/schemas/OutsideHorizonInbound"
+            },
+            "title": "Outside Horizon Inbound",
+            "type": "array"
+          },
+          "phase": {
+            "enum": [
+              "uploading",
+              "staging",
+              "validating",
+              "committing",
+              "done",
+              "failed"
+            ],
+            "title": "Phase",
+            "type": "string"
+          },
+          "progress": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImportProgress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "import_id",
+          "network_id",
+          "job_id",
+          "phase",
+          "files",
+          "progress",
+          "error_count",
+          "errors_truncated",
+          "errors",
+          "outside_horizon_inbound",
+          "dataset_version_id",
+          "as_of_date"
+        ],
+        "title": "ImportStatus",
+        "type": "object"
+      },
+      "InboundV3": {
+        "additionalProperties": false,
+        "description": "A scheduled delivery inside the horizon; counted once, never also as on-hand stock.",
+        "properties": {
+          "arrival_date": {
+            "format": "date",
+            "title": "Arrival Date",
+            "type": "string"
+          },
+          "expiry_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expiry Date"
+          },
+          "id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "location_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Location Id",
+            "type": "string"
+          },
+          "non_expiring": {
+            "title": "Non Expiring",
+            "type": "boolean"
+          },
+          "product_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Product Id",
+            "type": "string"
+          },
+          "quantity": {
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Quantity",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "location_id",
+          "product_id",
+          "quantity",
+          "arrival_date",
+          "expiry_date",
+          "non_expiring"
+        ],
+        "title": "InboundV3",
+        "type": "object"
+      },
+      "IneligibleSeries": {
+        "additionalProperties": false,
+        "description": "Listed, never forecast from zeros (e.g. under 14 days of history, or all blank).",
+        "properties": {
+          "location_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Location Id",
+            "type": "string"
+          },
+          "product_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Product Id",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "location_id",
+          "product_id",
+          "reason"
+        ],
+        "title": "IneligibleSeries",
         "type": "object"
       },
       "InventoryLot": {
@@ -2545,6 +3706,227 @@
           "recorded_at"
         ],
         "title": "LatestForecast",
+        "type": "object"
+      },
+      "LocalSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "google_maps_configured": {
+            "title": "Google Maps Configured",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "google_maps_configured"
+        ],
+        "title": "LocalSettings",
+        "type": "object"
+      },
+      "LocationAttributes": {
+        "additionalProperties": false,
+        "properties": {
+          "fetched_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fetched At"
+          },
+          "location_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Location Id",
+            "type": "string"
+          },
+          "poverty_rate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Poverty Rate"
+          },
+          "snap_rate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snap Rate"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "state": {
+            "enum": [
+              "known",
+              "unknown",
+              "manual",
+              "excluded"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "location_id",
+          "state",
+          "poverty_rate",
+          "snap_rate",
+          "source",
+          "fetched_at"
+        ],
+        "title": "LocationAttributes",
+        "type": "object"
+      },
+      "LocationAttributesUpdate": {
+        "additionalProperties": false,
+        "description": "A manual value for both rates, or an explicit exclusion from EGP.",
+        "properties": {
+          "excluded": {
+            "default": false,
+            "title": "Excluded",
+            "type": "boolean"
+          },
+          "poverty_rate": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Poverty Rate"
+          },
+          "snap_rate": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snap Rate"
+          }
+        },
+        "title": "LocationAttributesUpdate",
+        "type": "object"
+      },
+      "LocationEffect": {
+        "additionalProperties": false,
+        "description": "Per location and product, in that product's unit; never summed across products.",
+        "properties": {
+          "expired_with_plan": {
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Expired With Plan",
+            "type": "integer"
+          },
+          "expired_without_plan": {
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Expired Without Plan",
+            "type": "integer"
+          },
+          "location_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Location Id",
+            "type": "string"
+          },
+          "product_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Product Id",
+            "type": "string"
+          },
+          "unmet_with_plan": {
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Unmet With Plan",
+            "type": "integer"
+          },
+          "unmet_without_plan": {
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Unmet Without Plan",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "location_id",
+          "product_id",
+          "unmet_without_plan",
+          "unmet_with_plan",
+          "expired_without_plan",
+          "expired_with_plan"
+        ],
+        "title": "LocationEffect",
+        "type": "object"
+      },
+      "LocationV3": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "hub",
+              "pantry",
+              "distribution_center",
+              "store"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "role"
+        ],
+        "title": "LocationV3",
         "type": "object"
       },
       "LoginRequest": {
@@ -2976,6 +4358,141 @@
         "title": "MethodOutcome",
         "type": "object"
       },
+      "MethodResult": {
+        "additionalProperties": false,
+        "properties": {
+          "effects": {
+            "items": {
+              "$ref": "#/components/schemas/LocationEffect"
+            },
+            "title": "Effects",
+            "type": "array"
+          },
+          "failure_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Reason"
+          },
+          "labels": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Labels",
+            "type": "array"
+          },
+          "measure": {
+            "enum": [
+              "UNITS",
+              "USD"
+            ],
+            "title": "Measure",
+            "type": "string"
+          },
+          "method": {
+            "enum": [
+              "NO_TRANSFERS",
+              "EQUAL_SHARE",
+              "MOST_URGENT_FIRST",
+              "CLASSICAL_GP",
+              "EGP_PI_INSPIRED",
+              "SOONEST_EXPIRY_FIRST",
+              "RETAIL_OPTIMIZED"
+            ],
+            "title": "Method",
+            "type": "string"
+          },
+          "native_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "OPTIMAL",
+                  "FEASIBLE",
+                  "INFEASIBLE",
+                  "UNKNOWN",
+                  "MODEL_INVALID"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Native Status"
+          },
+          "objective": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Objective"
+          },
+          "products": {
+            "items": {
+              "$ref": "#/components/schemas/ProductSolve"
+            },
+            "title": "Products",
+            "type": "array"
+          },
+          "retail_weights": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RetailWeights"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "transfers": {
+            "items": {
+              "$ref": "#/components/schemas/TransferV3"
+            },
+            "title": "Transfers",
+            "type": "array"
+          },
+          "usd_unavailable_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usd Unavailable Reason"
+          },
+          "verified": {
+            "title": "Verified",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "method",
+          "measure",
+          "native_status",
+          "verified",
+          "failure_reason",
+          "products",
+          "transfers",
+          "effects",
+          "objective",
+          "usd_unavailable_reason",
+          "retail_weights",
+          "labels"
+        ],
+        "title": "MethodResult",
+        "type": "object"
+      },
       "Metrics": {
         "additionalProperties": false,
         "properties": {
@@ -3087,6 +4604,146 @@
           "warnings"
         ],
         "title": "Metrics",
+        "type": "object"
+      },
+      "Network": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of Date"
+          },
+          "dataset_version_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dataset Version Id"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_sample": {
+            "title": "Is Sample",
+            "type": "boolean"
+          },
+          "location_count": {
+            "minimum": 0.0,
+            "title": "Location Count",
+            "type": "integer"
+          },
+          "mode": {
+            "enum": [
+              "PANTRY",
+              "RETAIL"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "product_count": {
+            "minimum": 0.0,
+            "title": "Product Count",
+            "type": "integer"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "mode",
+          "timezone",
+          "is_sample",
+          "dataset_version_id",
+          "as_of_date",
+          "location_count",
+          "product_count"
+        ],
+        "title": "Network",
+        "type": "object"
+      },
+      "NetworkForecastRequest": {
+        "additionalProperties": false,
+        "description": "POST /networks/{id}/forecasts: forecast one dataset version through forecast.v1.",
+        "properties": {
+          "dataset_version_id": {
+            "format": "uuid",
+            "title": "Dataset Version Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dataset_version_id"
+        ],
+        "title": "NetworkForecastRequest",
+        "type": "object"
+      },
+      "NetworkList": {
+        "additionalProperties": false,
+        "properties": {
+          "networks": {
+            "items": {
+              "$ref": "#/components/schemas/Network"
+            },
+            "title": "Networks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "networks"
+        ],
+        "title": "NetworkList",
+        "type": "object"
+      },
+      "NewNetwork": {
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "enum": [
+              "PANTRY",
+              "RETAIL"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "mode",
+          "timezone"
+        ],
+        "title": "NewNetwork",
         "type": "object"
       },
       "ORInputPackage": {
@@ -3254,6 +4911,211 @@
           "decision_ids"
         ],
         "title": "ORInputPackage",
+        "type": "object"
+      },
+      "ORInputV3": {
+        "additionalProperties": false,
+        "properties": {
+          "assumptions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Assumptions",
+            "type": "array"
+          },
+          "batches": {
+            "items": {
+              "$ref": "#/components/schemas/BatchV3"
+            },
+            "maxItems": 200000,
+            "title": "Batches",
+            "type": "array"
+          },
+          "capacities": {
+            "items": {
+              "$ref": "#/components/schemas/CapacityV3"
+            },
+            "title": "Capacities",
+            "type": "array"
+          },
+          "cost_budget_minor": {
+            "anyOf": [
+              {
+                "maximum": 25600000000000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Budget Minor"
+          },
+          "dataset_version_id": {
+            "format": "uuid",
+            "title": "Dataset Version Id",
+            "type": "string"
+          },
+          "demand": {
+            "items": {
+              "$ref": "#/components/schemas/DemandSeriesV3"
+            },
+            "maxItems": 50000,
+            "title": "Demand",
+            "type": "array"
+          },
+          "first_planning_date": {
+            "format": "date",
+            "title": "First Planning Date",
+            "type": "string"
+          },
+          "forecast_run_id": {
+            "format": "uuid",
+            "title": "Forecast Run Id",
+            "type": "string"
+          },
+          "global_handling": {
+            "anyOf": [
+              {
+                "maximum": 25600000000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Global Handling"
+          },
+          "horizon_days": {
+            "const": 7,
+            "default": 7,
+            "title": "Horizon Days",
+            "type": "integer"
+          },
+          "inbound": {
+            "items": {
+              "$ref": "#/components/schemas/InboundV3"
+            },
+            "title": "Inbound",
+            "type": "array"
+          },
+          "inbound_file_provided": {
+            "title": "Inbound File Provided",
+            "type": "boolean"
+          },
+          "locations": {
+            "items": {
+              "$ref": "#/components/schemas/LocationV3"
+            },
+            "maxItems": 100,
+            "minItems": 2,
+            "title": "Locations",
+            "type": "array"
+          },
+          "mode": {
+            "enum": [
+              "PANTRY",
+              "RETAIL"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "network_id": {
+            "format": "uuid",
+            "title": "Network Id",
+            "type": "string"
+          },
+          "organization_id": {
+            "format": "uuid",
+            "title": "Organization Id",
+            "type": "string"
+          },
+          "products": {
+            "items": {
+              "$ref": "#/components/schemas/ProductV3"
+            },
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "Products",
+            "type": "array"
+          },
+          "reserves": {
+            "items": {
+              "$ref": "#/components/schemas/ReserveV3"
+            },
+            "title": "Reserves",
+            "type": "array"
+          },
+          "retail_weights": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RetailWeights"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "routes": {
+            "items": {
+              "$ref": "#/components/schemas/RouteV3"
+            },
+            "title": "Routes",
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "or-input-v3",
+            "default": "or-input-v3",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "snapshot_as_of": {
+            "format": "date",
+            "title": "Snapshot As Of",
+            "type": "string"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          },
+          "transfer_mode": {
+            "$ref": "#/components/schemas/TransferMode"
+          },
+          "vulnerability": {
+            "items": {
+              "$ref": "#/components/schemas/VulnerabilityV3"
+            },
+            "title": "Vulnerability",
+            "type": "array"
+          }
+        },
+        "required": [
+          "network_id",
+          "organization_id",
+          "dataset_version_id",
+          "forecast_run_id",
+          "mode",
+          "transfer_mode",
+          "timezone",
+          "snapshot_as_of",
+          "first_planning_date",
+          "locations",
+          "products",
+          "batches",
+          "demand",
+          "inbound",
+          "inbound_file_provided",
+          "routes",
+          "capacities",
+          "global_handling",
+          "cost_budget_minor",
+          "reserves",
+          "retail_weights",
+          "vulnerability",
+          "assumptions"
+        ],
+        "title": "ORInputV3",
         "type": "object"
       },
       "ORPolicy": {
@@ -3472,6 +5334,47 @@
           "operational_hash"
         ],
         "title": "ORScenarioPayload",
+        "type": "object"
+      },
+      "OutsideHorizonInbound": {
+        "additionalProperties": false,
+        "properties": {
+          "arrival_date": {
+            "format": "date",
+            "title": "Arrival Date",
+            "type": "string"
+          },
+          "line": {
+            "minimum": 2.0,
+            "title": "Line",
+            "type": "integer"
+          },
+          "location_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Location Id",
+            "type": "string"
+          },
+          "product_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Product Id",
+            "type": "string"
+          },
+          "quantity": {
+            "minimum": 0.0,
+            "title": "Quantity",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "line",
+          "location_id",
+          "product_id",
+          "quantity",
+          "arrival_date"
+        ],
+        "title": "OutsideHorizonInbound",
         "type": "object"
       },
       "PairSubmit": {
@@ -3781,6 +5684,65 @@
         "title": "ProductReference",
         "type": "object"
       },
+      "ProductSolve": {
+        "additionalProperties": false,
+        "properties": {
+          "gap": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gap"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "native_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "OPTIMAL",
+                  "FEASIBLE",
+                  "INFEASIBLE",
+                  "UNKNOWN",
+                  "MODEL_INVALID"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Native Status"
+          },
+          "product_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Product Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_id",
+          "native_status",
+          "gap",
+          "label"
+        ],
+        "title": "ProductSolve",
+        "type": "object"
+      },
       "ProductSummary": {
         "additionalProperties": false,
         "properties": {
@@ -3804,6 +5766,55 @@
           "base_unit"
         ],
         "title": "ProductSummary",
+        "type": "object"
+      },
+      "ProductV3": {
+        "additionalProperties": false,
+        "properties": {
+          "handling_units_per_unit": {
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Handling Units Per Unit",
+            "type": "integer"
+          },
+          "id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "unit": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Unit",
+            "type": "string"
+          },
+          "unit_value_usd": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Value Usd"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "unit",
+          "handling_units_per_unit",
+          "unit_value_usd"
+        ],
+        "title": "ProductV3",
         "type": "object"
       },
       "ProjectionDay": {
@@ -4201,6 +6212,36 @@
         "title": "Reserve",
         "type": "object"
       },
+      "ReserveV3": {
+        "additionalProperties": false,
+        "properties": {
+          "floor": {
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Floor",
+            "type": "integer"
+          },
+          "location_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Location Id",
+            "type": "string"
+          },
+          "product_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Product Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "location_id",
+          "product_id",
+          "floor"
+        ],
+        "title": "ReserveV3",
+        "type": "object"
+      },
       "ResidualCapacity": {
         "additionalProperties": false,
         "properties": {
@@ -4235,6 +6276,29 @@
           "source_revision"
         ],
         "title": "ResidualCapacity",
+        "type": "object"
+      },
+      "RetailWeights": {
+        "additionalProperties": false,
+        "properties": {
+          "w_exp": {
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "W Exp",
+            "type": "integer"
+          },
+          "w_lost": {
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "W Lost",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "w_exp",
+          "w_lost"
+        ],
+        "title": "RetailWeights",
         "type": "object"
       },
       "ReviewRequest": {
@@ -4352,6 +6416,109 @@
         "title": "RouteCost",
         "type": "object"
       },
+      "RouteEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "disabled": {
+            "title": "Disabled",
+            "type": "boolean"
+          },
+          "fetched_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fetched At"
+          },
+          "from_location_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "From Location Id",
+            "type": "string"
+          },
+          "method": {
+            "enum": [
+              "straight_line_estimate",
+              "google_road",
+              "routes_csv"
+            ],
+            "title": "Method",
+            "type": "string"
+          },
+          "override": {
+            "title": "Override",
+            "type": "boolean"
+          },
+          "road_miles": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Road Miles"
+          },
+          "to_location_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "To Location Id",
+            "type": "string"
+          },
+          "travel_days": {
+            "minimum": 1.0,
+            "title": "Travel Days",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "from_location_id",
+          "to_location_id",
+          "road_miles",
+          "travel_days",
+          "method",
+          "fetched_at",
+          "override",
+          "disabled"
+        ],
+        "title": "RouteEntry",
+        "type": "object"
+      },
+      "RouteList": {
+        "additionalProperties": false,
+        "properties": {
+          "dataset_version_id": {
+            "format": "uuid",
+            "title": "Dataset Version Id",
+            "type": "string"
+          },
+          "network_id": {
+            "format": "uuid",
+            "title": "Network Id",
+            "type": "string"
+          },
+          "routes": {
+            "items": {
+              "$ref": "#/components/schemas/RouteEntry"
+            },
+            "title": "Routes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "network_id",
+          "dataset_version_id",
+          "routes"
+        ],
+        "title": "RouteList",
+        "type": "object"
+      },
       "RouteQuantity": {
         "additionalProperties": false,
         "properties": {
@@ -4378,6 +6545,131 @@
           "units"
         ],
         "title": "RouteQuantity",
+        "type": "object"
+      },
+      "RouteV3": {
+        "additionalProperties": false,
+        "properties": {
+          "from_location_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "From Location Id",
+            "type": "string"
+          },
+          "method": {
+            "enum": [
+              "straight_line_estimate",
+              "google_road",
+              "routes_csv"
+            ],
+            "title": "Method",
+            "type": "string"
+          },
+          "road_miles": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Road Miles"
+          },
+          "to_location_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "To Location Id",
+            "type": "string"
+          },
+          "travel_days": {
+            "maximum": 7.0,
+            "minimum": 1.0,
+            "title": "Travel Days",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "from_location_id",
+          "to_location_id",
+          "travel_days",
+          "method",
+          "road_miles"
+        ],
+        "title": "RouteV3",
+        "type": "object"
+      },
+      "RowError": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "enum": [
+              "MALFORMED",
+              "DUPLICATE",
+              "NEGATIVE",
+              "FRACTIONAL",
+              "UNKNOWN_ID",
+              "MISSING_EXPIRY",
+              "AFTER_AS_OF_DATE",
+              "OVER_ENVELOPE"
+            ],
+            "title": "Code",
+            "type": "string"
+          },
+          "column": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Column"
+          },
+          "file": {
+            "enum": [
+              "locations",
+              "products",
+              "inventory",
+              "demand_history",
+              "routes",
+              "inbound",
+              "donation_history"
+            ],
+            "title": "File",
+            "type": "string"
+          },
+          "line": {
+            "minimum": 1.0,
+            "title": "Line",
+            "type": "integer"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "file",
+          "line",
+          "column",
+          "code",
+          "reason",
+          "value"
+        ],
+        "title": "RowError",
         "type": "object"
       },
       "SavedComparison": {
@@ -4436,6 +6728,43 @@
         "title": "SavedComparison",
         "type": "object"
       },
+      "SavedComparisonV3": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "network_id": {
+            "format": "uuid",
+            "title": "Network Id",
+            "type": "string"
+          },
+          "recorded_at": {
+            "format": "date-time",
+            "title": "Recorded At",
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/ComparisonResultV3"
+          },
+          "scenario_id": {
+            "format": "uuid",
+            "title": "Scenario Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "network_id",
+          "scenario_id",
+          "recorded_at",
+          "result"
+        ],
+        "title": "SavedComparisonV3",
+        "type": "object"
+      },
       "SavedItem": {
         "additionalProperties": false,
         "properties": {
@@ -4460,6 +6789,63 @@
           "label"
         ],
         "title": "SavedItem",
+        "type": "object"
+      },
+      "ScenarioOptions": {
+        "additionalProperties": false,
+        "description": "POST /networks/{id}/scenarios. Blank capacity = no limit, reserve floors 0, budget off.",
+        "properties": {
+          "cost_budget_minor": {
+            "anyOf": [
+              {
+                "maximum": 25600000000000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Budget Minor"
+          },
+          "dataset_version_id": {
+            "format": "uuid",
+            "title": "Dataset Version Id",
+            "type": "string"
+          },
+          "forecast_run_id": {
+            "format": "uuid",
+            "title": "Forecast Run Id",
+            "type": "string"
+          },
+          "reserve_floors": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ReserveV3"
+            },
+            "title": "Reserve Floors",
+            "type": "array"
+          },
+          "retail_weights": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RetailWeights"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "transfer_mode": {
+            "$ref": "#/components/schemas/TransferMode"
+          }
+        },
+        "required": [
+          "dataset_version_id",
+          "forecast_run_id",
+          "transfer_mode"
+        ],
+        "title": "ScenarioOptions",
         "type": "object"
       },
       "ScenarioRequest": {
@@ -4579,6 +6965,79 @@
           "payload"
         ],
         "title": "ScenarioResult",
+        "type": "object"
+      },
+      "ScenarioV3": {
+        "additionalProperties": false,
+        "properties": {
+          "content_hash": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Content Hash",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "network_id": {
+            "format": "uuid",
+            "title": "Network Id",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/ORInputV3"
+          },
+          "recorded_at": {
+            "format": "date-time",
+            "title": "Recorded At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "network_id",
+          "recorded_at",
+          "content_hash",
+          "payload"
+        ],
+        "title": "ScenarioV3",
+        "type": "object"
+      },
+      "SeriesBacktest": {
+        "additionalProperties": false,
+        "properties": {
+          "basis": {
+            "enum": [
+              "demand",
+              "sales"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "location_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Location Id",
+            "type": "string"
+          },
+          "product_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Product Id",
+            "type": "string"
+          },
+          "score": {
+            "$ref": "#/components/schemas/BacktestScore"
+          }
+        },
+        "required": [
+          "location_id",
+          "product_id",
+          "basis",
+          "score"
+        ],
+        "title": "SeriesBacktest",
         "type": "object"
       },
       "SeriesKey": {
@@ -5307,6 +7766,144 @@
         "title": "SupplyVersionWrite",
         "type": "object"
       },
+      "Template": {
+        "additionalProperties": false,
+        "properties": {
+          "columns": {
+            "items": {
+              "$ref": "#/components/schemas/TemplateColumn"
+            },
+            "title": "Columns",
+            "type": "array"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "example_available": {
+            "title": "Example Available",
+            "type": "boolean"
+          },
+          "name": {
+            "enum": [
+              "locations",
+              "products",
+              "inventory",
+              "demand_history",
+              "routes",
+              "inbound",
+              "donation_history"
+            ],
+            "title": "Name",
+            "type": "string"
+          },
+          "required": {
+            "title": "Required",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "required",
+          "description",
+          "columns",
+          "example_available"
+        ],
+        "title": "Template",
+        "type": "object"
+      },
+      "TemplateCatalog": {
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "anyOf": [
+              {
+                "enum": [
+                  "PANTRY",
+                  "RETAIL"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "templates": {
+            "items": {
+              "$ref": "#/components/schemas/Template"
+            },
+            "title": "Templates",
+            "type": "array"
+          }
+        },
+        "required": [
+          "mode",
+          "templates",
+          "notes"
+        ],
+        "title": "TemplateCatalog",
+        "type": "object"
+      },
+      "TemplateColumn": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed_values": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Allowed Values",
+            "type": "array"
+          },
+          "effect_on_plan": {
+            "minLength": 1,
+            "title": "Effect On Plan",
+            "type": "string"
+          },
+          "meaning": {
+            "minLength": 1,
+            "title": "Meaning",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "required": {
+            "title": "Required",
+            "type": "boolean"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          }
+        },
+        "required": [
+          "name",
+          "required",
+          "unit",
+          "meaning",
+          "effect_on_plan"
+        ],
+        "title": "TemplateColumn",
+        "type": "object"
+      },
       "TransferAssignment": {
         "additionalProperties": false,
         "properties": {
@@ -5402,6 +7999,73 @@
         "title": "TransferMode",
         "type": "string"
       },
+      "TransferV3": {
+        "additionalProperties": false,
+        "properties": {
+          "arrival_date": {
+            "format": "date",
+            "title": "Arrival Date",
+            "type": "string"
+          },
+          "batch_ids": {
+            "items": {
+              "maxLength": 64,
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Batch Ids",
+            "type": "array"
+          },
+          "from_location_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "From Location Id",
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "product_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Product Id",
+            "type": "string"
+          },
+          "quantity": {
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Quantity",
+            "type": "integer"
+          },
+          "ship_date": {
+            "format": "date",
+            "title": "Ship Date",
+            "type": "string"
+          },
+          "to_location_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "To Location Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "product_id",
+          "from_location_id",
+          "to_location_id",
+          "quantity",
+          "ship_date",
+          "arrival_date",
+          "batch_ids"
+        ],
+        "title": "TransferV3",
+        "type": "object"
+      },
       "TransitDay": {
         "additionalProperties": false,
         "properties": {
@@ -5426,6 +8090,32 @@
           "units"
         ],
         "title": "TransitDay",
+        "type": "object"
+      },
+      "UnmatchedAddress": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "title": "Address",
+            "type": "string"
+          },
+          "hint": {
+            "title": "Hint",
+            "type": "string"
+          },
+          "location_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Location Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "location_id",
+          "address",
+          "hint"
+        ],
+        "title": "UnmatchedAddress",
         "type": "object"
       },
       "ValidationError": {
@@ -5591,6 +8281,38 @@
           "scores"
         ],
         "title": "VulnerabilityAttributes",
+        "type": "object"
+      },
+      "VulnerabilityV3": {
+        "additionalProperties": false,
+        "properties": {
+          "location_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Location Id",
+            "type": "string"
+          },
+          "poverty_rate": {
+            "title": "Poverty Rate",
+            "type": "string"
+          },
+          "snap_rate": {
+            "title": "Snap Rate",
+            "type": "string"
+          },
+          "source": {
+            "minLength": 1,
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "location_id",
+          "poverty_rate",
+          "snap_rate",
+          "source"
+        ],
+        "title": "VulnerabilityV3",
         "type": "object"
       }
     }
@@ -6359,6 +9081,119 @@
         ]
       }
     },
+    "/api/v1/forecasts/{job_id}/backtest": {
+      "get": {
+        "operationId": "get_backtest_api_v1_forecasts__job_id__backtest_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BacktestResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Get Backtest",
+        "tags": [
+          "v1-networks"
+        ]
+      }
+    },
     "/api/v1/health": {
       "get": {
         "description": "Process liveness only; does not assert database or worker readiness.",
@@ -6378,6 +9213,117 @@
         "summary": "Health",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/api/v1/imports": {
+      "post": {
+        "operationId": "create_import_api_v1_imports_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportCreated"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Create Import",
+        "tags": [
+          "v1-imports"
         ]
       }
     },
@@ -6756,6 +9702,390 @@
         "summary": "Coverage Import",
         "tags": [
           "operations"
+        ]
+      }
+    },
+    "/api/v1/imports/{import_id}": {
+      "get": {
+        "operationId": "import_status_api_v1_imports__import_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Import Status",
+        "tags": [
+          "v1-imports"
+        ]
+      }
+    },
+    "/api/v1/imports/{import_id}/commit": {
+      "post": {
+        "operationId": "commit_import_api_v1_imports__import_id__commit_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Import Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportCommit"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Commit Import",
+        "tags": [
+          "v1-imports"
+        ]
+      }
+    },
+    "/api/v1/imports/{import_id}/files/{name}": {
+      "post": {
+        "operationId": "upload_file_api_v1_imports__import_id__files__name__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Import Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "enum": [
+                "locations",
+                "products",
+                "inventory",
+                "demand_history",
+                "routes",
+                "inbound",
+                "donation_history"
+              ],
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "text/csv": {}
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportFile"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Upload File",
+        "tags": [
+          "v1-imports"
         ]
       }
     },
@@ -7611,6 +10941,1869 @@
         "summary": "Legacy Record",
         "tags": [
           "allocation"
+        ]
+      }
+    },
+    "/api/v1/networks": {
+      "get": {
+        "operationId": "list_networks_api_v1_networks_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "List Networks",
+        "tags": [
+          "v1-networks"
+        ]
+      }
+    },
+    "/api/v1/networks/{network_id}": {
+      "get": {
+        "operationId": "get_network_api_v1_networks__network_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "network_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Network Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Network"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Get Network",
+        "tags": [
+          "v1-networks"
+        ]
+      }
+    },
+    "/api/v1/networks/{network_id}/comparisons": {
+      "post": {
+        "operationId": "submit_comparison_api_v1_networks__network_id__comparisons_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "network_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Network Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComparisonRequestV3"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForecastAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Submit Comparison",
+        "tags": [
+          "v1-decisions"
+        ]
+      }
+    },
+    "/api/v1/networks/{network_id}/comparisons/{comparison_id}": {
+      "get": {
+        "operationId": "get_comparison_api_v1_networks__network_id__comparisons__comparison_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "network_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Network Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "comparison_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Comparison Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedComparisonV3"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Get Comparison",
+        "tags": [
+          "v1-decisions"
+        ]
+      }
+    },
+    "/api/v1/networks/{network_id}/comparisons/{comparison_id}/methods/{method}/actions": {
+      "get": {
+        "operationId": "actions_api_v1_networks__network_id__comparisons__comparison_id__methods__method__actions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "network_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Network Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "comparison_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Comparison Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "method",
+            "required": true,
+            "schema": {
+              "enum": [
+                "NO_TRANSFERS",
+                "EQUAL_SHARE",
+                "MOST_URGENT_FIRST",
+                "CLASSICAL_GP",
+                "EGP_PI_INSPIRED",
+                "SOONEST_EXPIRY_FIRST",
+                "RETAIL_OPTIMIZED"
+              ],
+              "title": "Method",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionActions"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Actions",
+        "tags": [
+          "v1-decisions"
+        ]
+      }
+    },
+    "/api/v1/networks/{network_id}/comparisons/{comparison_id}/methods/{method}/export": {
+      "post": {
+        "operationId": "export_api_v1_networks__network_id__comparisons__comparison_id__methods__method__export_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "network_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Network Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "comparison_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Comparison Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "method",
+            "required": true,
+            "schema": {
+              "enum": [
+                "NO_TRANSFERS",
+                "EQUAL_SHARE",
+                "MOST_URGENT_FIRST",
+                "CLASSICAL_GP",
+                "EGP_PI_INSPIRED",
+                "SOONEST_EXPIRY_FIRST",
+                "RETAIL_OPTIMIZED"
+              ],
+              "title": "Method",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv": {},
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Export",
+        "tags": [
+          "v1-decisions"
+        ]
+      }
+    },
+    "/api/v1/networks/{network_id}/danger": {
+      "get": {
+        "operationId": "get_danger_api_v1_networks__network_id__danger_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "network_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Network Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "forecast_run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Forecast Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DangerRanking"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Get Danger",
+        "tags": [
+          "v1-networks"
+        ]
+      }
+    },
+    "/api/v1/networks/{network_id}/enrichment": {
+      "get": {
+        "operationId": "enrichment_status_api_v1_networks__network_id__enrichment_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "network_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Network Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrichmentStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Enrichment Status",
+        "tags": [
+          "v1-settings"
+        ]
+      }
+    },
+    "/api/v1/networks/{network_id}/enrichment/retry": {
+      "post": {
+        "operationId": "retry_enrichment_api_v1_networks__network_id__enrichment_retry_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "network_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Network Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForecastAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Retry Enrichment",
+        "tags": [
+          "v1-settings"
+        ]
+      }
+    },
+    "/api/v1/networks/{network_id}/forecasts": {
+      "post": {
+        "operationId": "submit_forecast_api_v1_networks__network_id__forecasts_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "network_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Network Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkForecastRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForecastAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Submit Forecast",
+        "tags": [
+          "v1-networks"
+        ]
+      }
+    },
+    "/api/v1/networks/{network_id}/locations/{location_id}/attributes": {
+      "put": {
+        "operationId": "set_attributes_api_v1_networks__network_id__locations__location_id__attributes_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "network_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Network Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "location_id",
+            "required": true,
+            "schema": {
+              "title": "Location Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationAttributesUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationAttributes"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Set Attributes",
+        "tags": [
+          "v1-settings"
+        ]
+      }
+    },
+    "/api/v1/networks/{network_id}/routes": {
+      "get": {
+        "operationId": "list_routes_api_v1_networks__network_id__routes_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "network_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Network Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "List Routes",
+        "tags": [
+          "v1-settings"
+        ]
+      }
+    },
+    "/api/v1/networks/{network_id}/routes/google-fetch": {
+      "post": {
+        "operationId": "google_fetch_api_v1_networks__network_id__routes_google_fetch_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "network_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Network Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForecastAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Google Fetch",
+        "tags": [
+          "v1-settings"
+        ]
+      }
+    },
+    "/api/v1/networks/{network_id}/routes/google-preview": {
+      "post": {
+        "operationId": "google_preview_api_v1_networks__network_id__routes_google_preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "network_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Network Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoogleLookupPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Google Preview",
+        "tags": [
+          "v1-settings"
+        ]
+      }
+    },
+    "/api/v1/networks/{network_id}/scenarios": {
+      "post": {
+        "operationId": "create_scenario_api_v1_networks__network_id__scenarios_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "network_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Network Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScenarioOptions"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioV3"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Create Scenario",
+        "tags": [
+          "v1-networks"
         ]
       }
     },
@@ -9517,6 +14710,317 @@
         ]
       }
     },
+    "/api/v1/settings": {
+      "get": {
+        "operationId": "get_settings_api_v1_settings_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalSettings"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Get Settings",
+        "tags": [
+          "v1-settings"
+        ]
+      }
+    },
+    "/api/v1/settings/google-maps-key": {
+      "delete": {
+        "operationId": "delete_google_key_api_v1_settings_google_maps_key_delete",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalSettings"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Delete Google Key",
+        "tags": [
+          "v1-settings"
+        ]
+      },
+      "put": {
+        "operationId": "set_google_key_api_v1_settings_google_maps_key_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleKey"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalSettings"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Set Google Key",
+        "tags": [
+          "v1-settings"
+        ]
+      }
+    },
     "/api/v1/shortages/{forecast_run_id}": {
       "get": {
         "operationId": "shortages_api_v1_shortages__forecast_run_id__get",
@@ -10057,6 +15561,265 @@
         "summary": "Confirm Supply",
         "tags": [
           "operations"
+        ]
+      }
+    },
+    "/api/v1/templates": {
+      "get": {
+        "operationId": "template_catalog_api_v1_templates_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "mode",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "PANTRY",
+                    "RETAIL"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Mode"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateCatalog"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Template Catalog",
+        "tags": [
+          "v1-networks"
+        ]
+      }
+    },
+    "/api/v1/templates/{name}.csv": {
+      "get": {
+        "operationId": "template_csv_api_v1_templates__name__csv_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "enum": [
+                "locations",
+                "products",
+                "inventory",
+                "demand_history",
+                "routes",
+                "inbound",
+                "donation_history"
+              ],
+              "title": "Name",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "default": "blank",
+              "enum": [
+                "blank",
+                "example"
+              ],
+              "title": "Kind",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv": {},
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Template Csv",
+        "tags": [
+          "v1-networks"
         ]
       }
     }

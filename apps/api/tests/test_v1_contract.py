@@ -223,3 +223,13 @@ def test_transfer_mode_still_required():
 def test_scenario_is_frozen_and_dates_ordered():
     with pytest.raises(ValidationError, match="FIRST_PLANNING_DATE"):
         ORInputV3.model_validate(_scenario(2, 1, first_planning_date=str(date(2026, 11, 5))))
+
+
+def test_examples_validate():
+    import subprocess
+    import sys
+
+    script = Path(__file__).resolve().parents[1] / "scripts/validate_contract_examples.py"
+    result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "18 v1 examples valid" in result.stdout

@@ -18,6 +18,8 @@ x-api: &api
     PP_PRESENTER_USERNAME: local
     PP_PRESENTER_ORGANIZATION_ID: 6f0c5a52-4c2e-5d1b-9a57-0b1f4c7d2e01
     PP_TRUSTED_PROXY_TOKEN_FILE: /run/pantrypulse/proxy-token
+    # Uploaded import files until the import.v1 job commits or aborts (W0-08).
+    PP_IMPORT_DIR: /var/lib/pantrypulse/imports
 
 x-long-running: &long-running
   # `docker compose restart` stops Postgres alongside the others; reconnect instead of staying down.
@@ -72,6 +74,7 @@ services:
     depends_on: *after-setup
     volumes:
       - proxy-token:/run/pantrypulse:ro
+      - imports:/var/lib/pantrypulse/imports
     healthcheck:
       test: ["CMD", "uv", "run", "--frozen", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')"]
       interval: 5s
@@ -82,6 +85,8 @@ services:
     <<: [*api, *long-running]
     command: ["uv", "run", "--frozen", "python", "-m", "app.workers.supervisor", "--registry", "production"]
     depends_on: *after-setup
+    volumes:
+      - imports:/var/lib/pantrypulse/imports
     init: true
     # CLAUDE.md worker ceilings: 6 CPU / 8 GiB, 725 s stop grace.
     cpus: 6
@@ -116,3 +121,5 @@ volumes:
   db:
   # The trusted proxy token, generated once by seed; never published to the host.
   proxy-token:
+  # Uploaded import files, shared by api (writes) and worker (reads); never published.
+  imports:

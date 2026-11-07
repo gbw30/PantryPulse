@@ -72,7 +72,7 @@ def _fails(engine, sql, **params):
 def test_upgrade_head_on_fresh_database(engine):
     with engine.connect() as conn:
         assert V1_TABLES <= _tables(conn)
-        assert conn.scalar(sa.text("SELECT version_num FROM alembic_version")) == "ppv1_0008"
+        assert conn.scalar(sa.text("SELECT version_num FROM alembic_version")) == "ppv1_0009"
 
 
 def test_downgrade_to_ppvp_0007_and_up_again():
@@ -163,3 +163,31 @@ def test_network_mode_immutable(engine):
 def test_dataset_version_immutable(engine):
     _fails(engine, "UPDATE dataset_versions SET as_of_date = '2026-11-04' WHERE id = :ver")
     _fails(engine, "DELETE FROM dataset_versions WHERE id = :ver")
+
+
+def _kinds(conn, schema):
+    return conn.scalar(sa.text(
+        "SELECT pg_get_constraintdef(c.oid) FROM pg_constraint c "
+        "JOIN pg_namespace n ON n.oid = c.connamespace "
+        "WHERE n.nspname = :schema AND c.conname = 'compute_jobs_operation_kind_check'"
+    ), {"schema": schema})
+
+
+def test_ppv1_0009_adds_import_and_enrichment_job_kinds():
+    url = database_url()
+    schema = "v1_job_kinds_test"
+    reset_schema(url, schema)
+    eng = create_queue_engine(url, schema=schema)
+    try:
+        with eng.begin() as conn:
+            command.upgrade(alembic_config(conn), "head")
+        with eng.connect() as conn:
+            definition = _kinds(conn, schema)
+            assert all(f"'{k}'" in definition for k in ("FORECAST", "IMPORT", "ENRICHMENT"))
+        with eng.begin() as conn:
+            command.downgrade(alembic_config(conn), "ppv1_0008")
+        with eng.connect() as conn:
+            assert "IMPORT" not in _kinds(conn, schema)
+    finally:
+        eng.dispose()
+        reset_schema(url, schema)

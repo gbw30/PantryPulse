@@ -1,0 +1,20 @@
+{
+  "comparison_id": "83a4b526-7091-42b3-8e4f-60718293a415",
+  "method": "CLASSICAL_GP",
+  "actions": [
+    {
+      "id": "T-1",
+      "action_text": "Move 40 cases of Bottled water from Hub North to Pantry 12, ship on Nov 6, arrives Nov 7.",
+      "why_text": "Pantry 12 runs out on Nov 8 (projected unmet 55 cases over 3 days); Hub North has 120 cases beyond its protected need; 30 of them expire Nov 12.",
+      "explanation_kind": "proven_binding",
+      "effect": {
+        "product_id": "WATER-24",
+        "sender_unmet_delta": 0,
+        "receiver_unmet_delta": -40,
+        "expired_delta": 0,
+        "usd_delta": null
+      }
+    }
+  ],
+  "non_additive_label": "effect of this action given the rest of the plan; effects don't add up across actions"
+}

@@ -110,6 +110,8 @@ def operation_budget_s(kind: OperationKind, profile: RuntimeProfile) -> float:
         OperationKind.FORECAST: profile.forecast_total_s,
         OperationKind.ALLOCATION: profile.allocation_total_s,
         OperationKind.COMPARISON: profile.comparison_total_s,
+        OperationKind.IMPORT: profile.import_total_s,
+        OperationKind.ENRICHMENT: profile.enrichment_total_s,
     }[OperationKind(kind)]
 
 

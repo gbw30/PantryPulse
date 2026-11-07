@@ -671,6 +671,8 @@ class Supervisor:
                 self.profile.forecast_total_s,
                 self.profile.allocation_total_s,
                 self.profile.comparison_total_s,
+                self.profile.import_total_s,
+                self.profile.enrichment_total_s,
             )
             + 30
         )

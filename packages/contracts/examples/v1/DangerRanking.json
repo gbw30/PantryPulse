@@ -1,0 +1,29 @@
+{
+  "network_id": "8b2f4c1e-3a5d-4e6f-9a7b-1c2d3e4f5a60",
+  "forecast_run_id": "61829304-5e7f-4091-8c2d-4e5f60718293",
+  "mode": "PANTRY",
+  "rows": [
+    {
+      "location_id": "P-12",
+      "rank": 1,
+      "score_ratio": "0.62",
+      "band": "high",
+      "reason": "unmet",
+      "driving_product_id": "WATER-24",
+      "driving_units": 55,
+      "unit": "case",
+      "first_deficit_date": "2026-11-08"
+    },
+    {
+      "location_id": "P-07",
+      "rank": 2,
+      "score_ratio": "0.10",
+      "band": "low",
+      "reason": "unmet",
+      "driving_product_id": "RICE-5",
+      "driving_units": 4,
+      "unit": "bag",
+      "first_deficit_date": "2026-11-11"
+    }
+  ]
+}

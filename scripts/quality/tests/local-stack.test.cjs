@@ -99,3 +99,16 @@ test('seed generates the login and proxy token into files; no env var or shell c
   assert.equal(services.api.environment.PP_PRESENTER_ORGANIZATION_ID, orgId);
   assert.equal(services.api.environment.PP_PRESENTER_USERNAME, 'local');
 });
+
+test('api and worker share the imports volume; web never sees uploaded files', () => {
+  const { services, volumes } = config();
+  assert.ok(volumes.imports, 'named imports volume');
+  for (const name of ['api', 'worker']) {
+    const mount = services[name].volumes.find((v) => v.source === 'imports');
+    assert.ok(mount, `${name} mounts imports`);
+    assert.equal(mount.target, '/var/lib/pantrypulse/imports');
+    assert.notEqual(mount.read_only, true, `${name} can write imports`);
+    assert.equal(services[name].environment.PP_IMPORT_DIR, '/var/lib/pantrypulse/imports');
+  }
+  assert.ok(!services.web.volumes.some((v) => v.source === 'imports'));
+});

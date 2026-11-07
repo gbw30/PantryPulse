@@ -1,0 +1,60 @@
+{
+  "mode": "PANTRY",
+  "notes": [
+    "One network timezone: every location plans on the network's day boundaries.",
+    "capacity not provided — no limit assumed"
+  ],
+  "templates": [
+    {
+      "name": "locations",
+      "required": true,
+      "example_available": false,
+      "description": "One row per hub or pantry.",
+      "columns": [
+        {
+          "name": "location_id",
+          "required": true,
+          "unit": null,
+          "meaning": "Your ID for the location; trimmed, case-sensitive.",
+          "effect_on_plan": "Links stock, history and routes to this location.",
+          "allowed_values": []
+        },
+        {
+          "name": "type",
+          "required": true,
+          "unit": null,
+          "meaning": "What the location does.",
+          "effect_on_plan": "Hubs only send; pantries receive and, in HUB_AND_PANTRY mode, may send.",
+          "allowed_values": [
+            "hub",
+            "pantry"
+          ]
+        },
+        {
+          "name": "receiving_capacity",
+          "required": false,
+          "unit": "handling units per day",
+          "meaning": "Most the location can receive in a day. Blank never becomes zero.",
+          "effect_on_plan": "Caps transfers into the location; blank means no limit.",
+          "allowed_values": []
+        }
+      ]
+    },
+    {
+      "name": "demand_history",
+      "required": true,
+      "example_available": false,
+      "description": "Daily demand or sales per location and product, up to 90 days.",
+      "columns": [
+        {
+          "name": "quantity",
+          "required": false,
+          "unit": "product unit",
+          "meaning": "Units requested that day. Blank means unknown, never zero.",
+          "effect_on_plan": "Feeds the 7-day forecast.",
+          "allowed_values": []
+        }
+      ]
+    }
+  ]
+}

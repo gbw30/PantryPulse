@@ -61,7 +61,10 @@ def test_unknown_or_lowercase_state_values_are_rejected():
     for bad in ("queued", "DONE", " QUEUED", ""):
         with pytest.raises(ValueError):
             AttemptState(bad)
-    assert {k.value for k in OperationKind} == {"FORECAST", "ALLOCATION", "COMPARISON"}
+    # IMPORT and ENRICHMENT arrive with ppv1_0009 (v1 durable jobs).
+    assert {k.value for k in OperationKind} == {
+        "FORECAST", "ALLOCATION", "COMPARISON", "IMPORT", "ENRICHMENT"
+    }
     assert {s.value for s in SupervisorState} == {
         "OFFLINE",
         "STARTING",

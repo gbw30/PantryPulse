@@ -1,0 +1,117 @@
+{
+  "id": "83a4b526-7091-42b3-8e4f-60718293a415",
+  "network_id": "8b2f4c1e-3a5d-4e6f-9a7b-1c2d3e4f5a60",
+  "scenario_id": "7293a415-6f80-41a2-9d3e-5f6071829304",
+  "recorded_at": "2026-11-06T09:21:40Z",
+  "result": {
+    "scenario_id": "7293a415-6f80-41a2-9d3e-5f6071829304",
+    "scenario_hash": "9f2c1e7a9f2c1e7a9f2c1e7a9f2c1e7a9f2c1e7a9f2c1e7a9f2c1e7a9f2c1e7a",
+    "mode": "PANTRY",
+    "measure": "UNITS",
+    "methods": [
+      {
+        "method": "NO_TRANSFERS",
+        "measure": "UNITS",
+        "native_status": null,
+        "verified": true,
+        "failure_reason": null,
+        "products": [],
+        "transfers": [],
+        "effects": [
+          {
+            "location_id": "P-12",
+            "product_id": "WATER-24",
+            "unmet_without_plan": 55,
+            "unmet_with_plan": 55,
+            "expired_without_plan": 0,
+            "expired_with_plan": 0
+          }
+        ],
+        "objective": null,
+        "usd_unavailable_reason": "no unit values in products.csv",
+        "retail_weights": null,
+        "labels": []
+      },
+      {
+        "method": "CLASSICAL_GP",
+        "measure": "UNITS",
+        "native_status": "OPTIMAL",
+        "verified": true,
+        "failure_reason": null,
+        "products": [
+          {
+            "product_id": "WATER-24",
+            "native_status": "OPTIMAL",
+            "gap": null,
+            "label": null
+          },
+          {
+            "product_id": "RICE-5",
+            "native_status": null,
+            "gap": null,
+            "label": "not at risk; not optimized"
+          }
+        ],
+        "transfers": [
+          {
+            "id": "T-1",
+            "product_id": "WATER-24",
+            "from_location_id": "HUB-N",
+            "to_location_id": "P-12",
+            "quantity": 40,
+            "ship_date": "2026-11-06",
+            "arrival_date": "2026-11-07",
+            "batch_ids": [
+              "B-100"
+            ]
+          }
+        ],
+        "effects": [
+          {
+            "location_id": "P-12",
+            "product_id": "WATER-24",
+            "unmet_without_plan": 55,
+            "unmet_with_plan": 15,
+            "expired_without_plan": 0,
+            "expired_with_plan": 0
+          }
+        ],
+        "objective": "15",
+        "usd_unavailable_reason": "no unit values in products.csv",
+        "retail_weights": null,
+        "labels": [
+          "optimized per product, with shared capacity split in advance"
+        ]
+      },
+      {
+        "method": "EGP_PI_INSPIRED",
+        "measure": "UNITS",
+        "native_status": "UNKNOWN",
+        "verified": false,
+        "failure_reason": "search limit reached before a feasible plan; no plan shown",
+        "products": [
+          {
+            "product_id": "WATER-24",
+            "native_status": "UNKNOWN",
+            "gap": null,
+            "label": null
+          },
+          {
+            "product_id": "RICE-5",
+            "native_status": null,
+            "gap": null,
+            "label": "not at risk; not optimized"
+          }
+        ],
+        "transfers": [],
+        "effects": [],
+        "objective": null,
+        "usd_unavailable_reason": "no unit values in products.csv",
+        "retail_weights": null,
+        "labels": [
+          "optimized per product, with shared capacity split in advance"
+        ]
+      }
+    ]
+  }
+}
