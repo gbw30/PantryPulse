@@ -23,6 +23,7 @@ from app.services.imports.columns import COLUMNS, header
 
 # The or-input-v3 `Count` bound (or_inputs.py:14): a larger quantity would fail at scenario freeze.
 MAX_QUANTITY = 100_000
+MAX_DECIMAL = Decimal(99_999_999)  # the narrowest stored column, Numeric(14, 6), holds < 10^8
 HORIZON_DAYS = 7
 ID_MAX_LENGTH = 64
 US_STATES = frozenset(
@@ -100,7 +101,7 @@ class DonationDay:
     location_id: str
     product_id: str
     day: date
-    quantity: int | None  # sum of the reported rows; None when every row was blank
+    quantity: int | None  # sum of the reported rows; None when any row was blank (unknown day)
     donor: str | None
 
 
@@ -290,7 +291,10 @@ class Validator:
                     report(name, line, nul, "MALFORMED",
                            "the value contains a NUL character (0x00), which can't be stored",
                            "Delete the hidden character from this cell, or re-save the file as "
-                           "CSV UTF-8")  # the row still checks the rest: an error saves nothing
+                           "CSV UTF-8")
+                    # Check the rest of the row without the NUL (one error per cell); the
+                    # error above already means nothing is saved.
+                    cells = [cell.replace("\x00", "") for cell in cells]
                 yield line, dict(zip(head, (cell.strip() for cell in cells), strict=True))
         except csv.Error as exc:
             report(name, reader.line_num, None, "MALFORMED", f"the row can't be read: {exc}",
@@ -393,8 +397,10 @@ class Validator:
             name, unit = row.required("name"), row.required("unit")
             value = row.decimal("unit_value_usd", Decimal(0))
             handling = row.decimal("handling_units_per_unit", Decimal(0))
-            if handling == 0 and cells.get("handling_units_per_unit"):
-                row.fail("handling_units_per_unit", "MALFORMED", "must be greater than 0",
+            # Numeric(14, 6) stores anything smaller as 0, which the > 0 check refuses.
+            if handling is not None and handling < Decimal("0.000001"):
+                row.fail("handling_units_per_unit", "MALFORMED",
+                         "must be greater than 0 (at least 0.000001)",
                          "Enter how many handling units one product unit takes, e.g. 1, or "
                          "leave it blank to assume 1", cells["handling_units_per_unit"])
             if row.ok and len(self.product_index) >= self.envelope.max_products:
@@ -475,10 +481,11 @@ class Validator:
             elif name == "demand_history":
                 self.parsed.demand_history.append(record)
             else:  # donations are summed per receiving location × product × day (V1-SPEC §6.1)
-                total, donors = self._donations.setdefault(
-                    (location_id, product_id, day), [None, []])
-                if quantity is not None:
-                    self._donations[(location_id, product_id, day)][0] = (total or 0) + quantity
+                key = (location_id, product_id, day)
+                total, donors = self._donations.setdefault(key, [0, []])
+                # One blank row makes the day unknown: a partial sum would hide it (never zero).
+                self._donations[key][0] = (None if total is None or quantity is None
+                                           else total + quantity)
                 if record.donor and record.donor not in donors:
                     donors.append(record.donor)
 
@@ -648,13 +655,15 @@ class _Row:
                     raise _Bad("NEGATIVE", f"{column} can't be negative", fix)
                 raise _Bad("FRACTIONAL", f"{column} must be a whole number",
                            "Round to a whole number of units (digits only, no decimal point)")
-            value = int(raw)
-            if value > MAX_QUANTITY:
+            digits = raw.lstrip("0") or "0"  # int() refuses over 4,300 digits: size it first
+            if len(digits) > len(str(MAX_QUANTITY)) or int(digits) > MAX_QUANTITY:
+                shown = (f"{int(digits):,}" if len(digits) <= 18
+                         else f"a {len(digits):,}-digit number")
                 raise _Bad("OVER_ENVELOPE",
-                           f"{value:,} is above the planning limit of {MAX_QUANTITY:,} units "
+                           f"{shown} is above the planning limit of {MAX_QUANTITY:,} units "
                            "per row", f"Split it into rows of at most {MAX_QUANTITY:,} units, "
                            "or use a larger unit (e.g. pallets instead of cases)")
-            return value
+            return int(digits)
         return self._parse(column, parse)
 
     def decimal(self, column: str, low: Decimal, high: Decimal | None = None,
@@ -676,6 +685,10 @@ class _Row:
             if number < low or (high is not None and number > high):
                 raise _Bad("MALFORMED", f"must be between {low} and {high}",
                            range_fix or f"Enter a value from {low} to {high}")
+            if number > MAX_DECIMAL:
+                raise _Bad("OVER_ENVELOPE",
+                           f"{column} is above the largest value v1 stores ({MAX_DECIMAL:,})",
+                           f"Enter at most {MAX_DECIMAL:,}, or use a larger unit")
             return number
         return self._parse(column, parse)
 

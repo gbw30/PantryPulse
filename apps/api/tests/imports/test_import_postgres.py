@@ -2,6 +2,7 @@
 """Staging and the all-or-nothing commit on real PostgreSQL (W1-D04). Never skipped in CI."""
 
 import asyncio
+import hashlib
 import uuid
 from datetime import date
 from pathlib import Path
@@ -14,7 +15,7 @@ from alembic import command
 from app.repositories import imports as repo
 from app.repositories.jobs import create_queue_engine
 from app.schemas.v1_imports import NewNetwork
-from app.services.imports.staging import run_import, write_upload
+from app.services.imports.staging import run_import, upload_path, write_upload
 from tests.integration.wq_support import alembic_config, database_url, reset_schema
 
 pytestmark = pytest.mark.integration
@@ -153,6 +154,7 @@ def test_blank_demand_stays_null_in_database(engine, tmp_path):
 
 def test_donations_summed_and_unknown_kept_null(engine, tmp_path):
     donations = ("location_id,product_id,date,quantity,donor\n"
+                 "P1,RICE,2026-10-30,5,Church\nP1,RICE,2026-10-30,,Club\n"
                  "P1,RICE,2026-11-01,2,Church\nP1,RICE,2026-11-01,3,Club\n"
                  "P1,RICE,2026-11-02,0,\nP1,RICE,2026-11-03,,\n")
     outcome = _import(engine, tmp_path, {**FILES, "donation_history": donations})
@@ -163,6 +165,7 @@ def test_donations_summed_and_unknown_kept_null(engine, tmp_path):
             "WHERE dataset_version_id = :v ORDER BY day"),
             {"v": outcome.dataset_version_id}).all()
     assert [tuple(r) for r in rows] == [
+        (date(2026, 10, 30), None, "Church; Club"),  # one blank row: the day stays unknown
         (date(2026, 11, 1), 5, "Church; Club"), (date(2026, 11, 2), 0, None),
         (date(2026, 11, 3), None, None)]
 
@@ -306,3 +309,72 @@ def test_upload_after_commit_started_is_409(engine, tmp_path, monkeypatch):
         asyncio.run(store_import_file(SimpleNamespace(engine=engine), None, run.id,
                                       "products", chunks()))
     assert raised.value.status == 409
+
+
+def _on_disk_matches_record(engine, base: Path, run_id: uuid.UUID, name: str) -> bool:
+    with engine.connect() as conn:
+        files = conn.scalar(sa.text("SELECT files FROM import_runs WHERE id = :r"), {"r": run_id})
+    recorded = next(f["sha256"] for f in files if f["name"] == name)
+    on_disk = hashlib.sha256(upload_path(base, run_id, name).read_bytes()).hexdigest()
+    return recorded == on_disk
+
+
+def test_an_upload_refused_mid_stream_leaves_the_recorded_file_in_place(
+        engine, tmp_path, monkeypatch):
+    """The commit lands while a re-upload streams: the job must read the bytes it recorded."""
+    from app.services.imports.api import store_import_file
+    from app.services.presenter_access import AccessError
+
+    monkeypatch.setenv("PP_IMPORT_DIR", str(tmp_path))
+    with engine.begin() as conn:
+        run = repo.create_run(conn, NEW, None)
+    rt = SimpleNamespace(engine=engine)
+
+    async def first():
+        yield b"product_id,name,unit\nRICE,Rice,case\n"
+
+    async def replacement():
+        yield b"product_id,name,unit\n"
+        with engine.begin() as conn:  # the commit, between the two checks
+            repo.set_phase(conn, run.id, "staging")
+        yield b"BEANS,Beans,case\n"
+
+    asyncio.run(store_import_file(rt, None, run.id, "products", first()))
+    with pytest.raises(AccessError):
+        asyncio.run(store_import_file(rt, None, run.id, "products", replacement()))
+    assert _on_disk_matches_record(engine, tmp_path, run.id, "products")
+    assert not list(upload_path(tmp_path, run.id, "products").parent.glob("*.part"))
+
+
+def test_overlapping_uploads_of_one_file_keep_disk_and_record_in_step(
+        engine, tmp_path, monkeypatch):
+    """A client retry while the first upload still streams: whichever wins, the file on disk
+    is the one recorded."""
+    from app.services.imports.api import store_import_file
+
+    monkeypatch.setenv("PP_IMPORT_DIR", str(tmp_path))
+    with engine.begin() as conn:
+        run = repo.create_run(conn, NEW, None)
+    rt = SimpleNamespace(engine=engine)
+
+    async def both():
+        retried = asyncio.Event()
+
+        async def slow():
+            yield b"product_id,name,unit\n"
+            await retried.wait()
+            yield b"RICE,Rice,case\n"
+
+        async def fast():
+            yield b"product_id,name,unit\nBEANS,Beans,case\n"
+
+        async def retry():
+            await store_import_file(rt, None, run.id, "products", fast())
+            retried.set()
+
+        return await asyncio.gather(
+            store_import_file(rt, None, run.id, "products", slow()), retry(),
+            return_exceptions=True)
+
+    asyncio.run(both())
+    assert _on_disk_matches_record(engine, tmp_path, run.id, "products")

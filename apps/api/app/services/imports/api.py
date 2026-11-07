@@ -5,6 +5,7 @@ each call checks the run or network it names exists, and jobs run under the netw
 organization, never one sent by the client.
 """
 
+import os
 from collections.abc import AsyncIterator
 from uuid import UUID
 
@@ -49,10 +50,17 @@ async def store_import_file(
     An over-cap or broken upload leaves no file (W1-D04)."""
     with rt.engine.connect() as conn:
         _uploading(repo.get_run(conn, import_id))
-    size, sha256 = await staging.write_upload(staging.import_dir(), import_id, name, chunks)
-    with rt.engine.begin() as conn:
-        _uploading(repo.get_run(conn, import_id, lock=True))
-        repo.record_file(conn, import_id, name, size, sha256)
+    base = staging.import_dir()
+    partial, size, sha256 = await staging.stream_upload(base, import_id, name, chunks)
+    try:
+        with rt.engine.begin() as conn:
+            # Under the run's row lock, which the commit and other uploads also take: the file
+            # on disk changes only with its record, and never after the commit.
+            _uploading(repo.get_run(conn, import_id, lock=True))
+            repo.record_file(conn, import_id, name, size, sha256)
+            os.replace(partial, staging.upload_path(base, import_id, name))
+    finally:
+        partial.unlink(missing_ok=True)
     return ImportFile(name=name, bytes=size, sha256=sha256)
 
 

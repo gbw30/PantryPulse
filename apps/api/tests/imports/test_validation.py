@@ -226,11 +226,43 @@ def test_non_utf8_file_rejected_with_reason():
     assert "UTF-8" in error.reason and "UTF-8" in error.fix
 
 
+def test_huge_whole_number_is_over_envelope_not_a_crash():
+    """Python refuses int() on more than 4,300 digits; the cell must still get a row error."""
+    huge = "1" * 5000
+    error = _only_error(inventory=INVENTORY.replace("H1,RICE,B1,40,", f"H1,RICE,B1,{huge},"))
+    assert (error.file, error.line, error.column, error.code) == (
+        "inventory", 2, "quantity", "OVER_ENVELOPE")
+    assert "5,000-digit" in error.reason
+
+
+def test_huge_decimal_is_rejected_before_it_overflows_its_column():
+    products = ("product_id,name,unit,handling_units_per_unit\n"
+                "RICE,Rice,case,1e30\nBEANS,Beans,case,\n")
+    error = _only_error(products=products)
+    assert (error.file, error.line, error.column, error.code) == (
+        "products", 2, "handling_units_per_unit", "OVER_ENVELOPE")
+
+
+def test_handling_units_that_round_to_zero_in_their_column_are_rejected():
+    """Numeric(14, 6) stores 0.0000001 as 0, which breaks `handling_units_per_unit > 0`."""
+    products = ("product_id,name,unit,handling_units_per_unit\n"
+                "RICE,Rice,case,0.0000001\nBEANS,Beans,case,\n")
+    error = _only_error(products=products)
+    assert (error.file, error.line, error.column, error.code) == (
+        "products", 2, "handling_units_per_unit", "MALFORMED")
+
+
 def test_nul_character_rejected_before_the_bulk_load():
     error = _only_error(locations=LOCATIONS.replace("North Hub", "North\x00Hub"))
     assert (error.file, error.line, error.column, error.code) == ("locations", 2, "name",
                                                                   "MALFORMED")
     assert "NUL" in error.reason and error.fix
+
+
+def test_nul_inside_a_number_is_reported_once():
+    error = _only_error(inventory=INVENTORY.replace("H1,RICE,B1,40,", "H1,RICE,B1,4\x000,"))
+    assert (error.line, error.column, error.code) == (2, "quantity", "MALFORMED")
+    assert "NUL" in error.reason
 
 
 def test_ids_case_sensitive_after_trim():
@@ -272,11 +304,14 @@ def test_batches_parse_expiry_and_non_expiring():
 
 def test_donations_summed_per_day_and_blank_kept_unknown():
     donations = ("location_id,product_id,date,quantity,donor\n"
+                 "P1,RICE,2026-10-30,5,Church\nP1,RICE,2026-10-30,,Club\n"
+                 "P1,RICE,2026-10-31,,Church\nP1,RICE,2026-10-31,5,Club\n"
                  "P1,RICE,2026-11-01,2,Church\nP1,RICE,2026-11-01,3,Club\n"
                  "P1,RICE,2026-11-02,0,\nP1,RICE,2026-11-03,,\n")
     report = validate_files(_files(donation_history=donations), PANTRY)
     assert report.ok, report.errors
     assert [(d.day, d.quantity) for d in report.rows.donation_history] == [
+        (date(2026, 10, 30), None), (date(2026, 10, 31), None),  # one blank row: day unknown
         (date(2026, 11, 1), 5), (date(2026, 11, 2), 0), (date(2026, 11, 3), None)]
 
 

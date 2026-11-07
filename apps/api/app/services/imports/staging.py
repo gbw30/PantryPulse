@@ -71,12 +71,13 @@ def upload_path(base: Path, import_id: UUID, name: str) -> Path:
     return base / str(import_id) / f"{name}.csv"
 
 
-async def write_upload(base: Path, import_id: UUID, name: str,
-                       chunks: AsyncIterator[bytes]) -> tuple[int, str]:
-    """Stream to `<name>.csv.part`, then rename; a failed or over-cap upload leaves nothing."""
+async def stream_upload(base: Path, import_id: UUID, name: str,
+                        chunks: AsyncIterator[bytes]) -> tuple[Path, int, str]:
+    """Stream to this upload's own `<name>.csv.<random>.part`; the caller renames it into
+    place where it records the file. A failed or over-cap upload leaves nothing."""
     target = upload_path(base, import_id, name)
     target.parent.mkdir(parents=True, exist_ok=True)
-    partial = target.with_suffix(".csv.part")
+    partial = target.with_name(f"{target.name}.{uuid.uuid4().hex}.part")
     digest, size = hashlib.sha256(), 0
     try:
         with partial.open("wb") as out:
@@ -84,11 +85,18 @@ async def write_upload(base: Path, import_id: UUID, name: str,
                 out.write(chunk)
                 digest.update(chunk)
                 size += len(chunk)
-        os.replace(partial, target)
     except BaseException:
         partial.unlink(missing_ok=True)
         raise
-    return size, digest.hexdigest()
+    return partial, size, digest.hexdigest()
+
+
+async def write_upload(base: Path, import_id: UUID, name: str,
+                       chunks: AsyncIterator[bytes]) -> tuple[int, str]:
+    """Stream, then rename into place (tests and the bench; the API renames under its lock)."""
+    partial, size, sha256 = await stream_upload(base, import_id, name, chunks)
+    os.replace(partial, upload_path(base, import_id, name))
+    return size, sha256
 
 
 @dataclass(frozen=True, slots=True)
@@ -341,7 +349,9 @@ def _load_history(conn: sa.Connection, name: str, raw: str, attempt_id: UUID, or
     else:  # summed per receiving location × product × day; donors in first-seen order
         select = (
             f"SELECT :org, :ver, l.id, p.id, CAST(k.c03 AS date), k.quantity, d.donors FROM "
-            f"(SELECT c01, c02, c03, sum(CAST(c04 AS bigint)) AS quantity FROM {raw} "
+            # one blank row makes the day unknown: sum() would skip it and hide the gap
+            f"(SELECT c01, c02, c03, CASE WHEN bool_and(c04 IS NOT NULL) "
+            f"THEN sum(CAST(c04 AS bigint)) END AS quantity FROM {raw} "
             f"WHERE file = 'donation_history' GROUP BY c01, c02, c03) k "
             f"LEFT JOIN (SELECT c01, c02, c03, string_agg(c05, '; ' ORDER BY first) AS donors "
             f"FROM (SELECT c01, c02, c03, c05, min(line_no) AS first FROM {raw} "
