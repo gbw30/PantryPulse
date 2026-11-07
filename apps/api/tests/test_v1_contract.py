@@ -92,7 +92,6 @@ STUBS = [
     ("GET", f"/networks/{NET}/enrichment", None, None, "W1-D06"),
     ("POST", f"/networks/{NET}/enrichment/retry", {}, KEYED, "W1-D06"),
     ("PUT", f"/networks/{NET}/locations/{LOC}/attributes", {"excluded": True}, None, "W1-D06"),
-    ("GET", f"/networks/{NET}/routes", None, None, "W1-D07"),
     ("GET", "/settings", None, None, "W1-D08"),
     ("PUT", "/settings/google-maps-key", {"key": "k"}, None, "W1-D08"),
     ("DELETE", "/settings/google-maps-key", None, None, "W1-D08"),

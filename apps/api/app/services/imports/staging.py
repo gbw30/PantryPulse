@@ -25,8 +25,10 @@ from uuid import UUID
 import sqlalchemy as sa
 
 from app.repositories import imports as repo
+from app.schemas.v1_enrichment import GeoLocation
 from app.schemas.v1_imports import ImportSettings, OutsideHorizonInbound, RowError
 from app.schemas.v1_networks import TemplateName
+from app.services.enrichment.distance import route_rows
 from app.services.imports.validate import HistoryRow, ParsedNetwork, Validator
 
 PROGRESS_EVERY_ROWS = 100_000
@@ -243,6 +245,18 @@ def _commit(conn: sa.Connection, run: repo.Run, network: dict[str, Any], rows: P
             copy.write_row((uuid.uuid4(), org, version_id, locations[b.location_id],
                             products[b.product_id], b.batch_id, b.quantity, b.expiry_date,
                             b.non_expiring, b.received_date))
+    geo = [GeoLocation(id=r.location_id, latitude=r.latitude, longitude=r.longitude,
+                       role=r.role) for r in rows.locations if r.latitude is not None]
+    routes = route_rows(geo, rows.routes)
+    if routes:
+        conn.execute(sa.text(
+            "INSERT INTO net_routes (id, organization_id, dataset_version_id, from_location_id, "
+            "to_location_id, method, distance_miles, road_hours, travel_days, "
+            "cost_per_handling_unit, capacity_per_batch, is_override, disabled) VALUES (:id, "
+            ":org, :ver, :src, :dst, :method, :distance_miles, :road_hours, :travel_days, :cost, "
+            ":capacity, :is_override, :disabled)"),
+            [{**base, **r, "id": uuid.uuid4(), "src": locations[r["from"]],
+              "dst": locations[r["to"]]} for r in routes])
     if rows.inbound:
         conn.execute(sa.text(
             "INSERT INTO net_inbound (id, organization_id, dataset_version_id, location_id, "

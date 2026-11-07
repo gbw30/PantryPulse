@@ -12,7 +12,7 @@
 | W1-D04 | done | see `git log --grep W1-D04` | `uv run --frozen pytest -q tests/test_v1_contract.py tests/imports tests/enrichment` (PostgreSQL `pantrypulse_data_test`, schema `w1_data_import_test`) → 132 passed, 0 skipped; `ruff check .` → clean |
 | W1-D05 | in progress: create, commit admission, status, network reads done; worker waits for the lead's load hook (CR-w1-data-2 decided) | see `git log --grep W1-D05` | `uv run --frozen pytest -q tests/imports/test_import_job.py` → 11 passed, 0 skipped |
 | W1-D06 | todo (ACS: bundled table per CR-w1-data-1, decided) | — | — |
-| W1-D07 | todo | — | — |
+| W1-D07 | done | see `git log --grep W1-D07` | `uv run --frozen pytest -q tests/enrichment tests/imports tests/test_v1_contract.py` → 148 passed, 0 skipped; quick gate PASS |
 | W1-D08 | todo | — | — |
 | W1-D09 | todo | — | — |
 
@@ -38,7 +38,9 @@
 
 - The import runs in ONE transaction (staging partition, validation + COPY, commit, ATTACH, DROP staging); a failure is a rollback, then the report is written in its own transaction. Progress goes through a second connection. Phases: `staging` = the streaming read/check pass (rows), `validating` = end-of-pass result (checks = files), `committing` (rows). — W1-D04.
 - A failed import keeps its run, errors and uploaded files (W0-08 §4); a successful commit deletes the files. W0-08 §2 says files go "after a commit or an abort"; I read "abort" as an explicit user abort, which no route offers yet. — W1-D04.
-- `routes.csv` is validated but not yet stored: `net_routes.travel_days` is NOT NULL and a CSV row may leave it blank until coordinates exist. Stored with the computed routes in W1-D07. — W1-D04.
+- `routes.csv` rows are stored with the computed routes at commit (`distance.route_rows`). A blank `travel_days` overrides nothing: the straight-line estimate and its `straight_line_estimate` label stay, and the row is marked `override`. A blank `travel_days` where either end has no coordinates is an import row error (`travel_days`, MALFORMED, fix: enter days or add latitude/longitude), so no stored route lacks `travel_days` (orchestrator guidance). — W1-D04/D07.
+- Routes are computed at import only for locations with coordinates; locations geocoded later get theirs when W1-D06 refreshes routes after geocoding. `net_routes.distance_miles` stores road miles (straight × 1.3); `road_hours` = road miles / 45. — W1-D07.
+- Open question for the lead (not built): the spec's k = 10 nearest senders per receiver can leave a receiver with no hub route when 10 pantries are closer, which would starve a HUB_ONLY plan. Implemented as specified; say if hubs/DCs should always be kept. — W1-D07.
 - Removed the W1-D04 upload row from `STUBS`; its "streams past the 64 KB boundary" proof moved to `test_upload_over_cap_is_413_and_partial_file_deleted` (a 70,000-byte upload returns 200). — W1-D04.
 
 - Commit admission needs a READY supervisor advertising `import.v1` (`policies.admission_outcome`), so in production `POST /imports/{id}/commit` answers 503 `COMPUTE_UNAVAILABLE` until the worker is built. Job tests simulate an advertising supervisor and cancel their queued jobs (`max_queued` is 2). `import_status` reports a run whose job ended FAILED/TIMED_OUT/INTERRUPTED/CANCELLED/EXPIRED without a commit as `failed` / `JOB_FAILED`. Committing is one-shot: a repeated commit returns the run's existing job. — W1-D05.

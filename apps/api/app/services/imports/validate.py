@@ -500,6 +500,7 @@ class Validator:
 
     def _routes(self, records) -> None:
         seen: dict[tuple[str, str], int] = {}
+        located = {loc.location_id for loc in self.parsed.locations if loc.latitude is not None}
         for line, _cells, row in self._rows("routes", records):
             source, target = row.location("from_location_id"), row.location("to_location_id")
             if source is not None and source == target:
@@ -523,6 +524,14 @@ class Validator:
                 row.fail("travel_days", "MALFORMED", "travel_days must be at least 1",
                          "Enter whole days of at least 1 (a same-region transfer arrives the "
                          "next day), or leave it blank to estimate", "0")
+            elif days is None and row.ok and not (
+                    source in located and target in located):
+                # A stored route always has travel_days; without coordinates there's no estimate.
+                row.fail("travel_days", "MALFORMED",
+                         f"travel_days is blank and {source} → {target} can't be estimated "
+                         "without coordinates for both locations",
+                         "Enter travel_days in whole days, or add latitude and longitude for "
+                         "both locations in locations.csv")
             cost = row.decimal("cost_per_handling_unit", Decimal(0))
             capacity = row.decimal("capacity_per_batch", Decimal(0))
             disabled = row.boolean("disabled")
