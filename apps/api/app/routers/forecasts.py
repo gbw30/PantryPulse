@@ -228,15 +228,17 @@ V1_NETWORK_JOBS = {"import.v1", "enrichment.v1", "routes-google.v1", "or-compari
 
 
 def _job_scope(rt, scope: TrustedScope, job_id: UUID) -> TrustedScope:
-    """A v1 job belongs to its network's organization; the session may read every network
-    of the install (W0-network-model §2). The organization never comes from the client."""
+    """A v1 network job belongs to its network's organization; the session may read every
+    network of the install (W0-network-model §2). Only those job kinds are read across
+    organizations, and the organization never comes from the client."""
     with rt.engine.connect() as conn:
         network_org = conn.scalar(
             sa.text(
                 "SELECT n.organization_id FROM compute_jobs j"
-                " JOIN networks n ON n.organization_id = j.organization_id WHERE j.job_id = :j"
+                " JOIN networks n ON n.organization_id = j.organization_id"
+                " WHERE j.job_id = :j AND j.handler_contract = ANY(:kinds)"
             ),
-            {"j": job_id},
+            {"j": job_id, "kinds": sorted(V1_NETWORK_JOBS)},
         )
     return scope if network_org is None else TrustedScope(network_org, scope.actor_ref)
 

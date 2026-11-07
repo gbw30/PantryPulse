@@ -87,3 +87,9 @@ def test_job_of_an_organization_without_a_network_stays_hidden(install):
 def test_own_v2_job_is_unchanged(install):
     job_id = _submit(install, install.presenter, "or-comparison.v2")
     assert job_status(job_id, rt=install.rt, scope=install.presenter).job_id == job_id
+
+
+def test_only_v1_network_jobs_are_read_across_organizations(install):  # security review
+    job_id = _submit(install, install.network, "or-comparison.v2")
+    with pytest.raises(JobNotFound):
+        job_status(job_id, rt=install.rt, scope=install.presenter)
