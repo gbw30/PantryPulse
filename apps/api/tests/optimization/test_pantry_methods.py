@@ -1,6 +1,4 @@
 # covers: V1-A14
-# PARKED until CR-w1-solver-1 merges (imports DEFAULT_PANTRY_POLICY).
-# Rename to test_pantry_methods.py then.
 """Pantry methods on or-input-v3: hand values, an enumeration oracle independent of CP-SAT, the
 EGP group/coverage rules, hubs never receiving, BD-51 and both transfer modes (W1-S02..S04).
 

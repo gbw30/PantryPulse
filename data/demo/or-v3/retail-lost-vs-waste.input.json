@@ -9,6 +9,8 @@
   "snapshot_as_of": "2026-11-01",
   "first_planning_date": "2026-11-02",
   "horizon_days": 7,
+  "planning_days": null,
+  "policy": null,
   "inbound": [],
   "inbound_file_provided": false,
   "capacities": [],

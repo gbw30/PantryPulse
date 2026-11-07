@@ -160,6 +160,8 @@ def generate(locations: int, products: int, mode: str, seed: int = SEED) -> ORIn
         "cost_budget_minor": None,
         "reserves": [],
         "retail_weights": {"w_exp": 1, "w_lost": 1} if mode == "retail" else None,
+        "planning_days": None,
+        "policy": None,
         "vulnerability": [],
         "assumptions": ["synthetic benchmark network (fictional)"],
     }
@@ -170,31 +172,12 @@ def generate(locations: int, products: int, mode: str, seed: int = SEED) -> ORIn
 
 def pantry_fields(locs, hubs):
     """CR-w1-solver-1 fields plus vulnerability for every pantry (EGP needs both)."""
-    from app.services.optimization.decisions import DECISION_IDS
+    from app.schemas.v1_planning import DEFAULT_PANTRY_POLICY
 
     rng = random.Random(SEED + 1)
     return {
         "planning_days": 3,
-        "policy": {
-            "schema_version": "or-policy-v1",
-            "version": "or-draft-1.1",
-            "purpose": "PRIMARY",
-            "lambda_percent": 100,
-            "beta_percent": 50,
-            "coefficients": [
-                {"attribute_id": "poverty_rate", "percent": 50},
-                {"attribute_id": "snap_rate", "percent": 50},
-            ],
-            "ap_threshold": 7500,
-            "rp_threshold": 2500,
-            "ap_cap_bp": 2500,
-            "rp_cap_bp": 2500,
-            "gamma_ap_percent": 100,
-            "gamma_rp_percent": 100,
-            "epsilon_cost_bp": 100,
-            "epsilon_waste_bp": 100,
-            "decision_ids": list(DECISION_IDS),
-        },
+        "policy": DEFAULT_PANTRY_POLICY.model_dump(mode="json"),
         "vulnerability": [
             {
                 "location_id": loc["id"],
