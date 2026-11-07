@@ -29,12 +29,58 @@ Ported unchanged from `b54ec7c`: `atlas-layout.test.ts`, `network-atlas.test.tsx
 
 Visual check of 647f6a8: at 1440×900 the builder panel is 24rem and step-1 controls fit without wrapping; at 390×844 the layout is a single column. Pre-existing, unrelated: the full-page 1440 capture shows the fixed sidebar ending at the viewport height (screenshot artifact), and at 390 the "Simulated research preset" select sits a few px wider than its siblings.
 
+## Pause point (2026-11-07, at Gabriel's request via the orchestrator)
+
+**Done:** W1-W01 … W1-W08 committed and pushed. The reviewed candidate is b2f32ec; this commit adds only this file. Partial items, each with a CR or waiting on the v1-local merge (#103):
+- W1-W05: map placement and the site inspector (CR-1/CR-3).
+- W1-W06: method/fallback/donation rows from a live run (CR-4).
+- W1-W07: the Pantry window picker and editable policy (ScenarioV3 merge).
+- W1-W08: effect lines in the product's unit (CR-5).
+
+**Gates at b2f32ec** (see Gates above for commands):
+- quick PASS; full PASS (both with `PP19_TEST_SCHEMA_ISOLATION=1`).
+- Backend: 1413 passed, 0 skipped (`require-test-evidence.py` OK).
+- Vitest: 88 passed in 15 files.
+- Playwright, whole suite: 173 passed, 6 skipped (all `connected:`).
+
+**Ship-check:**
+- Step 1 (project checks): PASS, as above.
+- Step 2 (`verifier` review of b2f32ec): in progress at the pause. It hit its turn limit, then gave a partial report, recorded here and **not acted on**.
+  - Its own runs: vitest 88 passed; the 8 v1 e2e specs 25 passed, 0 skipped.
+  - Verdicts:
+    - PASS: A05, A06, A07, A08, A10, A11, A14, A15, A20, A21, transfer labels, EGP copy, quantile wording, units never summed.
+    - FAIL (partial): A12 (CR-4 plus finding 2), A16 (findings 3, 4), A23 (finding 5), path traversal (finding 6).
+    - UNVERIFIED: A13 placement and inspector (CR-1/CR-3).
+  - Findings:
+    1. should-fix, reproduced in node, not yet in a browser: `lastHistoryDate` accepts an impossible date such as `2026-13-45`, and `dayAfter` then throws `RangeError` during render (network-settings.tsx:16,28,57,94).
+    2. should-fix: trust-panel.tsx:62-68 says "accuracy not evaluated: needs 35+ days" for an *evaluated* score with null WAPE, and hides its bias.
+    3. should-fix: the print page lacks "capacity not provided — no limit assumed", "no scheduled deliveries provided" and the sample label (V1-SPEC §6.1, §8).
+    4. should-fix: decisions-view.tsx renders actions for an unverified or missing method result.
+    5. should-fix: "no scheduled deliveries provided" shows only on the import summary, not on the atlas or forecast views; the Network contract has no inbound flag, so this needs a CR.
+    6. should-fix (low): `?forecast_job_id=..` stays `..` after `encodeURIComponent`, and the browser normalizes it to `GET /api/v1/backtest`. Apply `isUuid` on /data and /overview ids.
+    7. nit: `isV1Method` uses `in` (`method=constructor` passes).
+    8. nit: settings `useLoad` doesn't reset to loading when the network changes.
+    9. nit: v1-shell.spec.ts:41 title lacks an @V1-Axx tag.
+    10. nit: the network Select switches between controlled and uncontrolled.
+  - Not checked by the verifier: W1-W01 screenshots, the 647f6a8 visual, test names against each Step 1 list, the connected app.
+- Step 3 (security): the automated MEDIUM path-traversal finding was fixed in b2f32ec; verifier finding 6 is a residual of it.
+- Steps 4–6 (commit/PR, PR review, second opinion): not started.
+
+**Next steps on resume, in order:**
+1. Re-read or re-run the verifier on the current head.
+2. Fix findings 1–4 and 6–10 test-first; file a CR for 5. Re-run quick, full and the full Playwright suite one at a time, nothing else running.
+3. Open the PR `lane/w1-web → v1-local` (title "w1-web: every new v1 screen, against contract mocks"; body ends with the 🤖 line only, no Claude-Session or Co-Authored-By lines), then run `/code-review` on it.
+4. When #103 merges: `git fetch && git merge origin/v1-local` (no rebase). Then wire LocationList (atlas placement, names) and add its GET to the proxy allowlist. Build the inspector on LocationProjection mocks, and the Pantry window picker and policy on the merged ScenarioV3. Re-run focused tests and the quick gate, then push.
+
 ## Gates
 
 | Gate | Commit | Result |
 |---|---|---|
-| `node scripts/quality/run.cjs quick` | | |
-| `node scripts/quality/run.cjs full` (with `.env.lane`) | | |
+| `node scripts/quality/run.cjs quick` (with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1`) | b2f32ec | PASS: web typecheck, web lint, api lint, api tests |
+| `node scripts/quality/run.cjs full` (with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1`) | b2f32ec | PASS: the quick steps plus web unit tests, web build, contract drift, database migrations |
+| `uv run --frozen pytest -q --junitxml=…` + `scripts/quality/require-test-evidence.py` (apps/api, same env, lane DB `pantrypulse_web_test` on 127.0.0.1:55433) | b2f32ec | 1413 passed, 0 skipped; "1413 backend tests completed without skips or failures". Without `PP19_TEST_SCHEMA_ISOLATION=1`: 1336 passed, 77 skipped (PostgreSQL isolated-schema tests). |
+| `npx vitest run` (apps/web) | b2f32ec | 15 files, 88 passed |
+| `PLAYWRIGHT_PORT=3003 npx playwright test` (apps/web, whole suite, nothing else running) | b2f32ec | 173 passed, 6 skipped — all six are `connected:` specs that need the seeded backend (`PP_RUN_CONNECTED=1`); none is a v1 lane spec. An earlier run overlapping a Stop-hook gate and pytest had 8 load failures that all passed alone (46/46). |
 | `/devkit:ship-check` | | |
 
 ## Decisions made inside the lane
@@ -60,6 +106,9 @@ Visual check of 647f6a8: at 1440×900 the builder panel is 24rem and step-1 cont
 - Security review (automated, MEDIUM, client-side path traversal): ids from the page URL went into API paths. Now every `networkApi` path segment is `encodeURIComponent`-ed, `/decisions` and its print page refuse non-UUID `comparison_id`/`network_id` before any request, and a comparison job's `result_url` is followed only when it matches `/api/v1/networks/<uuid>/comparisons/<uuid>`. The proxy allowlist already rejected non-UUID paths; this closes it in the browser too. Tests: `tests/unit/network-api.test.ts` (2) and the decisions e2e "ids that are not UUIDs are never sent to the API" (RED before, PASS after). — W1-W08
 
 ## Gotchas
+
+- The full Playwright suite and the gates compete for CPU: run them one at a time. A Stop-hook quick gate started during the e2e run never reported its api step, and the e2e run had 8 timing failures; all passed when re-run alone. — finish
+- `.env.lane` points the PostgreSQL test URLs at the lane DB, but the isolated-schema tests also need `PP19_TEST_SCHEMA_ISOLATION=1` (as CI sets it); without it 77 backend tests skip. — finish
 
 - W1-W05's danger section broke 4 ported `network-atlas.test.tsx` tests (mocked shell, no NetworkProvider); I hadn't run the whole unit suite at W05/W06. Fixed test-side in its own commit. Run `npx vitest run` (all files) before each task commit. — W1-W07
 - `recommendations.spec.ts › verified plan … at 1440x900` failed once in a 35-test batch and passed alone (3/3) and in a rerun of the batch (33 passed): another load-sensitive spec. — W1-W07
