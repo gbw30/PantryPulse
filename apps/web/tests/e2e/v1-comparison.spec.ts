@@ -74,6 +74,7 @@ test("@V1-A14 pantry comparison mocked in both transfer modes", async ({ page },
     () => example("SavedComparisonV3"));
 
   await expect(section.getByRole("list", { name: "Methods compared" }).getByRole("listitem")).toHaveCount(5);
+  await section.getByRole("radio", { name: "3 days" }).click();
   for (const [mode, label] of [["HUB_ONLY", "Hub → pantries only"], ["HUB_AND_PANTRY", "Hub and pantries → pantries"]] as const) {
     await section.getByRole("radio", { name: label }).click();
     await section.getByRole("button", { name: "Freeze scenario" }).click();
@@ -90,7 +91,8 @@ test("@V1-A14 pantry comparison mocked in both transfer modes", async ({ page },
     await expect(results.getByRole("region", { name: "EGP-PI-inspired", exact: true })).toContainText("Solver status: UNKNOWN (native)");
     await expect(results.getByRole("region", { name: "EGP-PI-inspired", exact: true }).getByRole("table")).toHaveCount(0);
 
-    expect(posted(calls, "/scenarios").at(-1)).toMatchObject({ transfer_mode: mode, forecast_run_id: RUN, dataset_version_id: network.dataset_version_id });
+    expect(posted(calls, "/scenarios").at(-1)).toMatchObject({ transfer_mode: mode, forecast_run_id: RUN, dataset_version_id: network.dataset_version_id,
+      planning_days: 3, policy: example("ScenarioV3").payload.policy, retail_weights: null });
     expect(posted(calls, "/comparisons").at(-1)).toEqual({ scenario_id: example("ScenarioV3").id, methods: PANTRY_METHODS, measure: "UNITS" });
   }
   await expectNoSeriousA11yViolations(page, testInfo, "v1 pantry comparison");
@@ -118,6 +120,9 @@ test("@V1-A15 retail comparison mocked in units and USD", async ({ page }) => {
   await expect(optimized).toContainText("Weights: expired ×1, lost sales ×1");
   await expect(results).toContainText("Measure: units · USD unavailable: no unit values in products.csv");
   expect(posted(calls, "/scenarios").at(-1)).toMatchObject({ transfer_mode: "HUB_ONLY", retail_weights: { w_exp: 1, w_lost: 2 } });
+  // Retail never sends a window or policy: the server rejects either (WINDOW_AND_POLICY_ONLY_IN_PANTRY).
+  expect(posted(calls, "/scenarios").at(-1)).not.toHaveProperty("planning_days");
+  expect(posted(calls, "/scenarios").at(-1)).not.toHaveProperty("policy");
   expect(posted(calls, "/comparisons").at(-1)).toMatchObject({ methods: RETAIL_METHODS, measure: "UNITS" });
 
   // USD: re-freeze after prices are present.

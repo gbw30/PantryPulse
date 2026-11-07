@@ -25,6 +25,7 @@ it("losing the job status mid-comparison keeps the job: no new job is queued, an
   const at = vi.spyOn(networkApi, "comparisonAt").mockResolvedValue(example("SavedComparisonV3"));
   render(<MethodComparisonSection forecastRunId={example("ScenarioV3").payload.forecast_run_id} />);
   fireEvent.click(screen.getByRole("radio", { name: "Hub and pantries → pantries" }));
+  fireEvent.click(screen.getByRole("radio", { name: "3 days" }));
   fireEvent.click(screen.getByRole("button", { name: "Freeze scenario" }));
   fireEvent.click(await screen.findByRole("button", { name: "Compare methods" }));
 

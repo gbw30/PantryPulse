@@ -1,6 +1,7 @@
 // covers: V1-A14, V1-A15
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
+import { DEFAULT_PANTRY_POLICY } from "@/components/scenario-lab/model";
 import { MethodComparisonResults } from "@/components/scenario-lab/results";
 import { ComparisonSetup } from "@/components/scenario-lab/wizard";
 import type { Schema } from "@/lib/planning-api";
@@ -38,22 +39,75 @@ it("transfer mode has no default and must be chosen", () => {
   expect(within(group).getByText("Hub → pantries only")).toBeVisible();
   expect(within(group).getByText("Hub and pantries → pantries")).toBeVisible();
   const freeze = screen.getByRole("button", { name: "Freeze scenario" });
+  fireEvent.click(screen.getByRole("radio", { name: "3 days" }));
   expect(freeze).toBeDisabled();
   expect(screen.getByText("Choose a transfer mode first. There is no default.")).toBeVisible();
   fireEvent.click(within(group).getByRole("radio", { name: "Hub and pantries → pantries" }));
   expect(freeze).toBeEnabled();
   fireEvent.click(freeze);
-  expect(onFreeze).toHaveBeenCalledWith({ transferMode: "HUB_AND_PANTRY", retailWeights: null });
+  expect(onFreeze).toHaveBeenCalledWith({ transferMode: "HUB_AND_PANTRY", retailWeights: null, planningDays: 3, policy: DEFAULT_PANTRY_POLICY });
+});
+
+it("the client's default Pantry policy is the frozen contract's", () => {
+  expect(DEFAULT_PANTRY_POLICY).toEqual(scenario.payload.policy);
+});
+
+it("pantry planning window is 1-3 days with no default", () => {
+  const onFreeze = vi.fn();
+  setup({ onFreeze });
+  fireEvent.click(screen.getByRole("radio", { name: "Hub → pantries only" }));
+  const window = screen.getByRole("radiogroup", { name: "Planning window (required)" });
+  expect(within(window).getAllByRole("radio")).toHaveLength(3);
+  for (const name of ["1 day", "2 days", "3 days"]) expect(within(window).getByRole("radio", { name })).toHaveAttribute("aria-checked", "false");
+  expect(screen.getByText("Choose a planning window of 1 to 3 days. There is no default.")).toBeVisible();
+  const freeze = screen.getByRole("button", { name: "Freeze scenario" });
+  expect(freeze).toBeDisabled();
+  fireEvent.click(within(window).getByRole("radio", { name: "2 days" }));
+  fireEvent.click(freeze);
+  expect(onFreeze).toHaveBeenCalledWith(expect.objectContaining({ planningDays: 2 }));
+});
+
+it("pantry policy shows λ, β and the attribute shares, editable; shares must add up to 100", () => {
+  const onFreeze = vi.fn();
+  setup({ onFreeze });
+  fireEvent.click(screen.getByRole("radio", { name: "Hub → pantries only" }));
+  fireEvent.click(screen.getByRole("radio", { name: "1 day" }));
+  expect(screen.getByLabelText("Vulnerability weight λ (%)")).toHaveValue(100);
+  expect(screen.getByLabelText("Weight on total shortfall β (%)")).toHaveValue(50);
+  expect(screen.getByLabelText("Poverty rate share (%)")).toHaveValue(50);
+  expect(screen.getByLabelText("SNAP rate share (%)")).toHaveValue(50);
+  const freeze = screen.getByRole("button", { name: "Freeze scenario" });
+
+  fireEvent.change(screen.getByLabelText("Weight on total shortfall β (%)"), { target: { value: "101" } });
+  expect(screen.getByText("Enter a whole number from 0 to 100.")).toBeVisible();
+  expect(freeze).toBeDisabled();
+  fireEvent.change(screen.getByLabelText("Weight on total shortfall β (%)"), { target: { value: "70" } });
+  fireEvent.change(screen.getByLabelText("Vulnerability weight λ (%)"), { target: { value: "80" } });
+  fireEvent.change(screen.getByLabelText("Poverty rate share (%)"), { target: { value: "60" } });
+  expect(screen.getByText("The poverty and SNAP rate shares must add up to 100.")).toBeVisible();
+  expect(freeze).toBeDisabled();
+  fireEvent.change(screen.getByLabelText("SNAP rate share (%)"), { target: { value: "40" } });
+  fireEvent.click(freeze);
+  expect(onFreeze).toHaveBeenCalledWith({ transferMode: "HUB_ONLY", retailWeights: null, planningDays: 1, policy: {
+    ...DEFAULT_PANTRY_POLICY, lambda_percent: 80, beta_percent: 70,
+    coefficients: [{ attribute_id: "poverty_rate", percent: 60 }, { attribute_id: "snap_rate", percent: 40 }] } });
+});
+
+it("a frozen pantry scenario shows its window and policy", () => {
+  setup({ scenario });
+  expect(screen.getByText("Window 3 days · λ 100% · β 50% · poverty rate 50%, SNAP rate 50%")).toBeVisible();
 });
 
 it("retail labels its transfer modes and freezes with editable weights", () => {
   const onFreeze = vi.fn();
   setup({ mode: "RETAIL", onFreeze });
+  expect(screen.queryByRole("radiogroup", { name: "Planning window (required)" })).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("Vulnerability weight λ (%)")).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("radio", { name: "DC → stores only" }));
   expect(screen.getByLabelText("Weight on expired units")).toHaveValue(1);
   fireEvent.change(screen.getByLabelText("Weight on lost sales"), { target: { value: "2" } });
   fireEvent.click(screen.getByRole("button", { name: "Freeze scenario" }));
-  expect(onFreeze).toHaveBeenCalledWith({ transferMode: "HUB_ONLY", retailWeights: { w_exp: 1, w_lost: 2 } });
+  expect(onFreeze).toHaveBeenCalledWith({ transferMode: "HUB_ONLY", retailWeights: { w_exp: 1, w_lost: 2 }, planningDays: null, policy: null });
 });
 
 it("retail weights are whole numbers from 0 to 1000, as the server accepts", () => {

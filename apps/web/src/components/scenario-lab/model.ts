@@ -175,3 +175,19 @@ export function usdUnavailableReason(products: Schema["ProductV3"][]): string | 
   const missing = products.filter((p) => p.unit_value_usd === null).map((p) => p.name);
   return missing.length ? `no unit_value_usd in products.csv for ${missing.join(", ")}` : null;
 }
+
+/** Mirror of the server's DEFAULT_PANTRY_POLICY (apps/api/app/schemas/v1_planning.py): the connected flow's λ/β,
+ * thresholds and 50/50 shares on the v1 attributes (V1-SPEC §6.2). A unit test pins it to the frozen contract example. */
+export const DEFAULT_PANTRY_POLICY: Schema["ORPolicy"] = {
+  schema_version: "or-policy-v1", version: "or-draft-1.1", purpose: "PRIMARY", lambda_percent: 100, beta_percent: 50,
+  coefficients: [{ attribute_id: "poverty_rate", percent: 50 }, { attribute_id: "snap_rate", percent: 50 }],
+  ap_threshold: 7500, rp_threshold: 2500, ap_cap_bp: 2500, rp_cap_bp: 2500, gamma_ap_percent: 100, gamma_rp_percent: 100,
+  epsilon_cost_bp: 100, epsilon_waste_bp: 100,
+  decision_ids: Array.from({ length: 20 }, (_, i) => `OR-DEC-${String(i + 1).padStart(3, "0")}`),
+};
+
+/** "Window 3 days · λ 100% · β 50% · poverty rate 50%, SNAP rate 50%" for a frozen Pantry scenario. */
+export function policySummary(days: number, policy: Schema["ORPolicy"]): string {
+  const share = (id: string) => policy.coefficients.find((c) => c.attribute_id === id)?.percent ?? 0;
+  return `Window ${days} ${days === 1 ? "day" : "days"} · λ ${policy.lambda_percent}% · β ${policy.beta_percent}% · poverty rate ${share("poverty_rate")}%, SNAP rate ${share("snap_rate")}%`;
+}

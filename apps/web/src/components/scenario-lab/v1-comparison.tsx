@@ -8,7 +8,7 @@ import { networkApi, type Network } from "@/lib/network-api";
 import { ApiError, type Schema } from "@/lib/planning-api";
 import { V1_METHODS, type V1Measure, type V1Method } from "./model";
 import { MethodComparisonResults } from "./results";
-import { ComparisonSetup } from "./wizard";
+import { ComparisonSetup, type FreezeOptions } from "./wizard";
 
 const TERMINAL = new Set<Schema["AttemptState"]>(["SUCCEEDED", "FAILED", "TIMED_OUT", "INTERRUPTED", "CANCELLED", "EXPIRED"]);
 const POLL_MS = 1000;
@@ -38,7 +38,7 @@ function Comparison({ network, forecastRunId }: { network: Network; forecastRunI
   const blocked = !datasetId ? "Import data for this network before planning."
     : !forecastRunId ? "No forecast run chosen. Open this page from a finished forecast for this network." : null;
 
-  async function freeze({ transferMode, retailWeights }: { transferMode: Schema["TransferMode"]; retailWeights: Schema["RetailWeights"] | null }) {
+  async function freeze({ transferMode, retailWeights, planningDays, policy }: FreezeOptions) {
     if (!datasetId || !forecastRunId) return;
     setStatus({ kind: "busy", text: "Freezing the scenario…" });
     // A failed freeze must not leave the previous scenario looking like the current choice.
@@ -46,7 +46,9 @@ function Comparison({ network, forecastRunId }: { network: Network; forecastRunI
     setShown(null);
     try {
       const frozen = await networkApi.createScenario(network.id, { dataset_version_id: datasetId, forecast_run_id: forecastRunId,
-        transfer_mode: transferMode, reserve_floors: [], retail_weights: retailWeights });
+        transfer_mode: transferMode, reserve_floors: [], retail_weights: retailWeights,
+        // Retail must not send either field (WINDOW_AND_POLICY_ONLY_IN_PANTRY).
+        ...(planningDays !== null && policy ? { planning_days: planningDays, policy } : {}) });
       if (!alive.current) return;
       setScenario(frozen);
       setStatus({ kind: "idle" });
