@@ -17,7 +17,7 @@
 ## Progress (2026-11-07)
 
 - **Done:** every task W1-S01–S07 in both modes. #103 merged into the lane (18799a6); the Pantry tests run on the CR-1 schema (4b18119); localized capacity split (de0c53c); Pantry bench (e49e35c); `or-comparison.v3` worker, `api_v3`, Pantry S05–S07 tests (bfdb21e); ship-check review fixes and network-scoped `api_v3` (ea6fad1); final benches at ea6fad1.
-- **Next:** quick and full gates on the final commit, then the PR.
+- **Next:** on the lead's signal that #105 (CR-5) and batch 2 are in `v1-local`: merge `origin/v1-local`, add the `status_url` polling test, fill the batch-2 fields, rerun the quick and full gates, then the PR. Verifier re-verification fixes are in 3d7e7ef (N1, rejected-result status).
 - **Waiting on the lead (batch 2, Gabriel-approved web CRs; merge `origin/v1-local` only on the lead's signal):** fill `ActionEffect.unit` (the product's `ProductV3.unit`), `SavedComparisonV3.assumptions` and `.inbound_file_provided` (copied from the frozen scenario), and the CSV note "capacity not provided — no limit assumed" when that assumption is present (CR-w1-web-5/-6). E-1 (`RETAIL_WEIGHTS_ALL_ZERO`) needs nothing here: no fixture, test or bench uses w_exp = w_lost = 0.
 - **Interpretations for lead review (W1-S04/S06/S07 wiring):**
   - Only `COMPARISON_NOT_FOUND` is specified. I chose the other codes: unknown network → 404 `NETWORK_NOT_FOUND`; submit with a scenario that isn't in the path's network → 404 `SCENARIO_NOT_FOUND`; a method not in the comparison → 404 `METHOD_NOT_IN_COMPARISON`; actions or export of an unverified method → 409 `RESULT_NOT_VERIFIED`; export with an action id not in the plan → 422 `UNKNOWN_ACTION_ID`. All are `HistoryRejected(code, status)`, mapped by `main.domain_error`.
@@ -66,6 +66,17 @@
 | S3: Retail "expired" on day 1 includes lots already expired at the snapshot | Low, open | Effects are deltas, so actions are unaffected. Only the need weight could be inflated, and only if a frozen scenario carries already-expired lots. Whether W1-D09 excludes them is a data-lane question |
 | S5: a receiver with no local need gets no share of its limits | By decision | The localized split rule (Gabriel, 2026-11-07) |
 
+### Re-verification (project `verifier`, fix delta b0531b8..ea6fad1, head 51263f1)
+
+F1, F3, F4 and S4 are confirmed fixed, and F2 is fixed for the reported case. The verifier found no false starvation in 2,626 random products, no genuine result rejected at publication in 880 runs, and the `api_v3` tenancy holds. New findings:
+
+| Finding | Severity | Disposition |
+|---|---|---|
+| N1: EGP's objective replay (`pantry_objectives`) divided the AP/RP coefficients by n = 0 for a product with stock but no pantry target in the window, so EGP failed with `METHOD_ERROR:ZeroDivisionError` (present since b0531b8) | High | Fixed in 3d7e7ef: such a product is never solved, so the replay skips it (`test_product_nobody_needs_does_not_break_a_method[*]`, failed for EGP before the fix) |
+| N2: `status_url` answered 404 for `or-comparison.v3`: the `job_status` allowlist and `get_job`'s session-organization filter | Medium | Lead-owned (CR-w1-solver-5): fixed in lead PR #105 (c450c7c, 2088867). After #105 reaches `v1-local`, this lane adds a PostgreSQL test that polls `status_url` to SUCCEEDED |
+| A rejected publication kept the child's claimed `native_status` | Low | Fixed in 3d7e7ef: it carries the status its products imply (`test_tampered_result_fields_are_published_unverified[native_status-FEASIBLE]`, failed before the fix) |
+| F2 residual: `fits` accepts a share that only physically infeasible routes could use (for example routes that fail donor protection), so the product is solved to OPTIMAL with 0 moves within its share instead of being labelled starved (11 of 2,626 random products; Retail seed 214) | Low, open | Kept for W2 (lead, 2026-11-07). The plan is still verified and optimal within its share; only the "starved" explanation is missing. A full fix would repeat the model's donor-protection check in the screen |
+
 ## Gates
 
 | Gate | Commit | Result |
@@ -74,6 +85,7 @@
 | `node scripts/quality/run.cjs full` (with `.env.lane`, `PP19_TEST_SCHEMA_ISOLATION=1`) | bfdb21e | PASS, exit 0, all 8 steps (quick 4 + web unit tests, web build, contract drift, database migrations). Same env, api-tests step `uv run --frozen pytest -q -rs` → 1586 passed, 0 skipped, 210.7 s (limit 480 s); migrations step → 36 passed, 0 skipped |
 | `node scripts/quality/run.cjs quick` (standard env), after the review fixes | d0adb32 (code ea6fad1) | PASS, exit 0, 4 steps. api-tests pytest → 1367 passed, 231 skipped, all PostgreSQL-gated (the same 18 modules as above, now including `test_comparison_v3_postgres` 5) |
 | `node scripts/quality/run.cjs full` (`.env.lane`, `PP19_TEST_SCHEMA_ISOLATION=1`), after the review fixes | d0adb32 (code ea6fad1) | PASS, exit 0, all 8 steps. api-tests pytest → 1598 passed, 0 skipped, 201.8 s; migrations step → 36 passed |
+| `node scripts/quality/run.cjs full` (`.env.lane`, `PP19_TEST_SCHEMA_ISOLATION=1`), after the re-verification fixes | 3d7e7ef (plus this file's uncommitted edit; docs only) | PASS, exit 0, all 8 steps. The quick gate run just before it reported its 4 steps PASS but exit 1, "source changed during checks", because this file was edited mid-run; rerun below. Exact pytest counts are taken on the final candidate after batch 2 |
 | `/devkit:ship-check` | | |
 
 ## Decisions made inside the lane
@@ -162,7 +174,7 @@
 - **File(s):** `apps/api/app/routers/forecasts.py` `job_status` (lead-owned).
 - **Exact change:** admit the v1 contracts and resolve the job's organization server-side (the session's own, or a network organization on this install, per W0-network-model §2). `status_url` stays `/api/v1/jobs/{job_id}`.
 - **Why:** the route allowed only v2/forecast contracts and the session organization, so it answered 404 for every or-comparison.v3 job.
-- **Status:** approved by Gabriel, 2026-11-07; the lead lands it in the batch-2 PR. Not touched in this lane.
+- **Status:** approved by Gabriel, 2026-11-07. Also needed: `get_job` filtered by the session organization (`repositories/jobs.py:872`), while the job is under the network organization (verifier N2). Both are fixed in lead PR #105 (c450c7c, 2088867): `job_status` admits the v1 network job kinds and `_job_scope` resolves the network organization server-side. Not touched in this lane.
 
 ## Escalations
 
