@@ -331,6 +331,19 @@ def test_failed_import_says_why_and_what_to_do():
         RowError.model_validate({k: v for k, v in row.items() if k != "fix"})
 
 
+@pytest.mark.parametrize("field", ["message", "reason", "next_steps", "fix"])
+def test_failure_guidance_is_never_blank(field):
+    status = _status()
+    if field == "fix":
+        status["errors"] = [{**status["errors"][0], "fix": "   "}]
+    elif field == "next_steps":
+        status["failure"] = {**status["failure"], "next_steps": [" "]}
+    else:
+        status["failure"] = {**status["failure"], field: " "}
+    with pytest.raises(ValidationError):
+        ImportStatus.model_validate(status)
+
+
 def test_examples_validate():
     import subprocess
     import sys

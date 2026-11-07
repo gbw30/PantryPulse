@@ -4,6 +4,9 @@
 pending network in `new_network`; the import.v1 commit inserts the network row in the same
 transaction as the data. A failed first import leaves no network.
 
+Each stored import error also keeps its `fix` (what to change in the file), so the status
+endpoint can rebuild RowError after the job ends.
+
 Downgrade refuses while any run has no network (it cannot restore NOT NULL without one).
 """
 
@@ -23,6 +26,8 @@ def upgrade():
                "CHECK (network_id IS NOT NULL OR new_network IS NOT NULL)")
     op.execute("ALTER TABLE import_runs ADD CONSTRAINT ck_import_runs_done_has_network "
                "CHECK (phase <> 'done' OR network_id IS NOT NULL)")
+    op.execute("ALTER TABLE import_errors ADD COLUMN fix TEXT NOT NULL")
+    op.execute(r"ALTER TABLE import_errors ADD CONSTRAINT ck_import_errors_fix CHECK (fix ~ '\S')")
 
 
 def downgrade():
@@ -30,6 +35,7 @@ def downgrade():
         sa.text("SELECT EXISTS (SELECT 1 FROM import_runs WHERE network_id IS NULL)")
     ).scalar():
         raise RuntimeError("V1_DATA_PRESENT: import runs without a network exist")
+    op.execute("ALTER TABLE import_errors DROP COLUMN fix")
     op.execute("ALTER TABLE import_runs DROP CONSTRAINT ck_import_runs_done_has_network")
     op.execute("ALTER TABLE import_runs DROP CONSTRAINT ck_import_runs_network_or_new")
     op.execute("ALTER TABLE import_runs ALTER COLUMN network_id SET NOT NULL")

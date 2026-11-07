@@ -3092,6 +3092,7 @@
           },
           "next_steps": {
             "items": {
+              "pattern": "\\S",
               "type": "string"
             },
             "minItems": 1,
@@ -3099,7 +3100,7 @@
             "type": "array"
           },
           "reason": {
-            "minLength": 1,
+            "pattern": "\\S",
             "title": "Reason",
             "type": "string"
           }
@@ -6734,7 +6735,7 @@
             "type": "string"
           },
           "fix": {
-            "minLength": 1,
+            "pattern": "\\S",
             "title": "Fix",
             "type": "string"
           },

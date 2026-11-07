@@ -243,3 +243,19 @@ def test_import_run_network_rules(engine, network, new_network, phase, check):
         conn.execute(sa.text(NEW_RUN), {"run2": uuid.uuid4(), "org2": ids["org"],
                                         "network_id": None, "new_network": new_network,
                                         "phase": phase})
+
+
+
+ERROR_ROW = ("INSERT INTO import_errors (id, organization_id, import_run_id, file, line_no, code, "
+             "reason, fix) VALUES (:e, :org, :run, 'inventory', 2, 'NEGATIVE', 'below 0', :fix)")
+
+
+def test_import_errors_store_the_fix(engine):
+    # GET /imports/{id} rebuilds RowError, whose fix is required, from these rows.
+    with engine.begin() as conn:
+        ids = _network(conn)
+        conn.execute(sa.text(ERROR_ROW), {**ids, "e": uuid.uuid4(), "fix": "Enter 0 or more."})
+    for fix in (None, "  "):
+        with pytest.raises(DBAPIError), engine.begin() as conn:
+            ids = _network(conn)
+            conn.execute(sa.text(ERROR_ROW), {**ids, "e": uuid.uuid4(), "fix": fix})

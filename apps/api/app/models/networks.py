@@ -111,9 +111,11 @@ class ImportErrorRow(OwnedIdentity, Base):
     column_name = sa.Column(sa.Text)  # NULL for row-level errors
     code = sa.Column(sa.Text, nullable=False)
     reason = sa.Column(sa.Text, nullable=False)
+    fix = sa.Column(sa.Text, nullable=False)  # what to change in the file (RowError.fix, ppv1_0010)
     value = sa.Column(sa.Text)
     __table_args__ = owned(
         fk(["import_run_id"], "import_runs", ["id"]),
+        check("fix ~ '\\S'", "fix"),
         check(_in("file", FILES), "file"),
         check(_in("code", ERROR_CODES), "code"),
         check("line_no >= 1", "line_no"),

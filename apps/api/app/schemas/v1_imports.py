@@ -3,7 +3,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
-from typing import Any, Literal, Self
+from typing import Annotated, Any, Literal, Self
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -65,6 +65,10 @@ class ImportCommit(ORContract):
     as_of_date: date | None = None  # default: the day after the last history date
 
 
+# Guidance a user acts on: never empty or only whitespace.
+Guidance = Annotated[str, Field(pattern=r"\S")]
+
+
 class ImportAccepted(ORContract):
     import_id: UUID
     job_id: UUID
@@ -83,7 +87,7 @@ class RowError(ORContract):
     column: str | None  # None for row-level errors
     code: ErrorCode
     reason: str  # why the row was rejected
-    fix: str = Field(min_length=1)  # what to change in the file, e.g. "use YYYY-MM-DD"
+    fix: Guidance  # what to change in the file, e.g. "use YYYY-MM-DD"
     value: str | None
 
 
@@ -100,8 +104,8 @@ class ImportFailure(ORContract):
 
     kind: Literal["ROW_ERRORS", "MISSING_FILES", "OVER_ENVELOPE", "JOB_FAILED"]
     message: str = Field(pattern=r"^Import failed.*nothing was saved")
-    reason: str = Field(min_length=1)  # e.g. "12 rows in 2 files have errors"
-    next_steps: tuple[str, ...] = Field(min_length=1)
+    reason: Guidance  # e.g. "12 rows in 2 files have errors"
+    next_steps: tuple[Guidance, ...] = Field(min_length=1)
 
 
 class ImportStatus(ORContract):
