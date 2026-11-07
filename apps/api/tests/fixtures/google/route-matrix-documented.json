@@ -1,0 +1,76 @@
+{
+  "recorded": {
+    "kind": "documented_example",
+    "at": "2026-11-07",
+    "source": "https://developers.google.com/maps/documentation/routes/compute_route_matrix",
+    "note": "Google's documented example response, transcribed; no key was used and no Google API was called"
+  },
+  "request": {
+    "method": "POST",
+    "url": "https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix",
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": "<user key, never stored here>",
+      "X-Goog-FieldMask": "originIndex,destinationIndex,duration,distanceMeters,status,condition"
+    },
+    "body": {
+      "origins": [
+        {
+          "waypoint": {
+            "location": {
+              "latLng": {
+                "latitude": 37.420761,
+                "longitude": -122.081356
+              }
+            }
+          },
+          "routeModifiers": {
+            "avoid_ferries": true
+          }
+        },
+        {
+          "waypoint": {
+            "location": {
+              "latLng": {
+                "latitude": 37.403184,
+                "longitude": -122.097371
+              }
+            }
+          },
+          "routeModifiers": {
+            "avoid_ferries": true
+          }
+        }
+      ],
+      "destinations": [
+        {
+          "waypoint": {
+            "location": {
+              "latLng": {
+                "latitude": 37.420999,
+                "longitude": -122.086894
+              }
+            }
+          }
+        },
+        {
+          "waypoint": {
+            "location": {
+              "latLng": {
+                "latitude": 37.383047,
+                "longitude": -122.044651
+              }
+            }
+          }
+        }
+      ],
+      "travelMode": "DRIVE",
+      "routingPreference": "TRAFFIC_AWARE"
+    }
+  },
+  "response": {
+    "status": 200,
+    "content_type": "application/json",
+    "body": "[\n  {\n    \"originIndex\": 0,\n    \"destinationIndex\": 0,\n    \"status\": {},\n    \"distanceMeters\": 822,\n    \"duration\": \"160s\",\n    \"condition\": \"ROUTE_EXISTS\"\n  },\n  {\n    \"originIndex\": 1,\n    \"destinationIndex\": 0,\n    \"status\": {},\n    \"distanceMeters\": 2919,\n    \"duration\": \"361s\",\n    \"condition\": \"ROUTE_EXISTS\"\n  },\n  {\n    \"originIndex\": 1,\n    \"destinationIndex\": 1,\n    \"status\": {},\n    \"distanceMeters\": 5598,\n    \"duration\": \"402s\",\n    \"condition\": \"ROUTE_EXISTS\"\n  },\n  {\n    \"originIndex\": 0,\n    \"destinationIndex\": 1,\n    \"status\": {},\n    \"distanceMeters\": 7259,\n    \"duration\": \"712s\",\n    \"condition\": \"ROUTE_EXISTS\"\n  }\n]"
+  }
+}
