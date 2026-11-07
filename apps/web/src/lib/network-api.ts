@@ -27,6 +27,11 @@ export const networkApi = {
   danger: (networkId: string, forecastRunId: string) =>
     api<Schema["DangerRanking"]>(`networks/${networkId}/danger?forecast_run_id=${encodeURIComponent(forecastRunId)}`),
   backtest: (forecastJobId: string) => api<Schema["BacktestResult"]>(`forecasts/${encodeURIComponent(forecastJobId)}/backtest`),
+  createScenario: (networkId: string, body: Schema["ScenarioOptions"]) => api<Schema["ScenarioV3"]>(`networks/${networkId}/scenarios`, body),
+  submitComparison: (networkId: string, body: Schema["ComparisonRequestV3"]) => api<Schema["ForecastAccepted"]>(`networks/${networkId}/comparisons`, body),
+  /** The finished comparison named by the job's `result_url` (GET networks/{id}/comparisons/{comparison_id}). */
+  comparisonAt: (resultUrl: string) => api<Schema["SavedComparisonV3"]>(resultUrl.replace(/^\/api\/v1\//, "")),
+  job: (jobId: string) => api<Schema["ForecastJob"]>(`jobs/${encodeURIComponent(jobId)}`),
   settings: () => api<Schema["LocalSettings"]>("settings"),
   /** Write-only: the key is sent once and never read back. */
   setGoogleKey: (key: string) => apiWrite<Schema["LocalSettings"]>("PUT", "settings/google-maps-key", { key }),

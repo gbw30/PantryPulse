@@ -15,7 +15,7 @@ Mocked e2e runs prove UI behavior against the contract examples in `packages/con
 | W1-W04 | done | see `git log` (W1-W04) | `npx vitest run tests/unit/google-key-form.test.tsx` → 4 passed; `PLAYWRIGHT_PORT=3003 npx playwright test tests/e2e/enrichment.spec.ts` → 3 passed (mocked EnrichmentStatus, LocationAttributes, RouteList, LocalSettings, GoogleLookupPreview, ForecastAccepted). |
 | W1-W05 | done, except map placement and inspector (blocked: CR-w1-web-1, -2, -3) | see `git log` (W1-W05) | `npx vitest run tests/unit/danger-ranking.test.tsx` → 5 passed; `PLAYWRIGHT_PORT=3003 npx playwright test tests/e2e/atlas-ranking.spec.ts` → 4 passed (@V1-A13 table alternative; @V1-A20 axe + keyboard toggle at 1440×900, 1280×720, 390×844; mocked `DangerRanking`). Not written: `@V1-A13 selecting a row opens the site inspector`, and placement by real coordinates. Both need data no frozen route returns (see CRs). |
 | W1-W06 | done, except method/fallback/donations from a live run (CR-w1-web-4) | see `git log` (W1-W06) | `npx vitest run tests/unit/trust-panel.test.tsx` → 6 passed; `PLAYWRIGHT_PORT=3003 npx playwright test tests/e2e/forecast-trust.spec.ts` → 1 passed (mocked `BacktestResult`). RED was not run before implementing; instead a mutation check (bias sign flipped, quantile check removed) failed 2 of 6 unit tests, and they passed again after restoring. |
-| W1-W07 | todo | — | — |
+| W1-W07 | done, except the Pantry window picker and editable policy (waiting for the ScenarioV3 `planning_days`/`policy` merge from v1-local) | see `git log` (W1-W07) | RED run first: unit 6 failed, e2e 2 failed. After: `npx vitest run tests/unit/method-comparison.test.tsx` → 6 passed; `PLAYWRIGHT_PORT=3003 npx playwright test tests/e2e/v1-comparison.spec.ts` → 2 passed (A14 both transfer modes + axe, A15 units and USD); `npx vitest run` → 81 passed; `scenario-lab.spec.ts` + `recommendations*.spec.ts` → 33 passed, 2 skipped (both connected-only, `PP_RUN_CONNECTED`). research-claims-check on the new EGP copy (`results.tsx` method card): PASS — "inspired", DOI, no reproduction or outcome claim. |
 | W1-W08 | todo | — | — |
 
 ### W1-W01 port record
@@ -51,7 +51,14 @@ Visual check of 647f6a8: at 1440×900 the builder panel is 24rem and step-1 cont
 - Forecast trust is a section on the `/data` dashboard for the chosen v1 network (`?forecast_job_id=` until CR-w1-web-2). `forecast-chart.tsx` was not changed: it already draws the p10–p90 band only for a single-site series with model quantiles, and says why otherwise. Bias wording follows V5 §7 (error = prediction − actual, so positive bias = "forecast too high"). — W1-W06
 - The top-bar "Simulated network" pill is unchanged: the existing screens still read the demo network until they are rewired to v1 networks. — W1-W02
 
+- v1 method comparison is a new section at the top of Scenario Lab for the chosen network (`?forecast_run_id=` until CR-w1-web-2), built from `ComparisonSetup` (wizard.tsx), `MethodComparisonResults` (results.tsx), `MethodVerification` (recommendations/vocabulary.tsx) and the flow in `scenario-lab/v1-comparison.tsx`. The v2 stepper and results below it are unchanged, so their specs still hold. `recommendations-screen.tsx` was not changed: v1 actions come from the Decisions page (W1-W08). API calls went into `lib/network-api.ts` with the other v1 calls rather than `planning-api.ts`. — W1-W07
+- The comparison job's `result_url` is read as the path of `GET networks/{id}/comparisons/{comparison_id}` (the contract gives no other link from job to comparison). A requested method missing from the saved result shows "No result returned for this method."; nothing is filled in. Effects stay per location × product in each product's unit; the per-method `objective` is not shown, since there is no network-wide objective total. USD availability is computed from the frozen scenario's `unit_value_usd` and names the unpriced products; Retail must pick a measure, Pantry is units only. — W1-W07
+
 ## Gotchas
+
+- W1-W05's danger section broke 4 ported `network-atlas.test.tsx` tests (mocked shell, no NetworkProvider); I hadn't run the whole unit suite at W05/W06. Fixed test-side in its own commit. Run `npx vitest run` (all files) before each task commit. — W1-W07
+- `recommendations.spec.ts › verified plan … at 1440x900` failed once in a 35-test batch and passed alone (3/3) and in a rerun of the batch (33 passed): another load-sensitive spec. — W1-W07
+- Legacy Scenario Lab destructive alerts tint `code` and buttons below AA contrast; the load-failure alert now sets `text-foreground` on them (found by the A14 axe scan, which sees the legacy load failure under v1-only mocks). — W1-W07
 
 - `overview-layout.spec.ts › panels move by their grip handles at 1440` timed out once (32.9 s) under a 4-spec parallel run and passed twice alone (7–10 s): likely load-sensitive; watch it in the full run. — W1-W05
 
@@ -96,6 +103,7 @@ Visual check of 647f6a8: at 1440×900 the builder panel is 24rem and step-1 cont
 
 ### Contract example notes (no change requested)
 - `ImportStatus.json`'s failure message names "North County Pantry Network", which `NetworkList.json` also lists as existing. The A07 e2e therefore mocks the before-import list without that network.
+- `ScenarioV3.json`/`SavedComparisonV3.json` are Pantry only and hold 3 of the 5 Pantry methods. `v1-comparison.spec.ts` clones them into Retail (roles, prices, methods `SOONEST_EXPIRY_FIRST`/`RETAIL_OPTIMIZED`). There is no `ForecastJob` example; the finished job is built from `ForecastAccepted.json`'s identities.
 - `TemplateCatalog.json` lists two of the seven templates; `import-upload.spec.ts` clones those two entries to stand in for the other five.
 
 ## Escalations

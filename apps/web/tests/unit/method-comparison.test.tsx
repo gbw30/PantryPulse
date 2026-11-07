@@ -1,0 +1,108 @@
+// covers: V1-A14, V1-A15
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { expect, it, vi } from "vitest";
+import { MethodComparisonResults } from "@/components/scenario-lab/results";
+import { ComparisonSetup } from "@/components/scenario-lab/wizard";
+import type { Schema } from "@/lib/planning-api";
+import { example } from "./contract-examples";
+
+vi.mock("motion/react", async (load) => ({ ...(await load<typeof import("motion/react")>()), useReducedMotion: () => true }));
+
+const scenario = example("ScenarioV3");
+const saved = example("SavedComparisonV3");
+// Retail variant of the same frozen scenario: every product priced, so USD is available.
+const pricedRetail: Schema["ScenarioV3"] = {
+  ...scenario,
+  payload: { ...scenario.payload, mode: "RETAIL", products: scenario.payload.products.map((p, i) => ({ ...p, unit_value_usd: i === 0 ? "4.50" : "6.25" })) },
+};
+
+const setup = (props: Partial<React.ComponentProps<typeof ComparisonSetup>> = {}) =>
+  render(<ComparisonSetup mode="PANTRY" busy={false} scenario={null} onFreeze={vi.fn()} onCompare={vi.fn()} {...props} />);
+
+it("pantry lists 5 methods, retail lists 3", () => {
+  const { unmount } = setup();
+  expect(within(screen.getByRole("list", { name: "Methods compared" })).getAllByRole("listitem").map((li) => li.textContent))
+    .toEqual(["No transfers", "Equal share", "Most-urgent-first", "Classical GP", "EGP-PI-inspired"]);
+  unmount();
+  setup({ mode: "RETAIL" });
+  expect(within(screen.getByRole("list", { name: "Methods compared" })).getAllByRole("listitem").map((li) => li.textContent))
+    .toEqual(["No transfers", "Soonest-expiry-first", "Optimized (minimize expired + lost sales)"]);
+});
+
+it("transfer mode has no default and must be chosen", () => {
+  const onFreeze = vi.fn();
+  setup({ onFreeze });
+  const group = screen.getByRole("radiogroup", { name: "Transfer mode (required)" });
+  const radios = within(group).getAllByRole("radio");
+  expect(radios.map((r) => r.getAttribute("aria-checked"))).toEqual(["false", "false"]);
+  expect(within(group).getByText("Hub → pantries only")).toBeVisible();
+  expect(within(group).getByText("Hub and pantries → pantries")).toBeVisible();
+  const freeze = screen.getByRole("button", { name: "Freeze scenario" });
+  expect(freeze).toBeDisabled();
+  expect(screen.getByText("Choose a transfer mode first. There is no default.")).toBeVisible();
+  fireEvent.click(within(group).getByRole("radio", { name: "Hub and pantries → pantries" }));
+  expect(freeze).toBeEnabled();
+  fireEvent.click(freeze);
+  expect(onFreeze).toHaveBeenCalledWith({ transferMode: "HUB_AND_PANTRY", retailWeights: null });
+});
+
+it("retail labels its transfer modes and freezes with editable weights", () => {
+  const onFreeze = vi.fn();
+  setup({ mode: "RETAIL", onFreeze });
+  fireEvent.click(screen.getByRole("radio", { name: "DC → stores only" }));
+  expect(screen.getByLabelText("Weight on expired units")).toHaveValue(1);
+  fireEvent.change(screen.getByLabelText("Weight on lost sales"), { target: { value: "2" } });
+  fireEvent.click(screen.getByRole("button", { name: "Freeze scenario" }));
+  expect(onFreeze).toHaveBeenCalledWith({ transferMode: "HUB_ONLY", retailWeights: { w_exp: 1, w_lost: 2 } });
+});
+
+it("USD option disabled with the unavailable reason", () => {
+  const onCompare = vi.fn();
+  const retail: Schema["ScenarioV3"] = { ...scenario, payload: { ...scenario.payload, mode: "RETAIL" } };
+  const { unmount } = setup({ mode: "RETAIL", scenario: retail, onCompare });
+  const usd = screen.getByRole("radio", { name: "USD" });
+  expect(usd).toBeDisabled();
+  expect(screen.getByText("USD unavailable: no unit_value_usd in products.csv for Bottled water, Rice, 5 lb.")).toBeVisible();
+  fireEvent.click(screen.getByRole("radio", { name: "Units" }));
+  fireEvent.click(screen.getByRole("button", { name: "Compare methods" }));
+  expect(onCompare).toHaveBeenCalledWith("UNITS");
+  unmount();
+
+  setup({ mode: "RETAIL", scenario: pricedRetail, onCompare });
+  expect(screen.getByRole("radio", { name: "USD" })).toBeEnabled();
+  expect(screen.queryByText(/USD unavailable/)).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("radio", { name: "USD" }));
+  fireEvent.click(screen.getByRole("button", { name: "Compare methods" }));
+  expect(onCompare).toHaveBeenLastCalledWith("USD");
+});
+
+it("each method shows verification status; a failed method shows its native status and no plan", () => {
+  render(<MethodComparisonResults comparison={saved} scenario={scenario} requested={["NO_TRANSFERS", "EQUAL_SHARE", "MOST_URGENT_FIRST", "CLASSICAL_GP", "EGP_PI_INSPIRED"]} />);
+  const classical = screen.getByRole("region", { name: "Classical GP" });
+  expect(classical).toHaveTextContent("Verified by the independent check");
+  expect(classical).toHaveTextContent("Solver status: OPTIMAL (native)");
+  expect(classical).toHaveTextContent("optimized per product, with shared capacity split in advance");
+  expect(classical).toHaveTextContent("Products solved: Bottled water (OPTIMAL)");
+  expect(classical).toHaveTextContent("Rice, 5 lb: not at risk; not optimized");
+
+  const egp = screen.getByRole("region", { name: "EGP-PI-inspired" });
+  expect(egp).toHaveTextContent("Not verified — no plan shown");
+  expect(egp).toHaveTextContent("Solver status: UNKNOWN (native)");
+  expect(egp).toHaveTextContent("search limit reached before a feasible plan; no plan shown");
+  expect(within(egp).queryByRole("table")).not.toBeInTheDocument();
+
+  expect(screen.getByRole("region", { name: "No transfers" })).toHaveTextContent("No solver: rule-based method");
+  // Requested but absent from the saved result: said plainly, never filled in.
+  expect(screen.getByRole("region", { name: "Equal share" })).toHaveTextContent("No result returned for this method.");
+});
+
+it("per-location effects table", () => {
+  render(<MethodComparisonResults comparison={saved} scenario={scenario} requested={saved.result.methods.map((m) => m.method)} />);
+  const table = within(screen.getByRole("region", { name: "Classical GP" })).getByRole("table", { name: "Classical GP: effects by location" });
+  expect(within(table).getAllByRole("columnheader").map((th) => th.textContent))
+    .toEqual(["Location", "Product", "Unmet without plan", "Unmet with plan", "Expired without plan", "Expired with plan"]);
+  const row = within(table).getAllByRole("row")[1];
+  expect(within(row).getByRole("rowheader")).toHaveTextContent("Pantry 12");
+  expect(within(row).getAllByRole("cell").map((td) => td.textContent)).toEqual(["Bottled water", "55 cases", "15 cases", "0 cases", "0 cases"]);
+  expect(screen.getByText("Effects are per location and product; quantities of different products are never added together.")).toBeVisible();
+});

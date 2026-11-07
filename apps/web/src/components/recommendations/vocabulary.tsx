@@ -39,6 +39,17 @@ export function SolverStatus({ method, showMethod = false, className }: { method
   );
 }
 
+/** v1 MethodVerification: whether the independent verifier passed this method's result, in words plus a shape. */
+export function MethodVerification({ verified }: { verified: boolean }) {
+  const Icon = verified ? ShieldCheck : CircleSlash;
+  return (
+    <span data-verified={verified} className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground">
+      <Icon aria-hidden="true" className={cn("size-3.5 shrink-0", verified ? "text-pp-teal" : "text-pp-danger")} />
+      {verified ? "Verified by the independent check" : "Not verified — no plan shown"}
+    </span>
+  );
+}
+
 /** ConstraintBadge: a hard constraint, claimed only as far as independent replay passed. */
 export function ConstraintBadge({ label, passed }: { label: string; passed: boolean }) {
   return (

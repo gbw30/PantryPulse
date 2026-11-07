@@ -156,3 +156,22 @@ export function solverStatusText(outcome: MethodOutcome | undefined) {
 
 export const shortId = (value: string | null | undefined) => (value ? value.slice(0, 8) : "—");
 export const when = (iso: string) => new Date(iso).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
+
+// v1 (or-comparison.v3): every method in a comparison runs on one frozen scenario per network mode.
+export type V1Method = Schema["MethodResult"]["method"];
+export type V1Measure = Schema["ComparisonRequestV3"]["measure"];
+/** V1-SPEC §6.2: the methods compared per network mode, in display order. */
+export const V1_METHODS: Record<Schema["ScenarioV3"]["payload"]["mode"], V1Method[]> = {
+  PANTRY: ["NO_TRANSFERS", "EQUAL_SHARE", "MOST_URGENT_FIRST", "CLASSICAL_GP", "EGP_PI_INSPIRED"],
+  RETAIL: ["NO_TRANSFERS", "SOONEST_EXPIRY_FIRST", "RETAIL_OPTIMIZED"],
+};
+export const V1_METHOD_LABEL: Record<V1Method, string> = {
+  NO_TRANSFERS: "No transfers", EQUAL_SHARE: "Equal share", MOST_URGENT_FIRST: "Most-urgent-first", CLASSICAL_GP: "Classical GP",
+  EGP_PI_INSPIRED: "EGP-PI-inspired", SOONEST_EXPIRY_FIRST: "Soonest-expiry-first", RETAIL_OPTIMIZED: "Optimized (minimize expired + lost sales)",
+};
+
+/** USD needs `unit_value_usd` for every product in the frozen scenario (V1-SPEC §6.2); otherwise the reason, naming them. */
+export function usdUnavailableReason(products: Schema["ProductV3"][]): string | null {
+  const missing = products.filter((p) => p.unit_value_usd === null).map((p) => p.name);
+  return missing.length ? `no unit_value_usd in products.csv for ${missing.join(", ")}` : null;
+}

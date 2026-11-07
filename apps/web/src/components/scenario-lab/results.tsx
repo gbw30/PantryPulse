@@ -9,10 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Methodology, Schema } from "@/lib/planning-api";
 import { cn } from "@/lib/utils";
+import { formatUnits } from "@/components/overview/danger-ranking";
+import { MethodVerification } from "@/components/recommendations/vocabulary";
+import { transferModeLabel } from "@/lib/mode-vocabulary";
 import { SCROLL } from "./evidence";
 import {
   METHOD_LABEL, METHODS, count, coverage, expired, flagged, methodOutcome, pct, ratio, shortId, solverStatusText, tradeoffs, unmet, units,
-  usableMetrics, when, type GoalRow, type Method, type Metrics, type ProductInfo, type SiteInfo,
+  usableMetrics, V1_METHOD_LABEL, when, type GoalRow, type V1Method, type Method, type Metrics, type ProductInfo, type SiteInfo,
 } from "./model";
 
 type Comparison = Schema["SavedComparison"];
@@ -286,6 +289,101 @@ export function KeyTradeoffs({ comparison, rows, sites, products, methodology }:
         It does not reproduce the paper’s full model or results. Vulnerability attributes and all data are simulated.
         {methodology?.limitations.length ? ` ${methodology.limitations.join(" ")}` : ""}
       </p>
+    </section>
+  );
+}
+
+// v1 (or-comparison.v3) results: one card per method on the same frozen scenario. A method that the
+// independent verifier did not pass shows its native status and reason, and no plan.
+
+type V1Result = Schema["MethodResult"];
+type V1Names = { location: (id: string) => string; product: (id: string) => { name: string; unit: string } };
+
+const solverText = (status: V1Result["native_status"]) => (status ? `Solver status: ${status} (native)` : "No solver: rule-based method");
+
+function EffectsTable({ result, label, retail, names }: { result: V1Result; label: string; retail: boolean; names: V1Names }) {
+  if (!result.effects.length) return <p className="text-xs text-muted-foreground">No location effects reported.</p>;
+  const short = retail ? "Lost sales" : "Unmet";
+  return (
+    <div className={SCROLL} tabIndex={0} role="region" aria-label={`Effects table for ${label}, scrolls horizontally`}>
+      <Table>
+        <TableCaption className="sr-only">{label}: effects by location</TableCaption>
+        <TableHeader>
+          <TableRow>
+            {["Location", "Product", `${short} without plan`, `${short} with plan`, "Expired without plan", "Expired with plan"].map((h) => <TableHead key={h}>{h}</TableHead>)}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {result.effects.map((e) => {
+            const p = names.product(e.product_id);
+            return (
+              <TableRow key={`${e.location_id}:${e.product_id}`}>
+                <TableHead scope="row">{names.location(e.location_id)}</TableHead>
+                <TableCell>{p.name}</TableCell>
+                {[e.unmet_without_plan, e.unmet_with_plan, e.expired_without_plan, e.expired_with_plan].map((n, i) => (
+                  <TableCell key={i} className="tabular-nums">{formatUnits(n, p.unit)}</TableCell>
+                ))}
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+function MethodCard({ method, result, retail, names }: { method: V1Method; result: V1Result | undefined; retail: boolean; names: V1Names }) {
+  const label = V1_METHOD_LABEL[method];
+  const solved = result?.products.filter((p) => p.native_status !== null) ?? [];
+  const skipped = result?.products.filter((p) => p.native_status === null && p.label) ?? [];
+  return (
+    <section aria-labelledby={`v1-method-${method}`} data-method={method} className="grid min-w-0 gap-1.5 rounded-lg border border-border bg-card px-3 py-2.5 text-sm">
+      <h3 id={`v1-method-${method}`} className="font-semibold">{label}</h3>
+      {!result ? <p className="text-muted-foreground">No result returned for this method.</p> : (
+        <>
+          <MethodVerification verified={result.verified} />
+          <p className="text-xs text-muted-foreground">{solverText(result.native_status)}</p>
+          {result.failure_reason && <p>{result.failure_reason}</p>}
+          {result.labels.map((l) => <p key={l} className="text-xs">{l}</p>)}
+          {solved.length > 0 && <p className="text-xs">Products solved: {solved.map((p) => `${names.product(p.product_id).name} (${p.native_status})`).join(", ")}</p>}
+          {skipped.map((p) => <p key={p.product_id} className="text-xs text-muted-foreground">{names.product(p.product_id).name}: {p.label}</p>)}
+          {result.retail_weights && <p className="text-xs">Weights: expired ×{result.retail_weights.w_exp}, lost sales ×{result.retail_weights.w_lost}</p>}
+          {method === "EGP_PI_INSPIRED" && (
+            <p className="text-xs text-muted-foreground">Research-inspired: a bounded adaptation of Rampazo et al. (2026), DOI 10.1111/itor.70252. Results describe this simulated scenario only.</p>
+          )}
+          {result.verified && (
+            <>
+              <p className="text-xs">{result.transfers.length} transfer{result.transfers.length === 1 ? "" : "s"} suggested</p>
+              <EffectsTable result={result} label={label} retail={retail} names={names} />
+            </>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
+/** Every requested method in order (plus any extra the result holds), each with its verification and effects. */
+export function MethodComparisonResults({ comparison, scenario, requested }: { comparison: Schema["SavedComparisonV3"]; scenario: Schema["ScenarioV3"] | null; requested: V1Method[] }) {
+  const { result } = comparison;
+  const retail = result.mode === "RETAIL";
+  const names: V1Names = {
+    location: (id) => scenario?.payload.locations.find((l) => l.id === id)?.name ?? id,
+    product: (id) => scenario?.payload.products.find((p) => p.id === id) ?? { name: id, unit: "unit" },
+  };
+  const order = [...requested, ...result.methods.map((m) => m.method).filter((m) => !requested.includes(m))];
+  const usdReason = result.methods.find((m) => m.usd_unavailable_reason)?.usd_unavailable_reason ?? null;
+  return (
+    <section aria-label="Comparison results" className="grid min-w-0 gap-3">
+      <div className="grid gap-0.5 text-xs">
+        <p className="font-medium">Same frozen scenario {shortId(comparison.scenario_id)}{scenario ? ` · ${transferModeLabel(result.mode, scenario.payload.transfer_mode)}` : ""}</p>
+        <p className="text-muted-foreground">Scenario hash {result.scenario_hash.slice(0, 12)}… · saved {when(comparison.recorded_at)}</p>
+        {retail && <p>Measure: {result.measure === "USD" ? "USD (effects below stay in units)" : `units${usdReason ? ` · USD unavailable: ${usdReason}` : ""}`}</p>}
+      </div>
+      <div className="grid gap-2 xl:grid-cols-2">
+        {order.map((m) => <MethodCard key={m} method={m} result={result.methods.find((r) => r.method === m)} retail={retail} names={names} />)}
+      </div>
+      <p className="text-xs text-muted-foreground">Effects are per location and product; quantities of different products are never added together.</p>
     </section>
   );
 }

@@ -12,7 +12,10 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Schema } from "@/lib/planning-api";
 import { pluralize } from "@/components/data-explorer/format";
 import { cn } from "@/lib/utils";
-import { MODE_LABEL, checkMultiplier, shortId, when, type ProductInfo, type SiteInfo } from "./model";
+import { transferModeLabel, type NetworkMode, type TransferMode } from "@/lib/mode-vocabulary";
+import {
+  MODE_LABEL, V1_METHOD_LABEL, V1_METHODS, checkMultiplier, shortId, usdUnavailableReason, when, type ProductInfo, type SiteInfo, type V1Measure,
+} from "./model";
 
 // R3 GuidedScenarioStepper: four numbered steps. Desktop shows all; below md one step at a time.
 
@@ -246,6 +249,97 @@ export function GuidedScenarioStepper(props: Props) {
         <Button type="button" variant="outline" disabled={current === 1} onClick={() => setCurrent((c) => Math.max(1, c - 1))}>Previous step</Button>
         <Button type="button" variant="outline" disabled={current === 4} onClick={() => setCurrent((c) => Math.min(4, c + 1))}>Next step</Button>
       </div>
+    </form>
+  );
+}
+
+// v1 comparison setup (V1-SPEC §6.2): an explicit transfer mode with no default, Retail weights, then
+// the measure. Freezing saves the inputs; comparing runs every method of the mode on that frozen copy.
+
+type SetupProps = {
+  mode: NetworkMode;
+  busy: boolean;
+  /** The last frozen scenario; comparing always runs this, never the unsaved choices. */
+  scenario: Schema["ScenarioV3"] | null;
+  /** Why freezing is not possible yet (no dataset or forecast run); null when it is. */
+  blocked?: string | null;
+  onFreeze: (options: { transferMode: TransferMode; retailWeights: Schema["RetailWeights"] | null }) => void;
+  onCompare: (measure: V1Measure) => void;
+};
+
+const TRANSFERS: TransferMode[] = ["HUB_ONLY", "HUB_AND_PANTRY"];
+const weightError = (text: string) => (/^\d+(?:\.\d+)?$/.test(text.trim()) ? null : "Enter a number of 0 or more.");
+
+export function ComparisonSetup({ mode, busy, scenario, blocked = null, onFreeze, onCompare }: SetupProps) {
+  const retail = mode === "RETAIL";
+  const [transfer, setTransfer] = useState<TransferMode | "">("");
+  const [weights, setWeights] = useState({ w_exp: "1", w_lost: "1" });
+  // Pantry measures unmet need in units only; Retail picks units or USD per scenario.
+  const [measure, setMeasure] = useState<V1Measure | "">(retail ? "" : "UNITS");
+  const usdReason = scenario ? usdUnavailableReason(scenario.payload.products) : null;
+  const weightErrors = { w_exp: weightError(weights.w_exp), w_lost: weightError(weights.w_lost) };
+  const canFreeze = !busy && !blocked && !!transfer && !(retail && (weightErrors.w_exp || weightErrors.w_lost));
+  const canCompare = !busy && !!scenario && (measure === "UNITS" || (measure === "USD" && !usdReason));
+
+  const freeze = () => transfer && onFreeze({ transferMode: transfer,
+    retailWeights: retail ? { w_exp: Number(weights.w_exp), w_lost: Number(weights.w_lost) } : null });
+
+  return (
+    <form aria-label="Comparison setup" className="grid min-w-0 gap-5" onSubmit={(e) => e.preventDefault()}>
+      <fieldset className="grid min-w-0 gap-3 border-0 p-0">
+        <legend className="pb-2 text-sm font-semibold">1 · Freeze a scenario</legend>
+        <RadioGroup aria-label="Transfer mode (required)" value={transfer} disabled={busy} onValueChange={(v) => setTransfer(v as TransferMode)}>
+          {TRANSFERS.map((t) => (
+            <div key={t} className="flex items-center gap-2">
+              <RadioGroupItem id={`v1-transfer-${t}`} value={t} />
+              <Label htmlFor={`v1-transfer-${t}`}>{transferModeLabel(mode, t)}</Label>
+            </div>
+          ))}
+        </RadioGroup>
+        {!transfer && <p className="text-xs text-muted-foreground">Choose a transfer mode first. There is no default.</p>}
+        {retail && (
+          <div className="grid gap-2">
+            <p className="text-xs text-muted-foreground">Optimized minimizes weight × expired units + weight × lost sales. v1 defaults are 1 and 1; change them here.</p>
+            {(["w_exp", "w_lost"] as const).map((key) => (
+              <div key={key} className="grid gap-1">
+                <Label htmlFor={`v1-${key}`}>{key === "w_exp" ? "Weight on expired units" : "Weight on lost sales"}</Label>
+                <Input id={`v1-${key}`} type="number" min={0} step="any" className="h-9 w-28" value={weights[key]} disabled={busy}
+                  aria-invalid={weightErrors[key] ? true : undefined} aria-describedby={weightErrors[key] ? `v1-${key}-error` : undefined}
+                  onChange={(e) => setWeights((w) => ({ ...w, [key]: e.target.value }))} />
+                {weightErrors[key] && <p id={`v1-${key}-error`} className="text-xs text-pp-danger">{weightErrors[key]}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+        <Button type="button" className="justify-self-start" disabled={!canFreeze} onClick={freeze}>Freeze scenario</Button>
+        {blocked && <p className="text-xs text-muted-foreground">{blocked}</p>}
+        {scenario && (
+          <div className="grid gap-1 text-xs">
+            <p className="font-medium">Frozen scenario {shortId(scenario.id)} · {transferModeLabel(mode, scenario.payload.transfer_mode)}</p>
+            {scenario.payload.assumptions.length > 0 && (
+              <ul aria-label="Assumptions" className="ml-4 list-disc text-muted-foreground">{scenario.payload.assumptions.map((a) => <li key={a}>{a}</li>)}</ul>
+            )}
+          </div>
+        )}
+      </fieldset>
+
+      <fieldset className="grid min-w-0 gap-3 border-0 p-0">
+        <legend className="pb-2 text-sm font-semibold">2 · Compare methods</legend>
+        <ol aria-label="Methods compared" className="ml-5 list-decimal text-sm">
+          {V1_METHODS[mode].map((m) => <li key={m}>{V1_METHOD_LABEL[m]}</li>)}
+        </ol>
+        {retail ? (
+          <div className="grid gap-1.5">
+            <RadioGroup aria-label="Measure" value={measure} disabled={busy || !scenario} onValueChange={(v) => setMeasure(v as V1Measure)} className="flex gap-4">
+              <div className="flex items-center gap-2"><RadioGroupItem id="v1-measure-units" value="UNITS" /><Label htmlFor="v1-measure-units">Units</Label></div>
+              <div className="flex items-center gap-2"><RadioGroupItem id="v1-measure-usd" value="USD" disabled={!!usdReason} /><Label htmlFor="v1-measure-usd">USD</Label></div>
+            </RadioGroup>
+            {usdReason && <p className="text-xs text-muted-foreground">USD unavailable: {usdReason}.</p>}
+          </div>
+        ) : <p className="text-xs text-muted-foreground">Measure: unmet need in units, per product.</p>}
+        <Button type="button" className="justify-self-start" variant={scenario ? "default" : "outline"} disabled={!canCompare} onClick={() => measure && onCompare(measure)}>Compare methods</Button>
+        <p className="text-xs text-muted-foreground">Every method runs on the same frozen scenario. Simulation only: nothing is reserved or moved.</p>
+      </fieldset>
     </form>
   );
 }

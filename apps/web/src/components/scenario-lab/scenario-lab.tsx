@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppShell } from "@/components/shell/app-shell";
+import { MethodComparisonSection } from "./v1-comparison";
 import { usePresenter } from "@/components/shell/presenter-session";
 import { ProvenancePill } from "@/components/overview/provenance-pill";
 import { ApiError, TERMINAL_JOB_STATES, demoForecastRequest, isUuid, planningApi, type Methodology, type Schema } from "@/lib/planning-api";
@@ -40,17 +41,18 @@ function describe(error: unknown, action: string): Notice {
 
 const frozenMultiplier = (s: Scenario, key: string) => s.payload.modifiers.find((m) => modifierKey(m.site_id, m.product_id) === key)?.multiplier ?? "1";
 
-export function ScenarioLab() {
+/** `forecastRunId` names the v1 forecast run the method comparison freezes (CR-w1-web-2). */
+export function ScenarioLab({ forecastRunId }: { forecastRunId?: string } = {}) {
   return (
     <MotionConfig reducedMotion="user">
       <AppShell active="scenarios" horizonLabel="7-day projection · 1–3 day window">
-        <ScenarioLabScreen />
+        <ScenarioLabScreen forecastRunId={forecastRunId} />
       </AppShell>
     </MotionConfig>
   );
 }
 
-function ScenarioLabScreen() {
+function ScenarioLabScreen({ forecastRunId }: { forecastRunId?: string }) {
   const presenter = usePresenter();
   const pending = useRef(false);
   const view = useRef(0);
@@ -319,6 +321,7 @@ function ScenarioLabScreen() {
           {catalog?.next_before && <Button variant="outline" size="sm" disabled={busy} onClick={() => void loadOlder()}>Load older saved work</Button>}
         </div>
       </header>
+      <MethodComparisonSection forecastRunId={forecastRunId} />
 
       {/* R2 context strip + job status */}
       <div className="flex flex-col gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs">
@@ -352,15 +355,15 @@ function ScenarioLabScreen() {
       {loadNotice && (
         <Alert variant="destructive" role="alert">
           <AlertTitle>{loadNotice.title}</AlertTitle>
-          <AlertDescription className="flex flex-wrap items-center gap-2">{loadNotice.code && <code>{loadNotice.code}</code>}
-            <Button size="sm" variant="outline" onClick={() => setReload((n) => n + 1)}>Retry</Button></AlertDescription>
+          <AlertDescription className="flex flex-wrap items-center gap-2">{loadNotice.code && <code className="text-foreground">{loadNotice.code}</code>}
+            <Button size="sm" variant="outline" className="text-foreground" onClick={() => setReload((n) => n + 1)}>Retry</Button></AlertDescription>
         </Alert>
       )}
       {notice && (
         <Alert variant="destructive" role="alert">
           <AlertTitle>{notice.title}</AlertTitle>
-          <AlertDescription className="flex flex-wrap items-center gap-2">{notice.detail}{notice.code && <code>{notice.code}</code>}
-            {notice.retry === "poll" && <Button size="sm" variant="outline" onClick={() => { setNotice(null); setPollKick((k) => k + 1); }}>Reconnect</Button>}</AlertDescription>
+          <AlertDescription className="flex flex-wrap items-center gap-2">{notice.detail}{notice.code && <code className="text-foreground">{notice.code}</code>}
+            {notice.retry === "poll" && <Button size="sm" variant="outline" className="text-foreground" onClick={() => { setNotice(null); setPollKick((k) => k + 1); }}>Reconnect</Button>}</AlertDescription>
         </Alert>
       )}
 
