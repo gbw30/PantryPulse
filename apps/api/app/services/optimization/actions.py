@@ -98,7 +98,7 @@ def action_text(s, t) -> str:
     names = {loc.id: loc.name for loc in s.locations}
     product = next(p for p in s.products if p.id == t.product_id)
     return (
-        f"Move {t.quantity} {_units(product.unit, t.quantity)} of {product.name} "
+        f"Move {t.quantity} {units_label(product.unit, t.quantity)} of {product.name} "
         f"from {names[t.from_location_id]} to {names[t.to_location_id]}, "
         f"ship on {_day(t.ship_date)}, arrives {_day(t.arrival_date)}."
     )
@@ -119,14 +119,15 @@ def _why(s, baseline, transfers, t) -> tuple[str, str]:
         unmet = sum(d.unmet for d in short)
         first = (
             f"{names[t.to_location_id]} runs out on {_day(short[0].day)} "
-            f"(projected unmet {unmet} {_units(unit, unmet)} over {len(window)} days)"
+            f"(projected unmet {unmet} {units_label(unit, unmet)} over {len(window)} days)"
         )
     else:
         first = f"{names[t.to_location_id]} can use the units before they expire"
     spare = surplus(s, t.product_id, t.from_location_id)
     parts = [
         first,
-        f"{names[t.from_location_id]} has {spare} {_units(unit, spare)} beyond its protected need",
+        f"{names[t.from_location_id]} has {spare} {units_label(unit, spare)} "
+        "beyond its protected need",
     ]
     sender = [
         d
@@ -157,7 +158,7 @@ def _repacked(s, transfers):
         return tuple(transfers)
 
 
-def _units(unit: str, n: int) -> str:
+def units_label(unit: str, n: int) -> str:
     if n == 1 or unit.endswith("s"):
         return unit
     return unit + ("es" if unit.endswith(("x", "ch", "sh")) else "s")
