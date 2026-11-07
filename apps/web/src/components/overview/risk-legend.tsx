@@ -47,3 +47,47 @@ export function RiskLegend({ context, className, style, ref, grip, lifted = fals
     </div>
   );
 }
+
+export type DangerBand = "high" | "medium" | "low";
+
+// V1-SPEC §6.6 danger bands: shape and text carry the band; colour only reinforces it.
+export const DANGER_BANDS: { band: DangerBand; label: string; meaning: string }[] = [
+  { band: "high", label: "High danger", meaning: "a large share projected short" },
+  { band: "medium", label: "Medium danger", meaning: "a moderate share projected short" },
+  { band: "low", label: "Low danger", meaning: "a small share projected short" },
+];
+
+const BAND_SHAPE: Record<DangerBand, "diamond" | "triangle" | "circle"> = { high: "diamond", medium: "triangle", low: "circle" };
+
+export function DangerBandGlyph({ band, size = 14 }: { band: DangerBand; size?: number }) {
+  const shape = BAND_SHAPE[band];
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" aria-hidden="true" data-band-shape={shape} className="shrink-0">
+      {shape === "diamond" && <path d="M8 1 L15 8 L8 15 L1 8 Z" fill="var(--pp-danger)" stroke="var(--pp-surface)" strokeWidth="1" />}
+      {shape === "triangle" && <path d="M8 1.5 L15 14.5 H1 Z" fill="var(--pp-warning)" stroke="var(--pp-surface)" strokeWidth="1" strokeLinejoin="round" />}
+      {shape === "circle" && <circle cx="8" cy="8" r="5.5" fill="var(--pp-surface)" stroke="var(--pp-ink-muted)" strokeWidth="2" />}
+    </svg>
+  );
+}
+
+export function DangerLegend({ mode }: { mode: "PANTRY" | "RETAIL" }) {
+  return (
+    <div className="grid gap-1 text-xs">
+      <ul aria-label="Danger bands" className="flex flex-wrap gap-x-4 gap-y-1">
+        {DANGER_BANDS.map((b) => (
+          <li key={b.band} className="flex items-center gap-1.5">
+            <DangerBandGlyph band={b.band} />
+            <span className="font-medium">{b.label}</span>
+            <span className="text-muted-foreground">{b.meaning}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="text-muted-foreground">
+        {mode === "RETAIL"
+          ? "Score: the worst product's share of 7-day sales projected unmet, or of its stock projected to expire unsold, whichever is higher; the reason says which."
+          : "Score: the worst product's share of 7-day demand projected unmet. Ties go to the earlier first deficit."}
+        {" "}Units are never added across products.
+      </p>
+    </div>
+  );
+}

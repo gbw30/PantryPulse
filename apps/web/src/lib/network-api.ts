@@ -24,6 +24,8 @@ export const networkApi = {
   routes: (networkId: string) => api<Schema["RouteList"]>(`networks/${networkId}/routes`),
   googlePreview: (networkId: string) => api<Schema["GoogleLookupPreview"]>(`networks/${networkId}/routes/google-preview`, {}),
   googleFetch: (networkId: string) => api<Schema["ForecastAccepted"]>(`networks/${networkId}/routes/google-fetch`, {}),
+  danger: (networkId: string, forecastRunId: string) =>
+    api<Schema["DangerRanking"]>(`networks/${networkId}/danger?forecast_run_id=${encodeURIComponent(forecastRunId)}`),
   settings: () => api<Schema["LocalSettings"]>("settings"),
   /** Write-only: the key is sent once and never read back. */
   setGoogleKey: (key: string) => apiWrite<Schema["LocalSettings"]>("PUT", "settings/google-maps-key", { key }),
