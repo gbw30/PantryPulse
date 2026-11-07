@@ -10,6 +10,8 @@ import type { OverviewDataSource, OverviewSnapshot } from "@/components/overview
 
 // Isolate adapter/state behavior; the real shell/map, keyboard and geometry run in E2E.
 vi.mock("@/components/shell/app-shell", () => ({ AppShell: ({ children }: { children: ReactNode }) => <main>{children}</main> }));
+// The mocked shell has no NetworkProvider; the v1 danger ranking has its own tests (danger-ranking.test.tsx).
+vi.mock("@/components/overview/danger-ranking", async (load) => ({ ...(await load<typeof import("@/components/overview/danger-ranking")>()), DangerRankingSection: () => null }));
 vi.mock("@/components/overview/schematic-map", () => ({
   SchematicMapRenderer: ({ markers }: { markers: { site: { id: string }; accessibleName: string }[] }) => (
     <div data-testid="loaded-map">{markers.map((marker) => <span key={marker.site.id}>{marker.accessibleName}</span>)}</div>
