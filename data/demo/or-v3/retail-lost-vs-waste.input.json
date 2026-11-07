@@ -1,0 +1,137 @@
+{
+  "schema_version": "or-input-v3",
+  "network_id": "00000000-0000-4000-8000-0000000000a1",
+  "organization_id": "00000000-0000-4000-8000-0000000000a2",
+  "dataset_version_id": "00000000-0000-4000-8000-0000000000a3",
+  "forecast_run_id": "00000000-0000-4000-8000-0000000000a4",
+  "mode": "RETAIL",
+  "timezone": "America/New_York",
+  "snapshot_as_of": "2026-11-01",
+  "first_planning_date": "2026-11-02",
+  "horizon_days": 7,
+  "inbound": [],
+  "inbound_file_provided": false,
+  "capacities": [],
+  "global_handling": null,
+  "cost_budget_minor": null,
+  "reserves": [],
+  "retail_weights": {
+    "w_exp": 1,
+    "w_lost": 1
+  },
+  "vulnerability": [],
+  "assumptions": [
+    "fictional oracle fixture"
+  ],
+  "transfer_mode": "HUB_AND_PANTRY",
+  "locations": [
+    {
+      "id": "A",
+      "name": "Store A",
+      "role": "store"
+    },
+    {
+      "id": "B",
+      "name": "Store B",
+      "role": "store"
+    }
+  ],
+  "products": [
+    {
+      "id": "P",
+      "name": "Bread",
+      "unit": "case",
+      "handling_units_per_unit": 1,
+      "unit_value_usd": "4.00"
+    }
+  ],
+  "batches": [
+    {
+      "id": "a1",
+      "location_id": "A",
+      "product_id": "P",
+      "quantity": 1,
+      "expiry_date": "2026-11-03",
+      "non_expiring": false
+    },
+    {
+      "id": "a2",
+      "location_id": "A",
+      "product_id": "P",
+      "quantity": 10,
+      "expiry_date": "2026-11-30",
+      "non_expiring": false
+    },
+    {
+      "id": "b1",
+      "location_id": "B",
+      "product_id": "P",
+      "quantity": 5,
+      "expiry_date": "2026-11-06",
+      "non_expiring": false
+    }
+  ],
+  "demand": [
+    {
+      "location_id": "A",
+      "product_id": "P",
+      "basis": "sales",
+      "actual_provider": "seasonal_naive",
+      "fallback_reason": null,
+      "central_literals": [
+        "1",
+        "1",
+        "1",
+        "1",
+        "1",
+        "1",
+        "1"
+      ],
+      "targets": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "location_id": "B",
+      "product_id": "P",
+      "basis": "sales",
+      "actual_provider": "seasonal_naive",
+      "fallback_reason": null,
+      "central_literals": [
+        "1",
+        "1",
+        "1",
+        "1",
+        "1",
+        "1",
+        "1"
+      ],
+      "targets": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "from_location_id": "A",
+      "to_location_id": "B",
+      "travel_days": 1,
+      "method": "routes_csv",
+      "road_miles": null,
+      "cost_per_handling_unit_usd": null,
+      "capacity_per_batch": null
+    }
+  ]
+}

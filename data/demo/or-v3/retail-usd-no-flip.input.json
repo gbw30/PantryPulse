@@ -1,0 +1,136 @@
+{
+  "schema_version": "or-input-v3",
+  "network_id": "00000000-0000-4000-8000-0000000000a1",
+  "organization_id": "00000000-0000-4000-8000-0000000000a2",
+  "dataset_version_id": "00000000-0000-4000-8000-0000000000a3",
+  "forecast_run_id": "00000000-0000-4000-8000-0000000000a4",
+  "mode": "RETAIL",
+  "timezone": "America/New_York",
+  "snapshot_as_of": "2026-11-01",
+  "first_planning_date": "2026-11-02",
+  "horizon_days": 7,
+  "inbound": [],
+  "inbound_file_provided": false,
+  "capacities": [],
+  "global_handling": null,
+  "cost_budget_minor": null,
+  "reserves": [],
+  "retail_weights": {
+    "w_exp": 1,
+    "w_lost": 1
+  },
+  "vulnerability": [],
+  "assumptions": [
+    "fictional oracle fixture"
+  ],
+  "transfer_mode": "HUB_ONLY",
+  "locations": [
+    {
+      "id": "D",
+      "name": "DC North",
+      "role": "distribution_center"
+    },
+    {
+      "id": "B",
+      "name": "Store B",
+      "role": "store"
+    }
+  ],
+  "products": [
+    {
+      "id": "P",
+      "name": "Lettuce",
+      "unit": "case",
+      "handling_units_per_unit": 1,
+      "unit_value_usd": "1.00"
+    },
+    {
+      "id": "Q",
+      "name": "Olive oil",
+      "unit": "bottle",
+      "handling_units_per_unit": 1,
+      "unit_value_usd": "10.00"
+    }
+  ],
+  "batches": [
+    {
+      "id": "p1",
+      "location_id": "D",
+      "product_id": "P",
+      "quantity": 4,
+      "expiry_date": "2026-11-04",
+      "non_expiring": false
+    },
+    {
+      "id": "q1",
+      "location_id": "D",
+      "product_id": "Q",
+      "quantity": 10,
+      "expiry_date": null,
+      "non_expiring": true
+    }
+  ],
+  "demand": [
+    {
+      "location_id": "B",
+      "product_id": "P",
+      "basis": "sales",
+      "actual_provider": "seasonal_naive",
+      "fallback_reason": null,
+      "central_literals": [
+        "2",
+        "2",
+        "2",
+        "2",
+        "2",
+        "2",
+        "2"
+      ],
+      "targets": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ]
+    },
+    {
+      "location_id": "B",
+      "product_id": "Q",
+      "basis": "sales",
+      "actual_provider": "seasonal_naive",
+      "fallback_reason": null,
+      "central_literals": [
+        "2",
+        "2",
+        "2",
+        "2",
+        "2",
+        "2",
+        "2"
+      ],
+      "targets": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "from_location_id": "D",
+      "to_location_id": "B",
+      "travel_days": 1,
+      "method": "routes_csv",
+      "road_miles": null,
+      "cost_per_handling_unit_usd": null,
+      "capacity_per_batch": null
+    }
+  ]
+}

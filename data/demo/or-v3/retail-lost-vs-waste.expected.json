@@ -1,0 +1,57 @@
+{
+  "fixture": "retail-lost-vs-waste",
+  "weights": {
+    "w_exp": 1,
+    "w_lost": 1
+  },
+  "UNITS": {
+    "objective": "1",
+    "transfers": [
+      {
+        "product_id": "P",
+        "from_location_id": "A",
+        "to_location_id": "B",
+        "quantity": 3,
+        "ship_date": "2026-11-02",
+        "arrival_date": "2026-11-03",
+        "batch_ids": [
+          "a1",
+          "a2"
+        ]
+      }
+    ],
+    "starved_products": [],
+    "products": {
+      "P": {
+        "expired": 1,
+        "lost": 0,
+        "objective": "1"
+      }
+    }
+  },
+  "USD": {
+    "objective": "4.00",
+    "transfers": [
+      {
+        "product_id": "P",
+        "from_location_id": "A",
+        "to_location_id": "B",
+        "quantity": 3,
+        "ship_date": "2026-11-02",
+        "arrival_date": "2026-11-03",
+        "batch_ids": [
+          "a1",
+          "a2"
+        ]
+      }
+    ],
+    "starved_products": [],
+    "products": {
+      "P": {
+        "expired": 1,
+        "lost": 0,
+        "objective": "4.00"
+      }
+    }
+  }
+}
