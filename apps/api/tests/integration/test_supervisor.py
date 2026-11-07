@@ -1116,12 +1116,15 @@ def _follow_registry(follow):
 
 
 def _follow_run(
-    db, org, follow, cls=QueueRepository, admission=None, monkeypatch=None, setup=None
+    db, org, follow, cls=QueueRepository, admission=None, monkeypatch=None, setup=None,
+    patch=None,
 ):
     registry = _follow_registry(follow)
     if setup is not None:
         setup(registry.get("test.parent.v1").publisher)
     repo = cls(db, registry=registry, profile=PROFILE)
+    if patch is not None:
+        patch(repo)
     if admission is not None:
         real = repo._admission
 
@@ -1247,3 +1250,51 @@ def test_follow_up_queue_window_starts_after_the_publisher_ran(db, org):  # veri
             {"o": org.organization_id},
         )
     assert (parent.completed_at - enqueued).total_seconds() < 0.2
+
+
+def _child_admission_raises(monkeypatch, errors):
+    """The follow-up's admission raises each of `errors` once, then runs for real."""
+
+    def patch(repo):
+        real = repo._admission
+
+        def admission(conn, ctl, now, contract, validated=None):
+            if contract == "test.child.v1" and errors:
+                raise errors.pop(0)
+            return real(conn, ctl, now, contract, validated)
+
+        monkeypatch.setattr(repo, "_admission", admission)
+
+    return patch
+
+
+def test_storage_error_in_a_follow_up_retries_the_whole_publication(db, org, monkeypatch):
+    from sqlalchemy.exc import OperationalError
+
+    timeout = OperationalError("SELECT", {}, Exception("canceling statement due to timeout"))
+    patch = _child_admission_raises(monkeypatch, [timeout])
+    repo, accepted, children = _follow_run(db, org, [CHILD], patch=patch)
+    assert job_state(repo, org, accepted.job_id) is AttemptState.SUCCEEDED
+    assert len(children) == 1
+    assert _rejections(repo, accepted.job_id) == []
+
+
+def test_database_error_codes_never_reach_the_audit_reason(db, org, monkeypatch):  # re-verify F1
+    from sqlalchemy.exc import IntegrityError
+
+    error = IntegrityError("INSERT", {}, Exception("violates check"))  # .code == "gkpj"
+    patch = _child_admission_raises(monkeypatch, [error])
+    repo, accepted, children = _follow_run(db, org, [CHILD], patch=patch)
+    assert job_state(repo, org, accepted.job_id) is AttemptState.SUCCEEDED
+    assert children == []
+    assert _rejections(repo, accepted.job_id) == [("FOLLOW_UP_FAILED", "test.child.v1")]
+
+
+def test_slow_publish_does_not_make_the_live_supervisor_look_stale(db, org):  # re-verify F2
+    def slow(publisher):
+        publisher.publish_delay_s = PROFILE.heartbeat_stale_s + 0.1
+
+    repo, accepted, children = _follow_run(db, org, [CHILD], setup=slow)
+    assert job_state(repo, org, accepted.job_id) is AttemptState.SUCCEEDED
+    assert _rejections(repo, accepted.job_id) == []
+    assert len(children) == 1

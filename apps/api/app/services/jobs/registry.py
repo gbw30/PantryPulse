@@ -109,8 +109,11 @@ class Publisher(Protocol):
     #     transaction: read only what the follow-up needs, briefly). Each FollowUp is
     #     admitted there as a new job with the parent's organization and actor, so it exists
     #     only if the publication commits. A rejected follow-up (unknown contract, invalid
-    #     input, queue full, compute unavailable) never fails the publication: it is rolled
-    #     back alone and audited as FOLLOW_UP_REJECTED with the reason code.
+    #     input, queue full, compute unavailable, any error) never fails the publication: it
+    #     is rolled back alone and audited as FOLLOW_UP_REJECTED with the reason code. An
+    #     error raised by this hook itself, PublicationRejected included, is audited as
+    #     FOLLOW_UP_HOOK_FAILED: reject a result in `publish`, never here. Storage errors
+    #     (timeouts, lost connections) fail the whole publication, which is retried.
 
 
 @dataclass(frozen=True, slots=True)

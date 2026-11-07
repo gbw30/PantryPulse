@@ -48,6 +48,7 @@ from app.services.jobs.registry import (
 )
 
 IDEMPOTENCY_KEY = re.compile(r"[A-Za-z0-9._:-]{1,128}")
+REASON_CODE = re.compile(r"[A-Z][A-Z0-9_]{0,63}")  # compute_audit_events.reason_code CHECK
 _SCHEMA_NAME = re.compile(r"[a-z_][a-z0-9_]{0,62}")
 _OCCUPYING = tuple(s.value for s in LANE_OCCUPYING_STATES)
 
@@ -610,8 +611,11 @@ class QueueRepository:
         self, conn: sa.Connection, scope: TrustedScope,
         submission: tuple[Any, dict[str, Any], str, str], idempotency_key: str, deduplicate: bool,
         locked: tuple[Mapping[str, Any], datetime] | None = None,
+        enqueue_now: datetime | None = None,
     ) -> Accepted | AdmissionOutcome:
-        """Admit inside the caller's transaction; `locked` is a control row it already holds."""
+        """Admit inside the caller's transaction; `locked` is a control row it already holds
+        and the time it was read, which admission is judged at. `enqueue_now`, when given,
+        stamps the new job and starts its queue window instead."""
         registration, validated, encoded, request_sha = submission
         # Hash and store exactly what JSONB keeps (it rewrites e.g. -0.0 and 1e16), so the
         # claim/publish re-hash of the stored package matches; reject what it cannot keep.
@@ -662,6 +666,7 @@ class QueueRepository:
         outcome = self._admission(conn, ctl, now, registration.contract, validated)
         if outcome is not AdmissionOutcome.ACCEPT:
             return outcome
+        now = enqueue_now or now
         job_id = uuid.uuid4()
         attempt_id = self._insert_attempt(
             conn, job_id=job_id, number=1, organization_id=scope.organization_id, now=now
@@ -1399,7 +1404,7 @@ class QueueRepository:
                 manifest = registration.publisher.publish(conn, identity, package)
                 if not isinstance(manifest, dict):
                     raise PublicationRejected(ReasonCode.OUTPUT_INVALID.value)
-                self._admit_follow_ups(conn, ctl, job, identity, registration, manifest)
+                self._admit_follow_ups(conn, ctl, now, job, identity, registration, manifest)
                 encoded = _json(manifest)
                 final_now = conn.scalar(sa.text("SELECT clock_timestamp()"))
                 if final_now >= deadline:
@@ -1439,13 +1444,16 @@ class QueueRepository:
             conn.close()
 
     def _admit_follow_ups(
-        self, conn: sa.Connection, ctl: Mapping[str, Any], job: Mapping[str, Any],
-        identity: PublicationIdentity, registration: Any, manifest: dict[str, Any],
+        self, conn: sa.Connection, ctl: Mapping[str, Any], lock_now: datetime,
+        job: Mapping[str, Any], identity: PublicationIdentity, registration: Any,
+        manifest: dict[str, Any],
     ) -> None:
         """Queue the publisher's follow-up jobs in the publication's transaction.
 
-        Nothing here fails the publication (CR-w1-data-5): a failing hook or follow-up is
-        rolled back alone in a savepoint and audited with a code and an error type only.
+        A failing hook or follow-up never fails the publication (CR-w1-data-5): it is rolled
+        back alone in a savepoint and audited with a code and an error type only. Storage
+        errors are the exception: they fail the whole publication, which is then retried,
+        so a passing timeout never drops the follow-up.
         """
         hook = getattr(registration.publisher, "follow_ups", None)
         if hook is None:
@@ -1455,6 +1463,8 @@ class QueueRepository:
                 follows = list(hook(conn, identity, manifest))
                 if not all(isinstance(f, FollowUp) for f in follows):
                     raise TypeError("follow_ups must return FollowUp items")
+        except (OperationalError, InterfaceError):
+            raise
         except Exception as exc:  # noqa: BLE001 - a publisher bug never loses the publication
             self._follow_up_rejected(conn, identity, None, "FOLLOW_UP_HOOK_FAILED", exc)
             return
@@ -1465,13 +1475,20 @@ class QueueRepository:
             key = f"follow-up:{uuid.uuid4().hex}"
             try:
                 with conn.begin_nested():
+                    # Liveness is judged at lock time: this publishing supervisor holds the
+                    # control row, so its heartbeat can't advance until we commit.
                     now = conn.scalar(sa.text("SELECT clock_timestamp()"))
                     submission = self._submission(follow.contract, follow.payload, key, False)
-                    result = self._admit(conn, scope, submission, key, False, locked=(ctl, now))
+                    result = self._admit(conn, scope, submission, key, False,
+                                         locked=(ctl, lock_now), enqueue_now=now)
                     if isinstance(result, AdmissionOutcome):
                         raise AdmissionRejected("follow-up rejected", code=result.value)
+            except (OperationalError, InterfaceError):
+                raise
             except Exception as exc:  # noqa: BLE001 - e.g. a stub handler's NotImplementedError
-                code = getattr(exc, "code", None) or "FOLLOW_UP_FAILED"
+                code = getattr(exc, "code", None)  # a database error's code is not a reason
+                if not (isinstance(code, str) and REASON_CODE.fullmatch(code)):
+                    code = "FOLLOW_UP_FAILED"
                 self._follow_up_rejected(conn, identity, follow.contract, code, exc)
             else:
                 self._audit(
