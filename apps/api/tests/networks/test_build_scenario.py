@@ -255,6 +255,21 @@ def test_blank_capacity_no_limit_with_assumption_text(engine, tmp_path, forecast
     assert _assumption(p, "Dispatch, storage") and NO_LIMIT in _assumption(p, "Dispatch")[0]
 
 
+def test_fractional_capacities_are_rounded_down_and_listed(engine, tmp_path, forecasts):
+    """Whole handling units only: a fractional capacity is floored (never exceeded), and the
+    change is shown, so a 0.5 that becomes 0 doesn't silently close a location."""
+    locations = FILES["locations"].replace("-82.3248,50,", "-82.3248,50.5,")
+    routes = ("from_location_id,to_location_id,travel_days,cost_per_handling_unit,"
+              "capacity_per_batch,disabled\nH1,P1,1,,12.5,\n")
+    network = _network(engine, tmp_path, {**FILES, "locations": locations, "routes": routes})
+    p = _scenario(engine, network, forecasts(network)).payload
+    assert {c.location_id: c.receiving for c in p.capacities}["P1"] == 50
+    assert {(r.from_location_id, r.to_location_id): r.capacity_per_batch
+            for r in p.routes}[("H1", "P1")] == 12
+    [text] = _assumption(p, "rounded down")
+    assert "P1 receiving 50.5 → 50" in text and "H1→P1 per batch 12.5 → 12" in text
+
+
 def test_reserve_floors_default_zero_listed_as_assumption(engine, tmp_path, forecasts):
     network = _network(engine, tmp_path)
     run_id = forecasts(network)

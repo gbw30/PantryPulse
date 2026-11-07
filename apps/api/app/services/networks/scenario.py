@@ -86,8 +86,12 @@ def build_scenario(conn: sa.Connection, network: sa.Row, options: ScenarioOption
 
     demand = _demand(forecast, location_ids, product_ids, assumptions)
     inbound, provided = _inbound(conn, version_id, assumptions)
-    routes = _routes(conn, version_id, options.transfer_mode, assumptions)
-    capacities = _capacities(locations, assumptions)
+    rounded: list[str] = []
+    routes = _routes(conn, version_id, options.transfer_mode, assumptions, rounded)
+    capacities = _capacities(locations, assumptions, rounded)
+    if rounded:
+        assumptions.append("Capacities rounded down to whole handling units: "
+                           + "; ".join(rounded))
     vulnerability = _vulnerability(conn, version_id, assumptions) if mode == "PANTRY" else ()
 
     reserves = options.reserve_floors
@@ -210,8 +214,18 @@ def _inbound(conn: sa.Connection, version_id: UUID,
             for r in rows if r.within_horizon], provided
 
 
+def _whole(value: Decimal | None, label: str, rounded: list[str]) -> int | None:
+    """Floor to whole handling units, so a capacity is never exceeded; list any change."""
+    if value is None:
+        return None
+    whole = math.floor(value)
+    if whole != value:
+        rounded.append(f"{label} {value.normalize():f} → {whole}")
+    return whole
+
+
 def _routes(conn: sa.Connection, version_id: UUID, transfer_mode,
-            assumptions: list[str]) -> list[RouteV3]:
+            assumptions: list[str], rounded: list[str]) -> list[RouteV3]:
     rows = _rows(conn, "SELECT f.external_id AS src, t.external_id AS dst, f.role, r.method, "
                        "r.distance_miles, r.travel_days, r.cost_per_handling_unit, "
                        "r.capacity_per_batch FROM net_routes r "
@@ -234,12 +248,13 @@ def _routes(conn: sa.Connection, version_id: UUID, transfer_mode,
                     road_miles=None if r.distance_miles is None else str(r.distance_miles),
                     cost_per_handling_unit_usd=None if r.cost_per_handling_unit is None
                     else str(r.cost_per_handling_unit),
-                    capacity_per_batch=None if r.capacity_per_batch is None
-                    else math.floor(r.capacity_per_batch))
+                    capacity_per_batch=_whole(r.capacity_per_batch, f"{r.src}→{r.dst} per batch",
+                                              rounded))
             for r in usable]
 
 
-def _capacities(locations: list[sa.Row], assumptions: list[str]) -> list[CapacityV3]:
+def _capacities(locations: list[sa.Row], assumptions: list[str],
+                rounded: list[str]) -> list[CapacityV3]:
     blank = [r.external_id for r in locations
              if r.role not in SENDERS and r.receiving_capacity_per_day is None]
     if blank:
@@ -247,8 +262,8 @@ def _capacities(locations: list[sa.Row], assumptions: list[str]) -> list[Capacit
     assumptions.append(f"Dispatch, storage and global handling capacity: {NO_LIMIT} "
                        "(the templates don't carry them)")
     return [CapacityV3(location_id=r.external_id,
-                       receiving=None if r.receiving_capacity_per_day is None
-                       else math.floor(r.receiving_capacity_per_day),
+                       receiving=_whole(r.receiving_capacity_per_day,
+                                        f"{r.external_id} receiving", rounded),
                        dispatch=None, storage=None) for r in locations]
 
 
