@@ -203,6 +203,12 @@ class RetailWeights(ORContract):
     w_exp: int = Field(strict=True, ge=0, le=1000)
     w_lost: int = Field(strict=True, ge=0, le=1000)
 
+    @model_validator(mode="after")
+    def one_positive(self) -> Self:
+        if self.w_exp == 0 and self.w_lost == 0:  # the objective would be constant (E-1)
+            raise ValueError("RETAIL_WEIGHTS_ALL_ZERO")
+        return self
+
 
 class VulnerabilityV3(ORContract):
     location_id: Id
@@ -410,12 +416,16 @@ class SavedComparisonV3(ORContract):
     scenario_id: UUID
     recorded_at: datetime
     result: ComparisonResultV3
+    # The frozen scenario's notes, for pages opened without it (CR-w1-web-6)
+    assumptions: tuple[str, ...]
+    inbound_file_provided: Bool
 
 
 class ActionEffect(ORContract):
     """Remove-one effect of one transfer given the rest of the plan; there is no total."""
 
     product_id: Id
+    unit: str = Field(min_length=1, max_length=80)  # the product's own unit (CR-w1-web-5)
     sender_unmet_delta: int = Field(strict=True)
     receiver_unmet_delta: int = Field(strict=True)
     expired_delta: int = Field(strict=True)

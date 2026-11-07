@@ -2,10 +2,10 @@
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Self
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from app.schemas.or_inputs import ORContract
 from app.schemas.v1_planning import Basis, Id, NetworkMode
@@ -29,6 +29,14 @@ class Network(ORContract):
     as_of_date: date | None
     location_count: int = Field(ge=0)
     product_count: int = Field(ge=0)
+    # Latest version had an inbound.csv; False → "no scheduled deliveries provided" (CR-w1-web-6)
+    inbound_file_provided: bool | None
+
+    @model_validator(mode="after")
+    def inbound_flag_with_version(self) -> Self:
+        if (self.inbound_file_provided is None) != (self.dataset_version_id is None):
+            raise ValueError("INBOUND_FLAG_NEEDS_A_DATASET_VERSION")
+        return self
 
 
 class NetworkList(ORContract):

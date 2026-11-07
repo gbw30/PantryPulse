@@ -9,6 +9,7 @@
       "explanation_kind": "proven_binding",
       "effect": {
         "product_id": "WATER-24",
+        "unit": "case",
         "sender_unmet_delta": 0,
         "receiver_unmet_delta": -40,
         "expired_delta": 0,
