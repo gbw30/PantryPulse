@@ -96,12 +96,12 @@ Not fixed:
 
 | Gate | Commit | Result |
 |---|---|---|
-| `node scripts/quality/run.cjs quick` (with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1`) | b2f32ec | PASS: web typecheck, web lint, api lint, api tests |
-| `node scripts/quality/run.cjs full` (with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1`) | b2f32ec | PASS: the quick steps plus web unit tests, web build, contract drift, database migrations |
-| `uv run --frozen pytest -q --junitxml=…` + `scripts/quality/require-test-evidence.py` (apps/api, same env, lane DB `pantrypulse_web_test` on 127.0.0.1:55433) | b2f32ec | 1413 passed, 0 skipped; "1413 backend tests completed without skips or failures". Without `PP19_TEST_SCHEMA_ISOLATION=1`: 1336 passed, 77 skipped (PostgreSQL isolated-schema tests). |
-| `npx vitest run` (apps/web) | b2f32ec | 15 files, 88 passed |
-| `PLAYWRIGHT_PORT=3003 npx playwright test` (apps/web, whole suite, nothing else running) | b2f32ec | 173 passed, 6 skipped — all six are `connected:` specs that need the seeded backend (`PP_RUN_CONNECTED=1`); none is a v1 lane spec. An earlier run overlapping a Stop-hook gate and pytest had 8 load failures that all passed alone (46/46). |
-| `/devkit:ship-check` | | |
+| `node scripts/quality/run.cjs full` (with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1`; its steps include all of quick's) | 12bf028 | PASS: web typecheck, web lint, api lint, api tests, web unit tests, web build, contract drift, database migrations |
+| `uv run --frozen pytest -q --junitxml=…` + `scripts/quality/require-test-evidence.py` (apps/api, same env, lane DB `pantrypulse_web_test` on 127.0.0.1:55433) | 12bf028 | 1413 passed, 0 skipped; "1413 backend tests completed without skips or failures". Without `PP19_TEST_SCHEMA_ISOLATION=1`, 77 PostgreSQL isolated-schema tests skip. |
+| `npx vitest run` (apps/web) | 12bf028 | 17 files, 94 passed |
+| `PLAYWRIGHT_PORT=3003 npx playwright test` (apps/web, whole suite, nothing else running) | 12bf028 | 174 passed, 6 skipped — all six are `connected:` specs needing the seeded backend (`PP_RUN_CONNECTED=1`); none is a v1 lane spec |
+| Earlier candidate b2f32ec | b2f32ec | quick PASS, full PASS, backend 1413/0 skipped, Playwright 173 passed / 6 connected-only skipped |
+| `/devkit:ship-check` | 12bf028 | Step 1 PASS (above). Step 2: verifier rerun on ce7d7df, its should-fix findings fixed in 35bdcb9 and 12bf028 (finding 5 and part of 3 → CR-w1-web-6). Step 3: the security-review finding was fixed in b2f32ec, with its residual (finding 6) fixed in 12bf028. Steps 4–5 (PR, `/code-review`) wait for Gabriel's approval to open the PR. |
 
 ## Decisions made inside the lane
 
