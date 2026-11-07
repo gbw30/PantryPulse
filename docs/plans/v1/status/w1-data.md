@@ -20,9 +20,17 @@
 
 | Gate | Commit | Result |
 |---|---|---|
-| `node scripts/quality/run.cjs quick` | | |
+| `node scripts/quality/run.cjs quick` | `1615264` | PASS in the standard `.env.lane` env (web typecheck, web lint, api lint, api tests). Not validated: the PP19 PostgreSQL suites (`test_operational_postgres`, `test_forecast_api_postgres`, `test_planning_postgres`, stock), skipped without `PP19_TEST_SCHEMA_ISOLATION=1`. With it exported, the api-tests step hits its 360 s timeout about 42% through, with no failed test. Decision recorded on the BOARD for the lead's resume. |
 | `node scripts/quality/run.cjs full` (with `.env.lane`) | | |
 | `/devkit:ship-check` | | |
+
+## Pause point (2026-11-07)
+
+The orchestrator paused at Gabriel's request; PR #103 (lead CRs: prepare/discard hook `0c6c617` + `4366141`, child secrets `afeb023`, or-input-v3 window/policy `4e77ab0`, ACS table `399cf6b`) is not in `v1-local` yet. Lane branch at `1615264`, pushed, tree clean. On resume, after `git merge origin/v1-local`:
+- W1-D05: the import.v1 step (DB-less validate, writes load-ready files), `prepare` (bulk-load history into attempt-keyed tables, clean orphans), `publish` (error report, or network/version/location/product/batch rows + keys + ATTACH), `discard`; enrichment auto-start after a successful import; `bench_import.py --rows 4500000` (watch batch COPY time under the lock).
+- W1-D08: the routes-google.v1 job with `child_secrets=("google_maps_api_key",)`, reading `secret_env(...)` in the child; job test asserting the key reached only the child env.
+- W1-D09: `build_scenario`/`create_scenario` against `4e77ab0` (planning_days, policy, `resolve_window_and_policy`), storing in `planning_scenarios_v3`; demand targets via `round_daily_targets`; forecast-run interface as confirmed by the lead (`forecast_runs.output` keyed by `net_locations.id`/`net_products.id`, `frozen_input.dataset_id` = version).
+- Then the full gate, `/devkit:ship-check`, and the PR.
 
 ## Decisions made inside the lane
 
