@@ -16,12 +16,14 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from pydantic import Field, field_validator, model_validator
 
 from app.schemas.or_inputs import (
+    AttributeCoefficient,
     Bool,
     CapacityCount,
     CostCount,
     Count,
     Hash,
     ORContract,
+    ORPolicy,
     decimal_literal,
 )
 from app.schemas.planning_primitives import TransferMode
@@ -32,6 +34,7 @@ from app.schemas.v1_envelope import (
     MAX_PRODUCTS,
 )
 from app.services.jobs.registry import InputRejected
+from app.services.optimization.decisions import DECISION_IDS, POLICY_VERSION
 
 NetworkMode = Literal["PANTRY", "RETAIL"]
 LocationRole = Literal["hub", "pantry", "distribution_center", "store"]
@@ -56,6 +59,16 @@ ROLES_BY_MODE: dict[str, tuple[str, ...]] = {
     "PANTRY": ("hub", "pantry"),
     "RETAIL": ("distribution_center", "store"),
 }
+VULNERABILITY_ATTRIBUTES = ("poverty_rate", "snap_rate")  # VulnerabilityV3, V1-SPEC §6.2
+# V1-SPEC §6.2: the connected flow's λ/β, thresholds and 50/50 weights, on the v1 attributes.
+DEFAULT_PANTRY_POLICY = ORPolicy(
+    version=POLICY_VERSION, purpose="PRIMARY", lambda_percent=100, beta_percent=50,
+    coefficients=tuple(AttributeCoefficient(attribute_id=a, percent=50)
+                       for a in VULNERABILITY_ATTRIBUTES),
+    ap_threshold=7500, rp_threshold=2500, ap_cap_bp=2500, rp_cap_bp=2500,
+    gamma_ap_percent=100, gamma_rp_percent=100, epsilon_cost_bp=100, epsilon_waste_bp=100,
+    decision_ids=DECISION_IDS,
+)
 NOT_AT_RISK_LABEL = "not at risk; not optimized"
 NON_ADDITIVE_LABEL = (
     "effect of this action given the rest of the plan; effects don't add up across actions"
@@ -215,6 +228,9 @@ class ORInputV3(ORContract):
     snapshot_as_of: date
     first_planning_date: date
     horizon_days: Literal[7] = 7
+    # Explicit in PANTRY (BD-50 window, §6.2 policy), absent in RETAIL; no defaults.
+    planning_days: Annotated[int, Field(strict=True, ge=1, le=3)] | None
+    policy: ORPolicy | None
     locations: tuple[LocationV3, ...] = Field(min_length=2, max_length=MAX_LOCATIONS)
     products: tuple[ProductV3, ...] = Field(min_length=1, max_length=MAX_PRODUCTS)
     batches: tuple[BatchV3, ...] = Field(max_length=MAX_BATCHES)
@@ -242,6 +258,11 @@ class ORInputV3(ORContract):
             raise ValueError("ROLE_NOT_IN_MODE")
         if (self.retail_weights is None) != (self.mode == "PANTRY"):
             raise ValueError("RETAIL_WEIGHTS_REQUIRED_ONLY_IN_RETAIL")
+        if {self.planning_days is None, self.policy is None} != {self.mode == "RETAIL"}:
+            raise ValueError("WINDOW_AND_POLICY_ONLY_IN_PANTRY")
+        if self.policy and any(c.attribute_id not in VULNERABILITY_ATTRIBUTES
+                               for c in self.policy.coefficients):
+            raise ValueError("UNKNOWN_POLICY_ATTRIBUTE")
         locations = {loc.id for loc in self.locations}
         products = {p.id for p in self.products}
         if len(locations) != len(self.locations) or len(products) != len(self.products):
@@ -280,6 +301,29 @@ class ScenarioOptions(ORContract):
     reserve_floors: tuple[ReserveV3, ...] = ()
     retail_weights: RetailWeights | None = None  # Retail default w_exp = w_lost = 1
     cost_budget_minor: CostCount | None = None
+    planning_days: Annotated[int, Field(strict=True, ge=1, le=3)] | None = None  # PANTRY: required
+    policy: ORPolicy | None = None  # PANTRY: DEFAULT_PANTRY_POLICY when omitted
+
+
+def resolve_window_and_policy(
+    mode: NetworkMode, options: ScenarioOptions
+) -> tuple[int | None, ORPolicy | None]:
+    """The window and policy a new scenario freezes (422 when they don't fit the mode)."""
+    if mode == "RETAIL":
+        if options.planning_days is not None or options.policy is not None:
+            raise InputRejected(
+                "WINDOW_AND_POLICY_ONLY_IN_PANTRY",
+                "Retail measures all seven days and has no EGP policy",
+            )
+        return None, None
+    if options.planning_days is None:
+        raise InputRejected("PLANNING_DAYS_REQUIRED", "Choose a 1-3 day allocation window")
+    policy = options.policy or DEFAULT_PANTRY_POLICY
+    if any(c.attribute_id not in VULNERABILITY_ATTRIBUTES for c in policy.coefficients):
+        raise InputRejected(
+            "UNKNOWN_POLICY_ATTRIBUTE", "Policy weights may use only poverty_rate and snap_rate"
+        )
+    return options.planning_days, policy
 
 
 class ScenarioV3(ORContract):
