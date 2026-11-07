@@ -229,6 +229,7 @@ Lanes code against these names. W0-08 may adjust them before the freeze. If it d
 | Route | Response schema | Implemented by |
 |---|---|---|
 | `GET /networks`, `GET /networks/{network_id}` | `NetworkList`, `Network` | W1-D05 |
+| `GET /networks/{id}/locations` | `LocationList` (latest dataset version; name, role, city, state, decimal-string coordinates or null; CR-w1-web-1) | lead |
 | `GET /templates`, `GET /templates/{name}.csv?kind=blank\|example` | `TemplateCatalog`, `text/csv` | W1-D03 (blank), W3-P03 (example) |
 | `POST /imports` (`{network: {name, mode, timezone}}` or `{network_id}`) | 201 `ImportCreated{import_id, network_id}` (`network_id` null for a new network until its import succeeds; atomic import, `ppv1_0010`) | W1-D05 |
 | `POST /imports/{import_id}/files/{name}` (raw `text/csv` body, streamed, 160 MiB cap; [decision](decisions/W0-08-scenario-and-import.md)) | `ImportFile{name, bytes, sha256}` | W1-D04 |
@@ -241,7 +242,9 @@ Lanes code against these names. W0-08 may adjust them before the freeze. If it d
 | `POST /networks/{id}/routes/google-preview`, `POST /networks/{id}/routes/google-fetch` | `GoogleLookupPreview{lookups}`, 202 | W1-D08 |
 | `POST /networks/{id}/scenarios` | `ScenarioV3` | W1-D09 |
 | `POST /networks/{id}/forecasts`, `GET /forecasts/{job_id}/backtest` | `ForecastAccepted`, `BacktestResult` | W3-F02/F03 |
+| `GET /networks/{id}/forecasts` | `ForecastRunList` (newest first; `forecast_run_id` null until published; CR-w1-web-2) | W3-F03 |
 | `GET /networks/{id}/danger?forecast_run_id=` | `DangerRanking` | W3-F05 |
+| `GET /networks/{id}/projection?forecast_run_id=&location_id=` | `LocationProjection` (per product, own unit, null = unknown, no cross-product totals; CR-w1-web-3) | W3-F05 |
 | `POST /networks/{id}/comparisons` (`scenario_id`, `methods[]`, `measure`), `GET /networks/{id}/comparisons/{comparison_id}` | `ForecastAccepted`, `SavedComparisonV3` (per-method result, verification, `usd_unavailable_reason`) | W1-S04 |
 | `GET /networks/{id}/comparisons/{comparison_id}/methods/{method}/actions` | `DecisionActions{actions[DecisionAction], non_additive_label}` | W1-S06 |
 | `POST /networks/{id}/comparisons/{comparison_id}/methods/{method}/export` (`action_ids[]`) | `text/csv` | W1-S07 |

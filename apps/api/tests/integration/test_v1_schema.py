@@ -20,6 +20,7 @@ V1_TABLES = {
     "import_staging", "net_locations", "net_products", "net_batches", "net_demand_history",
     "net_donation_history", "net_inbound", "net_routes", "google_distance_cache",
     "local_secrets", "local_logins", "backtest_scores",
+    "planning_scenarios_v3", "planning_comparisons_v3",
 }
 
 
@@ -72,7 +73,7 @@ def _fails(engine, sql, **params):
 def test_upgrade_head_on_fresh_database(engine):
     with engine.connect() as conn:
         assert V1_TABLES <= _tables(conn)
-        assert conn.scalar(sa.text("SELECT version_num FROM alembic_version")) == "ppv1_0010"
+        assert conn.scalar(sa.text("SELECT version_num FROM alembic_version")) == "ppv1_0011"
 
 
 def test_downgrade_to_ppvp_0007_and_up_again():
@@ -272,3 +273,71 @@ def test_network_mode_uses_the_api_spelling(engine):
     with pytest.raises(DBAPIError, match="ck_networks_mode"):
         with engine.begin() as conn:
             _network(conn, mode="pantry")
+
+
+# CR-w1-solver-3 (Gabriel, 2026-11-07): v1 scenarios and comparison results get their own tables.
+def _scenario_v3(conn, ids, **overrides):
+    row = {"id": uuid.uuid4(), "org": ids["org"], "net": ids["net"], "ver": ids["ver"],
+           "run": uuid.uuid4(), "hash": "b" * 64, **overrides}
+    conn.execute(sa.text(
+        "INSERT INTO planning_scenarios_v3 (id, organization_id, network_id, dataset_version_id, "
+        "forecast_run_id, content_hash, payload) VALUES (:id, :org, :net, :ver, :run, :hash, "
+        "'{}'::jsonb)"), row)
+    return row["id"]
+
+
+def test_v3_scenarios_are_immutable(engine):
+    with engine.begin() as conn:
+        ids = _network(conn)
+        scenario = _scenario_v3(conn, ids)
+    for sql in ("UPDATE planning_scenarios_v3 SET payload = '[]'::jsonb WHERE id = :s",
+                "DELETE FROM planning_scenarios_v3 WHERE id = :s"):
+        with pytest.raises(DBAPIError, match="immutable"), engine.begin() as conn:
+            conn.execute(sa.text(sql), {"s": scenario})
+
+
+@pytest.mark.parametrize(("overrides", "violation"), [
+    ({"hash": "B" * 64}, "check constraint"), ({"hash": "b" * 63}, "check constraint"),
+    ({"ver": uuid.uuid4()}, "foreign key constraint"),
+    ({"net": uuid.uuid4()}, "foreign key constraint"),
+])
+def test_v3_scenario_rows_are_checked(engine, overrides, violation):
+    with pytest.raises(DBAPIError, match=violation), engine.begin() as conn:
+        _scenario_v3(conn, _network(conn), **overrides)
+
+
+def test_v3_comparisons_link_scenario_job_and_attempt(engine):
+    with engine.connect() as conn:
+        inspector = sa.inspect(conn)
+        targets = {fk["referred_table"] for fk in
+                   inspector.get_foreign_keys("planning_comparisons_v3", schema=SCHEMA)}
+        unique = {tuple(u["column_names"]) for u in
+                  inspector.get_unique_constraints("planning_comparisons_v3", schema=SCHEMA)}
+        checks = " ".join(c["sqltext"] for c in
+                          inspector.get_check_constraints("planning_comparisons_v3", schema=SCHEMA))
+        triggers = conn.execute(sa.text(
+            "SELECT count(*) FROM information_schema.triggers WHERE event_object_schema = :s "
+            "AND event_object_table = 'planning_comparisons_v3' AND trigger_name = "
+            "'ppv1_immutable'"), {"s": SCHEMA}).scalar()
+    assert {"planning_scenarios_v3", "compute_jobs", "compute_attempts", "networks"} <= targets
+    assert {("job_id",), ("attempt_id",)} <= unique
+    assert "UNITS" in checks and "USD" in checks
+    assert triggers == 2  # UPDATE and DELETE
+
+
+def test_downgrade_refuses_to_drop_saved_scenarios():
+    url = database_url()
+    schema = "v1_schema_v3_refusal_test"
+    reset_schema(url, schema)
+    eng = create_queue_engine(url, schema=schema)
+    try:
+        with eng.begin() as conn:
+            command.upgrade(alembic_config(conn), "head")
+            _scenario_v3(conn, _network(conn))
+        with pytest.raises(Exception, match="V1_DATA_PRESENT"), eng.begin() as conn:
+            command.downgrade(alembic_config(conn), "ppv1_0010")
+        with eng.connect() as conn:
+            assert "planning_scenarios_v3" in _tables_in(conn, schema)
+    finally:
+        eng.dispose()
+        reset_schema(url, schema)

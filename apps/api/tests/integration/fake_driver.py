@@ -39,12 +39,16 @@ class FakeDriver:
     foreign_evidence: dict | None = field(default_factory=lambda: {"method": "FAKE_GROUP_SCAN"})
     fail_spawn: bool = False
     started: list = field(default_factory=list)
+    child_envs: list = field(default_factory=list)  # child_env passed to each start
     foreign_checked: list = field(default_factory=list)
 
     def host_identity_text(self) -> str:
         return "fake-host"
 
-    def start(self, argv, stdin_bytes, *, max_stdout_bytes, max_stderr_bytes=16_384):
+    def start(
+        self, argv, stdin_bytes, *, max_stdout_bytes, max_stderr_bytes=16_384, child_env=None
+    ):
+        self.child_envs.append(dict(child_env or {}))
         if self.fail_spawn:
             raise OSError("spawn failed")
         contract = argv[argv.index("--contract") + 1]

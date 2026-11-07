@@ -1,0 +1,36 @@
+{
+  "network_id": "8b2f4c1e-3a5d-4e6f-9a7b-1c2d3e4f5a60",
+  "dataset_version_id": "2c3d4e5f-6a7b-4c8d-9e0f-1a2b3c4d5e6f",
+  "locations": [
+    {
+      "location_id": "H-1",
+      "name": "Gainesville Hub",
+      "role": "hub",
+      "city": "Gainesville",
+      "state": "FL",
+      "latitude": "29.651634",
+      "longitude": "-82.324826",
+      "coordinates_source": "user"
+    },
+    {
+      "location_id": "P-07",
+      "name": "Eastside Pantry",
+      "role": "pantry",
+      "city": "Gainesville",
+      "state": "FL",
+      "latitude": "29.662100",
+      "longitude": "-82.287400",
+      "coordinates_source": "census_geocoder"
+    },
+    {
+      "location_id": "P-12",
+      "name": "Archer Road Pantry",
+      "role": "pantry",
+      "city": "Gainesville",
+      "state": "FL",
+      "latitude": null,
+      "longitude": null,
+      "coordinates_source": null
+    }
+  ]
+}
