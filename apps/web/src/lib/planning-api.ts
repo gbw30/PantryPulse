@@ -38,6 +38,12 @@ export async function api<T>(path: string, body?: unknown, idempotencyKey?: stri
   });
 }
 
+/** PUT or DELETE with an optional JSON body, CSRF and an Idempotency-Key. */
+export async function apiWrite<T>(method: "PUT" | "DELETE", path: string, body?: unknown): Promise<T> {
+  return send<T>(path, { method, body: body === undefined ? undefined : JSON.stringify(body),
+    headers: { ...(body === undefined ? {} : { "Content-Type": "application/json" }), "X-CSRF-Token": csrfToken(), "Idempotency-Key": crypto.randomUUID() } });
+}
+
 /** POST a raw body (a v1 import CSV, streamed by the browser) with CSRF and an Idempotency-Key. */
 export async function apiRaw<T>(path: string, body: Blob, contentType: string, idempotencyKey?: string): Promise<T> {
   return send<T>(path, { method: "POST", body,

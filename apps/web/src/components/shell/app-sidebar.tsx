@@ -16,7 +16,7 @@ import { PresenterFooter } from "./presenter-footer";
 
 // "methodology" (research and audit, blueprint §7) is a utility destination, not one of the four
 // blueprint pages. "optimization" is kept for compatibility while /optimization redirects to /scenarios.
-export type NavKey = "overview" | "data" | "recommendations" | "scenarios" | "optimization" | "methodology" | "import";
+export type NavKey = "overview" | "data" | "recommendations" | "scenarios" | "optimization" | "methodology" | "import" | "settings";
 
 // Proposed routes from the blueprint (§2). Only built destinations are links; the rest stay visible
 // but disabled so the shell geometry is identical on every page without linking to missing screens.
@@ -92,9 +92,11 @@ export function AppSidebar({ active }: { active: NavKey }) {
       <SidebarFooter className="gap-3 px-3 pb-5">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton disabled className="h-10 gap-3 px-3 text-[15px]">
-              <Settings className="size-[18px]" />
-              <span>Settings<span className="sr-only"> (not built yet)</span></span>
+            <SidebarMenuButton asChild isActive={active === "settings"} className="h-10 gap-3 px-3 text-[15px]">
+              <Link href="/settings" aria-current={active === "settings" ? "page" : undefined}>
+                <Settings className="size-[18px]" />
+                <span>Settings</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

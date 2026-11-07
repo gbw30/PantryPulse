@@ -1,4 +1,4 @@
-import { api, apiRaw, type Schema } from "./planning-api";
+import { api, apiRaw, apiWrite, type Schema } from "./planning-api";
 
 export type Network = Schema["Network"];
 export type TemplateCatalog = Schema["TemplateCatalog"];
@@ -17,6 +17,17 @@ export const networkApi = {
   uploadImportFile: (importId: string, name: TemplateName, file: Blob) => apiRaw<Schema["ImportFile"]>(`imports/${importId}/files/${name}`, file, "text/csv"),
   commitImport: (importId: string, body: Schema["ImportCommit"]) => api<Schema["ImportAccepted"]>(`imports/${importId}/commit`, body),
   importStatus: (importId: string) => api<ImportStatus>(`imports/${importId}`),
+  enrichment: (networkId: string) => api<Schema["EnrichmentStatus"]>(`networks/${networkId}/enrichment`),
+  retryEnrichment: (networkId: string) => api<Schema["ForecastAccepted"]>(`networks/${networkId}/enrichment/retry`, {}),
+  setAttributes: (networkId: string, locationId: string, body: Schema["LocationAttributesUpdate"]) =>
+    apiWrite<Schema["LocationAttributes"]>("PUT", `networks/${networkId}/locations/${encodeURIComponent(locationId)}/attributes`, body),
+  routes: (networkId: string) => api<Schema["RouteList"]>(`networks/${networkId}/routes`),
+  googlePreview: (networkId: string) => api<Schema["GoogleLookupPreview"]>(`networks/${networkId}/routes/google-preview`, {}),
+  googleFetch: (networkId: string) => api<Schema["ForecastAccepted"]>(`networks/${networkId}/routes/google-fetch`, {}),
+  settings: () => api<Schema["LocalSettings"]>("settings"),
+  /** Write-only: the key is sent once and never read back. */
+  setGoogleKey: (key: string) => apiWrite<Schema["LocalSettings"]>("PUT", "settings/google-maps-key", { key }),
+  deleteGoogleKey: () => apiWrite<Schema["LocalSettings"]>("DELETE", "settings/google-maps-key"),
   /** Why an example CSV can't be downloaded, from the API's error envelope ("message (task)"); null when it can. */
   async exampleUnavailableReason(name: TemplateName): Promise<string | null> {
     const response = await fetch(templateUrl(name, "example"), { cache: "no-store", credentials: "same-origin" });
