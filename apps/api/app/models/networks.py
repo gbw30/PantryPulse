@@ -50,7 +50,10 @@ class ImportRun(OwnedIdentity, Base):
     """One import attempt; the durable import.v1 job reports its phase and progress here."""
 
     __tablename__ = "import_runs"
-    network_id = uid(nullable=False)
+    # A new network's row is created only by a successful commit (atomic import, ppv1_0010);
+    # until then the run holds the pending network as `new_network` {name, mode, timezone}.
+    network_id = uid()
+    new_network = sa.Column(JSONB)
     job_id = uid()
     phase = sa.Column(sa.Text, nullable=False)
     files = sa.Column(JSONB, nullable=False, server_default=sa.text("'[]'::jsonb"))
@@ -62,6 +65,8 @@ class ImportRun(OwnedIdentity, Base):
         fk(["network_id"], "networks", ["id"]),
         check(_in("phase", IMPORT_PHASES), "phase"),
         check("error_count >= 0", "error_count"),
+        check("network_id IS NOT NULL OR new_network IS NOT NULL", "network_or_new"),
+        check("phase <> 'done' OR network_id IS NOT NULL", "done_has_network"),
     )
 
 

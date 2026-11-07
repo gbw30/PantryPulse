@@ -2392,11 +2392,25 @@ export interface components {
              * Format: uuid
              */
             import_id: string;
+            /** Network Id */
+            network_id: string | null;
+        };
+        /**
+         * ImportFailure
+         * @description Shown when an import fails: that it failed, why, and what to do instead.
+         */
+        ImportFailure: {
             /**
-             * Network Id
-             * Format: uuid
+             * Kind
+             * @enum {string}
              */
-            network_id: string;
+            kind: "ROW_ERRORS" | "MISSING_FILES" | "OVER_ENVELOPE" | "JOB_FAILED";
+            /** Message */
+            message: string;
+            /** Next Steps */
+            next_steps: string[];
+            /** Reason */
+            reason: string;
         };
         /** ImportFile */
         ImportFile: {
@@ -2434,6 +2448,7 @@ export interface components {
             errors: components["schemas"]["RowError"][];
             /** Errors Truncated */
             errors_truncated: boolean;
+            failure: components["schemas"]["ImportFailure"] | null;
             /** Files */
             files: components["schemas"]["ImportFile"][];
             /**
@@ -2443,11 +2458,8 @@ export interface components {
             import_id: string;
             /** Job Id */
             job_id: string | null;
-            /**
-             * Network Id
-             * Format: uuid
-             */
-            network_id: string;
+            /** Network Id */
+            network_id: string | null;
             /** Outside Horizon Inbound */
             outside_horizon_inbound: components["schemas"]["OutsideHorizonInbound"][];
             /**
@@ -3685,6 +3697,8 @@ export interface components {
              * @enum {string}
              */
             file: "locations" | "products" | "inventory" | "demand_history" | "routes" | "inbound" | "donation_history";
+            /** Fix */
+            fix: string;
             /** Line */
             line: number;
             /** Reason */

@@ -51,7 +51,8 @@ class ImportCreate(ORContract):
 
 class ImportCreated(ORContract):
     import_id: UUID
-    network_id: UUID
+    # None for a new network: its row is created only when the import succeeds (atomic import).
+    network_id: UUID | None
 
 
 class ImportFile(ORContract):
@@ -81,7 +82,8 @@ class RowError(ORContract):
     line: int = Field(ge=1)  # 1-based, the header is line 1
     column: str | None  # None for row-level errors
     code: ErrorCode
-    reason: str
+    reason: str  # why the row was rejected
+    fix: str = Field(min_length=1)  # what to change in the file, e.g. "use YYYY-MM-DD"
     value: str | None
 
 
@@ -93,9 +95,18 @@ class OutsideHorizonInbound(ORContract):
     arrival_date: date
 
 
+class ImportFailure(ORContract):
+    """Shown when an import fails: that it failed, why, and what to do instead."""
+
+    kind: Literal["ROW_ERRORS", "MISSING_FILES", "OVER_ENVELOPE", "JOB_FAILED"]
+    message: str = Field(pattern=r"^Import failed.*nothing was saved")
+    reason: str = Field(min_length=1)  # e.g. "12 rows in 2 files have errors"
+    next_steps: tuple[str, ...] = Field(min_length=1)
+
+
 class ImportStatus(ORContract):
     import_id: UUID
-    network_id: UUID
+    network_id: UUID | None  # None until a new network's import succeeds
     job_id: UUID | None
     phase: ImportPhase
     files: tuple[ImportFile, ...]
@@ -106,6 +117,15 @@ class ImportStatus(ORContract):
     outside_horizon_inbound: tuple[OutsideHorizonInbound, ...]
     dataset_version_id: UUID | None  # set only when phase is "done"
     as_of_date: date | None
+    failure: ImportFailure | None  # set exactly when phase is "failed"
+
+    @model_validator(mode="after")
+    def outcome(self) -> Self:
+        if (self.failure is None) == (self.phase == "failed"):
+            raise ValueError("FAILURE_IFF_FAILED")
+        if self.phase == "done" and (self.network_id is None or self.dataset_version_id is None):
+            raise ValueError("DONE_NEEDS_NETWORK_AND_VERSION")
+        return self
 
 
 class ImportSettings(ORContract):

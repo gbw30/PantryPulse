@@ -3052,9 +3052,16 @@
             "type": "string"
           },
           "network_id": {
-            "format": "uuid",
-            "title": "Network Id",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Network Id"
           }
         },
         "required": [
@@ -3062,6 +3069,48 @@
           "network_id"
         ],
         "title": "ImportCreated",
+        "type": "object"
+      },
+      "ImportFailure": {
+        "additionalProperties": false,
+        "description": "Shown when an import fails: that it failed, why, and what to do instead.",
+        "properties": {
+          "kind": {
+            "enum": [
+              "ROW_ERRORS",
+              "MISSING_FILES",
+              "OVER_ENVELOPE",
+              "JOB_FAILED"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "message": {
+            "pattern": "^Import failed.*nothing was saved",
+            "title": "Message",
+            "type": "string"
+          },
+          "next_steps": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Next Steps",
+            "type": "array"
+          },
+          "reason": {
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "message",
+          "reason",
+          "next_steps"
+        ],
+        "title": "ImportFailure",
         "type": "object"
       },
       "ImportFile": {
@@ -3181,6 +3230,16 @@
             "title": "Errors Truncated",
             "type": "boolean"
           },
+          "failure": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImportFailure"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "files": {
             "items": {
               "$ref": "#/components/schemas/ImportFile"
@@ -3206,9 +3265,16 @@
             "title": "Job Id"
           },
           "network_id": {
-            "format": "uuid",
-            "title": "Network Id",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Network Id"
           },
           "outside_horizon_inbound": {
             "items": {
@@ -3252,7 +3318,8 @@
           "errors",
           "outside_horizon_inbound",
           "dataset_version_id",
-          "as_of_date"
+          "as_of_date",
+          "failure"
         ],
         "title": "ImportStatus",
         "type": "object"
@@ -6666,6 +6733,11 @@
             "title": "File",
             "type": "string"
           },
+          "fix": {
+            "minLength": 1,
+            "title": "Fix",
+            "type": "string"
+          },
           "line": {
             "minimum": 1.0,
             "title": "Line",
@@ -6693,6 +6765,7 @@
           "column",
           "code",
           "reason",
+          "fix",
           "value"
         ],
         "title": "RowError",

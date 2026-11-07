@@ -19,7 +19,7 @@ Source: [S4-bulk-import.md](../spikes/S4-bulk-import.md), recommendations 1, 2 a
 
 | Route | Does | Returns |
 |---|---|---|
-| `POST /imports` | JSON with either `{network: {name, mode, timezone}}` (new network) or `{network_id}` (re-import). Creates the network for a new import, plus an `import_runs` row in phase `uploading`. `import_runs.network_id` is NOT NULL in `ppv1_0008`, so the network exists before any file arrives. | 201 `ImportCreated{import_id, network_id}` |
+| `POST /imports` | JSON with either `{network: {name, mode, timezone}}` (new network) or `{network_id}` (re-import). For a new network, creates its organization and an `import_runs` row in phase `uploading` that holds the pending network (`new_network`); the network row itself is created only by a successful commit (§4). A re-import uses the existing network. | 201 `ImportCreated{import_id, network_id}` (`network_id` is null for a new network) |
 | `POST /imports/{import_id}/files/{name}` | One template file as a raw `text/csv` body, streamed from `request.stream()` (no multipart: the name is in the path, and a fixed content type avoids Windows labeling `.csv` as `application/vnd.ms-excel`; S4 measured raw-body uploads flat too). Byte cap of 160 MiB, counted while streaming. Stored on the `imports` volume shared by `api` and `worker`, and recorded in `import_runs.files` with its byte count and sha256. Re-posting the same name replaces the file. | 200 `ImportFile{name, bytes, sha256}`; 413 naming the limit (partial file deleted); 409 once the import has left `uploading` |
 | `POST /imports/{import_id}/commit` | JSON `{as_of_date?}`. The value travels in the job payload, and when absent the job defaults it to the day after the last history date (V1-SPEC §6.1). Required files are checked before the job is admitted. | 202 `ImportAccepted{import_id, job_id}` (`import.v1`); 422 naming the missing files |
 | `GET /imports/{import_id}` | Job-backed status | `ImportStatus{phase, files[], progress{unit, done, total}, error_count, errors_truncated, errors[RowError], outside_horizon_inbound[], dataset_version_id}` |
@@ -52,3 +52,12 @@ Source: [S4-bulk-import.md](../spikes/S4-bulk-import.md), recommendations 1, 2 a
 - **Unbuilt routes answer 501 in the existing error envelope:** `{"error": {"code": "NOT_IMPLEMENTED", "message": ..., "details": {"task": "<task id>"}}, "request_id": ...}`. The web client keeps one error parser, and the request ID is kept.
 - **New job kinds `IMPORT` and `ENRICHMENT`:** migration `ppv1_0009` widens `compute_jobs_operation_kind_check`, and `RuntimeProfile` gains `import_total_s` and `enrichment_total_s` (300 s each). Job rows say what they are. `or-comparison.v3` stays `COMPARISON`. Reusing `FORECAST` would have avoided the migration but mislabeled every import job.
 - **Uploaded files live on the `imports` volume** (`PP_IMPORT_DIR=/var/lib/pantrypulse/imports`). `api` writes it and `worker` reads it; `web` never mounts it.
+
+## 4. Atomic import (Gabriel, 2026-11-06)
+
+An import either succeeds completely or leaves nothing behind, including the network itself.
+
+- **Network creation:** migration `ppv1_0010` makes `import_runs.network_id` nullable and adds `new_network` (`{name, mode, timezone}`). The `import.v1` commit inserts the `networks` row in the same transaction as the dataset version and every data row. A failed or abandoned first import leaves no network; the network list never shows it. CHECK constraints: a run has a network or a pending one, and a `done` run has its network.
+- **What remains after a failure:** the import run, its errors and its uploaded files, so the user can read the report. They aren't network data. Their organization row stays as internal bookkeeping; cleanup of abandoned runs and files is W1-D05's open item.
+- **The failure message:** `ImportStatus.failure` is set exactly when `phase = failed`. It has `kind` (`ROW_ERRORS`, `MISSING_FILES`, `OVER_ENVELOPE`, `JOB_FAILED`), a `message` that starts "Import failed" and says nothing was saved, a `reason` (why), and at least one `next_steps` entry (what to do instead). Every `RowError` has a `fix` saying what to change in the file.
+- **Rejected alternative:** keep creating the network first and hide it from the list on failure. The row would still exist, which breaks "nothing is saved" (V1-SPEC §6.1).

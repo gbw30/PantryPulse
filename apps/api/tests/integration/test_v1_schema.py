@@ -72,7 +72,7 @@ def _fails(engine, sql, **params):
 def test_upgrade_head_on_fresh_database(engine):
     with engine.connect() as conn:
         assert V1_TABLES <= _tables(conn)
-        assert conn.scalar(sa.text("SELECT version_num FROM alembic_version")) == "ppv1_0009"
+        assert conn.scalar(sa.text("SELECT version_num FROM alembic_version")) == "ppv1_0010"
 
 
 def test_downgrade_to_ppvp_0007_and_up_again():
@@ -209,3 +209,37 @@ def test_ppv1_0009_adds_import_and_enrichment_job_kinds():
     finally:
         eng.dispose()
         reset_schema(url, schema)
+
+
+NEW_RUN = ("INSERT INTO import_runs (id, organization_id, network_id, new_network, phase) "
+           "VALUES (:run2, :org2, :network_id, CAST(:new_network AS jsonb), :phase)")
+
+
+def _org(conn):
+    org = uuid.uuid4()
+    conn.execute(sa.text("INSERT INTO organizations (id, name, is_demo) VALUES (:o, 'n', false)"),
+                 {"o": org})
+    return org
+
+
+def test_new_network_import_run_exists_without_a_network(engine):
+    # Atomic import (Gabriel, 2026-11-06): the network row is created only by a successful commit.
+    with engine.begin() as conn:
+        org = _org(conn)
+        conn.execute(sa.text(NEW_RUN), {"run2": uuid.uuid4(), "org2": org, "network_id": None,
+                                        "new_network": '{"name": "N", "mode": "PANTRY"}',
+                                        "phase": "failed"})
+        assert conn.scalar(sa.text("SELECT count(*) FROM networks WHERE organization_id = :o"),
+                           {"o": org}) == 0
+
+
+@pytest.mark.parametrize(("network", "new_network", "phase", "check"), [
+    (False, None, "uploading", "network_or_new"),  # neither an existing nor a pending network
+    (False, '{"name": "N"}', "done", "done_has_network"),  # a finished import has its network
+])
+def test_import_run_network_rules(engine, network, new_network, phase, check):
+    with pytest.raises(DBAPIError, match=f"ck_import_runs_{check}"), engine.begin() as conn:
+        ids = _network(conn) if network else {"org": _org(conn)}
+        conn.execute(sa.text(NEW_RUN), {"run2": uuid.uuid4(), "org2": ids["org"],
+                                        "network_id": None, "new_network": new_network,
+                                        "phase": phase})

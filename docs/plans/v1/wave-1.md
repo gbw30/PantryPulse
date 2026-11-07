@@ -44,6 +44,7 @@ Agent role: `solver-engineer` scope "solver/data" (CLAUDE.md), working under `.c
   - `test_quantity_above_solver_bound_rejected` (above the `Count` bound in `or_inputs.py:14`, with a clear reason, never a 500 later);
   - `test_role_not_valid_for_mode` (`store` in a Pantry network);
   - `test_error_cap_1000` (5000 bad rows → 1000 kept, `error_count == 5000`).
+  - `test_every_error_has_a_fix`: each error code produces a `fix` that says what to change in the file (e.g. NEGATIVE → "Enter 0 or a positive whole number, or leave the cell blank if the value is unknown").
 - [ ] **Step 2:** write the truth tests:
   - `test_blank_demand_quantity_is_none` (never `0`);
   - `test_utf8_bom_and_crlf_accepted`;
@@ -77,6 +78,7 @@ Agent role: `solver-engineer` scope "solver/data" (CLAUDE.md), working under `.c
   - `test_batches_round_trip_exact`: quantity, `expiry_date`, `non_expiring` and `batch_id` are equal before and after.
   - `test_blank_demand_stays_null_in_database`.
   - `test_one_audited_import_event`.
+  - `test_new_network_row_created_only_by_successful_commit`: a first import with one bad row leaves no `networks` row; the same import with the row fixed creates the network, its dataset version and all data in one transaction (atomic import, `ppv1_0010`).
   - `test_import_writes_no_stock_ledger_or_receipt_rows`.
   - `test_inbound_outside_horizon_kept_and_listed`.
 - [ ] **Step 2:** run them (FAIL). Implement staging via PostgreSQL `COPY` with set-based validation, as S4 recommends. Read the upload through the router's `chunks` (`bounded_chunks` in `routers/v1_imports.py`), never `request.stream()` directly: that generator enforces the 160 MiB cap, and only this task makes the end-to-end cap testable.
@@ -89,7 +91,7 @@ Agent role: `solver-engineer` scope "solver/data" (CLAUDE.md), working under `.c
 - [ ] **Step 1:** write the failing tests:
   - `test_create_then_commit`: `POST /imports` returns 201 `ImportCreated`; `POST /imports/{id}/commit` returns 202 `ImportAccepted` with an `import.v1` job, and 422 naming any missing required file (routes in [W0-08-scenario-and-import.md](decisions/W0-08-scenario-and-import.md)).
   - `test_progress_phases_in_order`: `uploading → staging → validating → committing → done`, with `progress.done ≤ progress.total` in the phase's unit (bytes, rows, checks, rows; S4 §6).
-  - `test_failed_import_reports_errors_and_saves_nothing`: no dataset version and no network data rows. `POST /imports` already created the network row (W0-08), so `GET /networks` hides a network whose first import never succeeded; its errors stay readable through `GET /imports/{id}` (V1-SPEC §6.1 "nothing is saved").
+  - `test_failed_import_reports_errors_and_saves_nothing`: no network (for a first import), no dataset version and no data rows; `ImportStatus.failure` says the import failed and nothing was saved, why, and what to do next, and `GET /imports/{id}` keeps the error report readable (V1-SPEC §6.1, decision W0-08 §4).
   - `test_reimport_creates_new_dataset_version_and_old_scenarios_keep_theirs`.
   - `test_second_import_while_first_runs_returns_409`.
   - `test_list_networks_returns_mode_timezone_as_of`.
@@ -316,12 +318,12 @@ Agent role: `frontend-engineer`. Read `docs/pantrypulse/ART-DIRECTION.md` and AD
 - [ ] **Step 1:** write the failing tests:
   - unit `renders file, line, column and reason per error`.
   - unit `shows "first 1,000 of N errors" when error_count > 1000`.
-  - unit `nothing saved message on failure`.
+  - unit `failure panel shows ImportStatus.failure: message, reason and every next step, plus a "start a new import" action`.
   - unit `outside-horizon inbound listed`.
   - unit `"no scheduled deliveries provided" when no inbound.csv`.
   - unit `one timezone field with the single-timezone note`.
   - unit `as_of_date defaults to day after last history and is editable`.
-  - e2e `@V1-A07 rejected import shows errors, and the new network does not appear in the network switcher`.
+  - e2e `@V1-A07 rejected import shows the failure message (failed, nothing saved, why, what to do), the per-row fixes, and no new network in the switcher`.
   - e2e `@V1-A23 inbound and donation files are optional and labeled`.
   - e2e `@V1-A20 import keyboard-only path + axe`.
 - [ ] **Step 2:** run them (FAIL), implement, run them (PASS), commit.

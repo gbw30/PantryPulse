@@ -230,10 +230,10 @@ Lanes code against these names. W0-08 may adjust them before the freeze. If it d
 |---|---|---|
 | `GET /networks`, `GET /networks/{network_id}` | `NetworkList`, `Network` | W1-D05 |
 | `GET /templates`, `GET /templates/{name}.csv?kind=blank\|example` | `TemplateCatalog`, `text/csv` | W1-D03 (blank), W3-P03 (example) |
-| `POST /imports` (`{network: {name, mode, timezone}}` or `{network_id}`) | 201 `ImportCreated{import_id, network_id}` | W1-D05 |
+| `POST /imports` (`{network: {name, mode, timezone}}` or `{network_id}`) | 201 `ImportCreated{import_id, network_id}` (`network_id` null for a new network until its import succeeds; atomic import, `ppv1_0010`) | W1-D05 |
 | `POST /imports/{import_id}/files/{name}` (raw `text/csv` body, streamed, 160 MiB cap; [decision](decisions/W0-08-scenario-and-import.md)) | `ImportFile{name, bytes, sha256}` | W1-D04 |
 | `POST /imports/{import_id}/commit` (`{as_of_date?}`) | 202 `ImportAccepted{import_id, job_id}` | W1-D05 |
-| `GET /imports/{import_id}` | `ImportStatus{phase, files[], progress{unit, done, total}, errors[RowError{file, line, column, code, reason}], error_count, errors_truncated, outside_horizon_inbound[], dataset_version_id}` | W1-D05 |
+| `GET /imports/{import_id}` | `ImportStatus{phase, files[], progress{unit, done, total}, errors[RowError{file, line, column, code, reason, fix}], error_count, errors_truncated, outside_horizon_inbound[], dataset_version_id, failure{kind, message, reason, next_steps[]}}` | W1-D05 |
 | `GET /networks/{id}/enrichment`, `POST /networks/{id}/enrichment/retry` | `EnrichmentStatus`, 202 | W1-D06 |
 | `PUT /networks/{id}/locations/{location_id}/attributes` | `LocationAttributes` (manual override or `excluded=true`) | W1-D06 |
 | `GET /networks/{id}/routes` | `RouteList` (each route carries `method`, `fetched_at`) | W1-D07/D08 |

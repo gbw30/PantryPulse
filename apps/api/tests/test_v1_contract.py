@@ -17,6 +17,7 @@ from pydantic import ValidationError
 from app.main import create_app
 from app.routers.forecasts import presenter, runtime
 from app.schemas.v1_envelope import UPLOAD_CAP_BYTES
+from app.schemas.v1_imports import ImportCreated, ImportStatus, RowError
 from app.schemas.v1_planning import (
     METHODS_BY_MODE,
     ORInputV3,
@@ -299,6 +300,35 @@ def test_route_keeps_routes_csv_cost_and_capacity():
 def test_planning_starts_the_day_after_the_snapshot():
     with pytest.raises(ValidationError, match="FIRST_PLANNING_DATE"):
         ORInputV3.model_validate(_scenario(2, 1, first_planning_date="2026-12-01"))
+
+
+def _status(**overrides):
+    example = ROOT / "packages/contracts/examples/v1/ImportStatus.json"
+    return {**json.loads(example.read_text()), **overrides}
+
+
+def test_new_network_import_has_no_network_until_it_succeeds():
+    assert ImportCreated.model_validate({"import_id": IMP, "network_id": None}).network_id is None
+    ImportStatus.model_validate(_status(network_id=None))  # failed first import: no network
+    done = _status(phase="done", failure=None, network_id=None, dataset_version_id=JOB,
+                   as_of_date="2026-11-05")
+    with pytest.raises(ValidationError, match="DONE_NEEDS_NETWORK_AND_VERSION"):
+        ImportStatus.model_validate(done)
+
+
+def test_failed_import_says_why_and_what_to_do():
+    failure = _status()["failure"]
+    assert failure["message"].startswith("Import failed")
+    assert "nothing was saved" in failure["message"]
+    assert failure["reason"] and failure["next_steps"]
+    with pytest.raises(ValidationError, match="FAILURE_IFF_FAILED"):
+        ImportStatus.model_validate(_status(failure=None))
+    with pytest.raises(ValidationError, match="FAILURE_IFF_FAILED"):
+        ImportStatus.model_validate(_status(phase="validating"))
+    row = _status()["errors"][0]
+    assert row["fix"]
+    with pytest.raises(ValidationError, match="fix"):
+        RowError.model_validate({k: v for k, v in row.items() if k != "fix"})
 
 
 def test_examples_validate():
