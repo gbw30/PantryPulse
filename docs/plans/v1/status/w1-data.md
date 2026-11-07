@@ -6,8 +6,8 @@
 
 | Task | Status | Commit | Evidence (command → result) |
 |---|---|---|---|
-| W1-D01 | done, except the ACS poverty/SNAP fixture (blocked, CR-w1-data-1) | see `git log --grep W1-D01` | `uv run --frozen pytest -q tests/enrichment/test_fixtures_shape.py` → 4 passed, 0 skipped |
-| W1-D02 | todo | — | — |
+| W1-D01 | done, except the ACS poverty/SNAP fixture (blocked, CR-w1-data-1) | `5b5e45e` | `uv run --frozen pytest -q tests/enrichment/test_fixtures_shape.py` → 4 passed, 0 skipped |
+| W1-D02 | done | see `git log --grep W1-D02` | `uv run --frozen pytest -q tests/imports/test_validation.py` → 39 passed, 0 skipped; `ruff check .` → clean |
 | W1-D03 | todo | — | — |
 | W1-D04 | todo | — | — |
 | W1-D05 | todo | — | — |
@@ -28,6 +28,11 @@
 
 - Census fixtures wrap the raw response text in JSON (`recorded`, `request`, `response.body`), because the batch geocoder answers with CSV. The test transport replays `body` byte for byte. — W1-D01.
 - Google endpoint: Routes API `computeRouteMatrix`, `TRAFFIC_UNAWARE` (Essentials SKU), one request per receiver so the preview count equals the billed element count. — W1-D01, S6.
+
+- One validator implementation: the pure streaming `Validator` (W1-D02) also runs inside the import job while it COPYs trimmed cells into `import_staging` (W1-D04). Staging then feeds the set-based commit (casts and external-ID joins in SQL); the eight error classes are not re-implemented in SQL. Why: one tested rule set instead of two that can drift; S4 measured `csv.reader` → COPY at 5.5 s for 4.5 M rows. Bench in W1-D05 checks the total. — W1-D02/D04.
+- Error codes stay within the frozen `ErrorCode` set: a bad date, non-US state, unknown role, bad header and non-UTF-8 file are `MALFORMED`; a quantity above the or-input-v3 `Count` bound (100,000) and history older than 90 days are `OVER_ENVELOPE`. — W1-D02.
+- Header problems give one error per file (all unknown/missing columns in one reason). An ID that appears in its file counts as known for references even if its row has another error, and a file that can't be read suppresses UNKNOWN_ID checks against it, so one root cause isn't repeated per reference. — W1-D02.
+- `3.0` counts as FRACTIONAL (digits only), as in S4. Donation rows for the same location × product × day are summed and donors joined; demand duplicates are errors. Inbound arrivals on or before `as_of_date` are rejected (they belong in inventory.csv); arrivals after the seven-day horizon are kept and marked. — W1-D02.
 
 ## Gotchas
 
