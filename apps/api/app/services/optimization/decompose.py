@@ -16,8 +16,8 @@ from dataclasses import dataclass
 from fractions import Fraction
 from math import lcm
 
-from app.services.optimization.product_model import Shares, _unit_cost
-from app.services.optimization.v3 import Candidate, dates, window_days
+from app.services.optimization.product_model import _unit_cost
+from app.services.optimization.v3 import Candidate, Shares, dates, window_days
 
 
 def floor_shares(cap: int, weights) -> dict:

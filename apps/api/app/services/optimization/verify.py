@@ -11,7 +11,7 @@ from app.services.optimization.canonical import operational_hash
 from app.services.optimization.metrics import evaluate
 from app.services.optimization.packing import pack
 from app.services.optimization.projection import DayV3, SublotV3, project_v3, simulate
-from app.services.optimization.v3 import Packed, quantities_of, window_days
+from app.services.optimization.v3 import Packed, Shares, quantities_of, window_days
 from app.services.optimization.v3 import pack as pack_v3
 
 
@@ -270,8 +270,6 @@ def residual_shares(s, packed, plan_days, base_days):
     product_violations of one product's change against these rooms (changed_sender set) is exactly
     verify_plan's verdict on the whole changed plan. Returns product id -> Shares.
     """
-    from app.services.optimization.product_model import Shares
-
     h = {p.id: p.handling_units_per_unit for p in s.products}
     routes = {(r.from_location_id, r.to_location_id): r for r in s.routes}
     caps = {c.location_id: c for c in s.capacities}

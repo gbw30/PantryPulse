@@ -514,3 +514,38 @@ def test_restricted_probe_equals_full_probe():
             assert set(full) == set(fast), (p, c.key, delta)
             outcomes.add(bool(full))
     assert outcomes == {True, False}  # both accepted and rejected changes were compared
+
+
+def test_verifier_never_loads_ortools():
+    """Independent verification: the verifier, its residual rooms and the per-product probe run
+    in a process where OR-Tools was never imported (verify.py: "Never imports CP")."""
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    from tests.optimization.test_retail_oracle import DATA
+
+    code = (
+        "import sys\n"
+        "from pathlib import Path\n"
+        "from app.schemas.v1_planning import ORInputV3\n"
+        "from app.services.optimization.projection import project_v3\n"
+        "from app.services.optimization.verify import (\n"
+        "    product_violations, residual_shares, verify_plan)\n"
+        "s = ORInputV3.model_validate_json(Path(sys.argv[1]).read_text())\n"
+        "days = project_v3(s).days\n"
+        "assert verify_plan(s, ()).passed\n"
+        "p = s.products[0].id\n"
+        "rooms = residual_shares(s, (), days, days)(p)\n"
+        "product_violations(s, p, {}, rooms, days)\n"
+        "loaded = sorted(m for m in sys.modules if m.split('.')[0] == 'ortools')\n"
+        "assert not loaded, loaded[:3]\n"
+    )
+    completed = subprocess.run(
+        [sys.executable, "-c", code, str(DATA / "retail-usd-no-flip.input.json")],
+        cwd=Path(__file__).resolve().parents[2],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stderr[-2000:]

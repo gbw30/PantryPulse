@@ -8,7 +8,7 @@ decides anything the independent verifier (verify.verify_plan) does not re-check
 
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import date, timedelta
+from datetime import timedelta
 from fractions import Fraction
 from math import floor, lcm
 
@@ -16,18 +16,6 @@ from ortools.sat.python import cp_model
 
 from app.services.optimization.projection import lot_ids_v3
 from app.services.optimization.v3 import Candidate, RouteKey, dates, fefo_key, window_days
-
-
-@dataclass(frozen=True)
-class Shares:
-    """This product's slice of each shared limit, in handling units (None = no limit)."""
-
-    route: dict[tuple[str, str], int | None]
-    dispatch: dict[str, int | None]
-    receiving: dict[tuple[str, date], int | None]
-    storage_room: dict[tuple[str, date], int | None]  # stock allowed above this product's baseline
-    global_handling: int | None
-    cost_minor: Fraction | None
 
 
 @dataclass

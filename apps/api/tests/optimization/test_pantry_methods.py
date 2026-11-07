@@ -29,8 +29,8 @@ from app.services.optimization.pantry import (
     pantry_objectives,
     solve_pantry_product,
 )
-from app.services.optimization.product_model import Shares
 from app.services.optimization.projection import project_v3
+from app.services.optimization.v3 import Shares
 from app.services.optimization.verify import verify_plan
 from tests.optimization.test_retail_oracle import load
 

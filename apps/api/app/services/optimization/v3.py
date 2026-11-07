@@ -10,6 +10,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal
+from fractions import Fraction
 
 from app.schemas.v1_planning import BatchV3, ORInputV3, RouteV3, TransferV3
 
@@ -21,6 +22,18 @@ STARVED_LABEL = "capacity share too small to move one unit"
 PER_PRODUCT_LABEL = "optimized per product, with shared capacity split in advance"
 
 RouteKey = tuple[str, str, str]  # (product_id, from_location_id, to_location_id)
+
+
+@dataclass(frozen=True)
+class Shares:
+    """This product's slice of each shared limit, in handling units (None = no limit)."""
+
+    route: dict[tuple[str, str], int | None]
+    dispatch: dict[str, int | None]
+    receiving: dict[tuple[str, date], int | None]
+    storage_room: dict[tuple[str, date], int | None]  # stock allowed above this product's baseline
+    global_handling: int | None
+    cost_minor: Fraction | None
 
 
 def dates(s: ORInputV3) -> tuple[date, ...]:
