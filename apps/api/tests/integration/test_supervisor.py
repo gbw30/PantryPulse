@@ -1045,3 +1045,23 @@ def test_reconciled_other_outcome_discards_unless_succeeded(
     run_until(sup, lambda: len(publisher.prepared) == 1 and sup.active is None)
     assert len(publisher.discarded) == discards
     sup.shutdown_drain()
+
+
+class _CommitThenFence(QueueRepository):
+    def _commit(self, transaction):
+        from sqlalchemy.exc import OperationalError
+
+        transaction.commit()  # the publication really commits
+        with self.engine.begin() as conn:  # another owner takes the lane before the ack
+            conn.execute(sa.text("UPDATE compute_control SET generation = generation + 1"))
+        raise OperationalError("COMMIT", {}, Exception("ack lost"))
+
+
+def test_fenced_during_uncertain_commit_never_discards(db, org, prep):  # verifier N1 on PR #103
+    publisher, registry = prep
+    repo = _CommitThenFence(db, registry=registry, profile=PROFILE)
+    sup = _prep_started(repo, registry)
+    accepted = submit(repo, org, contract="test.prepared.v1")
+    run_until(sup, lambda: sup.ownership_lost)
+    assert repo.get_job(org, accepted.job_id).attempts[0].state is AttemptState.SUCCEEDED
+    assert publisher.discarded == []

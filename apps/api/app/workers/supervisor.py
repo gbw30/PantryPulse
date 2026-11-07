@@ -355,9 +355,11 @@ class Supervisor:
                 self.driver.force_stop(handle)
                 time.sleep(0.02)
             self.driver.dispose(handle)
-        if ex is not None and ex.prepared:
+        if ex is not None and ex.prepared and not ex.uncertain:
+            # Fenced before publishing: it never can. During an uncertain commit the
+            # publication may have landed, so leave the data (tolerate-or-clean applies).
             ex.prepared = False
-            self._discard(ex)  # fenced: this attempt can never publish its prepared data
+            self._discard(ex)
         self.active = None
         self.close()
 
