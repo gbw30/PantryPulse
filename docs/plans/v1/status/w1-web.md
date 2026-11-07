@@ -201,21 +201,21 @@ Not fixed:
 - **Exact change:** (a) name the read that returns a `forecast.v1` network run's series and add its example, keyed by v1 `location_id`/`product_id`, with `basis`, `actual_provider`, `fallback_used`, `fallback_reason`, `diagnostics.missing_count`, `points` (p10/p90 only from quantile providers) and the donation forecast per location × product; (b) add per-location WAPE/bias to `BacktestResult` (e.g. `locations: [{location_id, score: BacktestScore}]`) computed on the pooled scored set.
 - **Why:** V1-SPEC §6.4 requires method, fallback reason, missing days, quantile band and "rolled up per location". `BacktestResult` has only per-series scores, and WAPE percentages can't be averaged into a per-location figure without the underlying sums. The existing `ForecastSeriesResult` is keyed by v2 UUIDs, and no v1 example exists. `TrustPanel` already renders all of it from `ForecastSeriesResult` fields (unit-tested with a typed subset, since no example exists).
 - **Unblocks:** W1-W06 method/fallback/donation rows on the live page; the per-location roll-up.
-- **Status:** open
+- **Status:** deferred to the W2 contract pass, together with the forecast-run interface for W3 (lead, 2026-11-07). Until then the trust panel stays on mocks. The gap: the live `/data` page shows only the backtest's per-series basis and score. It has no method, fallback reason, missing days, quantile band or donation forecast per series, and no per-location roll-up.
 
 ### CR-w1-web-5 — the unit of an action's effect
 - **File(s):** `ActionEffect` schema + `DecisionActions.json` (lead-only)
 - **Exact change:** add `unit` (the product's unit, e.g. "case") to `ActionEffect`, or the product's `name` and `unit`.
 - **Why:** V1-SPEC §6.5 shows the effect at sender and receiver in units; the decisions page only has `product_id`, so it writes "40 units lower" and "Product WATER-24; units as in the plan" instead of "40 cases lower". There is no scenario read to look the unit up.
 - **Unblocks:** W1-W08 effect lines and print rows in the product's own unit.
-- **Status:** open
+- **Status:** approved (lead, 2026-11-07): `ActionEffect.unit` plus the example. Waiting for the lead's contract PR to merge into v1-local; then merge and wire it. No hand edits to contracts.
 
 ### CR-w1-web-6 — plan notes for Decisions/print, and an inbound flag for the atlas and forecast views
 - **File(s):** `SavedComparisonV3` (or a new `GET networks/{id}/scenarios/{scenario_id}` → `ScenarioV3`), `Network`, their examples (lead-only); the CSV export (W1-S07)
 - **Exact change:** (a) give the Decisions and print pages the frozen scenario's `assumptions` and `inbound_file_provided`: add both to `SavedComparisonV3`, or add the scenario read. (b) add `inbound_file_provided: boolean` (latest dataset version) to `Network`. (c) the server's plan CSV carries the same notes.
 - **Why:** V1-SPEC §6.1 says every plan export shows "capacity not provided — no limit assumed" and, without `inbound.csv`, "no scheduled deliveries provided"; the atlas and forecast views show the latter too. The web only has these on the frozen scenario inside Scenario Lab (`ScenarioV3.payload.assumptions` / `inbound_file_provided`); a deep-linked Decisions or print page and the atlas/forecast views have no source, and the UI must not guess. Verifier findings 3 (rest) and 5.
 - **Unblocks:** the two notes on /decisions, /decisions/print, the atlas and the forecast trust section.
-- **Status:** open
+- **Status:** approved (lead, 2026-11-07), with no new route. `SavedComparisonV3` gains the frozen scenario's `assumptions` and `inbound_file_provided`, `Network` gains `inbound_file_provided`, and the solver lane adds the notes to the plan CSV. Waiting for the lead's contract PR; then merge and wire.
 
 ### CR-w1-web-3 — per-location projection for the site inspector
 - **File(s):** contracts + a networks/forecast router (lead-only; service in w3-forecast's area)
@@ -231,5 +231,6 @@ Not fixed:
 
 ## Escalations
 
-### E-1: Retail weights both 0 (lead call, not blocking)
+### E-1: Retail weights both 0 (resolved)
 `RetailWeights` accepts `w_exp = 0` and `w_lost = 0` together (v1_planning.py:189-191). Then RETAIL_OPTIMIZED minimizes a constant, so any feasible plan is "optimal". V1-SPEC §6.2 says only that the defaults are 1 and 1 and are editable. The question: should the client (or the server) require at least one weight above 0? Until there is a decision, the client allows it, as the server does.
+- **Decision (Gabriel via the lead, 2026-11-07):** at least one weight must be above 0. The lead adds the server check in `RetailWeights`. The form now shows "At least one weight must be above 0." and blocks Freeze while both are 0. One weight at 0 stays allowed. Test-first: `method-comparison.test.tsx` "retail weights can't both be 0…" failed first (no message), then passed. `npx vitest run` → 21 files, 107 passed; `v1-comparison.spec.ts` → 2 passed.

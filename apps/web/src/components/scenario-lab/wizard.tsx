@@ -298,11 +298,14 @@ export function ComparisonSetup({ mode, busy, scenario, blocked = null, onFreeze
   const [measure, setMeasure] = useState<V1Measure | "">(retail ? "" : "UNITS");
   const usdReason = scenario ? usdUnavailableReason(scenario.payload.products) : null;
   const weightErrors = { w_exp: weightError(weights.w_exp), w_lost: weightError(weights.w_lost) };
+  // E-1 (lead, 2026-11-07): with both weights 0 the Optimized objective is constant; the server rejects it too.
+  const bothZero = !weightErrors.w_exp && !weightErrors.w_lost && Number(weights.w_exp) === 0 && Number(weights.w_lost) === 0
+    ? "At least one weight must be above 0." : null;
   const policyErrors = Object.fromEntries(POLICY_FIELDS.map(([key]) => [key, percentError(policy[key])])) as Record<PolicyKey, string | null>;
   const shareError = !policyErrors.poverty && !policyErrors.snap && Number(policy.poverty) + Number(policy.snap) !== 100
     ? "The poverty and SNAP rate shares must add up to 100." : null;
   const pantryReady = !!days && !shareError && !Object.values(policyErrors).some(Boolean);
-  const canFreeze = !busy && !blocked && !!transfer && (retail ? !(weightErrors.w_exp || weightErrors.w_lost) : pantryReady);
+  const canFreeze = !busy && !blocked && !!transfer && (retail ? !(weightErrors.w_exp || weightErrors.w_lost || bothZero) : pantryReady);
   const canCompare = !busy && !!scenario && (measure === "UNITS" || (measure === "USD" && !usdReason));
 
   const freeze = () => transfer && onFreeze({ transferMode: transfer,
@@ -364,11 +367,13 @@ export function ComparisonSetup({ mode, busy, scenario, blocked = null, onFreeze
               <div key={key} className="grid gap-1">
                 <Label htmlFor={`v1-${key}`}>{key === "w_exp" ? "Weight on expired units" : "Weight on lost sales"}</Label>
                 <Input id={`v1-${key}`} type="number" min={0} max={1000} step={1} className="h-9 w-28" value={weights[key]} disabled={busy}
-                  aria-invalid={weightErrors[key] ? true : undefined} aria-describedby={weightErrors[key] ? `v1-${key}-error` : undefined}
+                  aria-invalid={weightErrors[key] || bothZero ? true : undefined}
+                  aria-describedby={weightErrors[key] ? `v1-${key}-error` : bothZero ? "v1-weights-error" : undefined}
                   onChange={(e) => setWeights((w) => ({ ...w, [key]: e.target.value }))} />
                 {weightErrors[key] && <p id={`v1-${key}-error`} className="text-xs text-pp-danger">{weightErrors[key]}</p>}
               </div>
             ))}
+            {bothZero && <p id="v1-weights-error" className="text-xs text-pp-danger">{bothZero}</p>}
           </div>
         )}
         <Button type="button" className="justify-self-start" disabled={!canFreeze} onClick={freeze}>Freeze scenario</Button>

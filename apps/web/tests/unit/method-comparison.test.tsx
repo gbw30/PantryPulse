@@ -123,6 +123,23 @@ it("retail weights are whole numbers from 0 to 1000, as the server accepts", () 
   expect(freeze).toBeEnabled();
 });
 
+it("retail weights can't both be 0; one weight at 0 is allowed (E-1)", () => {
+  const onFreeze = vi.fn();
+  setup({ mode: "RETAIL", onFreeze });
+  fireEvent.click(screen.getByRole("radio", { name: "DC → stores only" }));
+  const freeze = screen.getByRole("button", { name: "Freeze scenario" });
+  fireEvent.change(screen.getByLabelText("Weight on expired units"), { target: { value: "0" } });
+  expect(freeze).toBeEnabled();
+  fireEvent.change(screen.getByLabelText("Weight on lost sales"), { target: { value: "0" } });
+  expect(screen.getByText("At least one weight must be above 0.")).toBeVisible();
+  expect(screen.getByLabelText("Weight on lost sales")).toHaveAccessibleDescription("At least one weight must be above 0.");
+  expect(freeze).toBeDisabled();
+  fireEvent.change(screen.getByLabelText("Weight on lost sales"), { target: { value: "3" } });
+  expect(screen.queryByText("At least one weight must be above 0.")).not.toBeInTheDocument();
+  fireEvent.click(freeze);
+  expect(onFreeze).toHaveBeenCalledWith(expect.objectContaining({ retailWeights: { w_exp: 0, w_lost: 3 } }));
+});
+
 it("USD option disabled with the unavailable reason", () => {
   const onCompare = vi.fn();
   const retail: Schema["ScenarioV3"] = { ...scenario, payload: { ...scenario.payload, mode: "RETAIL" } };
