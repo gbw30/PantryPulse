@@ -12,6 +12,7 @@ from app.schemas.v1_planning import InboundV3, SavedComparisonV3
 from app.services.optimization.actions import decision_actions
 from app.services.optimization.compare import compare_methods
 from app.services.optimization.export import COLUMNS, SIMULATED_NOTE, export_plan_csv
+from app.services.optimization.v3 import PER_PRODUCT_LABEL
 from tests.optimization.test_retail_oracle import load
 
 SCENARIO = UUID("00000000-0000-4000-8000-0000000000e1")
@@ -85,7 +86,8 @@ def test_export_columns():
             "(effect of this action given the rest of the plan; effects don't add up across "
             "actions)"
         ),
-        "note": "simulated plan; no stock was reserved or moved; no scheduled deliveries provided",
+        "note": "simulated plan; no stock was reserved or moved; no scheduled deliveries provided; "
+        "optimized per product, with shared capacity split in advance; product solved OPTIMAL",
     }
     assert SIMULATED_NOTE == "simulated plan; no stock was reserved or moved"
 
@@ -120,7 +122,8 @@ def test_no_scheduled_deliveries_note_when_no_inbound():
         comparison = saved(scenario)
         ids = [t.id for t in comparison.result.methods[2].transfers]
         exported = rows(export_plan_csv(comparison, "RETAIL_OPTIMIZED", ids, scenario=scenario))
-        assert exported and {r["note"] for r in exported} == {note}
+        solved = f"; {PER_PRODUCT_LABEL}; product solved OPTIMAL"
+        assert exported and {r["note"] for r in exported} == {note + solved}
 
 
 def test_export_rejects_unverified_method():
@@ -173,3 +176,43 @@ def test_export_pantry_plan():
         ("PANTRY", "MOST_URGENT_FIRST", SIMULATED_NOTE + "; no scheduled deliveries provided")
     }
     assert all("over 2 days" in r["why"] and "USD" not in r["effect"] for r in exported)
+
+
+def test_export_says_optimized_per_product_and_names_each_solved_product():
+    """W0-optimizer-decomposition 4: plan exports carry the per-product wording and say which
+    products were solved; heuristic rows don't claim optimization."""
+    s, _ = load("retail-usd-flip")
+    comparison = saved(s)
+    for method, claimed in (("RETAIL_OPTIMIZED", True), ("SOONEST_EXPIRY_FIRST", False)):
+        chosen = next(m for m in comparison.result.methods if m.method == method)
+        exported = rows(
+            export_plan_csv(comparison, method, [t.id for t in chosen.transfers], scenario=s)
+        )
+        assert exported
+        status = {p.product_id: p.native_status for p in chosen.products}
+        names = {p.id: p.name for p in s.products}
+        for row in exported:
+            pid = next(k for k, v in names.items() if v == row["product"])
+            assert (PER_PRODUCT_LABEL in row["note"]) is claimed
+            assert (f"product solved {status[pid]}" in row["note"]) is claimed
+
+
+def test_export_neutralizes_spreadsheet_formulas():
+    """Names come from the user's CSV import; a cell starting with = + - @ is never a formula."""
+    s, _ = load("retail-usd-flip")
+    hostile = s.model_copy(
+        update={
+            "products": tuple(p.model_copy(update={"name": "=HYPERLINK(1)"}) for p in s.products),
+            "locations": tuple(
+                loc.model_copy(update={"name": f"@{loc.name}"}) for loc in s.locations
+            ),
+        }
+    )
+    comparison = saved(hostile)
+    optimized = comparison.result.methods[2]
+    text = export_plan_csv(
+        comparison, "RETAIL_OPTIMIZED", [t.id for t in optimized.transfers], scenario=hostile
+    )
+    for row in rows(text):
+        for column in ("product", "from", "to", "why"):
+            assert row[column][0] == "'", (column, row[column])

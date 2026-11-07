@@ -104,8 +104,10 @@ def _optimized(s, method, measure, baseline, search_seconds, method_seconds) -> 
         undefined = {p.id for p in s.products if len(goals(s, p.id)) < 2}
     at_risk_all = at_risk(s, baseline)
     risky = at_risk_all - undefined
-    cands = {p: candidates(s, p) for p in risky}
-    parts = split(s, baseline, risky, measure, cands)
+    cands = {p: candidates(s, p) for p in at_risk_all}
+    # One feasible region: every method splits over every at-risk product; EGP only skips solving
+    # the singleton ones, and their shares stay unused.
+    parts = split(s, baseline, at_risk_all, measure, cands)
     outcomes, late = {}, []
     by_product = defaultdict(list)
     for d in baseline:

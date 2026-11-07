@@ -1,15 +1,20 @@
 """Router-facing v1 comparisons: submit or-comparison.v3, read, actions, export (W1-S04/S06/S07).
 
 comparison_id = job_id. The comparison row is written in the same transaction that marks the
-attempt SUCCEEDED, so every read before publication is 404 COMPARISON_NOT_FOUND."""
+attempt SUCCEEDED, so every read before publication is 404 COMPARISON_NOT_FOUND.
+
+Tenancy (W0-network-model 1-2): each network has its own organization. The local session may use
+every network of the install; each request is authorized against the network in its path and
+runs under that network's organization, never one sent by the client."""
 
 from collections.abc import Sequence
 from uuid import UUID
 
 import sqlalchemy as sa
 
-from app.models.networks import PlanningComparisonV3, PlanningScenarioV3
+from app.models.networks import Network, PlanningComparisonV3, PlanningScenarioV3
 from app.repositories.forecast_history import HistoryRejected
+from app.repositories.jobs import TrustedScope
 from app.schemas.forecast_api import ForecastAccepted
 from app.schemas.v1_planning import (
     AllocationMethod,
@@ -18,6 +23,14 @@ from app.schemas.v1_planning import (
     ORInputV3,
     SavedComparisonV3,
 )
+
+
+def _tenant(conn, scope, network_id):
+    """The named network's organization, acting as the session's actor; 404 if no such network."""
+    organization = conn.scalar(sa.select(Network.organization_id).where(Network.id == network_id))
+    if organization is None:
+        raise HistoryRejected("NETWORK_NOT_FOUND", 404)
+    return TrustedScope(organization, scope.actor_ref)
 
 
 def _scenario(conn, scope, network_id, scenario_id):
@@ -43,6 +56,7 @@ def _read(rt, scope, network_id, comparison_id):
         rt.engine.connect().execution_options(isolation_level="REPEATABLE READ") as conn,
         conn.begin(),
     ):
+        scope = _tenant(conn, scope, network_id)
         row = (
             conn.execute(
                 sa.select(PlanningComparisonV3.__table__).where(
@@ -75,6 +89,7 @@ def submit_comparison(
         rt.engine.connect().execution_options(isolation_level="REPEATABLE READ") as conn,
         conn.begin(),
     ):
+        scope = _tenant(conn, scope, network_id)
         scenario = _scenario(conn, scope, network_id, request.scenario_id)
     accepted = rt.queue.submit(
         scope,

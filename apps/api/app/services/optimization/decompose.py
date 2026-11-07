@@ -6,7 +6,8 @@ weight = need × handling_units_per_unit, times unit_value_usd in Retail USD mod
   need at that receiver, by allot (localized split, Gabriel 2026-11-07);
 - sender dispatch, global handling and the cost budget: share_p = floor(cap × weight_p / Σ weight)
   over the products that can use them.
-Products whose share still can't move one unit are reported, never optimized. The union of the
+Products whose share still can't move one unit (including storage on the days the unit waits
+at the receiver for its first short day) are reported, never optimized. The union of the
 per-product plans is re-checked by verify.verify_plan against the raw scenario.
 """
 
@@ -140,6 +141,7 @@ def split(s, baseline, products, measure, cands: dict[str, tuple[Candidate, ...]
     by_product = defaultdict(list)
     for d in baseline:
         by_product[d.product_id].append(d)
+    window = days[: window_days(s)]
     shares, starved = {}, set()
     for p in sorted(products):
         h = info[p].handling_units_per_unit
@@ -168,12 +170,23 @@ def split(s, baseline, products, measure, cands: dict[str, tuple[Candidate, ...]
             None if budget is None else Fraction(budget),
         )
         senders = protected_senders(s, by_product[p], p)
-        usable = [c for c in cands[p] if c.route.from_location_id in senders]
+        usable = [  # a protected sender to a receiver with need (the localized split's users)
+            c
+            for c in cands[p]
+            if c.route.from_location_id in senders and local.get((p, c.route.to_location_id), 0) > 0
+        ]
+        short = {(d.location_id, d.day) for d in by_product[p] if d.unmet > 0}
 
-        def fits(c, sh=shares[p], h=h):
+        def fits(c, sh=shares[p], h=h, short=short):
             frm, to = c.route.from_location_id, c.route.to_location_id
             cost = c.route.cost_per_handling_unit_usd
             unit_cost = Fraction(cost) * 100 * h if cost else Fraction(0)
+            # The unit sits in storage at the receiver until its first short day in the window.
+            waiting = []
+            for day in (d for d in window if d >= c.arrival):
+                if (to, day) in short:
+                    break
+                waiting.append(sh.storage_room[to, day])
             return all(
                 v is None or v >= h
                 for v in (
@@ -181,6 +194,7 @@ def split(s, baseline, products, measure, cands: dict[str, tuple[Candidate, ...]
                     sh.dispatch[frm],
                     sh.receiving[to, c.arrival],
                     sh.global_handling,
+                    *waiting,
                 )
             ) and (sh.cost_minor is None or sh.cost_minor >= unit_cost)
 

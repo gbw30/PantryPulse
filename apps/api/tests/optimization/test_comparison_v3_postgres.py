@@ -65,7 +65,15 @@ def storage():
         ),
     )
     assert own and queue.set_state(own, SupervisorState.READY)
-    yield ForecastRuntime(engine, queue), own
+    presenter = uuid.uuid4()  # the session's own organization; every network has its own
+    with engine.begin() as conn:
+        conn.execute(
+            sa.text(
+                "INSERT INTO organizations (id, name, is_demo) VALUES (:o, 'presenter', false)"
+            ),
+            {"o": presenter},
+        )
+    yield ForecastRuntime(engine, queue), own, presenter
     engine.dispose()
     reset_schema(url, SCHEMA)
 
@@ -109,7 +117,7 @@ def seed(engine, name="retail-usd-flip"):
 
 @pytest.fixture
 def api(storage, monkeypatch):
-    rt, own = storage
+    rt, own, presenter = storage
     ids = seed(rt.engine)
     salt = "37" * 16
     digest = hashlib.scrypt(
@@ -118,7 +126,7 @@ def api(storage, monkeypatch):
     for k, v in dict(
         PP_PRESENTER_USERNAME="tester",
         PP_PRESENTER_PASSWORD_HASH=f"scrypt$16384$8$1${salt}${digest}",
-        PP_PRESENTER_ORGANIZATION_ID=str(ids["org"]),
+        PP_PRESENTER_ORGANIZATION_ID=str(presenter),  # W0-network-model 2: not the network's
         PP_COOKIE_SECURE="false",
         PP_ALLOWED_ORIGINS="http://testserver",
     ).items():
@@ -205,6 +213,15 @@ def test_comparison_is_404_until_published_then_readable(api):
     assert body["result"] == package["comparison"]
     assert [m["method"] for m in body["result"]["methods"]] == RETAIL
     assert all(m["verified"] for m in body["result"]["methods"])
+    with rt.engine.connect() as conn:
+        tenants = conn.execute(
+            sa.text(
+                "SELECT j.organization_id, c.organization_id FROM compute_jobs j "
+                "JOIN planning_comparisons_v3 c ON c.job_id = j.job_id WHERE j.job_id = :j"
+            ),
+            {"j": job["job_id"]},
+        ).one()
+    assert tenants == (ids["org"], ids["org"])  # the network's organization, not the session's
 
     replay = submit(client, headers, ids)
     assert replay.json()["replayed"] and replay.json()["job_id"] == job["job_id"]
@@ -252,16 +269,18 @@ def test_reads_reject_what_is_not_there(api):
     other = dict(ids, scenario=uuid.uuid4())
     missing = submit(client, headers, other, key="missing")
     assert missing.status_code == 404 and code(missing) == "SCENARIO_NOT_FOUND"
-    tenant = seed(rt.engine)  # another organization's network and scenario
-    for net in (ids["net"], tenant["net"]):
-        theirs = submit(client, headers, dict(net=net, scenario=tenant["scenario"]), key=f"t{net}")
-        assert theirs.status_code == 404 and code(theirs) == "SCENARIO_NOT_FOUND"
+    tenant = seed(rt.engine)  # another network, with its own organization
+    theirs = submit(client, headers, dict(net=ids["net"], scenario=tenant["scenario"]), key="t")
+    assert theirs.status_code == 404 and code(theirs) == "SCENARIO_NOT_FOUND"
+    nowhere = submit(client, headers, dict(net=uuid.uuid4(), scenario=ids["scenario"]), key="n")
+    assert nowhere.status_code == 404 and code(nowhere) == "NETWORK_NOT_FOUND"
     foreign = submit(client, headers, ids, key="foreign", methods=["CLASSICAL_GP"])
     assert foreign.status_code == 422 and code(foreign) == "METHOD_NOT_IN_MODE"
 
     url, _ = published(api, skip={"SOONEST_EXPIRY_FIRST"})
-    elsewhere = url.replace(str(ids["net"]), str(uuid.uuid4()))
-    assert code(client.get(elsewhere)) == "COMPARISON_NOT_FOUND"
+    assert code(client.get(url.replace(str(ids["net"]), str(uuid.uuid4())))) == "NETWORK_NOT_FOUND"
+    other_network = url.replace(str(ids["net"]), str(tenant["net"]))
+    assert code(client.get(other_network)) == "COMPARISON_NOT_FOUND"
     not_run = client.get(f"{url}/methods/EQUAL_SHARE/actions")
     assert not_run.status_code == 404 and code(not_run) == "METHOD_NOT_IN_COMPARISON"
     timed_out = client.get(f"{url}/methods/SOONEST_EXPIRY_FIRST/actions")

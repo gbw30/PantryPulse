@@ -6,14 +6,15 @@ from app.schemas.or_outputs import ComparisonResult, MethodOutcome
 from app.schemas.v1_planning import ComparisonResultV3, require_methods_for_mode
 from app.services.optimization.canonical import operational_hash
 from app.services.optimization.methods import (
+    OPTIMIZING,
     PER_PRODUCT_SEARCH_S,
-    effects,
     failed_result,
     run_method,
 )
+from app.services.optimization.methods import assemble as assemble_method
 from app.services.optimization.projection import project_v3
 from app.services.optimization.service import solve_one
-from app.services.optimization.verify import verify_plan
+from app.services.optimization.v3 import quantities_of
 
 
 def assemble(scenario, outcomes, *, expected_settings=None):
@@ -140,7 +141,7 @@ def compare_methods(
 
     Methods fail independently: a failed or erroring method is reported with its status and
     no plan while the others still publish. Before publication each claimed-verified result is
-    re-checked here against the raw scenario (verify_plan, effects); a result that doesn't
+    rebuilt here from the raw scenario and its own plan (publishable); a result that doesn't
     replay is published as unverified, with no plan.
     """
     require_methods_for_mode(scenario.mode, methods)
@@ -166,12 +167,30 @@ def compare_methods(
 
 
 def publishable(scenario, baseline, result):
+    """Rebuild a claimed-verified result from the raw scenario and its own plan and publish it only
+    if every field matches: plan and union check, effects, objective, labels, and the method
+    status implied by its products. Per-product native statuses are the solver's claims; only
+    their consistency with the rest can be checked here."""
     if not result.verified:
         return result
-    report = verify_plan(scenario, result.transfers)
-    problems = list(report.violations)
-    if report.passed and effects(baseline, report.days) != result.effects:
-        problems.append("EFFECTS_MISMATCH")
+    solved = [p.native_status for p in result.products if p.native_status]
+    status = None if not solved else "FEASIBLE" if "FEASIBLE" in solved else "OPTIMAL"
+    rebuilt = assemble_method(
+        scenario,
+        result.method,
+        result.measure,
+        baseline,
+        quantities_of(result.transfers),
+        status if result.method in OPTIMIZING else None,
+        result.products,
+        {},
+    )
+    if not rebuilt.verified:
+        problems = [rebuilt.failure_reason]
+    else:
+        problems = [
+            f for f in type(result).model_fields if getattr(rebuilt, f) != getattr(result, f)
+        ]
     if not problems:
         return result
     return failed_result(

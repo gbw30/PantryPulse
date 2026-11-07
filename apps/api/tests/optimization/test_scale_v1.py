@@ -349,6 +349,27 @@ def test_pantry_at_risk_uses_the_window_and_reports_no_total():
         assert "solved per product: 1 OPTIMAL, 0 FEASIBLE" in result.labels
 
 
+def test_storage_share_too_small_is_starved_not_optimized():
+    """P2 storage 1, beans and rice needed 3, 0, 2 there (equal need): allot gives the one unit
+    of room to beans (equal weight, then product id), none to rice. A unit shipped on Nov 2
+    waits at P2 through Nov 3 (no demand), so rice can't move one unit under its share. Rice is
+    reported starved, never optimized; with no storage limit both move."""
+    from tests.optimization.test_pantry_methods import moved, with_rice
+
+    demand = [("P2", p, (3, 0, 2, 0, 0, 0, 0)) for p in ("F", "G")]
+    for storage, expected in ((1, {"F": 1}), (None, {"F": 2, "G": 2})):
+        s = with_rice(
+            demand, CapacityV3(location_id="P2", receiving=None, dispatch=None, storage=storage)
+        )
+        s = s.model_copy(update={"planning_days": 3})
+        for method in ("CLASSICAL_GP", "EQUAL_SHARE"):
+            result = run_method(s, method, "UNITS")
+            assert moved(result) == expected, (storage, method)
+            rice = next(p for p in result.products if p.product_id == "G")
+            starved = (None, STARVED_LABEL) if storage else (rice.native_status, None)
+            assert (rice.native_status, rice.label) == starved, (storage, method)
+
+
 def test_k_nearest_routes_used(monkeypatch):
     """Three DCs hold oil for B at 1, 2 and 3 days; with k = 1 only the 1-day DC is a candidate."""
     s = scenario()

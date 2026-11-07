@@ -12,7 +12,14 @@ from uuid import UUID
 
 import pytest
 
-from app.schemas.v1_planning import DEFAULT_PANTRY_POLICY, METHODS_BY_MODE
+from app.schemas.v1_planning import (
+    DEFAULT_PANTRY_POLICY,
+    METHODS_BY_MODE,
+    BatchV3,
+    CapacityV3,
+    ORInputV3,
+    ProductV3,
+)
 from app.services.optimization.compare import compare_methods
 from app.services.optimization.methods import PER_PRODUCT_LABEL, run_method
 from app.services.optimization.pantry import (
@@ -146,6 +153,48 @@ def test_ap_flag_unset_at_equality():
     assert outcome.primary == pantry_objectives(s, report, "EGP_PI_INSPIRED")["F"] == 8_625_000
 
 
+def test_rp_flag_unset_at_equality():
+    """No hub stock; each pantry serves from its own cases. q = floor(S x v x unmet / target):
+    P1 (v 1.4) misses 5 of 28 -> 2500; P2 (v 1) misses 5 of 8 -> 6250; P3 (v 1.2) 5 of 24 -> 2500.
+    W = 11250, Z = 6250. RP for P2: 3 x 6250 - 11250 = 7500 = 3 x 2500, exactly the threshold:
+    unflagged, so RP excess is 0 (flagged it would be 2500, +250 000). No q is above 7500 (AP).
+    Compiled: 150 x (11250 + 6250) = 2 625 000."""
+    s, _ = load("pantry-four-methods")
+    targets = {"P1": (14, 14), "P2": (4, 4), "P3": (12, 12)}
+    stock = {"P1": 23, "P2": 3, "P3": 19}
+    demand = tuple(
+        d.model_copy(update={"targets": (*targets[d.location_id], 0, 0, 0, 0, 0)}) for d in s.demand
+    )
+    own = tuple(
+        s.batches[0].model_copy(update={"id": f"{loc}b", "location_id": loc, "quantity": qty})
+        for loc, qty in stock.items()
+    )
+    s = s.model_copy(update={"batches": own, "demand": demand})
+    baseline = project_v3(s).days
+    none = Shares({}, {}, {}, {}, None, None)
+    outcome = solve_pantry_product(s, "F", (), none, baseline, set(), 5.0, method="EGP_PI_INSPIRED")
+    report = verify_plan(s, ())
+    assert outcome.primary == pantry_objectives(s, report, "EGP_PI_INSPIRED")["F"] == 2_625_000
+
+
+@pytest.mark.parametrize(
+    ("gammas", "plan"),
+    [
+        ({}, {"P1": 2, "P2": 2}),
+        ({"gamma_ap_percent": 0}, {"P1": 2, "P3": 2}),
+        ({"gamma_ap_percent": 0, "gamma_rp_percent": 0}, {"P1": 3, "P3": 1}),
+    ],
+)
+def test_penalty_ablation_changes_the_egp_plan(gammas, plan):
+    """TEST-EGP-04: zeroing gamma_AP changes the optimum, and with AP off zeroing gamma_RP changes
+    it again, so both penalty terms are active on this fixture. (gamma_RP = 0 alone keeps
+    P1 2, P2 2 here.) Each optimum is the enumeration oracle's unique winner."""
+    s, _ = load("pantry-four-methods")
+    s = s.model_copy(update={"policy": s.policy.model_copy(update=gammas)})
+    assert oracle(s, True) == [plan]
+    assert plan_of(run_method(s, "EGP_PI_INSPIRED", "UNITS")) == plan
+
+
 def test_default_policy_is_frozen_in_the_fixture():
     s, _ = load("pantry-four-methods")
     assert s.policy == DEFAULT_PANTRY_POLICY
@@ -273,3 +322,59 @@ def test_pantry_rejects_usd():
     s, _ = load("pantry-four-methods")
     with pytest.raises(ValueError, match="MEASURE_NOT_IN_MODE"):
         run_method(s, "CLASSICAL_GP", "USD")
+
+
+def with_rice(demand, capacity):
+    """pantry-four-methods plus rice (G, 10 bags at the hub) with the given demand series."""
+    s, _ = load("pantry-four-methods")
+    series = s.demand[0]
+    rice = ProductV3(
+        id="G", name="Rice", unit="bag", handling_units_per_unit=1, unit_value_usd=None
+    )
+    stock = BatchV3(
+        id="g1", location_id="H", product_id="G", quantity=10, expiry_date=None, non_expiring=True
+    )
+    rows = tuple(
+        series.model_copy(
+            update=dict(
+                location_id=loc,
+                product_id=pid,
+                targets=targets,
+                central_literals=tuple(str(x) for x in targets),
+            )
+        )
+        for loc, pid, targets in demand
+    )
+    changed = s.model_copy(
+        update=dict(
+            products=(*s.products, rice),
+            batches=(*s.batches, stock),
+            demand=rows,
+            capacities=(capacity,),
+        )
+    )
+    return ORInputV3.model_validate(changed.model_dump())
+
+
+def moved(result):
+    assert result.verified, result.failure_reason
+    out = {}
+    for t in result.transfers:
+        out[t.product_id] = out.get(t.product_id, 0) + t.quantity
+    return out
+
+
+def test_singleton_product_keeps_the_shared_split():
+    """One feasible region (V1-SPEC 6.2): rice is needed only at P1 (15 bags in the window), so
+    EGP leaves it unoptimized, but its share of the hub's dispatch 4 (need 15:15, so 2 and 2)
+    is still withheld from beans, exactly as for CLASSICAL_GP."""
+    s, _ = load("pantry-four-methods")
+    beans = tuple((d.location_id, d.product_id, d.targets) for d in s.demand)
+    s = with_rice(
+        (*beans, ("P1", "G", (5, 10, 0, 0, 0, 0, 0))),
+        CapacityV3(location_id="H", receiving=None, dispatch=4, storage=None),
+    )
+    gp, egp = (run_method(s, m, "UNITS") for m in ("CLASSICAL_GP", "EGP_PI_INSPIRED"))
+    assert moved(gp) == {"F": 2, "G": 2}
+    assert moved(egp) == {"F": 2}
+    assert next(p for p in egp.products if p.product_id == "G").label == SINGLETON_LABEL

@@ -10,9 +10,12 @@ from collections.abc import Sequence
 
 from app.schemas.v1_planning import NON_ADDITIVE_LABEL, AllocationMethod, SavedComparisonV3
 from app.services.optimization.actions import decision_actions, units_label
+from app.services.optimization.methods import OPTIMIZING
+from app.services.optimization.v3 import PER_PRODUCT_LABEL
 
 SIMULATED_NOTE = "simulated plan; no stock was reserved or moved"
 NO_INBOUND_NOTE = "no scheduled deliveries provided"
+FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
 COLUMNS = (
     "scenario_id",
     "scenario_hash",
@@ -62,28 +65,42 @@ def export_plan_csv(
     out = io.StringIO()
     writer = csv.writer(out, lineterminator="\n")
     writer.writerow(COLUMNS)
+    solved = {p.product_id: p for p in chosen.products}
     for action_id in dict.fromkeys(action_ids):
         a, t = actions[action_id], transfers[action_id]
         product = products[t.product_id]
+        row_note = note
+        if method in OPTIMIZING:  # W0-optimizer-decomposition 4: say how, and that it was solved
+            solve = solved[t.product_id]
+            gap = f" (gap {solve.gap})" if solve.gap else ""
+            row_note = f"{note}; {PER_PRODUCT_LABEL}; product solved {solve.native_status}{gap}"
         writer.writerow(
-            (
-                result.scenario_id,
-                result.scenario_hash,
-                method,
-                result.mode,
-                product.name,
-                product.unit,
-                t.quantity,
-                names[t.from_location_id],
-                names[t.to_location_id],
-                t.ship_date.isoformat(),
-                t.arrival_date.isoformat(),
-                a.why_text,
-                effect_text(a.effect, product.unit),
-                note,
+            tuple(
+                cell(value)
+                for value in (
+                    result.scenario_id,
+                    result.scenario_hash,
+                    method,
+                    result.mode,
+                    product.name,
+                    product.unit,
+                    t.quantity,
+                    names[t.from_location_id],
+                    names[t.to_location_id],
+                    t.ship_date.isoformat(),
+                    t.arrival_date.isoformat(),
+                    a.why_text,
+                    effect_text(a.effect, product.unit),
+                    row_note,
+                )
             )
         )
     return out.getvalue()
+
+
+def cell(value):
+    """Names come from the user's import: a leading ' keeps = + - @ from starting a formula."""
+    return f"'{value}" if isinstance(value, str) and value.startswith(FORMULA_START) else value
 
 
 def effect_text(effect, unit: str) -> str:

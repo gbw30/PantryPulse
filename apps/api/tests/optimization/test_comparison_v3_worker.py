@@ -133,3 +133,35 @@ def test_pantry_five_methods_through_the_worker():
     assert [m["method"] for m in comparison["methods"]] == methods
     assert all(m["verified"] for m in comparison["methods"])
     assert comparison["mode"] == "PANTRY"
+
+
+@pytest.mark.parametrize(
+    ("field", "value"), [("objective", "0"), ("labels", ()), ("native_status", "FEASIBLE")]
+)
+def test_tampered_result_fields_are_published_unverified(field, value):
+    """Publication rebuilds every derived field from the raw scenario and the plan itself."""
+    validated = HANDLER.validate_input(payload())
+    outcomes = run_steps(validated)
+    optimized = MethodResult.model_validate(outcomes[2].output["method"])
+    assert getattr(optimized, field) != value
+    tampered = optimized.model_copy(update={field: value}).model_dump(mode="json")
+    outcomes[2] = StepOutcome("RETAIL_OPTIMIZED", StepStatus.COMPLETED, {"method": tampered})
+    method = PUBLISHER.validate(validated, outcomes)["comparison"]["methods"][2]
+    assert (method["verified"], method["transfers"]) == (False, [])
+    assert method["failure_reason"] == f"PUBLICATION_VERIFICATION_FAILED:{field}"
+
+
+def test_product_status_relabel_is_published_unverified():
+    """Per-product statuses are the solver's claims; the method status and the solved-count label
+    must agree with them, so a partial relabel can't publish."""
+    validated = HANDLER.validate_input(payload())
+    outcomes = run_steps(validated)
+    optimized = MethodResult.model_validate(outcomes[2].output["method"])
+    first = optimized.products[0].model_copy(update={"native_status": "FEASIBLE", "gap": "0.5"})
+    tampered = optimized.model_copy(update={"products": (first, *optimized.products[1:])})
+    outcomes[2] = StepOutcome(
+        "RETAIL_OPTIMIZED", StepStatus.COMPLETED, {"method": tampered.model_dump(mode="json")}
+    )
+    method = PUBLISHER.validate(validated, outcomes)["comparison"]["methods"][2]
+    assert method["verified"] is False
+    assert method["failure_reason"] == "PUBLICATION_VERIFICATION_FAILED:native_status,labels"
