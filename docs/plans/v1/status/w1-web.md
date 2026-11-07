@@ -72,7 +72,7 @@ Not fixed:
 
 `git merge origin/v1-local` (f0e559c, no rebase) merged cleanly as cd47da9. tsc was clean and Vitest passed 98 on the merged tree before any change. Then, test-first:
 - Pantry planning window and policy (2de6536). Pantry must pick 1, 2 or 3 days (no default). λ, β and the poverty/SNAP shares start at `DEFAULT_PANTRY_POLICY` and are editable. Each is a whole number from 0 to 100, and the two shares must add up to 100. The scenario POST carries `planning_days` and the full `policy`. Retail sends neither field, and the frozen scenario line shows "Window 3 days · λ 100% · β 50% · poverty rate 50%, SNAP rate 50%".
-- LocationList and the site inspector (this commit). The proxy now allows `GET networks/{id}/locations` and `GET networks/{id}/projection` (query keys `forecast_run_id`, `location_id`, each at most once). The ranking shows "Archer Road Pantry (P-12)". Located sites are placed on a schematic map, and a site without coordinates is listed under "Not on the map (no coordinates)". Selecting a ranked row or a map marker opens the inspector on `LocationProjection`, and closing it returns focus to the row or marker that opened it.
+- LocationList and the site inspector (be99c71). The proxy now allows `GET networks/{id}/locations` and `GET networks/{id}/projection` (query keys `forecast_run_id`, `location_id`, each at most once). The ranking shows "Archer Road Pantry (P-12)". Located sites are placed on a schematic map, and a site without coordinates is listed under "Not on the map (no coordinates)". Selecting a ranked row or a map marker opens the inspector on `LocationProjection`, and closing it returns focus to the row or marker that opened it.
 
 ## Pause point (2026-11-07, at Gabriel's request via the orchestrator)
 
@@ -121,6 +121,12 @@ Not fixed:
 
 | Gate | Commit | Result |
 |---|---|---|
+| `node scripts/quality/run.cjs quick` (standard env: `.env.lane`, no `PP19_TEST_SCHEMA_ISOLATION`) | be99c71 | PASS: web typecheck, web lint, api lint, api tests. The api step ran 1374 passed and 77 skipped. All 77 are the PostgreSQL isolated-schema suites that need the opt-in: `test_operational_postgres.py` (25), `test_stock_postgres.py` (17), `test_stock_adjustment_api_postgres.py` (9), `test_operations_api_postgres.py` (7), `test_forecast_api_postgres.py` (6), `test_inventory_api_postgres.py` (5), `test_planning_api_postgres.py` (4) and `test_planning_postgres.py` (4), all under `tests/integration/` (`pytest -q -rs`). |
+| `node scripts/quality/run.cjs full` (`.env.lane` + `PP19_TEST_SCHEMA_ISOLATION=1`) | be99c71 | PASS: web typecheck, web lint, api lint, api tests, web unit tests, web build, contract drift, database migrations |
+| `uv run --frozen pytest -q --junitxml=…` + `scripts/quality/require-test-evidence.py` (same env, lane DB) | be99c71 | 1451 passed, 0 skipped; "1451 backend tests completed without skips or failures" |
+| `npx vitest run` / `node --test tests/*.test.mjs` (apps/web) | be99c71 | 21 files, 106 passed / proxy 12 passed |
+| `PLAYWRIGHT_PORT=3003 npx playwright test` (apps/web, whole suite, nothing else running) | be99c71 | 177 passed, 6 skipped: the same six seeded-backend specs (five `connected:` titles plus `operations-api.spec.ts`, which needs `PP_RUN_CONNECTED=1`); none is a v1 lane spec |
+| research-claims-check on the new copy (policy hints, inspector) | be99c71 | PASS. "EGP-PI-inspired" is named as such, with no outcome or reproduction claim. The inspector says "Forecasts are projections" and shows unknown values as "unknown". |
 | `node scripts/quality/run.cjs full` (with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1`; its steps include all of quick's) | 12bf028 | PASS: web typecheck, web lint, api lint, api tests, web unit tests, web build, contract drift, database migrations |
 | `uv run --frozen pytest -q --junitxml=…` + `scripts/quality/require-test-evidence.py` (apps/api, same env, lane DB `pantrypulse_web_test` on 127.0.0.1:55433) | 12bf028 | 1413 passed, 0 skipped; "1413 backend tests completed without skips or failures". Without `PP19_TEST_SCHEMA_ISOLATION=1`, 77 PostgreSQL isolated-schema tests skip. |
 | `npx vitest run` (apps/web) | 12bf028 | 17 files, 94 passed |
