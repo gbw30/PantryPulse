@@ -6,6 +6,7 @@ row is an outage (CensusUnavailable): the caller marks fields unknown and offers
 ACS rates come from the bundled table the lead generates (CR-w1-data-1, option A)."""
 
 import csv
+import functools
 import gzip
 import io
 import json
@@ -136,6 +137,18 @@ def _rate(part: str, whole: str) -> Decimal | None:
     if denominator <= 0 or not 0 <= numerator <= denominator:
         return None
     return (numerator / denominator).quantize(RATE)
+
+
+BUNDLED_ACS = Path(__file__).parent / "data" / "acs5-2024-tracts.csv.gz"
+
+
+@functools.cache
+def default_acs() -> AcsTable | None:
+    """The bundled whole-US table, or None until the lead's file is installed."""
+    try:
+        return load_acs(BUNDLED_ACS)
+    except FileNotFoundError:
+        return None
 
 
 def load_acs(path: Path) -> AcsTable:
