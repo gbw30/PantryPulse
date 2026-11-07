@@ -155,9 +155,13 @@ def full_effect(s, transfers, t):
     return sender, receiver, expired
 
 
-def saturated(s, transfers, kind):
-    """The scenario with one kind of shared limit (or all) set exactly to the plan's own load, so
-    the plan still fits and one more unit has to break it."""
+def saturated(s, transfers, kind, seed=None):
+    """The scenario with one kind of shared limit (or all) set to the plan's own load, so the plan
+    still fits. Exact (no seed): one more unit has to break it. With a seed, every limit gets
+    0-3 handling units of spare (half of them none), and each storage limit is drawn from its
+    location's plan or no-transfer stock, never below what the plan needs, so some days sit
+    below the no-transfer stock, where the verifier allows max(limit, no-transfer stock)."""
+    import random
     from collections import defaultdict
 
     from app.schemas.v1_planning import CapacityV3
@@ -165,6 +169,11 @@ def saturated(s, transfers, kind):
 
     report = verify_plan(s, transfers)
     assert report.passed
+    rng = random.Random(seed)
+
+    def spare():
+        return 0 if seed is None else rng.choice((0, 0, 0, 1, 2, 3))
+
     h = {p.id: p.handling_units_per_unit for p in s.products}
     routes = {(r.from_location_id, r.to_location_id): r for r in s.routes}
     route, dispatch, receiving, stock, arriving = (defaultdict(int) for _ in range(5))
@@ -176,30 +185,50 @@ def saturated(s, transfers, kind):
         arriving[x.to_location_id, x.arrival_date] += load
     for (loc, _), load in arriving.items():
         receiving[loc] = max(receiving[loc], load)
-    by_day = defaultdict(int)
-    for d in report.days:
-        by_day[d.location_id, d.day] += d.on_hand * h[d.product_id]
-    for (loc, _), load in by_day.items():
-        stock[loc] = max(stock[loc], load)
+    plan_stock, base_stock = defaultdict(int), defaultdict(int)
+    for rows, into in ((report.days, plan_stock), (project_v3(s).days, base_stock)):
+        for d in rows:
+            into[d.location_id, d.day] += d.on_hand * h[d.product_id]
+    for loc in sorted({loc for loc, _ in plan_stock}):
+        days = sorted(day for at, day in plan_stock if at == loc)
+        if seed is None:
+            stock[loc] = max(plan_stock[loc, day] for day in days)
+            continue
+        needed = max(
+            (plan_stock[loc, d] for d in days if plan_stock[loc, d] > base_stock[loc, d]),
+            default=0,
+        )
+        drawn = rng.choice([v for d in days for v in (plan_stock[loc, d], base_stock[loc, d])])
+        stock[loc] = max(needed, drawn)
+    limits = {
+        name: {k: v + spare() for k, v in sorted(loads.items())}
+        for name, loads in (
+            ("route", route),
+            ("dispatch", dispatch),
+            ("receiving", receiving),
+            ("storage", stock),
+        )
+    }
     every = kind == "all"
     update = {}
     if kind in ("route", "all"):
         update["routes"] = tuple(
-            r.model_copy(update={"capacity_per_batch": route[key]}) if key in route else r
+            r.model_copy(update={"capacity_per_batch": limits["route"][key]}) if key in route else r
             for key, r in routes.items()
         )
     if kind in ("dispatch", "receiving", "storage", "all"):
         update["capacities"] = tuple(
             CapacityV3(
                 location_id=loc.id,
-                dispatch=dispatch.get(loc.id) if kind == "dispatch" or every else None,
-                receiving=receiving.get(loc.id) if kind == "receiving" or every else None,
-                storage=stock.get(loc.id) if kind == "storage" or every else None,
+                **{
+                    field: limits[field].get(loc.id) if kind == field or every else None
+                    for field in ("dispatch", "receiving", "storage")
+                },
             )
             for loc in s.locations
         )
     if kind in ("global", "all"):
-        update["global_handling"] = sum(dispatch.values())
+        update["global_handling"] = sum(dispatch.values()) + spare()
     if kind in ("cost", "all"):
         spent = sum(
             cost_minor(
@@ -209,15 +238,20 @@ def saturated(s, transfers, kind):
             )
             for p in report.packed
         )
-        assert spent.denominator == 1
-        update["cost_budget_minor"] = int(spent)
+        per_unit = cost_minor(s.routes[0], 1, 1)  # every test route has one price
+        assert spent.denominator == per_unit.denominator == 1
+        update["cost_budget_minor"] = int(spent + spare() * per_unit)
     out = ORInputV3.model_validate(s.model_copy(update=update).model_dump())
     assert verify_plan(out, transfers).passed
     return out
 
 
+LIMIT_KINDS = ("route", "dispatch", "receiving", "storage", "global", "cost", "all")
+
+
 @pytest.mark.parametrize(
-    "kind", [None, "route", "dispatch", "receiving", "storage", "global", "cost", "all"]
+    ("kind", "seed"),
+    [(None, None)] + [(k, None) for k in LIMIT_KINDS] + [(k, 1) for k in LIMIT_KINDS],
 )
 @pytest.mark.parametrize(
     ("name", "method"),
@@ -231,9 +265,10 @@ def saturated(s, transfers, kind):
         ("bench-pantry", "CLASSICAL_GP"),
     ],
 )
-def test_actions_equal_the_full_network_replay(name, method, kind):
+def test_actions_equal_the_full_network_replay(name, method, kind, seed):
     """Every action's kind, binding reasons and effect equal a replay of the whole network, also
-    when a shared limit is exactly saturated by the rest of the plan."""
+    when a shared limit is exactly saturated by the plan, has a little spare (seed), or sits
+    below the no-transfer stock (storage, seed)."""
     from app.services.optimization.actions import BINDING
     from tests.optimization.test_scale_v1 import bench_scenario
 
@@ -246,7 +281,7 @@ def test_actions_equal_the_full_network_replay(name, method, kind):
     result = run_method(s, method, "UNITS")
     assert result.verified and result.transfers, result.failure_reason
     if kind is not None:
-        s = saturated(s, result.transfers, kind)
+        s = saturated(s, result.transfers, kind, seed)
     codes = set()
     for a in decision_actions(s, result, comparison_id=COMPARISON).actions:
         t = next(x for x in result.transfers if x.id == a.id)
@@ -264,7 +299,7 @@ def test_actions_equal_the_full_network_replay(name, method, kind):
             effect.expired_delta,
         ) == full_effect(s, result.transfers, t)
         codes |= set(violations)
-    print("CODES", name, method, kind, sorted(codes))
+    print("CODES", name, method, kind, seed, sorted(codes))
 
 
 def test_no_total_effect_field():
