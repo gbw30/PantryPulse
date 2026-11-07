@@ -80,7 +80,8 @@ function ImportContent() {
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
 
   const templates = state.status === "ready" ? state.catalog.templates : [];
-  const busy = run.step === "uploading" || (run.step === "tracking" && (!run.status || !TERMINAL.has(run.status.phase)));
+  // "lost": the accepted import may still commit, so a second submit could save a second copy.
+  const busy = run.step === "uploading" || run.step === "lost" || (run.step === "tracking" && (!run.status || !TERMINAL.has(run.status.phase)));
 
   function chooseFile(name: TemplateName, file: File | null) {
     setFiles((current) => {

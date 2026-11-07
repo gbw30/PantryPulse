@@ -56,6 +56,19 @@ it("retail labels its transfer modes and freezes with editable weights", () => {
   expect(onFreeze).toHaveBeenCalledWith({ transferMode: "HUB_ONLY", retailWeights: { w_exp: 1, w_lost: 2 } });
 });
 
+it("retail weights are whole numbers from 0 to 1000, as the server accepts", () => {
+  setup({ mode: "RETAIL" });
+  fireEvent.click(screen.getByRole("radio", { name: "DC → stores only" }));
+  const freeze = screen.getByRole("button", { name: "Freeze scenario" });
+  for (const bad of ["1.5", "1001"]) {
+    fireEvent.change(screen.getByLabelText("Weight on lost sales"), { target: { value: bad } });
+    expect(screen.getByText("Enter a whole number from 0 to 1000.")).toBeVisible();
+    expect(freeze).toBeDisabled();
+  }
+  fireEvent.change(screen.getByLabelText("Weight on lost sales"), { target: { value: "1000" } });
+  expect(freeze).toBeEnabled();
+});
+
 it("USD option disabled with the unavailable reason", () => {
   const onCompare = vi.fn();
   const retail: Schema["ScenarioV3"] = { ...scenario, payload: { ...scenario.payload, mode: "RETAIL" } };

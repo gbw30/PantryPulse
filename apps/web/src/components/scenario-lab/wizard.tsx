@@ -268,7 +268,8 @@ type SetupProps = {
 };
 
 const TRANSFERS: TransferMode[] = ["HUB_ONLY", "HUB_AND_PANTRY"];
-const weightError = (text: string) => (/^\d+(?:\.\d+)?$/.test(text.trim()) ? null : "Enter a number of 0 or more.");
+// The server's RetailWeights are strict integers 0–1000.
+const weightError = (text: string) => (/^\d{1,4}$/.test(text.trim()) && Number(text) <= 1000 ? null : "Enter a whole number from 0 to 1000.");
 
 export function ComparisonSetup({ mode, busy, scenario, blocked = null, onFreeze, onCompare }: SetupProps) {
   const retail = mode === "RETAIL";
@@ -303,7 +304,7 @@ export function ComparisonSetup({ mode, busy, scenario, blocked = null, onFreeze
             {(["w_exp", "w_lost"] as const).map((key) => (
               <div key={key} className="grid gap-1">
                 <Label htmlFor={`v1-${key}`}>{key === "w_exp" ? "Weight on expired units" : "Weight on lost sales"}</Label>
-                <Input id={`v1-${key}`} type="number" min={0} step="any" className="h-9 w-28" value={weights[key]} disabled={busy}
+                <Input id={`v1-${key}`} type="number" min={0} max={1000} step={1} className="h-9 w-28" value={weights[key]} disabled={busy}
                   aria-invalid={weightErrors[key] ? true : undefined} aria-describedby={weightErrors[key] ? `v1-${key}-error` : undefined}
                   onChange={(e) => setWeights((w) => ({ ...w, [key]: e.target.value }))} />
                 {weightErrors[key] && <p id={`v1-${key}-error`} className="text-xs text-pp-danger">{weightErrors[key]}</p>}

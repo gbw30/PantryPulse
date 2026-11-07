@@ -17,7 +17,8 @@ function checkPath(path: string) {
   if (path.split("?")[0].split("/").some((segment) => DOT_SEGMENT.test(segment))) throw new ApiError("INVALID_PATH", 0);
 }
 
-async function send<T>(path: string, init: RequestInit): Promise<T> {
+/** `text`: a successful body is returned as text (a plan CSV); errors still arrive as the JSON envelope. */
+async function send<T>(path: string, init: RequestInit, text = false): Promise<T> {
   checkPath(path);
   let response: Response;
   try {
@@ -26,6 +27,7 @@ async function send<T>(path: string, init: RequestInit): Promise<T> {
     if (error instanceof DOMException && error.name === "AbortError") throw error;
     throw new ApiError("NETWORK_ERROR", 0);
   }
+  if (text && response.ok) return (await response.text()) as T;
   let value: unknown = null;
   try { value = await response.json(); } catch { if (response.ok) throw new ApiError("INVALID_RESPONSE", response.status); }
   if (!response.ok) {
@@ -53,19 +55,8 @@ export async function apiWrite<T>(method: "PUT" | "DELETE", path: string, body?:
 
 /** POST JSON and return the text body (a v1 plan CSV); errors still arrive as the JSON error envelope. */
 export async function apiText(path: string, body: unknown): Promise<string> {
-  checkPath(path);
-  let response: Response;
-  try {
-    response = await fetch(`/api/v1/${path}`, { method: "POST", cache: "no-store", credentials: "same-origin", body: JSON.stringify(body),
-      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken(), "Idempotency-Key": crypto.randomUUID() } });
-  } catch {
-    throw new ApiError("NETWORK_ERROR", 0);
-  }
-  if (!response.ok) {
-    const error = (await response.json().catch(() => null) as Partial<Schema["ErrorEnvelope"]> | null)?.error;
-    throw new ApiError(error?.code ?? "REQUEST_FAILED", response.status, (error?.details as Record<string, unknown> | undefined) ?? {});
-  }
-  return response.text();
+  return send<string>(path, { method: "POST", body: JSON.stringify(body),
+    headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken(), "Idempotency-Key": crypto.randomUUID() } }, true);
 }
 
 /** POST a raw body (a v1 import CSV, streamed by the browser) with CSRF and an Idempotency-Key. */

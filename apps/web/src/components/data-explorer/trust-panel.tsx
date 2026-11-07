@@ -64,7 +64,7 @@ export function TrustPanel({ label, basis, score, method, donationForecast }: Pr
       {score && (score.status === "evaluated" ? (
         <div>
           {score.wape_pct !== null
-            ? <p className="font-medium">on your last {score.origins_evaluated === 4 ? "4" : score.origins_evaluated} weeks, this forecast was off by about {about(score.wape_pct)}%</p>
+            ? <p className="font-medium">on your last {score.origins_evaluated} weeks, this forecast was off by about {about(score.wape_pct)}%</p>
             : <p className="font-medium">{NOT_MEASURABLE}</p>}
           {biasText(score.bias_pct) && <p>{biasText(score.bias_pct)}</p>}
           <p className="text-xs text-muted-foreground">Measured on {score.scored_points} past days of your own history. No claim is made about future accuracy.</p>

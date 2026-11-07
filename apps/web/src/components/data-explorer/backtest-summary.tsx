@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SampleBadge, useNetwork } from "@/components/shell/network-switcher";
-import { networkApi } from "@/lib/network-api";
+import { networkApi, type Network } from "@/lib/network-api";
 import { ApiError, type Schema } from "@/lib/planning-api";
 import { TrustPanel } from "./trust-panel";
 
@@ -35,6 +35,11 @@ type Load = { status: "loading" } | { status: "error"; code: string } | { status
 /** The chosen v1 network's forecast trust for one forecast job (from the URL until CR-w1-web-2). */
 export function ForecastTrustSection({ forecastJobId }: { forecastJobId?: string }) {
   const { network } = useNetwork();
+  // A new job starts from "loading": the previous job's accuracy is never shown under it.
+  return network ? <Trust key={forecastJobId ?? ""} network={network} forecastJobId={forecastJobId} /> : null;
+}
+
+function Trust({ network, forecastJobId }: { network: Network; forecastJobId?: string }) {
   const [load, setLoad] = useState<Load>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
@@ -47,7 +52,6 @@ export function ForecastTrustSection({ forecastJobId }: { forecastJobId?: string
     return () => { active = false; };
   }, [forecastJobId, attempt]);
 
-  if (!network) return null;
   return (
     <section aria-labelledby="trust-heading" className="grid gap-3 rounded-xl border border-border bg-card p-4">
       <div className="flex flex-wrap items-center gap-2">

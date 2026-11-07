@@ -27,7 +27,7 @@ export function GoogleFetch({ configured, onPreview, onFetch }: Props) {
     setBusy(true);
     try {
       await onFetch();
-      setMessage("Google lookups queued. Route labels update when the job finishes.");
+      setMessage("Google lookups queued. Reload this page after the job finishes to see the new route labels.");
     } catch (error) {
       setMessage(`Couldn't start the lookups (${failure(error)}).`);
     } finally { setBusy(false); setPreview(null); }

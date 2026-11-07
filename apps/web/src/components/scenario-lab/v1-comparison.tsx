@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { SampleBadge, useNetwork } from "@/components/shell/network-switcher";
+import { Button } from "@/components/ui/button";
 import { modeSummary } from "@/lib/mode-vocabulary";
 import { networkApi, type Network } from "@/lib/network-api";
 import { ApiError, type Schema } from "@/lib/planning-api";
@@ -13,7 +14,9 @@ const TERMINAL = new Set<Schema["AttemptState"]>(["SUCCEEDED", "FAILED", "TIMED_
 const POLL_MS = 1000;
 
 type Shown = { saved: Schema["SavedComparisonV3"]; scenario: Schema["ScenarioV3"]; requested: V1Method[] };
-type Status = { kind: "idle" } | { kind: "busy"; text: string } | { kind: "error"; text: string };
+type Job = { jobId: string; resultUrl: string; scenario: Schema["ScenarioV3"]; requested: V1Method[] };
+// "lost": the accepted job is durable and may still finish, so comparing again would queue a duplicate.
+type Status = { kind: "idle" } | { kind: "busy"; text: string } | { kind: "error"; text: string } | { kind: "lost"; job: Job; code: string };
 
 const failure = (error: unknown) => (error instanceof ApiError ? `${error.message} (${error.code})` : "the request failed");
 
@@ -58,20 +61,32 @@ function Comparison({ network, forecastRunId }: { network: Network; forecastRunI
     setStatus({ kind: "busy", text: "Comparing methods… A queued or running job is not a result." });
     try {
       const accepted = await networkApi.submitComparison(network.id, { scenario_id: scenario.id, methods, measure });
-      let job = await networkApi.job(accepted.job_id);
-      while (!TERMINAL.has(job.state)) {
+      await follow({ jobId: accepted.job_id, resultUrl: accepted.result_url, scenario, requested: methods });
+    } catch (error) {
+      if (alive.current) setStatus({ kind: "error", text: `No comparison result: ${failure(error)}. Nothing is substituted.` });
+    }
+  }
+
+  /** Poll an accepted job to its result. A failed read loses contact with the job; it does not end it. */
+  async function follow(job: Job) {
+    setStatus({ kind: "busy", text: "Comparing methods… A queued or running job is not a result." });
+    try {
+      let { state } = await networkApi.job(job.jobId);
+      while (!TERMINAL.has(state)) {
         await new Promise((resolve) => setTimeout(resolve, POLL_MS));
         if (!alive.current) return;
-        job = await networkApi.job(accepted.job_id);
+        ({ state } = await networkApi.job(job.jobId));
       }
-      if (job.state !== "SUCCEEDED") throw new Error(`comparison ${job.state.replaceAll("_", " ").toLowerCase()}`);
-      const saved = await networkApi.comparisonAt(accepted.result_url);
+      if (state !== "SUCCEEDED") {
+        if (alive.current) setStatus({ kind: "error", text: `No comparison result: comparison ${state.replaceAll("_", " ").toLowerCase()}. Nothing is substituted.` });
+        return;
+      }
+      const saved = await networkApi.comparisonAt(job.resultUrl);
       if (!alive.current) return;
-      setShown({ saved, scenario, requested: methods });
+      setShown({ saved, scenario: job.scenario, requested: job.requested });
       setStatus({ kind: "idle" });
     } catch (error) {
-      const text = error instanceof ApiError ? failure(error) : error instanceof Error ? error.message : "the request failed";
-      if (alive.current) setStatus({ kind: "error", text: `No comparison result: ${text}. Nothing is substituted.` });
+      if (alive.current) setStatus({ kind: "lost", job, code: error instanceof ApiError ? error.code : "REQUEST_FAILED" });
     }
   }
 
@@ -85,13 +100,19 @@ function Comparison({ network, forecastRunId }: { network: Network; forecastRunI
         <p className="text-xs text-muted-foreground">{modeSummary(network.mode)}. All methods share one frozen scenario and one feasible region.</p>
       </div>
       <div className="grid min-w-0 gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]">
-        <ComparisonSetup mode={network.mode} busy={status.kind === "busy"} scenario={scenario} blocked={blocked}
+        <ComparisonSetup mode={network.mode} busy={status.kind === "busy" || status.kind === "lost"} scenario={scenario} blocked={blocked}
           onFreeze={(options) => void freeze(options)} onCompare={(measure) => void compare(measure)} />
         <div className="grid min-w-0 content-start gap-3">
           {status.kind === "busy" && <p role="status" className="text-sm text-muted-foreground">{status.text}</p>}
           {status.kind === "error" && <p role="alert" className="text-sm">{status.text}</p>}
+          {status.kind === "lost" && (
+            <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-pp-warning bg-card px-4 py-3 text-sm">
+              Lost contact with the comparison job ({status.code.replaceAll("_", " ").toLowerCase()}). It may still finish; check again before comparing again.
+              <Button variant="outline" size="sm" onClick={() => { const { job } = status; void follow(job); }}>Check again</Button>
+            </div>
+          )}
           {shown ? <MethodComparisonResults comparison={shown.saved} scenario={shown.scenario} requested={shown.requested} />
-            : status.kind !== "busy" && <p className="text-sm text-muted-foreground">No comparison yet. Freeze a scenario, then compare methods.</p>}
+            : status.kind !== "busy" && status.kind !== "lost" && <p className="text-sm text-muted-foreground">No comparison yet. Freeze a scenario, then compare methods.</p>}
         </div>
       </div>
     </section>

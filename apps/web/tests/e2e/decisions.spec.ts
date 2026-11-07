@@ -99,6 +99,15 @@ test("@V1-A16 a method without a verified plan shows no actions and no export", 
   await expect(section.getByRole("button", { name: /Export CSV/ })).toHaveCount(0);
 });
 
+test("@V1-A16 a comparison not found in the chosen network says to choose its network", async ({ page }) => {
+  // Requests are scoped to the sidebar network, so another network's comparison comes back 404.
+  await mockV1(page, { "GET networks": { body: { networks: [network] } } });
+  await page.goto(`/decisions?comparison_id=${saved.id}&method=${METHOD}`);
+  const section = page.getByRole("region", { name: `Suggested actions · ${network.name}` });
+  await expect(section.getByRole("alert")).toHaveText(
+    `Comparison not found in ${network.name}. If it belongs to another network, choose that network in the sidebar.`);
+});
+
 test("@V1-A16 ids that are not UUIDs are never sent to the API", async ({ page }) => {
   const calls = await mockV1(page, { "GET networks": { body: { networks: [network] } } });
   await page.goto(`/decisions?comparison_id=..%2F..%2Fsettings&method=${METHOD}`);

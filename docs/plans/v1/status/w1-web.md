@@ -49,7 +49,26 @@ Not fixed:
 - Finding 9: the untagged test title matches the wave-1 plan.
 - `@V1-A13 selecting a row opens the site inspector`: waits for #103 (CR-1/CR-3).
 
-, at Gabriel's request via the orchestrator)
+## PR #104 review (2026-11-07): `/code-review medium 104`, recorded here only, no PR comments
+
+The review read the `apps/web/src` diff at 231c70f and reported 10 unverified findings. Each one was checked against the code before any fix. These were fixed test-first, with each new test run RED first:
+- 1. During the import "lost" state, "Check and import" is disabled, so a retry can't commit a second copy.
+- 2. A failed job read after the comparison was accepted now says "Lost contact with the comparison job… check again before comparing again". Check again resumes polling the same job, and Freeze and Compare are disabled meanwhile. Before, the job id was dropped, and a second Compare queued a duplicate job.
+- 3. The enrichment retry and Google fetch copy promised live updates, but nothing polls. `GET /jobs/{id}` serves only forecast and OR job kinds (forecasts.py:227-233 on v1-local). The copy now says to reload the page after the job finishes.
+- 6. Both Decisions reads are scoped to the sidebar network, so another network's comparison comes back 404. It now says "Comparison not found in X. If it belongs to another network, choose that network in the sidebar."
+- 7. Forecast trust remounts per job id, so a new job starts from loading instead of showing the previous job's accuracy.
+- 8. The server's `RetailWeights` are strict integers from 0 to 1000 (v1_planning.py:189-191). The client accepted `1.5` and `1001`, and now says "Enter a whole number from 0 to 1000."
+
+Cleanups with no behavior change, covered by the existing tests:
+- 5. The CSV link is attached to the document, and the blob URL is kept for 60 s.
+- 9. `apiText` reuses `send`.
+- 10. A redundant ternary in the trust panel is removed.
+
+Not fixed:
+- 4. The unit of an effect stays CR-w1-web-5. v1-local has no scenario read, and Decisions has no ScenarioV3 to take product units from.
+- 8, second half. Both weights 0 is valid on the server but makes the Optimized objective constant. V1-SPEC §6.2 is silent on this, so it is escalation E-1.
+
+## Pause point (2026-11-07, at Gabriel's request via the orchestrator)
 
 **Done:** W1-W01 … W1-W08 committed and pushed. The reviewed candidate is b2f32ec; this commit adds only this file. Partial items, each with a CR or waiting on the v1-local merge (#103):
 - W1-W05: map placement and the site inspector (CR-1/CR-3).
@@ -195,3 +214,6 @@ Not fixed:
 - `TemplateCatalog.json` lists two of the seven templates; `import-upload.spec.ts` clones those two entries to stand in for the other five.
 
 ## Escalations
+
+### E-1: Retail weights both 0 (lead call, not blocking)
+`RetailWeights` accepts `w_exp = 0` and `w_lost = 0` together (v1_planning.py:189-191). Then RETAIL_OPTIMIZED minimizes a constant, so any feasible plan is "optimal". V1-SPEC §6.2 says only that the defaults are 1 and 1 and are editable. The question: should the client (or the server) require at least one weight above 0? Until there is a decision, the client allows it, as the server does.

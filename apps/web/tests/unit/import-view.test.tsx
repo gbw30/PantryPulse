@@ -61,6 +61,8 @@ it("losing the status check after the commit was accepted never claims nothing w
   const lost = await screen.findByRole("alert");
   expect(lost).toHaveTextContent("Lost contact with the import (network error). It may still finish; nothing is known yet about what was saved.");
   expect(lost).not.toHaveTextContent(/Nothing was saved/);
+  // The accepted import may still commit: a second submit could create a second copy.
+  expect(screen.getByRole("button", { name: "Check and import" })).toBeDisabled();
   fireEvent.click(screen.getByRole("button", { name: "Check again" }));
   await screen.findByText(example("ImportStatus").failure!.message);
   expect(status).toHaveBeenCalledTimes(2);

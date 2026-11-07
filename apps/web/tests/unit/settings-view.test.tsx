@@ -1,7 +1,9 @@
 // covers: V1-A10
 import type { ReactNode } from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
+import { EnrichmentStatusPanel } from "@/components/enrichment/enrichment-status";
+import { GoogleFetch } from "@/components/enrichment/google-fetch";
 import { SettingsView } from "@/components/enrichment/settings-view";
 import { networkApi } from "@/lib/network-api";
 import { example } from "./contract-examples";
@@ -21,6 +23,18 @@ beforeEach(() => {
   vi.spyOn(networkApi, "settings").mockResolvedValue(example("LocalSettings"));
   vi.spyOn(networkApi, "enrichment").mockImplementation((id) => (id === first.id ? Promise.resolve({ ...example("EnrichmentStatus"), network_id: first.id }) : never()));
   vi.spyOn(networkApi, "routes").mockImplementation((id) => (id === first.id ? Promise.resolve({ ...example("RouteList"), network_id: first.id }) : never()));
+});
+
+it("queued lookups say how to see the result, since nothing polls the job", async () => {
+  const accepted = example("ForecastAccepted");
+  render(<EnrichmentStatusPanel status={{ ...example("EnrichmentStatus"), state: "done" }} onRetry={async () => accepted} onSaveAttributes={vi.fn()} />);
+  fireEvent.click(screen.getByRole("button", { name: "Retry lookups" }));
+  expect(await screen.findByText(`Lookups queued (job ${accepted.job_id.slice(0, 8)}). Reload this page after they finish to see the results.`)).toBeVisible();
+
+  render(<GoogleFetch configured onPreview={async () => example("GoogleLookupPreview")} onFetch={async () => accepted} />);
+  fireEvent.click(screen.getByRole("button", { name: "Fetch Google road distances" }));
+  fireEvent.click(await screen.findByRole("button", { name: /^Make .* lookups$/ }));
+  expect(await screen.findByText("Google lookups queued. Reload this page after the job finishes to see the new route labels.")).toBeVisible();
 });
 
 it("switching network never shows the previous network's locations or routes under the new name", async () => {

@@ -52,10 +52,16 @@ function Loaded({ network, comparisonId, method }: { network: Network; compariso
     let active = true;
     Promise.all([networkApi.comparison(network.id, comparisonId), networkApi.actions(network.id, comparisonId, method)]).then(
       ([saved, decisions]) => { if (active) setLoad({ status: "ready", saved, decisions }); },
-      (error: unknown) => { if (active) setLoad({ status: "error", text: failure(error) }); },
+      (error: unknown) => {
+        // Both reads are scoped to the sidebar network, so another network's comparison arrives as a 404.
+        const text = error instanceof ApiError && error.status === 404
+          ? `Comparison not found in ${network.name}. If it belongs to another network, choose that network in the sidebar.`
+          : `Suggested actions unavailable: ${failure(error)}.`;
+        if (active) setLoad({ status: "error", text });
+      },
     );
     return () => { active = false; };
-  }, [network.id, comparisonId, method]);
+  }, [network.id, network.name, comparisonId, method]);
 
   const label = V1_METHOD_LABEL[method];
   const ready = load.status === "ready" ? load : null;
@@ -70,8 +76,11 @@ function Loaded({ network, comparisonId, method }: { network: Network; compariso
       const csv = await networkApi.exportPlan(network.id, comparisonId, method, ids);
       const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
       const link = Object.assign(document.createElement("a"), { href: url, download: `pantrypulse-plan-${comparisonId.slice(0, 8)}-${method}.csv` });
+      // In the document for Firefox; the URL lives on long enough for Safari to start reading the blob.
+      document.body.append(link);
       link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 0);
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (error) {
       setExportError(`Export failed: ${failure(error)}.`);
     } finally {
@@ -89,7 +98,7 @@ function Loaded({ network, comparisonId, method }: { network: Network; compariso
         <p className="text-xs text-muted-foreground">{modeSummary(network.mode)} · {label}</p>
       </div>
       {load.status === "loading" && <p role="status" className="text-sm text-muted-foreground">Loading suggested actions…</p>}
-      {load.status === "error" && <p role="alert" className="text-sm">Suggested actions unavailable: {load.text}.</p>}
+      {load.status === "error" && <p role="alert" className="text-sm">{load.text}</p>}
       {ready && ready.saved.network_id !== network.id && (
         <p className="text-sm text-muted-foreground">This comparison belongs to another network. Choose that network in the sidebar.</p>
       )}
