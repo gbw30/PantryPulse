@@ -140,6 +140,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/forecasts/{job_id}/backtest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Backtest */
+        get: operations["get_backtest_api_v1_forecasts__job_id__backtest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -154,6 +171,23 @@ export interface paths {
         get: operations["health_api_v1_health_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Import */
+        post: operations["create_import_api_v1_imports_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -205,6 +239,57 @@ export interface paths {
         put?: never;
         /** Coverage Import */
         post: operations["coverage_import_api_v1_imports_donation_coverage_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/{import_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Import Status */
+        get: operations["import_status_api_v1_imports__import_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/{import_id}/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Commit Import */
+        post: operations["commit_import_api_v1_imports__import_id__commit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/{import_id}/files/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload File */
+        post: operations["upload_file_api_v1_imports__import_id__files__name__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -324,6 +409,261 @@ export interface paths {
         get: operations["legacy_record_api_v1_legacy_planning__kind___record_id__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/networks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Networks */
+        get: operations["list_networks_api_v1_networks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/networks/{network_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Network */
+        get: operations["get_network_api_v1_networks__network_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/networks/{network_id}/comparisons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Comparison */
+        post: operations["submit_comparison_api_v1_networks__network_id__comparisons_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/networks/{network_id}/comparisons/{comparison_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Comparison */
+        get: operations["get_comparison_api_v1_networks__network_id__comparisons__comparison_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/networks/{network_id}/comparisons/{comparison_id}/methods/{method}/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Actions */
+        get: operations["actions_api_v1_networks__network_id__comparisons__comparison_id__methods__method__actions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/networks/{network_id}/comparisons/{comparison_id}/methods/{method}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Export */
+        post: operations["export_api_v1_networks__network_id__comparisons__comparison_id__methods__method__export_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/networks/{network_id}/danger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Danger */
+        get: operations["get_danger_api_v1_networks__network_id__danger_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/networks/{network_id}/enrichment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Enrichment Status */
+        get: operations["enrichment_status_api_v1_networks__network_id__enrichment_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/networks/{network_id}/enrichment/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry Enrichment */
+        post: operations["retry_enrichment_api_v1_networks__network_id__enrichment_retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/networks/{network_id}/forecasts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Forecast */
+        post: operations["submit_forecast_api_v1_networks__network_id__forecasts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/networks/{network_id}/locations/{location_id}/attributes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Attributes */
+        put: operations["set_attributes_api_v1_networks__network_id__locations__location_id__attributes_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/networks/{network_id}/routes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Routes */
+        get: operations["list_routes_api_v1_networks__network_id__routes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/networks/{network_id}/routes/google-fetch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Google Fetch */
+        post: operations["google_fetch_api_v1_networks__network_id__routes_google_fetch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/networks/{network_id}/routes/google-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Google Preview */
+        post: operations["google_preview_api_v1_networks__network_id__routes_google_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/networks/{network_id}/scenarios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Scenario */
+        post: operations["create_scenario_api_v1_networks__network_id__scenarios_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -637,6 +977,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Settings */
+        get: operations["get_settings_api_v1_settings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/google-maps-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Google Key */
+        put: operations["set_google_key_api_v1_settings_google_maps_key_put"];
+        post?: never;
+        /** Delete Google Key */
+        delete: operations["delete_google_key_api_v1_settings_google_maps_key_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/shortages/{forecast_run_id}": {
         parameters: {
             query?: never;
@@ -706,10 +1081,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Template Catalog */
+        get: operations["template_catalog_api_v1_templates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/templates/{name}.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Template Csv */
+        get: operations["template_csv_api_v1_templates__name__csv_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * ActionEffect
+         * @description Remove-one effect of one transfer given the rest of the plan; there is no total.
+         */
+        ActionEffect: {
+            /** Expired Delta */
+            expired_delta: number;
+            /** Product Id */
+            product_id: string;
+            /** Receiver Unmet Delta */
+            receiver_unmet_delta: number;
+            /** Sender Unmet Delta */
+            sender_unmet_delta: number;
+            /** Usd Delta */
+            usd_delta: string | null;
+        };
         /** AdjustedLot */
         AdjustedLot: {
             /** After */
@@ -842,6 +1267,57 @@ export interface components {
             /** Transformation Version */
             transformation_version: string;
         };
+        /** BacktestResult */
+        BacktestResult: {
+            /**
+             * Forecast Job Id
+             * Format: uuid
+             */
+            forecast_job_id: string;
+            /** Ineligible */
+            ineligible: components["schemas"]["IneligibleSeries"][];
+            /**
+             * Network Id
+             * Format: uuid
+             */
+            network_id: string;
+            /** Series */
+            series: components["schemas"]["SeriesBacktest"][];
+        };
+        /**
+         * BacktestScore
+         * @description V5 §7 WAPE and bias on one shared scored set (W3-F02).
+         */
+        BacktestScore: {
+            /** Bias Pct */
+            bias_pct: string | null;
+            /** Origins Evaluated */
+            origins_evaluated: number;
+            /** Scored Points */
+            scored_points: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "evaluated" | "not_evaluated_insufficient_history";
+            /** Wape Pct */
+            wape_pct: string | null;
+        };
+        /** BatchV3 */
+        BatchV3: {
+            /** Expiry Date */
+            expiry_date: string | null;
+            /** Id */
+            id: string;
+            /** Location Id */
+            location_id: string;
+            /** Non Expiring */
+            non_expiring: boolean;
+            /** Product Id */
+            product_id: string;
+            /** Quantity */
+            quantity: number;
+        };
         /** Body_demand_csv_api_v1_imports_demand_csv_post */
         Body_demand_csv_api_v1_imports_demand_csv_post: {
             /** File */
@@ -882,6 +1358,22 @@ export interface components {
             sites: components["schemas"]["SiteCapacity"][];
         };
         /**
+         * CapacityV3
+         * @description Per-day capacities in handling units.
+         *
+         *     None means "capacity not provided — no limit assumed".
+         */
+        CapacityV3: {
+            /** Dispatch */
+            dispatch: number | null;
+            /** Location Id */
+            location_id: string;
+            /** Receiving */
+            receiving: number | null;
+            /** Storage */
+            storage: number | null;
+        };
+        /**
          * CommandResult
          * @description Operation-specific saved details; integer quantities serialize as strings.
          */
@@ -911,6 +1403,21 @@ export interface components {
              */
             search_seconds: number;
         };
+        /** ComparisonRequestV3 */
+        ComparisonRequestV3: {
+            /**
+             * Measure
+             * @enum {string}
+             */
+            measure: "UNITS" | "USD";
+            /** Methods */
+            methods: ("NO_TRANSFERS" | "EQUAL_SHARE" | "MOST_URGENT_FIRST" | "CLASSICAL_GP" | "EGP_PI_INSPIRED" | "SOONEST_EXPIRY_FIRST" | "RETAIL_OPTIMIZED")[];
+            /**
+             * Scenario Id
+             * Format: uuid
+             */
+            scenario_id: string;
+        };
         /** ComparisonResult */
         ComparisonResult: {
             baseline_metrics?: components["schemas"]["Metrics"] | null;
@@ -938,6 +1445,28 @@ export interface components {
             transfer_mode: components["schemas"]["TransferMode"];
             /** Warnings */
             warnings: string[];
+        };
+        /** ComparisonResultV3 */
+        ComparisonResultV3: {
+            /**
+             * Measure
+             * @enum {string}
+             */
+            measure: "UNITS" | "USD";
+            /** Methods */
+            methods: components["schemas"]["MethodResult"][];
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "PANTRY" | "RETAIL";
+            /** Scenario Hash */
+            scenario_hash: string;
+            /**
+             * Scenario Id
+             * Format: uuid
+             */
+            scenario_id: string;
         };
         /** ConfirmedArrival */
         ConfirmedArrival: {
@@ -1021,6 +1550,53 @@ export interface components {
              */
             site_id: string;
         };
+        /** DangerRanking */
+        DangerRanking: {
+            /**
+             * Forecast Run Id
+             * Format: uuid
+             */
+            forecast_run_id: string;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "PANTRY" | "RETAIL";
+            /**
+             * Network Id
+             * Format: uuid
+             */
+            network_id: string;
+            /** Rows */
+            rows: components["schemas"]["DangerRow"][];
+        };
+        /** DangerRow */
+        DangerRow: {
+            /**
+             * Band
+             * @enum {string}
+             */
+            band: "high" | "medium" | "low";
+            /** Driving Product Id */
+            driving_product_id: string;
+            /** Driving Units */
+            driving_units: number;
+            /** First Deficit Date */
+            first_deficit_date: string | null;
+            /** Location Id */
+            location_id: string;
+            /** Rank */
+            rank: number;
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "unmet" | "expiry";
+            /** Score Ratio */
+            score_ratio: string;
+            /** Unit */
+            unit: string;
+        };
         /** DashboardSummary */
         DashboardSummary: {
             /** Inventory */
@@ -1028,6 +1604,42 @@ export interface components {
             latest_forecast: components["schemas"]["LatestForecast"] | null;
             /** Observed At */
             observed_at: string;
+        };
+        /** DecisionAction */
+        DecisionAction: {
+            /** Action Text */
+            action_text: string;
+            effect: components["schemas"]["ActionEffect"];
+            /**
+             * Explanation Kind
+             * @enum {string}
+             */
+            explanation_kind: "proven_binding" | "inferred";
+            /** Id */
+            id: string;
+            /** Why Text */
+            why_text: string;
+        };
+        /** DecisionActions */
+        DecisionActions: {
+            /** Actions */
+            actions: components["schemas"]["DecisionAction"][];
+            /**
+             * Comparison Id
+             * Format: uuid
+             */
+            comparison_id: string;
+            /**
+             * Method
+             * @enum {string}
+             */
+            method: "NO_TRANSFERS" | "EQUAL_SHARE" | "MOST_URGENT_FIRST" | "CLASSICAL_GP" | "EGP_PI_INSPIRED" | "SOONEST_EXPIRY_FIRST" | "RETAIL_OPTIMIZED";
+            /**
+             * Non Additive Label
+             * @default effect of this action given the rest of the plan; effects don't add up across actions
+             * @constant
+             */
+            non_additive_label: "effect of this action given the rest of the plan; effects don't add up across actions";
         };
         /** DemandDay */
         DemandDay: {
@@ -1141,6 +1753,29 @@ export interface components {
             /** Upstream Metadata Json */
             upstream_metadata_json?: string | null;
         };
+        /**
+         * DemandSeriesV3
+         * @description Seven planning days of one location × product forecast, with its actual provenance.
+         */
+        DemandSeriesV3: {
+            /** Actual Provider */
+            actual_provider: string;
+            /**
+             * Basis
+             * @enum {string}
+             */
+            basis: "demand" | "sales";
+            /** Central Literals */
+            central_literals: string[];
+            /** Fallback Reason */
+            fallback_reason: string | null;
+            /** Location Id */
+            location_id: string;
+            /** Product Id */
+            product_id: string;
+            /** Targets */
+            targets: number[];
+        };
         /** Diagnostics */
         Diagnostics: {
             /** Missing Count */
@@ -1153,6 +1788,41 @@ export interface components {
             reference_weekday_count: number;
             /** Trailing Sample Count */
             trailing_sample_count: number;
+        };
+        /** EgpBlocker */
+        EgpBlocker: {
+            /** Location Id */
+            location_id: string;
+            /** Missing */
+            missing: ("poverty_rate" | "snap_rate")[];
+        };
+        /** EnrichmentStatus */
+        EnrichmentStatus: {
+            /**
+             * Dataset Version Id
+             * Format: uuid
+             */
+            dataset_version_id: string;
+            /** Egp Blockers */
+            egp_blockers: components["schemas"]["EgpBlocker"][];
+            /** Job Id */
+            job_id: string | null;
+            /** Last Error */
+            last_error: string | null;
+            /** Locations */
+            locations: components["schemas"]["LocationAttributes"][];
+            /**
+             * Network Id
+             * Format: uuid
+             */
+            network_id: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "not_started" | "running" | "done" | "failed";
+            /** Unmatched */
+            unmatched: components["schemas"]["UnmatchedAddress"][];
         };
         /** ErrorDetail */
         ErrorDetail: {
@@ -1190,6 +1860,11 @@ export interface components {
              * @enum {string}
              */
             kind: "DATED" | "NON_EXPIRING" | "UNKNOWN";
+        };
+        /** ExportRequest */
+        ExportRequest: {
+            /** Action Ids */
+            action_ids: string[];
         };
         /** ForecastAccepted */
         ForecastAccepted: {
@@ -1620,6 +2295,21 @@ export interface components {
             vulnerability: components["schemas"]["Rational"];
             weighted_deficit: components["schemas"]["Rational"];
         };
+        /** GoogleKey */
+        GoogleKey: {
+            /**
+             * Key
+             * Format: password
+             */
+            key: string;
+        };
+        /** GoogleLookupPreview */
+        GoogleLookupPreview: {
+            /** Cached */
+            cached: number;
+            /** Lookups */
+            lookups: number;
+        };
         /** GroupMetric */
         GroupMetric: {
             /** Ap Count */
@@ -1665,6 +2355,154 @@ export interface components {
              * @constant
              */
             status: "ok";
+        };
+        /** ImportAccepted */
+        ImportAccepted: {
+            /**
+             * Import Id
+             * Format: uuid
+             */
+            import_id: string;
+            /**
+             * Job Id
+             * Format: uuid
+             */
+            job_id: string;
+            /** Status Url */
+            status_url: string;
+        };
+        /** ImportCommit */
+        ImportCommit: {
+            /** As Of Date */
+            as_of_date?: string | null;
+        };
+        /**
+         * ImportCreate
+         * @description Either a new network or a re-import (new dataset version) into an existing one.
+         */
+        ImportCreate: {
+            network?: components["schemas"]["NewNetwork"] | null;
+            /** Network Id */
+            network_id?: string | null;
+        };
+        /** ImportCreated */
+        ImportCreated: {
+            /**
+             * Import Id
+             * Format: uuid
+             */
+            import_id: string;
+            /** Network Id */
+            network_id: string | null;
+        };
+        /**
+         * ImportFailure
+         * @description Shown when an import fails: that it failed, why, and what to do instead.
+         */
+        ImportFailure: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "ROW_ERRORS" | "MISSING_FILES" | "OVER_ENVELOPE" | "JOB_FAILED";
+            /** Message */
+            message: string;
+            /** Next Steps */
+            next_steps: string[];
+            /** Reason */
+            reason: string;
+        };
+        /** ImportFile */
+        ImportFile: {
+            /** Bytes */
+            bytes: number;
+            /**
+             * Name
+             * @enum {string}
+             */
+            name: "locations" | "products" | "inventory" | "demand_history" | "routes" | "inbound" | "donation_history";
+            /** Sha256 */
+            sha256: string;
+        };
+        /** ImportProgress */
+        ImportProgress: {
+            /** Done */
+            done: number;
+            /** Total */
+            total: number | null;
+            /**
+             * Unit
+             * @enum {string}
+             */
+            unit: "bytes" | "rows" | "checks";
+        };
+        /** ImportStatus */
+        ImportStatus: {
+            /** As Of Date */
+            as_of_date: string | null;
+            /** Dataset Version Id */
+            dataset_version_id: string | null;
+            /** Error Count */
+            error_count: number;
+            /** Errors */
+            errors: components["schemas"]["RowError"][];
+            /** Errors Truncated */
+            errors_truncated: boolean;
+            failure: components["schemas"]["ImportFailure"] | null;
+            /** Files */
+            files: components["schemas"]["ImportFile"][];
+            /**
+             * Import Id
+             * Format: uuid
+             */
+            import_id: string;
+            /** Job Id */
+            job_id: string | null;
+            /** Network Id */
+            network_id: string | null;
+            /** Outside Horizon Inbound */
+            outside_horizon_inbound: components["schemas"]["OutsideHorizonInbound"][];
+            /**
+             * Phase
+             * @enum {string}
+             */
+            phase: "uploading" | "staging" | "validating" | "committing" | "done" | "failed";
+            progress: components["schemas"]["ImportProgress"] | null;
+        };
+        /**
+         * InboundV3
+         * @description A scheduled delivery inside the horizon; counted once, never also as on-hand stock.
+         */
+        InboundV3: {
+            /**
+             * Arrival Date
+             * Format: date
+             */
+            arrival_date: string;
+            /** Expiry Date */
+            expiry_date: string | null;
+            /** Id */
+            id: string;
+            /** Location Id */
+            location_id: string;
+            /** Non Expiring */
+            non_expiring: boolean;
+            /** Product Id */
+            product_id: string;
+            /** Quantity */
+            quantity: number;
+        };
+        /**
+         * IneligibleSeries
+         * @description Listed, never forecast from zeros (e.g. under 14 days of history, or all blank).
+         */
+        IneligibleSeries: {
+            /** Location Id */
+            location_id: string;
+            /** Product Id */
+            product_id: string;
+            /** Reason */
+            reason: string;
         };
         /** InventoryLot */
         InventoryLot: {
@@ -1817,6 +2655,74 @@ export interface components {
             planning_ready: boolean;
             /** Recorded At */
             recorded_at: string;
+        };
+        /** LocalSettings */
+        LocalSettings: {
+            /** Google Maps Configured */
+            google_maps_configured: boolean;
+        };
+        /** LocationAttributes */
+        LocationAttributes: {
+            /** Fetched At */
+            fetched_at: string | null;
+            /** Location Id */
+            location_id: string;
+            /** Poverty Rate */
+            poverty_rate: string | null;
+            /** Snap Rate */
+            snap_rate: string | null;
+            /** Source */
+            source: string | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "known" | "unknown" | "manual" | "excluded";
+        };
+        /**
+         * LocationAttributesUpdate
+         * @description A manual value for both rates, or an explicit exclusion from EGP.
+         */
+        LocationAttributesUpdate: {
+            /**
+             * Excluded
+             * @default false
+             */
+            excluded: boolean;
+            /** Poverty Rate */
+            poverty_rate?: number | string | null;
+            /** Snap Rate */
+            snap_rate?: number | string | null;
+        };
+        /**
+         * LocationEffect
+         * @description Per location and product, in that product's unit; never summed across products.
+         */
+        LocationEffect: {
+            /** Expired With Plan */
+            expired_with_plan: number;
+            /** Expired Without Plan */
+            expired_without_plan: number;
+            /** Location Id */
+            location_id: string;
+            /** Product Id */
+            product_id: string;
+            /** Unmet With Plan */
+            unmet_with_plan: number;
+            /** Unmet Without Plan */
+            unmet_without_plan: number;
+        };
+        /** LocationV3 */
+        LocationV3: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "hub" | "pantry" | "distribution_center" | "store";
         };
         /** LoginRequest */
         LoginRequest: {
@@ -1973,6 +2879,38 @@ export interface components {
              */
             warnings: string[];
         };
+        /** MethodResult */
+        MethodResult: {
+            /** Effects */
+            effects: components["schemas"]["LocationEffect"][];
+            /** Failure Reason */
+            failure_reason: string | null;
+            /** Labels */
+            labels: string[];
+            /**
+             * Measure
+             * @enum {string}
+             */
+            measure: "UNITS" | "USD";
+            /**
+             * Method
+             * @enum {string}
+             */
+            method: "NO_TRANSFERS" | "EQUAL_SHARE" | "MOST_URGENT_FIRST" | "CLASSICAL_GP" | "EGP_PI_INSPIRED" | "SOONEST_EXPIRY_FIRST" | "RETAIL_OPTIMIZED";
+            /** Native Status */
+            native_status: ("OPTIMAL" | "FEASIBLE" | "INFEASIBLE" | "UNKNOWN" | "MODEL_INVALID") | null;
+            /** Objective */
+            objective: string | null;
+            /** Products */
+            products: components["schemas"]["ProductSolve"][];
+            retail_weights: components["schemas"]["RetailWeights"] | null;
+            /** Transfers */
+            transfers: components["schemas"]["TransferV3"][];
+            /** Usd Unavailable Reason */
+            usd_unavailable_reason: string | null;
+            /** Verified */
+            verified: boolean;
+        };
         /** Metrics */
         Metrics: {
             W: components["schemas"]["Rational"];
@@ -2003,6 +2941,61 @@ export interface components {
                 string,
                 number
             ][];
+        };
+        /** Network */
+        Network: {
+            /** As Of Date */
+            as_of_date: string | null;
+            /** Dataset Version Id */
+            dataset_version_id: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Sample */
+            is_sample: boolean;
+            /** Location Count */
+            location_count: number;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "PANTRY" | "RETAIL";
+            /** Name */
+            name: string;
+            /** Product Count */
+            product_count: number;
+            /** Timezone */
+            timezone: string;
+        };
+        /**
+         * NetworkForecastRequest
+         * @description POST /networks/{id}/forecasts: forecast one dataset version through forecast.v1.
+         */
+        NetworkForecastRequest: {
+            /**
+             * Dataset Version Id
+             * Format: uuid
+             */
+            dataset_version_id: string;
+        };
+        /** NetworkList */
+        NetworkList: {
+            /** Networks */
+            networks: components["schemas"]["Network"][];
+        };
+        /** NewNetwork */
+        NewNetwork: {
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "PANTRY" | "RETAIL";
+            /** Name */
+            name: string;
+            /** Timezone */
+            timezone: string;
         };
         /** ORInputPackage */
         ORInputPackage: {
@@ -2067,6 +3060,86 @@ export interface components {
             source_revision_token: string;
             /** Vulnerability Attributes */
             vulnerability_attributes: components["schemas"]["VulnerabilityAttributes"][];
+        };
+        /** ORInputV3 */
+        ORInputV3: {
+            /** Assumptions */
+            assumptions: string[];
+            /** Batches */
+            batches: components["schemas"]["BatchV3"][];
+            /** Capacities */
+            capacities: components["schemas"]["CapacityV3"][];
+            /** Cost Budget Minor */
+            cost_budget_minor: number | null;
+            /**
+             * Dataset Version Id
+             * Format: uuid
+             */
+            dataset_version_id: string;
+            /** Demand */
+            demand: components["schemas"]["DemandSeriesV3"][];
+            /**
+             * First Planning Date
+             * Format: date
+             */
+            first_planning_date: string;
+            /**
+             * Forecast Run Id
+             * Format: uuid
+             */
+            forecast_run_id: string;
+            /** Global Handling */
+            global_handling: number | null;
+            /**
+             * Horizon Days
+             * @default 7
+             * @constant
+             */
+            horizon_days: 7;
+            /** Inbound */
+            inbound: components["schemas"]["InboundV3"][];
+            /** Inbound File Provided */
+            inbound_file_provided: boolean;
+            /** Locations */
+            locations: components["schemas"]["LocationV3"][];
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "PANTRY" | "RETAIL";
+            /**
+             * Network Id
+             * Format: uuid
+             */
+            network_id: string;
+            /**
+             * Organization Id
+             * Format: uuid
+             */
+            organization_id: string;
+            /** Products */
+            products: components["schemas"]["ProductV3"][];
+            /** Reserves */
+            reserves: components["schemas"]["ReserveV3"][];
+            retail_weights: components["schemas"]["RetailWeights"] | null;
+            /** Routes */
+            routes: components["schemas"]["RouteV3"][];
+            /**
+             * Schema Version
+             * @default or-input-v3
+             * @constant
+             */
+            schema_version: "or-input-v3";
+            /**
+             * Snapshot As Of
+             * Format: date
+             */
+            snapshot_as_of: string;
+            /** Timezone */
+            timezone: string;
+            transfer_mode: components["schemas"]["TransferMode"];
+            /** Vulnerability */
+            vulnerability: components["schemas"]["VulnerabilityV3"][];
         };
         /** ORPolicy */
         ORPolicy: {
@@ -2142,6 +3215,22 @@ export interface components {
             transfer_mode: components["schemas"]["TransferMode"];
             /** Waste References */
             waste_references: components["schemas"]["ProductReference"][];
+        };
+        /** OutsideHorizonInbound */
+        OutsideHorizonInbound: {
+            /**
+             * Arrival Date
+             * Format: date
+             */
+            arrival_date: string;
+            /** Line */
+            line: number;
+            /** Location Id */
+            location_id: string;
+            /** Product Id */
+            product_id: string;
+            /** Quantity */
+            quantity: number;
         };
         /** PairSubmit */
         PairSubmit: {
@@ -2259,6 +3348,17 @@ export interface components {
             /** Units */
             units: number;
         };
+        /** ProductSolve */
+        ProductSolve: {
+            /** Gap */
+            gap: string | null;
+            /** Label */
+            label: string | null;
+            /** Native Status */
+            native_status: ("OPTIMAL" | "FEASIBLE" | "INFEASIBLE" | "UNKNOWN" | "MODEL_INVALID") | null;
+            /** Product Id */
+            product_id: string;
+        };
         /** ProductSummary */
         ProductSummary: {
             /** Base Unit */
@@ -2270,6 +3370,19 @@ export interface components {
             id: string;
             /** Name */
             name: string;
+        };
+        /** ProductV3 */
+        ProductV3: {
+            /** Handling Units Per Unit */
+            handling_units_per_unit: number;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Unit */
+            unit: string;
+            /** Unit Value Usd */
+            unit_value_usd: string | null;
         };
         /** ProjectionDay */
         ProjectionDay: {
@@ -2422,6 +3535,15 @@ export interface components {
              */
             site_id: string;
         };
+        /** ReserveV3 */
+        ReserveV3: {
+            /** Floor */
+            floor: number;
+            /** Location Id */
+            location_id: string;
+            /** Product Id */
+            product_id: string;
+        };
         /** ResidualCapacity */
         ResidualCapacity: {
             /** Fixed Used */
@@ -2432,6 +3554,13 @@ export interface components {
             residual: number;
             /** Source Revision */
             source_revision: string;
+        };
+        /** RetailWeights */
+        RetailWeights: {
+            /** W Exp */
+            w_exp: number;
+            /** W Lost */
+            w_lost: number;
         };
         /** ReviewRequest */
         ReviewRequest: {
@@ -2482,6 +3611,43 @@ export interface components {
              */
             product_id: string;
         };
+        /** RouteEntry */
+        RouteEntry: {
+            /** Disabled */
+            disabled: boolean;
+            /** Fetched At */
+            fetched_at: string | null;
+            /** From Location Id */
+            from_location_id: string;
+            /**
+             * Method
+             * @enum {string}
+             */
+            method: "straight_line_estimate" | "google_road" | "routes_csv";
+            /** Override */
+            override: boolean;
+            /** Road Miles */
+            road_miles: string | null;
+            /** To Location Id */
+            to_location_id: string;
+            /** Travel Days */
+            travel_days: number;
+        };
+        /** RouteList */
+        RouteList: {
+            /**
+             * Dataset Version Id
+             * Format: uuid
+             */
+            dataset_version_id: string;
+            /**
+             * Network Id
+             * Format: uuid
+             */
+            network_id: string;
+            /** Routes */
+            routes: components["schemas"]["RouteEntry"][];
+        };
         /** RouteQuantity */
         RouteQuantity: {
             /**
@@ -2496,6 +3662,49 @@ export interface components {
             route_id: string;
             /** Units */
             units: number;
+        };
+        /** RouteV3 */
+        RouteV3: {
+            /** Capacity Per Batch */
+            capacity_per_batch: number | null;
+            /** Cost Per Handling Unit Usd */
+            cost_per_handling_unit_usd: string | null;
+            /** From Location Id */
+            from_location_id: string;
+            /**
+             * Method
+             * @enum {string}
+             */
+            method: "straight_line_estimate" | "google_road" | "routes_csv";
+            /** Road Miles */
+            road_miles: string | null;
+            /** To Location Id */
+            to_location_id: string;
+            /** Travel Days */
+            travel_days: number;
+        };
+        /** RowError */
+        RowError: {
+            /**
+             * Code
+             * @enum {string}
+             */
+            code: "MALFORMED" | "DUPLICATE" | "NEGATIVE" | "FRACTIONAL" | "UNKNOWN_ID" | "MISSING_EXPIRY" | "AFTER_AS_OF_DATE" | "OVER_ENVELOPE";
+            /** Column */
+            column: string | null;
+            /**
+             * File
+             * @enum {string}
+             */
+            file: "locations" | "products" | "inventory" | "demand_history" | "routes" | "inbound" | "donation_history";
+            /** Fix */
+            fix: string;
+            /** Line */
+            line: number;
+            /** Reason */
+            reason: string;
+            /** Value */
+            value: string | null;
         };
         /** SavedComparison */
         SavedComparison: {
@@ -2524,6 +3733,30 @@ export interface components {
             /** Stale */
             stale: boolean;
         };
+        /** SavedComparisonV3 */
+        SavedComparisonV3: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Network Id
+             * Format: uuid
+             */
+            network_id: string;
+            /**
+             * Recorded At
+             * Format: date-time
+             */
+            recorded_at: string;
+            result: components["schemas"]["ComparisonResultV3"];
+            /**
+             * Scenario Id
+             * Format: uuid
+             */
+            scenario_id: string;
+        };
         /** SavedItem */
         SavedItem: {
             /**
@@ -2538,6 +3771,31 @@ export interface components {
              * Format: date-time
              */
             recorded_at: string;
+        };
+        /**
+         * ScenarioOptions
+         * @description POST /networks/{id}/scenarios. Blank capacity = no limit, reserve floors 0, budget off.
+         */
+        ScenarioOptions: {
+            /** Cost Budget Minor */
+            cost_budget_minor?: number | null;
+            /**
+             * Dataset Version Id
+             * Format: uuid
+             */
+            dataset_version_id: string;
+            /**
+             * Forecast Run Id
+             * Format: uuid
+             */
+            forecast_run_id: string;
+            /**
+             * Reserve Floors
+             * @default []
+             */
+            reserve_floors: components["schemas"]["ReserveV3"][];
+            retail_weights?: components["schemas"]["RetailWeights"] | null;
+            transfer_mode: components["schemas"]["TransferMode"];
         };
         /** ScenarioRequest */
         ScenarioRequest: {
@@ -2590,6 +3848,40 @@ export interface components {
             recorded_at: string;
             /** Stale */
             stale: boolean;
+        };
+        /** ScenarioV3 */
+        ScenarioV3: {
+            /** Content Hash */
+            content_hash: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Network Id
+             * Format: uuid
+             */
+            network_id: string;
+            payload: components["schemas"]["ORInputV3"];
+            /**
+             * Recorded At
+             * Format: date-time
+             */
+            recorded_at: string;
+        };
+        /** SeriesBacktest */
+        SeriesBacktest: {
+            /**
+             * Basis
+             * @enum {string}
+             */
+            basis: "demand" | "sales";
+            /** Location Id */
+            location_id: string;
+            /** Product Id */
+            product_id: string;
+            score: components["schemas"]["BacktestScore"];
         };
         /** SeriesKey */
         SeriesKey: {
@@ -2925,6 +4217,49 @@ export interface components {
             /** Version */
             version: string;
         };
+        /** Template */
+        Template: {
+            /** Columns */
+            columns: components["schemas"]["TemplateColumn"][];
+            /** Description */
+            description: string;
+            /** Example Available */
+            example_available: boolean;
+            /**
+             * Name
+             * @enum {string}
+             */
+            name: "locations" | "products" | "inventory" | "demand_history" | "routes" | "inbound" | "donation_history";
+            /** Required */
+            required: boolean;
+        };
+        /** TemplateCatalog */
+        TemplateCatalog: {
+            /** Mode */
+            mode: ("PANTRY" | "RETAIL") | null;
+            /** Notes */
+            notes: string[];
+            /** Templates */
+            templates: components["schemas"]["Template"][];
+        };
+        /** TemplateColumn */
+        TemplateColumn: {
+            /**
+             * Allowed Values
+             * @default []
+             */
+            allowed_values: string[];
+            /** Effect On Plan */
+            effect_on_plan: string;
+            /** Meaning */
+            meaning: string;
+            /** Name */
+            name: string;
+            /** Required */
+            required: boolean;
+            /** Unit */
+            unit: string | null;
+        };
         /** TransferAssignment */
         TransferAssignment: {
             /**
@@ -2978,6 +4313,31 @@ export interface components {
          * @enum {string}
          */
         TransferMode: "HUB_ONLY" | "HUB_AND_PANTRY";
+        /** TransferV3 */
+        TransferV3: {
+            /**
+             * Arrival Date
+             * Format: date
+             */
+            arrival_date: string;
+            /** Batch Ids */
+            batch_ids: string[];
+            /** From Location Id */
+            from_location_id: string;
+            /** Id */
+            id: string;
+            /** Product Id */
+            product_id: string;
+            /** Quantity */
+            quantity: number;
+            /**
+             * Ship Date
+             * Format: date
+             */
+            ship_date: string;
+            /** To Location Id */
+            to_location_id: string;
+        };
         /** TransitDay */
         TransitDay: {
             /**
@@ -2992,6 +4352,15 @@ export interface components {
             product_id: string;
             /** Units */
             units: number;
+        };
+        /** UnmatchedAddress */
+        UnmatchedAddress: {
+            /** Address */
+            address: string;
+            /** Hint */
+            hint: string;
+            /** Location Id */
+            location_id: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -3055,6 +4424,17 @@ export interface components {
              * Format: uuid
              */
             site_id: string;
+        };
+        /** VulnerabilityV3 */
+        VulnerabilityV3: {
+            /** Location Id */
+            location_id: string;
+            /** Poverty Rate */
+            poverty_rate: string;
+            /** Snap Rate */
+            snap_rate: string;
+            /** Source */
+            source: string;
         };
     };
     responses: never;
@@ -3702,6 +5082,100 @@ export interface operations {
             };
         };
     };
+    get_backtest_api_v1_forecasts__job_id__backtest_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BacktestResult"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     health_api_v1_health_get: {
         parameters: {
             query?: never;
@@ -3718,6 +5192,102 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
+    };
+    create_import_api_v1_imports_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportCreated"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };
@@ -3974,6 +5544,299 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    import_status_api_v1_imports__import_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                import_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportStatus"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    commit_import_api_v1_imports__import_id__commit_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "idempotency-key": string;
+            };
+            path: {
+                import_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportCommit"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportAccepted"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    upload_file_api_v1_imports__import_id__files__name__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                import_id: string;
+                name: "locations" | "products" | "inventory" | "demand_history" | "routes" | "inbound" | "donation_history";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "text/csv": unknown;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportFile"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4615,6 +6478,1451 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_networks_api_v1_networks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NetworkList"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_network_api_v1_networks__network_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                network_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Network"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    submit_comparison_api_v1_networks__network_id__comparisons_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "idempotency-key": string;
+            };
+            path: {
+                network_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComparisonRequestV3"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForecastAccepted"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_comparison_api_v1_networks__network_id__comparisons__comparison_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                network_id: string;
+                comparison_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedComparisonV3"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    actions_api_v1_networks__network_id__comparisons__comparison_id__methods__method__actions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                network_id: string;
+                comparison_id: string;
+                method: "NO_TRANSFERS" | "EQUAL_SHARE" | "MOST_URGENT_FIRST" | "CLASSICAL_GP" | "EGP_PI_INSPIRED" | "SOONEST_EXPIRY_FIRST" | "RETAIL_OPTIMIZED";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DecisionActions"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    export_api_v1_networks__network_id__comparisons__comparison_id__methods__method__export_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                network_id: string;
+                comparison_id: string;
+                method: "NO_TRANSFERS" | "EQUAL_SHARE" | "MOST_URGENT_FIRST" | "CLASSICAL_GP" | "EGP_PI_INSPIRED" | "SOONEST_EXPIRY_FIRST" | "RETAIL_OPTIMIZED";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": unknown;
+                    "text/plain": string;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_danger_api_v1_networks__network_id__danger_get: {
+        parameters: {
+            query: {
+                forecast_run_id: string;
+            };
+            header?: never;
+            path: {
+                network_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DangerRanking"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    enrichment_status_api_v1_networks__network_id__enrichment_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                network_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrichmentStatus"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    retry_enrichment_api_v1_networks__network_id__enrichment_retry_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "idempotency-key": string;
+            };
+            path: {
+                network_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForecastAccepted"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    submit_forecast_api_v1_networks__network_id__forecasts_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "idempotency-key": string;
+            };
+            path: {
+                network_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NetworkForecastRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForecastAccepted"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    set_attributes_api_v1_networks__network_id__locations__location_id__attributes_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                network_id: string;
+                location_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LocationAttributesUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocationAttributes"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_routes_api_v1_networks__network_id__routes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                network_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RouteList"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    google_fetch_api_v1_networks__network_id__routes_google_fetch_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "idempotency-key": string;
+            };
+            path: {
+                network_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForecastAccepted"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    google_preview_api_v1_networks__network_id__routes_google_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                network_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoogleLookupPreview"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_scenario_api_v1_networks__network_id__scenarios_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                network_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScenarioOptions"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioV3"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };
@@ -6061,6 +9369,286 @@ export interface operations {
             };
         };
     };
+    get_settings_api_v1_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalSettings"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    set_google_key_api_v1_settings_google_maps_key_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoogleKey"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalSettings"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    delete_google_key_api_v1_settings_google_maps_key_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalSettings"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     shortages_api_v1_shortages__forecast_run_id__get: {
         parameters: {
             query?: never;
@@ -6483,6 +10071,197 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    template_catalog_api_v1_templates_get: {
+        parameters: {
+            query?: {
+                mode?: ("PANTRY" | "RETAIL") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateCatalog"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    template_csv_api_v1_templates__name__csv_get: {
+        parameters: {
+            query?: {
+                kind?: "blank" | "example";
+            };
+            header?: never;
+            path: {
+                name: "locations" | "products" | "inventory" | "demand_history" | "routes" | "inbound" | "donation_history";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": unknown;
+                    "text/plain": string;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

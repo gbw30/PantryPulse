@@ -1,0 +1,57 @@
+{
+  "import_id": "3e5f7091-2b4c-4d6e-9f0a-1b2c3d4e5f60",
+  "network_id": null,
+  "job_id": "4f607182-3c5d-4e7f-8a0b-2c3d4e5f6071",
+  "phase": "failed",
+  "files": [
+    {
+      "name": "locations",
+      "bytes": 4210,
+      "sha256": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+    },
+    {
+      "name": "demand_history",
+      "bytes": 182344,
+      "sha256": "b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2"
+    }
+  ],
+  "progress": {
+    "unit": "checks",
+    "done": 8,
+    "total": 8
+  },
+  "error_count": 2,
+  "errors_truncated": false,
+  "errors": [
+    {
+      "file": "demand_history",
+      "line": 12,
+      "column": "date",
+      "code": "MALFORMED",
+      "reason": "not a valid date: use YYYY-MM-DD",
+      "fix": "Write the date as YYYY-MM-DD, for example 2026-11-04.",
+      "value": "11/04/2026"
+    },
+    {
+      "file": "demand_history",
+      "line": 31,
+      "column": "quantity",
+      "code": "NEGATIVE",
+      "reason": "quantity must be >= 0",
+      "fix": "Enter 0 or a positive whole number, or leave the cell blank if the value is unknown.",
+      "value": "-4"
+    }
+  ],
+  "outside_horizon_inbound": [],
+  "dataset_version_id": null,
+  "as_of_date": null,
+  "failure": {
+    "kind": "ROW_ERRORS",
+    "message": "Import failed: nothing was saved, and the network North County Pantry Network was not created.",
+    "reason": "2 rows in demand_history.csv have errors.",
+    "next_steps": [
+      "Fix each row listed below in demand_history.csv (the line numbers count the header as line 1).",
+      "Start a new import and upload all the files again; the corrected files are checked from the start."
+    ]
+  }
+}

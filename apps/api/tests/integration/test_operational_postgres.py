@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 from app.database import database_engine
 from app.models import operational as m
 from app.models.jobs import metadata as job_metadata
+from app.models.networks import install_metadata
 from app.repositories.operational import append_receipt_revision, tenant_get
 from app.schemas.operational import ReceiptRevision
 
@@ -124,9 +125,11 @@ def test_upgrade_matches_models_and_indexes(storage):
     with engine.connect() as connection:
         inspector = sa.inspect(connection)
         assert set(inspector.get_table_names(schema=schema)) == (
-            set(m.Base.metadata.tables) | set(job_metadata.tables)
+            set(m.Base.metadata.tables) | set(job_metadata.tables) | set(install_metadata.tables)
         ) | {"alembic_version"}
-        all_tables = dict(m.Base.metadata.tables) | dict(job_metadata.tables)
+        all_tables = (
+            dict(m.Base.metadata.tables) | dict(job_metadata.tables) | dict(install_metadata.tables)
+        )
         for name, table in all_tables.items():
             assert {column["name"] for column in inspector.get_columns(name, schema=schema)} == {
                 column.name for column in table.columns
@@ -147,7 +150,9 @@ def test_frozen_migration_matches_current_orm(storage):
                 # search_path reflection calls this infrastructure table schema=None.
                 # Domain-table presence is checked separately above, including version table.
                 "include_object": lambda obj, name, kind, reflected, compare_to: (
-                    not (kind == "table" and name in {"alembic_version", *job_metadata.tables})
+                    not (kind == "table" and name in {
+                        "alembic_version", *job_metadata.tables, *install_metadata.tables,
+                    })
                 ),
             },
         )
@@ -169,10 +174,11 @@ def test_existing_parent_history_upgrades_to_combined_head(storage, prior):
             migrate(connection, schema)
             assert (
                 connection.scalar(sa.text(f'SELECT version_num FROM "{schema}".alembic_version'))
-                == "ppvp_0007"
+                == "ppv1_0010"
             )
             assert set(sa.inspect(connection).get_table_names(schema=schema)) == (
-                set(m.Base.metadata.tables) | set(job_metadata.tables) | {"alembic_version"}
+                set(m.Base.metadata.tables) | set(job_metadata.tables)
+                | set(install_metadata.tables) | {"alembic_version"}
             )
             migrate(connection, schema, "base", downgrade=True)
             assert sa.inspect(connection).get_table_names(schema=schema) == ["alembic_version"]

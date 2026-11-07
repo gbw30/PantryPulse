@@ -1,0 +1,37 @@
+{
+  "forecast_job_id": "4f607182-3c5d-4e7f-8a0b-2c3d4e5f6071",
+  "network_id": "8b2f4c1e-3a5d-4e6f-9a7b-1c2d3e4f5a60",
+  "series": [
+    {
+      "location_id": "P-12",
+      "product_id": "WATER-24",
+      "basis": "demand",
+      "score": {
+        "origins_evaluated": 4,
+        "wape_pct": "18.4",
+        "bias_pct": "-3.1",
+        "status": "evaluated",
+        "scored_points": 28
+      }
+    },
+    {
+      "location_id": "P-07",
+      "product_id": "WATER-24",
+      "basis": "sales",
+      "score": {
+        "origins_evaluated": 0,
+        "wape_pct": null,
+        "bias_pct": null,
+        "status": "not_evaluated_insufficient_history",
+        "scored_points": 0
+      }
+    }
+  ],
+  "ineligible": [
+    {
+      "location_id": "P-07",
+      "product_id": "RICE-5",
+      "reason": "9 days of history; needs 14"
+    }
+  ]
+}

@@ -7,8 +7,8 @@ This protocol governs the v1 waves in [README.md](README.md). Precedence follows
 | Role | Who | Does | Never does |
 |---|---|---|---|
 | **Gabriel** | the user | Approves each wave start, every contract/schema change request, every merge into `v1-local`, scope changes, and outward-facing release actions (tag, image publish, public packages). Opens the lane sessions in multi-session mode. Runs the Windows 11 checks | — |
-| **Orchestrator** | one Claude session in `~/code/PantryPulse`, acting as the CLAUDE.md lead (`lead-integrator` role) | Sets up worktrees, `.env.lane` and test databases. Launches or briefs lanes. Monitors progress through git/gh. Reviews each lane PR with the `verifier` agent and `/code-review`. Runs `/devkit:ship-check` and the full gate on each integration candidate. Prepares merges, decides change requests with Gabriel, keeps `BOARD.md` current and reports to Gabriel. **The only writer to the vault**: it runs `/vault-wrap-up` at the end of every wave | Merge into `v1-local` without Gabriel's OK. Let a lane edit a lead-only file |
-| **Lane agent** | one Claude session (multi-session) or one subagent (in-session) per lane | Builds only its own tasks, test-first, inside its owned paths. Keeps its status file current. Finishes with `/devkit:ship-check` and a PR into `v1-local` | Write to the vault. Edit outside its paths. Change the contract or schema. Merge. Force-push. Start nested workers |
+| **Orchestrator** | one Claude session in `~/code/PantryPulse`, acting as the CLAUDE.md lead (`lead-integrator` role) | Sets up worktrees, `.env.lane` and test databases. Launches or briefs lanes. Monitors progress through git/gh. Reviews each lane PR with the `verifier` agent and `/code-review`. Runs `/devkit:ship-check` and the full gate on each integration candidate. Prepares merges, decides change requests with Gabriel, keeps `BOARD.md` current and reports to Gabriel. Consolidates the lanes' "Gotchas" at the end of every wave | Merge into `v1-local` without Gabriel's OK. Let a lane edit a lead-only file |
+| **Lane agent** | one Claude session (multi-session) or one subagent (in-session) per lane | Builds only its own tasks, test-first, inside its owned paths. Keeps its status file current. Finishes with `/devkit:ship-check` and a PR into `v1-local` | Edit outside its paths. Change the contract or schema. Merge. Force-push. Start nested workers |
 | **Reviewers** | project agents `verifier`, `adversarial-reviewer`, `ux-critic` | Read-only milestone gates. They receive the requirements, the diff and the tests before any builder rationale | Edit application sources. Review their own changes |
 
 **(amends CLAUDE.md "Builders never … push, open PRs")** In multi-session mode, a lane agent may push its own `lane/*` branch and open **one PR into `v1-local`**, after `/devkit:ship-check` and with Gabriel's per-push approval. `git push` is in the `ask` list in `.claude/settings.json`. Lanes still never merge. In-session subagents never push. The orchestrator pushes and opens their PRs.
@@ -50,7 +50,7 @@ Checked against this setup on 2026-11-04 (Claude Code 2.1.318):
 4. **Run:** lanes work their tasks and push their branches at task boundaries. The orchestrator checks each lane at least at every pushed task, and reads the status files and PR checks.
 5. **Lane done:** the lane runs `/devkit:ship-check` and opens its PR. The orchestrator runs the `verifier` on it (requirements + diff + tests first), then `/code-review`. Findings go back to the lane through a PR comment and its status file.
 6. **Integrate:** the next wave file (W2/W4/W6) lists the merge order. Gabriel approves each merge.
-7. **Wave-end report** (§7), then `/vault-wrap-up`. Remove worktrees that are clean and merged. A dirty worktree is removed only with Gabriel's approval (CLAUDE.md).
+7. **Wave-end report** (§7), then consolidate the lanes' "Gotchas". Remove worktrees that are clean and merged. A dirty worktree is removed only with Gabriel's approval (CLAUDE.md).
 
 ## 4. Communication without shared-file conflicts
 
@@ -115,8 +115,9 @@ Evidence follows CLAUDE.md: exact commit, command and result. Skipped, mocked or
 
 - Read CLAUDE.md, `docs/pantrypulse/PROJECT-CONTRACT.md`, `docs/pantrypulse/INVARIANTS.md`, V1-SPEC, [README.md](README.md), your wave file and this protocol before your first task.
 - Open the `.claude/rules/*.md` file that matches each path before you edit it.
+- W0-08 already created every service function, worker handler and router your task fills, as a stub raising `NotImplementedV1("<task id>")` (a 501). "Create `<file>`" for a stub path means replace the stub body and keep the frozen signature. When your route stops answering 501, delete its row from `STUBS` (or from `test_network_scoped_job_routes_return_501`) in `apps/api/tests/test_v1_contract.py`. That is the only edit a lane may make to that lead-owned file.
 - Use the TDD loop for every task: write the failing test, run it and see it fail for the expected reason, write the minimal implementation, run it and see it pass, commit. Use `superpowers:verification-before-completion` before any "done" claim.
 - Tag every new e2e title with `@V1-Axx` (the story-coverage convention adopted in W0-09). Put `# covers: V1-Axx` on the first line of new Python test modules.
 - Run `research-claims-check` before writing any UI copy or doc that mentions the EGP-PI research, fairness, forecasts or impact.
 - Gates before the PR: your task's focused tests, `node scripts/quality/run.cjs quick`, then `node scripts/quality/run.cjs full` with `.env.lane` loaded. Zero skips.
-- **Never write to the vault.** Put durable findings in your status file. The orchestrator moves them to the vault at wave end.
+- Put durable findings in your status file under "Gotchas". The orchestrator consolidates them at wave end.

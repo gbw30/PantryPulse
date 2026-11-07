@@ -4,12 +4,12 @@ User-authorized setup resumed October 25, 2026; [V5 section 15.4](../pantrypulse
 
 ## Configuration
 
-From the repository root, use the opt-in `compose.compute.yaml` overlay with `compose.yaml`. The existing project, PostgreSQL data and loopback ports are retained.
+From the repository root, use the opt-in `compose.compute.yaml` overlay with `compose.dev.yaml`. The existing project, PostgreSQL data and loopback ports are retained.
 
 | Component | CPU ceiling | RAM ceiling | Address/storage |
 |---|---:|---:|---|
 | API | 1 | 1 GiB | `http://127.0.0.1:8000`, process health `/api/v1/health` |
-| Development PostgreSQL 16 | 1 | 1 GiB | `127.0.0.1:55432`; existing `pantrypulse_pgdata` |
+| Development PostgreSQL 16 | 1 | 1 GiB | `127.0.0.1:55432`; `compose.dev.yaml` volume (project `pantrypulse-dev`) |
 | Supervisor | 6 | 8 GiB | No public port; durable queue in `pantrypulse_dev` |
 | Standalone model tools | 6 | 8 GiB | No public port; shared persistent model cache, ignored local outputs |
 | Separate image builder | 2 | 3 GiB | `pantrypulse-compute-build`; existing default builder is unchanged |
@@ -36,8 +36,8 @@ For a fresh checkout, install Docker/Desktop and the locked toolchain as describ
 For a fresh connected local demo, first confirm that no existing API/worker in this project would need replacing. Start only the selected database and use the explicit loader, which creates/migrates a NEW schema and refuses reuse:
 
 ```powershell
-docker compose -f compose.yaml -f compose.compute.yaml up -d --no-recreate --no-build --wait postgres
-docker compose -f compose.yaml -f compose.compute.yaml run --rm --no-deps --env DATABASE_URL_UNPOOLED=postgresql+psycopg://pantrypulse:local_dev_only@postgres:5432/pantrypulse_dev --volume "${PWD}:/repo:ro" --workdir /repo/apps/api worker python scripts/load_optimization_demo.py --schema ppor_demo_local --output /cache/ppor-demo-local.json
+docker compose -f compose.dev.yaml -f compose.compute.yaml up -d --no-recreate --no-build --wait postgres
+docker compose -f compose.dev.yaml -f compose.compute.yaml run --rm --no-deps --env DATABASE_URL_UNPOOLED=postgresql+psycopg://pantrypulse:local_dev_only@postgres:5432/pantrypulse_dev --volume "${PWD}:/repo:ro" --workdir /repo/apps/api worker python scripts/load_optimization_demo.py --schema ppor_demo_local --output /cache/ppor-demo-local.json
 ```
 
 The connection above is the documented local development credential only, not a hosted secret. The complete checkout mount supplies loader fixtures missing from the API-only build context. The output contains fictional demo identities/request inputs, not computed results. Select that schema and organization in private `.env.compute`, configure presenter/origin/proxy settings and the web server environment, then run `./scripts/compute-windows.ps1 Start`. A bare `alembic upgrade head` does not select `PP_DATABASE_SCHEMA`; use explicit migration/loader schema controls and never accidentally migrate public instead of the selected demo.

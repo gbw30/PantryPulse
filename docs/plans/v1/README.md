@@ -195,9 +195,8 @@ All lanes share the existing CI-style PostgreSQL container `pp-ci-postgres` (`12
 | `apps/api/.env.demo` | connected demo settings |
 | `apps/web/.env.local` | proxy origin and token (overridden per lane by `.env.lane`) |
 | `.claude/settings.local.json` | local permission allowances |
-| `.claude/vault-scope.json` | vault scope; lanes still **never write** to the vault |
 
-**Generated per worktree:** `.env.lane` (gitignored by the existing `.env.*` rule). It contains `PP_API_PORT`, `PLAYWRIGHT_PORT`, `PANTRYPULSE_API_ORIGIN=http://127.0.0.1:<API port>`, `PP_WEB_PORT`, `COMPOSE_PROJECT_NAME`, `PP_TEST_DATABASE_URL` and `PP19_TEST_DATABASE_URL`. The URLs are built from the orchestrator's existing test URL with only the database name changed. Lanes load it with `set -a; . ./.env.lane; set +a`. Shell exports take precedence over `.env.local` in Next.js. `.env.lane` **never** holds `PP_PRESENTER_PASSWORD_HASH`: the `$` in the scrypt hash breaks shell loading (vault note "Loading demo-ci-env Output With eval Breaks Presenter Login").
+**Generated per worktree:** `.env.lane` (gitignored by the existing `.env.*` rule). It contains `PP_API_PORT`, `PLAYWRIGHT_PORT`, `PANTRYPULSE_API_ORIGIN=http://127.0.0.1:<API port>`, `PP_WEB_PORT`, `COMPOSE_PROJECT_NAME`, `PP_TEST_DATABASE_URL` and `PP19_TEST_DATABASE_URL`. The URLs are built from the orchestrator's existing test URL with only the database name changed. Lanes load it with `set -a; . ./.env.lane; set +a`. Shell exports take precedence over `.env.local` in Next.js. `.env.lane` **never** holds `PP_PRESENTER_PASSWORD_HASH`: the `$` in the scrypt hash expands during shell loading, so every presenter login returns 401.
 
 **Per-worktree setup:** `npm ci`, `uv sync --frozen --project apps/api`, `npx playwright install chromium`. The Stop hook runs the quick gate inside every lane session, so these must exist.
 
@@ -225,48 +224,52 @@ Lanes code against these names. W0-08 may adjust them before the freeze. If it d
 - `ExplanationKind = proven_binding | inferred`.
 - The existing `TransferMode` (`HUB_ONLY | HUB_AND_PANTRY`) is unchanged.
 
-**HTTP routes** (prefix `/api/v1`). Mutating routes keep presenter session + CSRF, and long work returns 202 with a durable job:
+**HTTP routes** (prefix `/api/v1`). Mutating routes keep presenter session + CSRF, and long work returns 202 with a durable job. v1 forecasts and comparisons live under `/networks/{id}/…` so the v2 routes and models stay byte-identical (A22; Gabriel, 2026-11-06):
 
 | Route | Response schema | Implemented by |
 |---|---|---|
 | `GET /networks`, `GET /networks/{network_id}` | `NetworkList`, `Network` | W1-D05 |
 | `GET /templates`, `GET /templates/{name}.csv?kind=blank\|example` | `TemplateCatalog`, `text/csv` | W1-D03 (blank), W3-P03 (example) |
-| `POST /imports` (streamed multipart; mechanism set by S4) | 202 `ImportAccepted{import_id, job_id}` | W1-D04/D05 |
-| `GET /imports/{import_id}` | `ImportStatus{state, progress{phase, rows_done, rows_total}, errors[RowError{file, line, column, reason}], error_count, outside_horizon_inbound[], dataset_version_id}` | W1-D05 |
+| `POST /imports` (`{network: {name, mode, timezone}}` or `{network_id}`) | 201 `ImportCreated{import_id, network_id}` (`network_id` null for a new network until its import succeeds; atomic import, `ppv1_0010`) | W1-D05 |
+| `POST /imports/{import_id}/files/{name}` (raw `text/csv` body, streamed, 160 MiB cap; [decision](decisions/W0-08-scenario-and-import.md)) | `ImportFile{name, bytes, sha256}` | W1-D04 |
+| `POST /imports/{import_id}/commit` (`{as_of_date?}`) | 202 `ImportAccepted{import_id, job_id}` | W1-D05 |
+| `GET /imports/{import_id}` | `ImportStatus{phase, files[], progress{unit, done, total}, errors[RowError{file, line, column, code, reason, fix}], error_count, errors_truncated, outside_horizon_inbound[], dataset_version_id, failure{kind, message, reason, next_steps[]}}` | W1-D05 |
 | `GET /networks/{id}/enrichment`, `POST /networks/{id}/enrichment/retry` | `EnrichmentStatus`, 202 | W1-D06 |
 | `PUT /networks/{id}/locations/{location_id}/attributes` | `LocationAttributes` (manual override or `excluded=true`) | W1-D06 |
 | `GET /networks/{id}/routes` | `RouteList` (each route carries `method`, `fetched_at`) | W1-D07/D08 |
 | `GET /settings`, `PUT /settings/google-maps-key`, `DELETE /settings/google-maps-key` | `LocalSettings{google_maps_configured: bool}`; the key is write-only | W1-D08 |
 | `POST /networks/{id}/routes/google-preview`, `POST /networks/{id}/routes/google-fetch` | `GoogleLookupPreview{lookups}`, 202 | W1-D08 |
-| `POST /networks/{id}/scenarios` | existing `ScenarioResult` | W1-D09 |
-| `POST /forecasts` (existing, gains `network_id`), `GET /forecasts/{job_id}/backtest` | `ForecastAccepted`, `BacktestResult` | W3-F02/F03 |
+| `POST /networks/{id}/scenarios` | `ScenarioV3` | W1-D09 |
+| `POST /networks/{id}/forecasts`, `GET /forecasts/{job_id}/backtest` | `ForecastAccepted`, `BacktestResult` | W3-F02/F03 |
 | `GET /networks/{id}/danger?forecast_run_id=` | `DangerRanking` | W3-F05 |
-| `POST /comparisons` (`methods[]`, `measure`), `GET /comparisons/{id}` | `ForecastAccepted`, `SavedComparison` (per-method result, verification, `usd_unavailable_reason`) | W1-S04 |
-| `GET /comparisons/{id}/methods/{method}/actions` | `DecisionActions{actions[DecisionAction], non_additive_label}` | W1-S06 |
-| `POST /comparisons/{id}/methods/{method}/export` (`action_ids[]`) | `text/csv` | W1-S07 |
+| `POST /networks/{id}/comparisons` (`scenario_id`, `methods[]`, `measure`), `GET /networks/{id}/comparisons/{comparison_id}` | `ForecastAccepted`, `SavedComparisonV3` (per-method result, verification, `usd_unavailable_reason`) | W1-S04 |
+| `GET /networks/{id}/comparisons/{comparison_id}/methods/{method}/actions` | `DecisionActions{actions[DecisionAction], non_additive_label}` | W1-S06 |
+| `POST /networks/{id}/comparisons/{comparison_id}/methods/{method}/export` (`action_ids[]`) | `text/csv` | W1-S07 |
 
-**Job kinds** (registered in `workers/production.py` by W0-08, with handlers in lane-owned modules): `import.v1` (`app.workers.imports`), `enrichment.v1` and `routes-google.v1` (`app.workers.enrichment`), `forecast.v1` (existing; extended for networks and the backtest, `app.workers.forecasting`), `or-comparison.v3` (`app.workers.optimization`). The existing `or-comparison.v2` stays (A22).
+**Job kinds** (registered in `workers/production.py` by W0-08, with handlers in lane-owned modules; until a lane builds one, its stub handler from `app/workers/v1_stub.py` answers admission with 501 and is never advertised for execution. `import.v1` uses the new `IMPORT` operation kind and `enrichment.v1`/`routes-google.v1` the new `ENRICHMENT` kind, each with a 300 s ceiling; migration `ppv1_0009`): `import.v1` (`app.workers.imports`), `enrichment.v1` and `routes-google.v1` (`app.workers.enrichment`), `forecast.v1` (existing; extended for networks and the backtest, `app.workers.forecasting`), `or-comparison.v3` (`app.workers.optimization`). The existing `or-comparison.v2` stays (A22).
 
-**Service functions the routers call** (lane-owned; W0-08 creates each as a stub that raises `NotImplementedV1(task_id)`, which maps to a 501 envelope `{"error": {"code": "not_implemented", "task": "<task id>"}}`):
+**Service functions the routers call** (lane-owned; W0-08 creates each as a stub that raises `NotImplementedV1(task_id)`, `app.services.v1_errors.NotImplementedV1`, which maps to a 501 in the existing error envelope `{"error": {"code": "NOT_IMPLEMENTED", "message": "...", "details": {"task": "<task id>"}}, "request_id": "..."}`; Gabriel, 2026-11-06):
 
 | Module | Signature | Task |
 |---|---|---|
 | `app.services.imports.validate` | `validate_files(files: Mapping[TemplateName, BinaryIO], settings: ImportSettings, envelope: Envelope = V1_ENVELOPE) -> ValidationReport` | W1-D02 |
 | `app.services.imports.templates` | `template_catalog(mode: NetworkMode \| None) -> TemplateCatalog`; `template_csv(name: TemplateName, kind: Literal["blank", "example"]) -> str` | W1-D03, W3-P03 |
-| `app.services.imports.api` | `start_import(session, scope, upload: ImportUpload) -> ImportAccepted`; `import_status(session, scope, import_id: UUID) -> ImportStatus` | W1-D04/D05 |
-| `app.services.networks.api` | `list_networks(session, scope) -> NetworkList`; `get_network(session, scope, network_id) -> Network` | W1-D05 |
-| `app.services.enrichment.api` | `enrichment_status(...) -> EnrichmentStatus`; `retry_enrichment(...) -> ForecastAccepted`; `set_location_attributes(...) -> LocationAttributes`; `egp_blockers(session, network_id, dataset_version_id) -> list[EgpBlocker]` | W1-D06 |
+| `app.services.imports.api` | `create_import(rt, scope, request: ImportCreate) -> ImportCreated`; `store_import_file(rt, scope, import_id: UUID, name: TemplateName, chunks: AsyncIterator[bytes]) -> ImportFile`; `commit_import(rt, scope, import_id: UUID, request: ImportCommit, idempotency_key: str) -> ImportAccepted`; `import_status(rt, scope, import_id: UUID) -> ImportStatus` | W1-D04/D05 |
+| `app.services.networks.api` | `list_networks(rt, scope) -> NetworkList`; `get_network(rt, scope, network_id) -> Network` (W1-D05); `create_scenario(rt, scope, network_id, options: ScenarioOptions) -> ScenarioV3` (W1-D09) | W1-D05, W1-D09 |
+| `app.services.enrichment.api` | `enrichment_status(...) -> EnrichmentStatus`; `retry_enrichment(rt, scope, network_id, idempotency_key) -> ForecastAccepted`; `set_location_attributes(...) -> LocationAttributes`; `egp_blockers(rt, network_id, dataset_version_id) -> list[EgpBlocker]` | W1-D06 |
 | `app.services.enrichment.distance` | `candidate_routes(locations: Sequence[GeoLocation], k: int = 10, radius_miles: int = 150, road_factor: Decimal = Decimal("1.3"), mph: int = 45) -> list[CandidateRoute]`; `travel_days(road_miles: Decimal, mph: int = 45) -> int` | W1-D07 |
 | `app.services.enrichment.google` | `preview_lookups(session, network_id) -> GoogleLookupPreview`; `fetch_routes(session, network_id) -> ForecastAccepted` | W1-D08 |
-| `app.services.enrichment.settings` | `get_settings(session) -> LocalSettings`; `set_google_key(session, key: SecretStr) -> LocalSettings`; `delete_google_key(session) -> LocalSettings` | W1-D08 |
-| `app.services.enrichment.api` (routes) | `list_routes(session, scope, network_id) -> RouteList` | W1-D07 |
-| `app.services.networks.scenario` | `build_scenario(session, scope, network_id, dataset_version_id, forecast_run_id, options: ScenarioOptions) -> ORScenarioPayload` | W1-D09 |
-| `app.services.optimization.methods` | `run_method(scenario: FrozenScenario, method: AllocationMethod, measure: Measure) -> MethodResult` | W1-S02/S03 |
-| `app.services.optimization.compare` | `compare_methods(scenario: FrozenScenario, methods: Sequence[AllocationMethod], measure: Measure) -> ComparisonResult` | W1-S04 |
-| `app.services.optimization.actions` | `decision_actions(scenario: FrozenScenario, result: MethodResult) -> DecisionActions`; `remove_one_effect(scenario, result, transfer_id) -> ActionEffect` | W1-S06 |
+| `app.services.enrichment.settings` | `get_settings(rt) -> LocalSettings`; `set_google_key(rt, key: SecretStr) -> LocalSettings`; `delete_google_key(rt) -> LocalSettings` | W1-D08 |
+| `app.services.enrichment.api` (routes) | `list_routes(rt, scope, network_id) -> RouteList` | W1-D07 |
+| `app.services.networks.scenario` | `build_scenario(rt, scope, network_id, dataset_version_id, forecast_run_id, options: ScenarioOptions) -> ORInputV3` (`or-input-v3`; v2 untouched, [decision](decisions/W0-08-scenario-and-import.md)) | W1-D09 |
+| `app.services.optimization.methods` | `run_method(scenario: ORInputV3, method: AllocationMethod, measure: Measure) -> MethodResult` | W1-S02/S03 |
+| `app.services.optimization.compare` | `compare_methods(scenario: ORInputV3, methods: Sequence[AllocationMethod], measure: Measure) -> ComparisonResultV3` | W1-S04 |
+| `app.services.optimization.actions` | `decision_actions(scenario: ORInputV3, result: MethodResult) -> DecisionActions`; `remove_one_effect(scenario, result, transfer_id) -> ActionEffect` | W1-S06 |
 | `app.services.optimization.export` | `export_plan_csv(comparison: SavedComparison, method: AllocationMethod, action_ids: Sequence[str]) -> str` | W1-S07 |
-| `app.services.forecasting.backtest` | `backtest_series(history: Sequence[Decimal \| None], fit: Callable, origins: int = 4, horizon: int = 7) -> BacktestScore` (W3-F02); `get_backtest(session, scope, job_id) -> BacktestResult` (W3-F03) | W3-F02/F03 |
-| `app.services.danger.ranking` | `danger_ranking(projection: NetworkProjection, mode: NetworkMode) -> list[DangerRow]`; `get_danger(session, scope, network_id, forecast_run_id) -> DangerRanking` | W3-F05 |
+| `app.services.optimization.api_v3` | `submit_comparison(rt, scope, network_id, request: ComparisonRequestV3, idempotency_key) -> ForecastAccepted`; `get_comparison(rt, scope, network_id, comparison_id) -> SavedComparisonV3` (W1-S04); `comparison_actions(rt, scope, network_id, comparison_id, method) -> DecisionActions` (W1-S06); `export_comparison(rt, scope, network_id, comparison_id, method, action_ids) -> str` (W1-S07) | W1-S04/S06/S07 |
+| `app.services.forecasting.network` | `submit_network_forecast(rt, scope, network_id, request: NetworkForecastRequest, idempotency_key) -> ForecastAccepted` | W3-F03 |
+| `app.services.forecasting.backtest` | `backtest_series(history: Sequence[Decimal \| None], fit: Callable, origins: int = 4, horizon: int = 7) -> BacktestScore` (W3-F02); `get_backtest(rt, scope, job_id) -> BacktestResult` (W3-F03) | W3-F02/F03 |
+| `app.services.danger.ranking` | `danger_ranking(projection: NetworkProjection, mode: NetworkMode) -> list[DangerRow]`; `get_danger(rt, scope, network_id, forecast_run_id) -> DangerRanking` | W3-F05 |
 | `app.services.samples` | `ensure_samples(session, today: date) -> SeedReport` | W3-P04 (W0-05 stub returns `SeedReport(loaded=())`) |
 
 **Contract examples:** one JSON example per response schema in `packages/contracts/examples/v1/<SchemaName>.json`, validated against the Pydantic model by `contracts:check`. `w1-web` builds its Playwright mocks from these files and never from hand-typed payloads.

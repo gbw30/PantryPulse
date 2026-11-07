@@ -6,7 +6,7 @@ Updated October 25, 2026. [Current status](docs/pantrypulse/CURRENT-STATUS.md) a
 
 | Path | Runtime/configuration | Purpose |
 |---|---|---|
-| Fully local | `compose.yaml` plus opt-in `compose.compute.yaml`; private `apps/api/.env.compute` | Laptop API/worker and local PostgreSQL; persistent model cache |
+| Fully local | `compose.dev.yaml` plus opt-in `compose.compute.yaml`; private `apps/api/.env.compute` | Laptop API/worker and local PostgreSQL; persistent model cache |
 | Laptop with Neon | `compose.forecast.yaml`; explicit private `apps/api/.env` | Existing baseline/OR worker and API using a deliberately selected isolated hosted schema |
 | Process-only Neon probe | `compose.demo.yaml`; private `apps/api/.env.demo` | API/DB reachability; this file alone does not start a worker or establish a connected demo |
 | Fly alternative | `apps/api/fly.toml`, `Dockerfile.compute`, private Fly secrets | Prepared API/worker hosting; no Fly resources or deployment were created by local setup |

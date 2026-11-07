@@ -12,11 +12,13 @@ import threading
 import time
 from collections import defaultdict, deque
 from datetime import timedelta
+from urllib.parse import urlsplit
 from uuid import UUID, uuid4, uuid5
 
 import sqlalchemy as sa
 
 from app.models.forecasts import PresenterSession
+from app.models.networks import local_logins
 from app.repositories.jobs import TrustedScope
 
 SESSION_COOKIE = "pp_presenter"
@@ -33,11 +35,25 @@ def token_hash(value):
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
+def trusted_proxy_token():
+    """The proxy secret from the environment, or from the file the local seed generated."""
+    token = os.environ.get("PP_TRUSTED_PROXY_TOKEN", "")
+    path = os.environ.get("PP_TRUSTED_PROXY_TOKEN_FILE", "")
+    if token or not path:
+        return token
+    try:
+        with open(path, encoding="utf-8") as handle:
+            return handle.read().strip()
+    except OSError:
+        return ""
+
+
 def require_origin(request):
+    """Check the browser origin (or the proxy-forwarded one) against the allowlist; return it."""
     origin = request.headers.get("origin")
     forwarded = request.headers.get("x-forwarded-origin")
     if forwarded is not None:
-        secret = os.environ.get("PP_TRUSTED_PROXY_TOKEN", "")
+        secret = trusted_proxy_token()
         supplied = request.headers.get("x-pp-proxy-token", "")
         if not secret or not hmac.compare_digest(secret, supplied):
             raise AccessError("PROXY_FORBIDDEN", 403)
@@ -49,6 +65,13 @@ def require_origin(request):
     }
     if origin is None or origin.rstrip("/") not in allowed:
         raise AccessError("ORIGIN_FORBIDDEN", 403)
+    return origin
+
+
+def hash_password(password):
+    salt = secrets.token_bytes(16)
+    digest = hashlib.scrypt(password.encode(), salt=salt, n=16384, r=8, p=1, dklen=64)
+    return f"scrypt$16384$8$1${salt.hex()}${digest.hex()}"
 
 
 def verify_password(password, encoded):
@@ -84,14 +107,21 @@ class LoginLimiter:
 
 
 def login(request, response, runtime, credentials):
-    require_origin(request)
+    browser_host = urlsplit(require_origin(request)).hostname
     request.app.state.login_limiter.consume(request.client.host if request.client else "unknown")
     username = os.environ.get("PP_PRESENTER_USERNAME", "")
     password_hash = os.environ.get("PP_PRESENTER_PASSWORD_HASH", "")
     organization = os.environ.get("PP_PRESENTER_ORGANIZATION_ID", "")
     secure = os.environ.get("PP_COOKIE_SECURE", "true").lower() != "false"
-    if not secure and request.url.hostname not in {"localhost", "127.0.0.1", "testserver"}:
+    # Judge the verified browser origin: behind the proxy the API's own host is internal.
+    if not secure and browser_host not in {"localhost", "127.0.0.1", "testserver"}:
         raise AccessError("INSECURE_COOKIE_CONFIGURATION", 503)
+    if username and organization and not password_hash:
+        # Local install: the seed stored the generated login's hash, never the password.
+        with runtime.engine.connect() as conn:
+            password_hash = conn.scalar(
+                sa.select(local_logins.c.password_hash).where(local_logins.c.username == username)
+            ) or ""
     if not username or not password_hash or not organization:
         raise AccessError("PRESENTER_UNAVAILABLE", 503)
     valid_password = verify_password(credentials.password, password_hash)

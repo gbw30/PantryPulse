@@ -1,5 +1,7 @@
 # Windows development
 
+> **v1 authority (2026-11-06):** [V1-SPEC](V1-SPEC.md) and the [v1 plan](../plans/v1/README.md) override this document where they conflict; [SPEC-V5](SPEC-V5.md) governs what V1-SPEC leaves open. This repository root is the only Git repo (CLAUDE.md); the v1 install is `docker compose up` on Windows 11 or Linux.
+
 For first-time setup, use the complete [installation guide](../../INSTALLATION.md), including manual tool installation and optional dependency decisions. This document is a command reference.
 
 Run from the OUTER Git root, not PantryPulse/. PowerShell 5.1/7 supported.
@@ -32,7 +34,7 @@ On this host Windows Application Control rejected a pandas DLL imported by OR-To
 ```powershell
 npm run test:api:docker
 npm run check:runtime:docker
-docker compose stop api
+docker compose -f compose.dev.yaml stop api
 ```
 
 The container runtime smoke runs a trivial CP-SAT model and a read-only database query; it is not allocation validation. The API health itself remains process-only. Container DATABASE_URL uses postgres:5432; native example uses 127.0.0.1:55432. Neither changes production data.
@@ -52,10 +54,10 @@ Tracked API example: `apps/api/.env.example`. Copy it to `apps/api/.env` only wh
 ## Database
 
 ```powershell
-docker compose up -d --wait postgres
-docker compose exec -T postgres pg_isready -U pantrypulse -d pantrypulse_dev
-docker compose exec -T postgres psql -U pantrypulse -d pantrypulse_test -c "SELECT current_database();"
-docker compose stop postgres
+docker compose -f compose.dev.yaml up -d --wait postgres
+docker compose -f compose.dev.yaml exec -T postgres pg_isready -U pantrypulse -d pantrypulse_dev
+docker compose -f compose.dev.yaml exec -T postgres psql -U pantrypulse -d pantrypulse_test -c "SELECT current_database();"
+docker compose -f compose.dev.yaml stop postgres
 ```
 
 Local URL: postgresql+psycopg://pantrypulse:local_dev_only@127.0.0.1:55432/pantrypulse_dev. Tests use pantrypulse_test. These isolated local credentials come from existing Compose config and must never be reused for hosting. Init SQL runs only on a fresh named volume. Investigate existing volumes without deleting them.

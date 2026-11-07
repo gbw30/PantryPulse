@@ -1,0 +1,41 @@
+{
+  "network_id": "8b2f4c1e-3a5d-4e6f-9a7b-1c2d3e4f5a60",
+  "dataset_version_id": "2d4e6f80-1a3b-4c5d-8e9f-0a1b2c3d4e5f",
+  "state": "done",
+  "job_id": "4f607182-3c5d-4e7f-8a0b-2c3d4e5f6071",
+  "last_error": null,
+  "locations": [
+    {
+      "location_id": "P-12",
+      "state": "known",
+      "poverty_rate": "0.18",
+      "snap_rate": "0.22",
+      "source": "ACS 5-year 2023, tract 0102",
+      "fetched_at": "2026-11-05T14:02:11Z"
+    },
+    {
+      "location_id": "P-07",
+      "state": "unknown",
+      "poverty_rate": null,
+      "snap_rate": null,
+      "source": null,
+      "fetched_at": null
+    }
+  ],
+  "unmatched": [
+    {
+      "location_id": "P-07",
+      "address": "14 Old Mill Rd, Springfield, FL",
+      "hint": "Check the street and ZIP, or enter latitude and longitude."
+    }
+  ],
+  "egp_blockers": [
+    {
+      "location_id": "P-07",
+      "missing": [
+        "poverty_rate",
+        "snap_rate"
+      ]
+    }
+  ]
+}

@@ -1,6 +1,8 @@
 # V4 prioritized implementation plan
 
-> **Current authority:** [Project specification V5](SPEC-V5.md). Historical V4 roadmap. Use V5 for the current dependency sequence, implemented main/branch work, explicit transfer modes and acceptance.
+> **v1 authority (2026-11-06):** [V1-SPEC](V1-SPEC.md) and the [v1 plan](../plans/v1/README.md) override this document where they conflict; [SPEC-V5](SPEC-V5.md) governs what V1-SPEC leaves open. Historical V4 roadmap; the v1 plan replaces it.
+
+> **Before v1:** [Project specification V5](SPEC-V5.md). Historical V4 roadmap. Use V5 for the current dependency sequence, implemented main/branch work, explicit transfer modes and acceptance.
 
 See [architecture/research gate](../architecture/0001-v4-research-first.md). This scaffold is not a working allocation platform.
 

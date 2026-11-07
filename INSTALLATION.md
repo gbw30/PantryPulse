@@ -1,10 +1,25 @@
 # PantryPulse developer installation
 
+> **v1 authority (2026-11-06):** [V1-SPEC](docs/pantrypulse/V1-SPEC.md) and the [v1 plan](docs/plans/v1/README.md) override this document where they conflict; [SPEC-V5](docs/pantrypulse/SPEC-V5.md) governs what V1-SPEC leaves open. The v1 install supports Windows 11 and Linux through `docker compose up`; the migration head is now `ppv1_0010`.
+
 For a shorter walkthrough with separate host and teammate instructions, follow the [Windows installation and Cloudflare connection quickstart](docs/setup/WINDOWS-QUICKSTART.md).
 
 This guide targets Windows x64 with PowerShell 5.1 or 7. [Current status](docs/pantrypulse/CURRENT-STATUS.md) and [SPEC-V5](docs/pantrypulse/SPEC-V5.md) distinguish merged source, running images and remaining release work. The [V4 tab](https://docs.google.com/document/d/1WcsV69YCE1mqW2pI7IyEFQBSuwQB_hMhVQKfU20ZFk8/edit?tab=t.951hp1xdarlq) and saved snapshot are historical. Local backend/Chronos preparation is resumed; cloud deployment and supplier planning remain separate authorizations.
 
-**Current state:** presenter-protected baseline forecasts, persisted scenarios/comparisons, two bounded allocation methods and independent verification, connected `/optimization`/same-origin proxy, migrations through `ppor_0005`, and active Linux/PostgreSQL/browser CI. Use [local compute](docs/setup/LOCAL-COMPUTE.md) for the opt-in resource-bounded image/model tools and [connected setup](docs/optimization/CONNECTED-INTEGRATION.md) for deliberate synthetic loading. Existing running containers are preserved; a source merge does not upgrade them. Chronos has standalone CPU evidence but is not the application provider.
+**Current state:** presenter-protected baseline forecasts, persisted scenarios/comparisons, two bounded allocation methods and independent verification, connected `/optimization`/same-origin proxy, migrations through `ppor_0005` (now `ppv1_0010`), and active Linux/PostgreSQL/browser CI. Use [local compute](docs/setup/LOCAL-COMPUTE.md) for the opt-in resource-bounded image/model tools and [connected setup](docs/optimization/CONNECTED-INTEGRATION.md) for deliberate synthetic loading. Existing running containers are preserved; a source merge does not upgrade them. Chronos has standalone CPU evidence but is not the application provider.
+
+## v1 local stack (one start command)
+
+`compose.yaml` is the v1 install: PostgreSQL, a one-shot `migrate` and `seed`, the API, the worker and the web app. Only the web app is published, at `http://127.0.0.1:3000` (set `PP_WEB_PORT` in a root `.env` to change it; see `.env.example`).
+
+```bash
+docker compose up --build -d --wait   # contributors: build the images from this checkout
+docker compose up -d --wait           # after a published release: pull the images instead
+docker compose down                   # stop; data stays in the stack's `db` volume
+docker compose down -v                # start over: deletes this install's data
+```
+
+Everything below is the contributor setup. Its dev database (127.0.0.1:55432) and `api` profile now live in `compose.dev.yaml`, a separate Compose project (`pantrypulse-dev`) with its own fresh volume. The opt-in `compose.compute.yaml` overlays `compose.dev.yaml`; `compose.forecast.yaml`, `compose.chronos.yaml` and `compose.demo.yaml` are unchanged.
 
 ## 1. Install these prerequisites manually
 
@@ -58,7 +73,7 @@ Set-Location PantryPulse
 git rev-parse --show-toplevel
 ```
 
-If the repository is already cloned, open that checkout instead. The root contains `package.json`, `compose.yaml`, `apps/` and `scripts/`. A pre-existing nested `PantryPulse/` copy on the original host is preserved historical work; do not install or run the project from it.
+If the repository is already cloned, open that checkout instead. The root contains `package.json`, `compose.yaml`, `compose.dev.yaml`, `apps/` and `scripts/`. A pre-existing nested `PantryPulse/` copy on the original host is preserved historical work; do not install or run the project from it.
 
 `.node-version` documents the Node pin but does not switch your installed Node automatically. Root `package-lock.json` owns the npm workspace; `apps/api/uv.lock` owns Python. Keep both lockfiles in Git.
 
@@ -160,7 +175,7 @@ Native alternative on hosts with working allowed Python DLLs: run `npm run dev:a
 Stop the web/native API with Ctrl+C in its terminal. Stop project containers without deleting data:
 
 ```powershell
-docker compose stop api postgres
+docker compose -f compose.dev.yaml stop api postgres
 ```
 
 The named PostgreSQL volume survives. Startup SQL creates pantrypulse_dev and pantrypulse_test plus existing lane databases only when the volume is first initialized. Do not delete a volume as a routine setup fix. There are no Alembic domain revisions yet; migration validation will be added after the research contract gate.

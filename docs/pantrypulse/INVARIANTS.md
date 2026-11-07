@@ -1,6 +1,8 @@
 # PantryPulse invariants
 
-> **Current authority:** [Project specification V5](SPEC-V5.md). Compatible invariants remain required. Fixed three-site/six-series examples are historical; V5 defines the expanded scope, both explicit transfer modes and current evidence.
+> **v1 authority (2026-11-06):** [V1-SPEC](V1-SPEC.md) and the [v1 plan](../plans/v1/README.md) override this document where they conflict; [SPEC-V5](SPEC-V5.md) governs what V1-SPEC leaves open. Overridden here in v1: INV-12's six series becomes up to 50,000 forecast series; INV-20's scoped demo reset becomes `docker compose down -v`. Added in v1: the per-product plan passes an independent union check over every shared limit (W1-S05).
+
+> **Before v1:** [Project specification V5](SPEC-V5.md). Compatible invariants remain required. Fixed three-site/six-series examples are historical; V5 defines the expanded scope, both explicit transfer modes and current evidence.
 
 Each invariant needs a meaningful executable assertion. A screenshot of correct-looking numbers is insufficient.
 

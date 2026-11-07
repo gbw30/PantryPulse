@@ -1,0 +1,8 @@
+{
+  "job_id": "4f607182-3c5d-4e7f-8a0b-2c3d4e5f6071",
+  "attempt_id": "50718293-4d6e-4f80-9b1c-3d4e5f607182",
+  "state": "QUEUED",
+  "replayed": false,
+  "status_url": "/api/v1/jobs/4f607182-3c5d-4e7f-8a0b-2c3d4e5f6071",
+  "result_url": "/api/v1/forecasts/4f607182-3c5d-4e7f-8a0b-2c3d4e5f6071/backtest"
+}

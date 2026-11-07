@@ -18,6 +18,8 @@ class OperationKind(StrEnum):
     FORECAST = "FORECAST"
     ALLOCATION = "ALLOCATION"
     COMPARISON = "COMPARISON"
+    IMPORT = "IMPORT"  # v1 (ppv1_0009)
+    ENRICHMENT = "ENRICHMENT"  # v1 (ppv1_0009): Census and Google route lookups
 
 
 class AttemptState(StrEnum):
@@ -133,6 +135,8 @@ class RuntimeProfile:
     method_wall_s: float = 330
     method_search_s: float = 300
     comparison_total_s: float = 690
+    import_total_s: float = 300  # S4 measured ~86 s worst case before partition attach
+    enrichment_total_s: float = 300
     stop_grace_s: float = 2
     publication_reserve_s: float = 2
     # Engineering margin (ADR 0005 A4): SIGKILL lands this long before a hard cutoff so

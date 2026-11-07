@@ -16,15 +16,15 @@ try {
     & apps/api/.venv/Scripts/python.exe -c "import sys; print('Python ' + sys.version.split()[0]); raise SystemExit(0 if sys.version_info[:3] == (3, 12, 13) else 1)"
     if ($LASTEXITCODE -ne 0) { throw 'Expected project Python 3.12.13.' }
     if ($RequireDatabase -or $RequireContainerApi) {
-        docker compose exec -T postgres pg_isready -U pantrypulse -d pantrypulse_dev
+        docker compose -f compose.dev.yaml exec -T postgres pg_isready -U pantrypulse -d pantrypulse_dev
         if ($LASTEXITCODE -ne 0) { throw 'Development database is unavailable.' }
-        docker compose exec -T postgres psql -U pantrypulse -d pantrypulse_test -c 'SELECT current_database();'
+        docker compose -f compose.dev.yaml exec -T postgres psql -U pantrypulse -d pantrypulse_test -c 'SELECT current_database();'
         if ($LASTEXITCODE -ne 0) { throw 'Dedicated test database is unavailable.' }
     }
     if ($RequireContainerApi) {
-        docker compose exec -T api uv run --frozen python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health').read().decode())"
+        docker compose -f compose.dev.yaml exec -T api uv run --frozen python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health').read().decode())"
         if ($LASTEXITCODE -ne 0) { throw 'Container API process is not healthy.' }
-        docker compose exec -T api uv run --frozen python scripts/check_runtime.py --database
+        docker compose -f compose.dev.yaml exec -T api uv run --frozen python scripts/check_runtime.py --database
         if ($LASTEXITCODE -ne 0) { throw 'Container solver/database runtime check failed.' }
     }
     Write-Host 'Toolchain check passed. This does not validate allocation or forecasting.'

@@ -13,6 +13,7 @@ from app.services.jobs.registry import InputRejected, PublicationRejected, Regis
 from app.services.optimization.canonical import operational_hash
 from app.services.optimization.scenario import verify_scenario
 from app.services.optimization.settings import execution_limits, validate_settings
+from app.workers.v1_stub import NotBuiltHandler, NotBuiltPublisher
 
 
 class ComparisonHandler:
@@ -230,4 +231,16 @@ REGISTRATION = Registration(
     max_output_bytes=8_000_000,
     handler=ComparisonHandler(),
     publisher=ComparisonPublisher(),
+)
+
+
+# W0-08b: v1 N-method comparison on or-input-v3; W1-S04 replaces the stub handler/publisher.
+V3_REGISTRATION = Registration(
+    contract="or-comparison.v3",
+    operation_kind=OperationKind.COMPARISON,
+    input_schema_version="3",
+    max_input_bytes=64_000_000,
+    max_output_bytes=64_000_000,
+    handler=NotBuiltHandler("W1-S04"),
+    publisher=NotBuiltPublisher("W1-S04"),
 )

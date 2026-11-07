@@ -10,13 +10,26 @@ The plan is [docs/plans/v1/](../plans/v1/README.md), which implements [V1-SPEC](
 
 | Wave | Lanes (at most 3) | Mode | Tasks | Acceptance IDs | Status |
 |---|---|---|---|---|---|
-| W0 Foundation | orchestrator (spikes S1, S4 in-session) | orchestrator + A | W0-01…W0-10 | A02, A04, A21, A22 (+ S1/S3/S4 findings) | NOT STARTED |
+| W0 Foundation | orchestrator (spikes S1, S4 in-session) | orchestrator + A | W0-01…W0-10 | A02, A04, A21, A22 (+ S1/S3/S4 findings) | IN PROGRESS on local `w0/foundation` (base `7067b0b`, unpushed): done W0-01…W0-09 (W0-06 S3: Windows + WSL clean clones pass, `spikes/S3-docker.md`); W0-10: verifier reviews done, or-input-v3 validator fix `428d014`, Codex review fixes `a5a182c`/`0195c0b`, atomic import `ppv1_0010` (`05a1351`), doc conflicts with V1-SPEC resolved (`1137a68`), spike findings applied to wave-1/3; PR into v1-local open, merge waits for Gabriel |
 | W1 | `w1-data`, `w1-solver`, `w1-web` | B | W1-D01…D09, W1-S01…S07, W1-W01…W08 | A06–A11, A13–A17, A20, A21, A23 | NOT STARTED |
 | W2 Integrate W1 | orchestrator | orchestrator + A | W2-01…W2-06 | A22 + backend journey | NOT STARTED |
 | W3 | `w3-forecast`, `w3-samples`, `w3-web` | B | W3-F01…F06, W3-P01…P04, W3-W01…W03 | A02, A05, A06, A08, A12, A13, A17, A20, A23 | NOT STARTED |
 | W4 Integrate W3 | orchestrator | orchestrator + A | W4-01…W4-04 | full connected journey, A20 review | NOT STARTED |
 | W5 | `w5-polish`, `w5-packaging` | B | W5-UI01…UI03, W5-PK01…PK05 | A03, A04, A09, A17–A21, A24 | NOT STARTED |
 | W6 Release | orchestrator + Gabriel | orchestrator + A | W6-01…W6-06 | A01, A18, A22, A24 | NOT STARTED |
+
+W0 handoff (2026-11-04):
+- **Decisions:** `docs/plans/v1/decisions/` (network model and login table, per-product optimizer). Spike reports: `docs/plans/v1/spikes/` (S1, S4).
+- **W0-05 (done, `9e14797`):** login hash in `local_logins`, password only in `.pantrypulse/local-login.txt`; proxy token via a shared read-only volume (`PP_TRUSTED_PROXY_TOKEN_FILE`). Also fixed: the insecure-cookie guard now checks the verified browser origin (compose login returned 503).
+- **W0-08 (done, 2026-11-06):** `6b18bc2` decisions, `28d180c` streaming proxy, `6c605b5` v1 API surface (08a), `a6fd470` job kinds, examples, generated contract (08b). [Decision record](../plans/v1/decisions/W0-08-scenario-and-import.md).
+  - Gabriel's calls: `or-input-v3` with v2 untouched; S4 create → upload → commit import routes; v1 forecasts and comparisons under `/networks/{id}`; 501 in the existing error envelope; new `IMPORT`/`ENRICHMENT` job kinds (migration `ppv1_0009`).
+  - Evidence: `node scripts/quality/run.cjs full` PASS at the 08b tree (second run). The first run failed once on `tests/workers/test_process_driver.py::test_orphaned_group_from_a_dead_parent_is_found_and_killed_by_identity`, which passed 5/5 alone and isn't touched by W0. It's load-sensitive and should be looked at in W0-10. Config tests 30/30. v2 OpenAPI paths and schemas are unchanged against the previous `openapi.json`.
+  - The Next standalone server streams uploads: `apps/web/scripts/check-upload-streaming.mjs`, sink first byte after 1 MiB of 150 MiB.
+- **W0-10:**
+  - verifier review of the branch and of the S1 capacity split;
+  - reword W1-S05's "decomposed equals monolithic" test;
+  - before the merge, a doc pass against `7067b0b` (no bloat, better agent context retrieval) that also removes the personal vault references from the committed plan and prompts.
+- **Test environment:** `PP_TEST_DATABASE_URL` and `PP19_TEST_DATABASE_URL` set to `postgresql+psycopg://pantrypulse:isolated_test_only@127.0.0.1:55433/pantrypulse_test`, with `PP19_TEST_SCHEMA_ISOLATION=1`.
 
 Gates: Gabriel approves each wave start, every change request, every merge into `v1-local`, and every release action. The re-plan gate is W0-10.
 

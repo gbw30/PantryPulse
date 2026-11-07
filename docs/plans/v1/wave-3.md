@@ -156,7 +156,7 @@ Agent role: `frontend-engineer`. The wave-1 screens exist. This lane replaces mo
 **Files:** modify `apps/web/src/lib/*-api.ts`, `apps/web/src/components/{import,enrichment}/**`; test `apps/web/tests/e2e/v1-connected-import.spec.ts` (runs only under `PP_RUN_CONNECTED=1`, and **counts as evidence only in the connected run**).
 
 - [ ] **Step 1:** write the failing tests:
-  - connected `@V1-A07 bad file rejected with errors, nothing created`.
+  - connected `@V1-A07 bad file rejected: failure message and per-row fixes shown, and no network or dataset version created`.
   - connected `@V1-A06 @V1-A23 good template set with inbound and donation_history imports and shows progress`.
   - connected `@V1-A10 offline enrichment marks unknown with retry`. The API runs with no egress; sample coordinates mean no calls.
   - connected `@V1-A11 route labels`.

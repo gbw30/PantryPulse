@@ -170,3 +170,166 @@ test("planning proxy allowlist preserves bounded catalog paging and rejects arbi
   }
   assert.equal(fetchMock.mock.calls.length, 4);
 });
+
+test("local install reads the proxy token from the shared file, never the client", async (t) => {
+  const { mkdtemp, writeFile, rm } = await import("node:fs/promises");
+  const { join } = await import("node:path");
+  const { tmpdir } = await import("node:os");
+  const dir = await mkdtemp(join(tmpdir(), "pp-proxy-token-"));
+  const file = join(dir, "proxy-token");
+  await writeFile(file, "file-proxy-secret\n");
+  process.env.PANTRYPULSE_API_ORIGIN = "http://127.0.0.1:8000";
+  process.env.PP_TRUSTED_PROXY_TOKEN_FILE = file;
+  t.after(async () => {
+    delete process.env.PANTRYPULSE_API_ORIGIN;
+    delete process.env.PP_TRUSTED_PROXY_TOKEN_FILE;
+    await rm(dir, { recursive: true, force: true });
+  });
+  const fetchMock = t.mock.method(globalThis, "fetch", async (url, options) => {
+    assert.equal(options.headers.get("x-pp-proxy-token"), "file-proxy-secret");
+    return Response.json({ status: "ok" });
+  });
+  const request = () => GET(new Request("http://localhost:3000/api/v1/health", {
+    headers: { "X-PP-Proxy-Token": "spoof" },
+  }));
+  assert.equal((await request()).status, 200);
+  await rm(file);
+  assert.equal((await request()).status, 503);
+  assert.equal(fetchMock.mock.calls.length, 1);
+});
+
+const importId = "33333333-3333-4333-8333-333333333333";
+const MiB = 1024 * 1024;
+
+function chunks(total, size = MiB) {
+  let sent = 0;
+  return new ReadableStream({ pull(controller) {
+    if (sent >= total) return controller.close();
+    const length = Math.min(size, total - sent);
+    sent += length;
+    controller.enqueue(new Uint8Array(length).fill(97));
+  } });
+}
+
+function upload(body, headers = {}) {
+  return new Request(`http://localhost:3000/api/v1/imports/${importId}/files/demand_history`, {
+    method: "POST", body, duplex: "half",
+    headers: { Origin: "http://localhost:3000", "Content-Type": "text/csv", "X-CSRF-Token": "csrf", ...headers },
+  });
+}
+
+test("v1 import file upload streams past the 64 KB JSON cap with no timeout", async (t) => {
+  process.env.PANTRYPULSE_API_ORIGIN = "http://127.0.0.1:8000";
+  process.env.PP_TRUSTED_PROXY_TOKEN = "test-proxy-secret";
+  t.after(() => {
+    delete process.env.PANTRYPULSE_API_ORIGIN;
+    delete process.env.PP_TRUSTED_PROXY_TOKEN;
+  });
+  const fetchMock = t.mock.method(globalThis, "fetch", async (url, options) => {
+    assert.equal(url, `http://127.0.0.1:8000/api/v1/imports/${importId}/files/demand_history`);
+    assert.ok(options.body instanceof ReadableStream, "body is passed through as a stream");
+    assert.equal(options.duplex, "half");
+    assert.equal(options.signal, undefined, "no 20 s timeout on uploads");
+    assert.equal(options.headers.get("content-type"), "text/csv");
+    assert.equal(options.headers.get("x-csrf-token"), "csrf");
+    let bytes = 0;
+    for await (const chunk of options.body) bytes += chunk.byteLength;
+    return Response.json({ name: "demand_history", bytes }, { status: 200 });
+  });
+  const response = await POST(upload(chunks(3 * MiB)));
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).bytes, 3 * MiB);
+  assert.equal(fetchMock.mock.calls.length, 1);
+});
+
+test("v1 import file upload enforces the 160 MiB cap while streaming", async (t) => {
+  process.env.PANTRYPULSE_API_ORIGIN = "http://127.0.0.1:8000";
+  process.env.PP_TRUSTED_PROXY_TOKEN = "test-proxy-secret";
+  t.after(() => {
+    delete process.env.PANTRYPULSE_API_ORIGIN;
+    delete process.env.PP_TRUSTED_PROXY_TOKEN;
+  });
+  t.mock.method(globalThis, "fetch", async (_url, options) => {
+    const reader = options.body.getReader();
+    while (!(await reader.read()).done) { /* drain until the proxy errors the stream */ }
+    return Response.json({}, { status: 200 });
+  });
+  const response = await POST(upload(chunks(160 * MiB + 1)));
+  assert.equal(response.status, 413);
+  assert.equal((await response.json()).error.code, "INPUT_TOO_LARGE");
+  assert.equal((await POST(upload("x", { "Content-Length": String(160 * MiB + 1) }))).status, 413);
+});
+
+test("v1 import routes: only template names, only CSV bodies, plus create/commit/status", async (t) => {
+  process.env.PANTRYPULSE_API_ORIGIN = "http://127.0.0.1:8000";
+  process.env.PP_TRUSTED_PROXY_TOKEN = "test-proxy-secret";
+  t.after(() => {
+    delete process.env.PANTRYPULSE_API_ORIGIN;
+    delete process.env.PP_TRUSTED_PROXY_TOKEN;
+  });
+  const seen = [];
+  t.mock.method(globalThis, "fetch", async (url) => {
+    seen.push(url.slice("http://127.0.0.1:8000/api/v1/".length));
+    return Response.json({}, { status: 200 });
+  });
+  const post = (path, body = "{}") => POST(new Request(`http://localhost:3000/api/v1/${path}`, {
+    method: "POST", body, headers: { Origin: "http://localhost:3000" },
+  }));
+  assert.equal((await POST(upload("a,b\n", { "Content-Type": "application/json" }))).status, 422);
+  assert.equal((await post(`imports/${importId}/files/secrets`, "x")).status, 404);
+  assert.equal((await post("imports")).status, 200);
+  assert.equal((await post(`imports/${importId}/commit`)).status, 200);
+  assert.equal((await GET(new Request(`http://localhost:3000/api/v1/imports/${importId}`))).status, 200);
+  assert.deepEqual(seen, ["imports", `imports/${importId}/commit`, `imports/${importId}`]);
+});
+
+test("every v1 route is forwarded; neighbours and stray queries are not", async (t) => {
+  process.env.PANTRYPULSE_API_ORIGIN = "http://127.0.0.1:8000";
+  process.env.PP_TRUSTED_PROXY_TOKEN = "test-proxy-secret";
+  t.after(() => {
+    delete process.env.PANTRYPULSE_API_ORIGIN;
+    delete process.env.PP_TRUSTED_PROXY_TOKEN;
+  });
+  const { PUT, DELETE } = await import("../src/app/api/v1/[...path]/route.ts");
+  const handlers = { GET, POST, PUT, DELETE };
+  const seen = [];
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    seen.push(`${options.method} ${url.slice("http://127.0.0.1:8000/api/v1/".length)}`);
+    return Response.json({}, { status: 200 });
+  });
+  const net = "44444444-4444-4444-8444-444444444444";
+  const cmp = "55555555-5555-4555-8555-555555555555";
+  const run = "66666666-6666-4666-8666-666666666666";
+  const forwarded = [
+    "GET networks", `GET networks/${net}`, "GET templates", "GET templates?mode=RETAIL",
+    "GET templates/locations.csv?kind=example", `GET networks/${net}/enrichment`,
+    `GET networks/${net}/routes`, "GET settings", `GET networks/${net}/danger?forecast_run_id=${run}`,
+    `GET forecasts/${run}/backtest`, `GET networks/${net}/comparisons/${cmp}`,
+    `GET networks/${net}/comparisons/${cmp}/methods/EQUAL_SHARE/actions`,
+    `POST networks/${net}/enrichment/retry`, `POST networks/${net}/routes/google-preview`,
+    `POST networks/${net}/routes/google-fetch`, `POST networks/${net}/scenarios`,
+    `POST networks/${net}/forecasts`, `POST networks/${net}/comparisons`,
+    `POST networks/${net}/comparisons/${cmp}/methods/RETAIL_OPTIMIZED/export`,
+    `PUT networks/${net}/locations/Store%2012/attributes`, "PUT settings/google-maps-key",
+    "DELETE settings/google-maps-key",
+  ];
+  const call = (route) => {
+    const [method, path] = route.split(" ");
+    return handlers[method](new Request(`http://localhost:3000/api/v1/${path}`, {
+      method, headers: { Origin: "http://localhost:3000" },
+      ...(["POST", "PUT"].includes(method) ? { body: "{}" } : {}),
+    }));
+  };
+  for (const route of forwarded) assert.equal((await call(route)).status, 200, route);
+  assert.deepEqual(seen, forwarded);
+  for (const route of [
+    "GET networks?organization_id=spoof", "GET templates/secrets.csv", `GET templates?mode=A&mode=B`,
+    `GET networks/${net}/comparisons/${cmp}/methods/DROP_TABLES/actions`, "DELETE networks",
+    `PUT networks/${net}`, "POST settings", `PUT networks/${net}/locations/a%2Fb/attributes`,
+  ]) assert.equal((await call(route)).status, 404, route);
+  const evil = await PUT(new Request("http://localhost:3000/api/v1/settings/google-maps-key", {
+    method: "PUT", body: "{}", headers: { Origin: "https://evil.example" },
+  }));
+  assert.equal(evil.status, 403);
+  assert.equal(seen.length, forwarded.length);
+});

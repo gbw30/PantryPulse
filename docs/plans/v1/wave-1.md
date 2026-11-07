@@ -44,6 +44,7 @@ Agent role: `solver-engineer` scope "solver/data" (CLAUDE.md), working under `.c
   - `test_quantity_above_solver_bound_rejected` (above the `Count` bound in `or_inputs.py:14`, with a clear reason, never a 500 later);
   - `test_role_not_valid_for_mode` (`store` in a Pantry network);
   - `test_error_cap_1000` (5000 bad rows → 1000 kept, `error_count == 5000`).
+  - `test_every_error_has_a_fix`: each error code produces a `fix` that says what to change in the file (e.g. NEGATIVE → "Enter 0 or a positive whole number, or leave the cell blank if the value is unknown").
 - [ ] **Step 2:** write the truth tests:
   - `test_blank_demand_quantity_is_none` (never `0`);
   - `test_utf8_bom_and_crlf_accepted`;
@@ -66,18 +67,21 @@ Agent role: `solver-engineer` scope "solver/data" (CLAUDE.md), working under `.c
   - `test_examples_kind_returns_501_until_w3`: `kind=example` raises `NotImplementedV1("W3-P03")`.
 - [ ] **Step 2:** run them (FAIL), implement, run them (PASS), commit.
 
-### W1-D04: Staging and the atomic commit · M · depends on: W1-D02 · V1-A07, A08 · [conditional on S4: mechanism]
+### W1-D04: Staging and the atomic commit · M · depends on: W1-D02 · V1-A07, A08 · S4 mechanism decided
 
 **Files:** create `apps/api/app/services/imports/staging.py`, `apps/api/app/repositories/imports.py`; test `apps/api/tests/imports/test_import_postgres.py`.
+
+**Shape (S4, frozen in W0-07/W0-08):** `store_import_file` writes each upload under `PP_IMPORT_DIR` (the `imports` volume, shared by api and worker) and records bytes and sha256 in `import_runs.files`. The job COPYs into a per-run UNLOGGED `import_staging` partition, validates set-based into `import_errors`, then loads `net_demand_history`/`net_donation_history` into a per-version partition (`LIKE … INCLUDING CONSTRAINTS`, add keys, `ATTACH`) in one transaction ([W0-network-model.md](decisions/W0-network-model.md)).
 
 - [ ] **Step 1:** write the failing PostgreSQL tests:
   - `test_any_error_saves_nothing`: row counts in every network table are unchanged after a file with one bad row.
   - `test_batches_round_trip_exact`: quantity, `expiry_date`, `non_expiring` and `batch_id` are equal before and after.
   - `test_blank_demand_stays_null_in_database`.
   - `test_one_audited_import_event`.
+  - `test_new_network_row_created_only_by_successful_commit`: a first import with one bad row leaves no `networks` row; the same import with the row fixed creates the network, its dataset version and all data in one transaction (atomic import, `ppv1_0010`).
   - `test_import_writes_no_stock_ledger_or_receipt_rows`.
   - `test_inbound_outside_horizon_kept_and_listed`.
-- [ ] **Step 2:** run them (FAIL). Implement staging via PostgreSQL `COPY` with set-based validation, as S4 recommends.
+- [ ] **Step 2:** run them (FAIL). Implement staging via PostgreSQL `COPY` with set-based validation, as S4 recommends. Read the upload through the router's `chunks` (`bounded_chunks` in `routers/v1_imports.py`), never `request.stream()` directly: that generator enforces the 160 MiB cap, and only this task makes the end-to-end cap testable.
 - [ ] **Step 3:** run them (PASS). Commit.
 
 ### W1-D05: The import job, progress, re-import and network reads · M · depends on: W1-D04 · V1-A07, A09
@@ -85,9 +89,9 @@ Agent role: `solver-engineer` scope "solver/data" (CLAUDE.md), working under `.c
 **Files:** create `apps/api/app/services/imports/api.py`, `apps/api/app/workers/imports.py`, `apps/api/app/services/networks/api.py`, `apps/api/app/repositories/networks.py`, `apps/api/scripts/bench_import.py`; test `apps/api/tests/imports/test_import_job.py`.
 
 - [ ] **Step 1:** write the failing tests:
-  - `test_post_imports_returns_202_and_job`.
-  - `test_progress_phases_in_order`: `uploading → staging → validating → committing → done`, with `rows_done ≤ rows_total`.
-  - `test_failed_import_reports_errors_and_saves_nothing`.
+  - `test_create_then_commit`: `POST /imports` returns 201 `ImportCreated`; `POST /imports/{id}/commit` returns 202 `ImportAccepted` with an `import.v1` job, and 422 naming any missing required file (routes in [W0-08-scenario-and-import.md](decisions/W0-08-scenario-and-import.md)).
+  - `test_progress_phases_in_order`: `uploading → staging → validating → committing → done`, with `progress.done ≤ progress.total` in the phase's unit (bytes, rows, checks, rows; S4 §6).
+  - `test_failed_import_reports_errors_and_saves_nothing`: no network (for a first import), no dataset version and no data rows; `ImportStatus.failure` says the import failed and nothing was saved, why, and what to do next, and `GET /imports/{id}` keeps the error report readable (V1-SPEC §6.1, decision W0-08 §4).
   - `test_reimport_creates_new_dataset_version_and_old_scenarios_keep_theirs`.
   - `test_second_import_while_first_runs_returns_409`.
   - `test_list_networks_returns_mode_timezone_as_of`.
@@ -115,7 +119,7 @@ Agent role: `solver-engineer` scope "solver/data" (CLAUDE.md), working under `.c
 
 **Files:** create `apps/api/app/services/enrichment/distance.py`; test `apps/api/tests/enrichment/test_distance.py`.
 
-**Plan call (confirm at W0-10):** `travel_days = max(1, ceil(road_hours / 24))`, where `road_miles = haversine_miles × 1.3` and `road_hours = road_miles / 45`. A same-region transfer arrives the next day, as in V1-SPEC's example "ship on Nov 6, arrives Nov 7".
+**Plan call (confirmed by Gabriel 2026-11-04):** `travel_days = max(1, ceil(road_hours / 24))`, where `road_miles = haversine_miles × 1.3` and `road_hours = road_miles / 45`. A same-region transfer arrives the next day, as in V1-SPEC's example "ship on Nov 6, arrives Nov 7".
 
 - [ ] **Step 1:** write the failing tests:
   - `test_haversine_hand_value`: Tallahassee (30.4383, −84.2807) to Gainesville (29.6516, −82.3248) is about 130 miles straight-line → road ≈ 169 miles → `travel_days == 1`.
@@ -124,6 +128,7 @@ Agent role: `solver-engineer` scope "solver/data" (CLAUDE.md), working under `.c
   - `test_routes_csv_overrides_computed_values`.
   - `test_routes_csv_disabled_removes_route`.
   - `test_method_label_straight_line_estimate`.
+  - `test_route_method_maps_between_api_and_database`: API `straight_line_estimate | google_road | routes_csv` ↔ `net_routes.method` `straight_line | google | user` (`ppv1_0008_networks.sql`).
 - [ ] **Step 2:** run them (FAIL), implement, run them (PASS), commit.
 
 ### W1-D08: Bring-your-own Google key · M · depends on: W1-D01, W1-D07 · V1-A11
@@ -217,22 +222,31 @@ Agent role: `solver-engineer`. Skills: `cpsat-patterns`, `egp-pi-model`, `verify
   - `test_v2_paired_comparison_unchanged`: regression for V1-A22.
 - [ ] **Step 2:** run them (FAIL), implement, run them (PASS), commit.
 
-### W1-S05: Scale to the envelope · M–L · depends on: W1-S04 · V1-A17 · [conditional on S1]
+### W1-S05: Scale to the envelope · M–L · depends on: W1-S04 · V1-A17 · S1 branch 1 (decided at W0-10)
 
-**Files:** modify `apps/api/app/services/optimization/candidates.py` (k-nearest), `apps/api/app/services/optimization/service.py`; create `scripts/or/bench_v1.py`, `docs/optimization/evidence/v1-scale.json`; test `apps/api/tests/optimization/test_scale_v1.py`.
+**Files:** create `apps/api/app/services/optimization/decompose.py` (at-risk screen, capacity split, union check); modify `apps/api/app/services/optimization/candidates.py` (k-nearest) and `apps/api/app/services/optimization/service.py`; create `scripts/or/bench_v1.py`, `docs/optimization/evidence/v1-scale.json`; test `apps/api/tests/optimization/test_scale_v1.py`.
 
-Which branch applies is fixed at W0-10 from S1's verdict:
-- **S1 "none" (it fits):** only the benchmark and the equivalence test.
-- **S1 "1" (at-risk only):** implement `at_risk_products(scenario) -> set[str]`. A product is at risk if any receiver has projected unmet demand or any batch is projected to expire unsold. Optimize only those products; the others get `NO_TRANSFERS`, labeled "not at risk; not optimized".
-- **S1 "2" (lower the envelope):** file a CR with the new caps. It is a lead-owned contract change, and this task waits for it.
-- **S1 "3":** file a CR with the evidence for raising the ceilings.
+**Approach** ([W0-optimizer-decomposition.md](decisions/W0-optimizer-decomposition.md)): one CP-SAT model per product, and by default only at-risk products. Reimplement from the decision; don't copy `spike/w0-s1`. The independent review of the spike (W0-10) found these gaps, and each one is a test below:
+- **At risk** means what the decision says (§1): the no-transfer FEFO kernel of the frozen scenario (`problem.baseline`, so reserves, confirmed inbound and eligibility count) projects unmet demand. Pantry: inside the allocation window. Retail: unmet demand, or expiry within 7 days. The spike's screen ignored inbound and reserves and used 3-day need but a 7-day expiry window, so an expiry-only Retail product got zero capacity.
+- **Split by handling units.** Shares are need × `handling_units_per_unit`, because capacities are in handling units. Use integer floor: `cap * need_p // total_need`.
+- **No silent starvation.** If a needed product's share is smaller than one unit's handling, the product is reported as "capacity share too small to move one unit", never as optimized. In the spike this hit 170 of 194 at-risk products.
+- **Split the cost budget too.** The spike gave each product the whole budget, so N products could spend N× the budget. Split it the same way; the union check enforces the total.
+- **Storage binds.** Subtract the projected end-of-day handling stock of every product, solved or not, from storage, then split the rest. Stock already above storage is reported, not made infeasible.
+- **The union check is asserted.** Recompute every shared limit in or-input-v3 (route `capacity_per_batch`, receiving, dispatch, storage, global handling, and the cost budget priced with route `cost_per_handling_unit_usd`) from the raw scenario and the union of all per-product plans. Any violation fails the method with a native status. The spike only logged this check.
+- **No network objective total.** Per-product objectives (Z, AP/RP normalization) don't add up to a network optimum, and FEASIBLE products add time-limit noise. Report per-product status and gap, and network totals only of physical quantities (units moved, unmet, expired) with the count of OPTIMAL and FEASIBLE products.
 
 - [ ] **Step 1:** write the failing tests:
-  - `test_decomposed_equals_monolithic_on_small_instance`: same objective and same verifier result.
-  - `test_at_risk_filter_leaves_other_products_untouched_and_labeled` (branch 1 only).
+  - `test_at_risk_screen_uses_frozen_baseline` (inbound and a reserve change the result) and `test_not_at_risk_products_untouched_and_labeled` ("not at risk; not optimized").
+  - `test_split_floors_by_handling_need_share_and_never_exceeds_capacity` (property test over random capacities and needs).
+  - `test_starved_product_reported_not_optimized`.
+  - `test_cost_budget_split_union_within_budget` (2 products, budget B).
+  - `test_storage_shared_across_products` (2 products, destination storage nearly full: the union must not overflow).
+  - `test_union_check_fails_on_planted_violation`, one case per limit kind (bound + 1).
+  - `test_decomposed_equals_monolithic_when_no_shared_capacity_binds` (small instance, non-binding capacities: same objective and verifier result) and `test_decomposed_feasible_for_monolithic_when_capacity_binds` (the union passes the monolithic verifier; the objective gap is recorded, not asserted).
+  - `test_no_network_objective_total` (totals are physical and labeled with OPTIMAL/FEASIBLE counts).
   - `test_k_nearest_routes_used`.
 - [ ] **Step 2:** run them (FAIL), implement, run them (PASS).
-- [ ] **Step 3:** run `bench_v1.py --locations 100 --products 500 --mode pantry|retail`. It writes the evidence JSON with wall time, native status, verifier result and peak RSS per mode. Commit.
+- [ ] **Step 3:** run `bench_v1.py --locations 100 --products 500 --mode pantry|retail`. It writes the evidence JSON with wall time, native status counts, verifier and union-check results and peak RSS per mode. Expected (S1): at-risk pair ≤ 690 s, worker RSS under 8 GiB (the spike's 6-process pool held about 4.9 GB, so load the scenario once and share it). Commit.
 
 ### W1-S06: Decision actions — why, plus the remove-one effect · M · depends on: W1-S04 · V1-A16
 
@@ -304,12 +318,12 @@ Agent role: `frontend-engineer`. Read `docs/pantrypulse/ART-DIRECTION.md` and AD
 - [ ] **Step 1:** write the failing tests:
   - unit `renders file, line, column and reason per error`.
   - unit `shows "first 1,000 of N errors" when error_count > 1000`.
-  - unit `nothing saved message on failure`.
+  - unit `failure panel shows ImportStatus.failure: message, reason and every next step, plus a "start a new import" action`.
   - unit `outside-horizon inbound listed`.
   - unit `"no scheduled deliveries provided" when no inbound.csv`.
   - unit `one timezone field with the single-timezone note`.
   - unit `as_of_date defaults to day after last history and is editable`.
-  - e2e `@V1-A07 rejected import shows errors and the network is not created`.
+  - e2e `@V1-A07 rejected import shows the failure message (failed, nothing saved, why, what to do), the per-row fixes, and no new network in the switcher`.
   - e2e `@V1-A23 inbound and donation files are optional and labeled`.
   - e2e `@V1-A20 import keyboard-only path + axe`.
 - [ ] **Step 2:** run them (FAIL), implement, run them (PASS), commit.

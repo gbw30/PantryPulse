@@ -6,6 +6,7 @@ const python = process.env.PP_PYTHON || path.join(root, "apps/api/.venv", proces
 for (const [command, args] of [
   [python, ["apps/api/scripts/export_openapi.py", "--check", "packages/contracts/openapi.json"]],
   [process.execPath, ["node_modules/openapi-typescript/bin/cli.js", "packages/contracts/openapi.json", "-o", "packages/contracts/src/schema.d.ts", "--check"]],
+  [python, ["apps/api/scripts/validate_contract_examples.py"]],
 ]) {
   const result = spawnSync(command, args, { cwd: root, stdio: "inherit" });
   if (result.error) console.error(result.error.message);

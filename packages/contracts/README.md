@@ -22,3 +22,12 @@ operational quantities, audited writes/imports, dashboard/shortage reads, canoni
 single-method plans and simulation reviews. Original VP raw-package/policy and
 competing scenario/comparison shapes are superseded. Legacy reads explicitly use
 the VP_LEGACY family and cannot submit work. See docs/pantrypulse/VP-API-INTEGRATION.md.
+
+## v1 examples (W0-08)
+
+`examples/v1/<SchemaName>.json` holds one example per v1 response model (the routes in
+`apps/api/app/routers/v1_*.py`). They describe one fictional Pantry network. `w1-web` builds its
+Playwright mocks only from these files. `contracts:check` runs
+`apps/api/scripts/validate_contract_examples.py`, which fails on a missing, extra or invalid
+example. v1 routes and their decisions: `docs/plans/v1/README.md` ("Interfaces frozen in W0-08")
+and `docs/plans/v1/decisions/W0-08-scenario-and-import.md`.

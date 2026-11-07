@@ -1,11 +1,12 @@
 # PantryPulse
 
-Current authority (2026-10-25): Start with [CURRENT-STATUS.md](docs/pantrypulse/CURRENT-STATUS.md) and [SPEC-V5.md](docs/pantrypulse/SPEC-V5.md). Main includes the baseline API/presenter flow, connected OR comparisons and Linux/browser CI; PR #77 supplies bounded compute/Fly configuration and standalone Chronos evidence. Preserve six beneficiaries plus hub(s), hard FEFO, both explicit transfer modes with no default, frozen scenarios, durable jobs, the Next.js proxy and the research gate. Local backend/model preparation is resumed; supplier planning and public/paid deployment remain separate. Historical notes below do not undo newer accepted decisions.
+Current authority (2026-11-04): Start with [V1-SPEC.md](docs/pantrypulse/V1-SPEC.md) and the v1 plan [docs/plans/v1/](docs/plans/v1/README.md) (protocol: [ORCHESTRATION.md](docs/plans/v1/ORCHESTRATION.md)). V1-SPEC overrides [SPEC-V5.md](docs/pantrypulse/SPEC-V5.md) where they conflict; V5 governs the rest. Preserve hard FEFO, explicit transfer mode with no default, frozen scenarios, durable jobs, the Next.js proxy, independent verification, provenance and the research gate (V1-SPEC §4). Supplier planning is v2; public/paid deployment remains separate. Historical notes below do not undo newer accepted decisions.
 
-Build the Gator Hack V MVP: at least six fictional beneficiaries plus hub(s), two products, seven-day forecasts and a 1–3-day simulated allocation window. Preserve the current repository, user changes and running tasks.
+Build PantryPulse v1: a stranger installs it locally with one start command (Docker, Windows 11 and Linux) and imports their own Pantry or Retail network (~100 locations, ~500 products, 90 days of history) from our CSV templates. The fictional sample networks keep the fixture role. Preserve the current repository, user changes and running tasks.
 
 ## Read first
-- docs/pantrypulse/SPEC-V5.md: current project source of truth, code/branch status, accepted decisions, unresolved contracts and acceptance.
+- docs/pantrypulse/V1-SPEC.md and docs/plans/v1/: current scope, decisions V1-D01–D18, waves, ownership and frozen interfaces.
+- docs/pantrypulse/SPEC-V5.md: prior source of truth, still binding where V1-SPEC is silent.
 - docs/pantrypulse/PROJECT-CONTRACT.md: scope, units, forecast and solver contracts.
 - docs/pantrypulse/INVARIANTS.md: quantitative truth conditions.
 - docs/pantrypulse/ART-DIRECTION.md: approved visual direction.
@@ -14,13 +15,13 @@ Build the Gator Hack V MVP: at least six fictional beneficiaries plus hub(s), tw
 - docs/pantrypulse/BOARD.md: current integration summary followed by historical delivery rows. Existing task packets are in docs/pantrypulse/tasks/; lead records bounded ownership before delegation.
 - docs/pantrypulse/IMPLEMENTATION-PLAN.md and docs/architecture/ (ADR 0001 research gate, ADR 0002 UI stack): current V4 plan and decisions.
 - docs/pantrypulse/ACCEPTANCE-MATRIX.md: required evidence per requirement. docs/pantrypulse/BACKEND-DATA-FLOW.md: how data moves through the API.
-- INSTALLATION.md and docs/pantrypulse/WINDOWS-DEVELOPMENT.md: setup. SCAFFOLD-VERIFICATION.md: what has actually been run and what has not.
+- INSTALLATION.md and docs/pantrypulse/WINDOWS-DEVELOPMENT.md: setup. docs/pantrypulse/SCAFFOLD-VERIFICATION.md: what has actually been run and what has not.
 - Reference only, don't preload: docs/pantrypulse/SOURCE-SPEC.md (original PRD), docs/pantrypulse/HANDBOOK.md (orchestration rationale), docs/pantrypulse/templates/ (scaffold fragments for the lead), docs/pantrypulse/ENVIRONMENT.md (toolchain and config verification status).
 
 ## Repository map
 The repository root is this folder and the only Git repo. Do not create or run from nested copies; the history of a former nested copy is the `legacy/main` ref.
 - apps/web: Next.js 16 app (src/app, src/lib, tests/e2e, Playwright). It is the only npm workspace; the root package-lock.json owns the lock.
-- apps/api: FastAPI presenter, forecast and planning routers; ORM/repositories; migration head ppor_0005; production forecast.v1/or-comparison.v2 workers; bounded allocation core and independent verifier. Chronos remains a standalone exercise. uv.lock owns Python dependencies.
+- apps/api: FastAPI presenter, forecast and planning routers; ORM/repositories; migration head ppv1_0010 (atomic import: a new network's row is created only by a successful commit, on top of ppv1_0009 v1 IMPORT/ENRICHMENT job kinds, on top of ppv1_0008 v1 networks, then ppvp_0007, which merges ppor_0005 and pp49_0006); production forecast.v1/or-comparison.v2 workers; bounded allocation core and independent verifier. Chronos runs in the production worker registry as forecast.chronos.v1, gated by PP_CHRONOS_ENABLED=1. uv.lock owns Python dependencies.
 - packages/contracts: generated OpenAPI and TypeScript output, plus regeneration instructions.
 - docs/pantrypulse: product contract, protocol, plans. docs/architecture: ADRs.
 - scripts/quality: gate runner and hook tests. scripts/*-windows.ps1: setup and doctor. data/demo: golden fixtures. .claude: agents, hooks, rules, skills and quality-gate.json.
@@ -39,7 +40,7 @@ The repository root is this folder and the only Git repo. Do not create or run f
 
 ## Superpowers methods
 Superpowers (`superpowers@claude-plugins-official`, reviewed at v7.0.1) supplies engineering methods. The PantryPulse lead stays the orchestrator, and the project agents keep their roles. Precedence, highest first:
-1. The consolidated project specification docs/pantrypulse/SPEC-V5.md and later explicit user decisions. SOURCE-SPEC.md and PROJECT-CONTRACT.md retain historical material where compatible.
+1. docs/pantrypulse/V1-SPEC.md, then docs/pantrypulse/SPEC-V5.md where V1-SPEC is silent, and later explicit user decisions (docs/plans/v1/decisions/). SOURCE-SPEC.md and PROJECT-CONTRACT.md retain historical material where compatible.
 2. Contracts, invariants and deterministic fixtures.
 3. This file, the rules, the agent definitions and the task packet.
 4. Superpowers skills.
@@ -47,7 +48,7 @@ Superpowers (`superpowers@claude-plugins-official`, reviewed at v7.0.1) supplies
 When a skill conflicts with a project constraint, keep the project rule and use the compatible form below. Never weaken verification or approved product behavior. Full rationale: HANDBOOK.md, Amendment A1.
 - **Every lane:** `verification-before-completion` (mandatory: run the commands and read their output before any pass/fixed/deployed claim), `systematic-debugging` (mandatory: root cause before fixing; the two-failed-fix limit below still applies), `test-driven-development` (failing test first for inventory, forecasting, optimization, simulation and API logic; delete only code you wrote in this task) and `receiving-code-review`.
 - **Lead only:**
-  - `writing-plans`: run once, from the approved PRD. Save the plan to docs/pantrypulse/IMPLEMENTATION-PLAN.md, track tasks on BOARD.md, and turn each task into a PP-NN packet.
+  - `writing-plans`: the v1 plan lives in docs/plans/v1 (wave files, lane prompts, status files); BOARD.md tracks waves. Use the skill only for new plans inside that structure.
   - `brainstorming`: only for decisions that are genuinely open. Don't redo settled requirements.
   - `subagent-driven-development`: selective, for complex independent tasks only. Dispatch the project builder agent for that domain with a packet, never `general-purpose`. At most three builders, no nested workers, and no per-task review cycle for trivial UI changes.
 - **`using-git-worktrees`:** the lead creates worktrees at the packet's exact base SHA. Builders started with `isolation: worktree` are already isolated: they check their base and never create a nested worktree.
@@ -58,7 +59,8 @@ When a skill conflicts with a project constraint, keep the project rule and use 
 ## Other plugins and domain skills
 - `context7`: look up docs for the versions pinned in package-lock.json and apps/api/uv.lock (Next 16, React 19, Tailwind 4, shadcn 4, OR-Tools 9.15, Chronos 2.3, SQLAlchemy 2). Retrieved docs don't override the repo's locked versions, contracts or tests. Queries go to Upstash, so never include secrets or data.
 - `pyright-lsp`, `typescript-lsp`: diagnostics and navigation. They add to the quick gate; they don't replace it.
-- `frontend-design`: method only. ART-DIRECTION.md and ADR 0002 decide the visual direction and component stack.
+- devkit `stack-web` (jmo-workflow): `better-ui` and `animate` are method only, used after the feature works. ART-DIRECTION.md and ADR 0002 decide the visual direction and component stack. Specs use Superpowers `brainstorming`, never jmo `interview` (one planner per task). `codex` and `agentation` only on the user's request.
+- devkit `ship-check`: in step 2 (local review) use the project `verifier` agent instead of ponytail-review. The other steps run as written.
 - Project skills: `egp-pi-model` and `cpsat-patterns` for any solver work, `research-claims-check` before any text about the research, and `verify-solver`/`verify-forecast` at gates.
 
 ## Product truth
@@ -76,14 +78,14 @@ When a skill conflicts with a project constraint, keep the project rule and use 
 - E2E: node scripts/quality/run.cjs e2e
 - Config tests: node --test scripts/quality/tests/*.test.cjs
 - App checks: npm run check (types, lint, ruff, API tests), npm run build, npm run test:e2e.
-- Backend runs in Docker on this Windows host because Application Control blocks OR-Tools natively: npm run dev:api:docker, npm run test:api:docker, npm run check:runtime:docker.
+- On the Windows host, Application Control blocks OR-Tools natively, so the backend runs in Docker there: npm run dev:api:docker, npm run test:api:docker, npm run check:runtime:docker. Under WSL/Linux, `uv run --frozen` runs it natively (the v1 lanes do).
 - The Stop gate is enabled and runs the quick gate; it does not run full or e2e.
 Gate commands are declared in .claude/quality-gate.json. Active .github/workflows/pantrypulse-ci.yml verifies Linux/PostgreSQL and connected browser behavior and rejects skipped evidence. Do not install historical templates over executable manifests. Solver ceilings are now 300s search / 330s method / 690s comparison, queue expiry 1800s; local stop grace is 725s. Forecast 270/300s and worker 6-CPU/8-GiB ceilings remain.
 
 ## Operating limits
 - Two materially different failed fixes: return a minimal failing case to the lead.
-- A council is one proposal, one critique, one domain check and one lead decision, capped at 10 minutes.
-- Feature freeze at hour 41; only demonstrated P0 blockers afterward.
+- A council is one proposal, one critique, one domain check and one lead decision.
+- Release freeze: after the candidate SHA is chosen in W6, only demonstrated blockers land.
 - Keep secrets out of prompts, logs, fixtures and client bundles. Use only dedicated demo/test databases.
 - Do not bypass permission controls. Writes outside the named repository, destructive operations, new paid services, production changes and submission need the user's corresponding authorization.
 - Do not edit another worktree, force-push, reset away work, or remove a dirty worktree.

@@ -21,9 +21,15 @@ from app.routers.inventory import router as inventory_router
 from app.routers.operations import router as operations_router
 from app.routers.optimization import router as optimization_router
 from app.routers.planning import router as planning_router
+from app.routers.v1_decisions import router as v1_decisions_router
+from app.routers.v1_imports import UPLOAD_PATH
+from app.routers.v1_imports import router as v1_imports_router
+from app.routers.v1_networks import router as v1_networks_router
+from app.routers.v1_settings import router as v1_settings_router
 from app.services.inventory.stock import StockError
 from app.services.jobs.registry import InputRejected
 from app.services.presenter_access import AccessError, LoginLimiter
+from app.services.v1_errors import NotImplementedV1
 
 
 class HealthResponse(BaseModel):
@@ -62,6 +68,23 @@ class RequestBoundary:
             return await self.app(scope, receive, send)
         request_id = uuid4()
         scope.setdefault("state", {})["request_id"] = request_id
+
+        async def headers(message):
+            if message["type"] == "http.response.start":
+                message["headers"] = [
+                    *(
+                        h
+                        for h in message.get("headers", [])
+                        if h[0].lower() not in {b"x-request-id", b"cache-control"}
+                    ),
+                    (b"x-request-id", str(request_id).encode()),
+                    (b"cache-control", b"no-store"),
+                ]
+            await send(message)
+
+        if UPLOAD_PATH.match(scope["path"]):
+            # v1 import files stream; the route enforces UPLOAD_CAP_BYTES while reading.
+            return await self.app(scope, receive, headers)
         body = bytearray()
         while True:
             message = await receive()
@@ -83,19 +106,6 @@ class RequestBoundary:
                 delivered = True
                 return {"type": "http.request", "body": bytes(body), "more_body": False}
             return await receive()
-
-        async def headers(message):
-            if message["type"] == "http.response.start":
-                message["headers"] = [
-                    *(
-                        h
-                        for h in message.get("headers", [])
-                        if h[0].lower() not in {b"x-request-id", b"cache-control"}
-                    ),
-                    (b"x-request-id", str(request_id).encode()),
-                    (b"cache-control", b"no-store"),
-                ]
-            await send(message)
 
         await self.app(scope, bounded_receive, headers)
 
@@ -132,6 +142,8 @@ def create_app(runtime=None):
             status = error.status
         elif isinstance(error, JobNotFound):
             status = 404
+        elif isinstance(error, NotImplementedV1):
+            status = 501
         elif isinstance(error, (IdempotencyConflict, JobStateConflict)):
             status = 409
         elif isinstance(error, InputRejected):
@@ -149,6 +161,7 @@ def create_app(runtime=None):
         StockError,
         QueueError,
         InputRejected,
+        NotImplementedV1,
     ):
         application.add_exception_handler(error_type, domain_error)
 
@@ -174,6 +187,10 @@ def create_app(runtime=None):
     application.include_router(operations_router)
     application.include_router(dashboard_router)
     application.include_router(planning_router)
+    for v1_router in (
+        v1_networks_router, v1_imports_router, v1_settings_router, v1_decisions_router
+    ):
+        application.include_router(v1_router)
     application.add_api_route(
         "/api/v1/health", health, response_model=HealthResponse, tags=["health"]
     )

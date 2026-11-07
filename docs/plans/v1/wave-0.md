@@ -114,9 +114,9 @@ Every task follows the TDD loop in [ORCHESTRATION.md §8](ORCHESTRATION.md#8-rul
 
 **Output:** `docs/plans/v1/spikes/S3-docker.md`.
 
-- [ ] **Step 1 (Gabriel, Windows 11 PowerShell):** `git clone` the `w0/foundation` branch to a Windows path, then run `docker compose up --build`. Record: Docker Desktop version and memory setting, whether WSL 2 is the backend, elapsed time to the login page, any CRLF error, and a screenshot.
-- [ ] **Step 2 (orchestrator, WSL Ubuntu):** the same from a fresh clone in `~/tmp-s3-clone`, with `COMPOSE_PROJECT_NAME=pp-s3` and `PP_WEB_PORT=3999`.
-- [ ] **Step 3:** write both runs into the report, with the commit, versions and times. Fix any CRLF or entrypoint problem in this task, then commit.
+- [x] **Step 1 (Gabriel, Windows 11 PowerShell):** `git clone` the `w0/foundation` branch to a Windows path, then run `docker compose up --build`. Record: Docker Desktop version and memory setting, whether WSL 2 is the backend, elapsed time to the login page, any CRLF error, and a screenshot.
+- [x] **Step 2 (orchestrator, WSL Ubuntu):** the same from a fresh clone in `~/tmp-s3-clone`, with `COMPOSE_PROJECT_NAME=pp-s3` and `PP_WEB_PORT=3999`.
+- [x] **Step 3:** write both runs into the report, with the commit, versions and times. Fix any CRLF or entrypoint problem in this task, then commit.
 
 ### W0-07: Schema freeze, migration `ppv1_0008` · size M · depends on: W0-03 · V1-A07, A08, A10, A11, A23 (constraints)
 
@@ -212,13 +212,13 @@ The schema must hold (table names are decided here):
 
 ### W0-10: Re-plan gate and wave-1 launch · size S · depends on: W0-06, W0-08, W0-09
 
-- [ ] **Step 1:** Apply the spike findings.
+- [x] **Step 1:** Apply the spike findings.
   - S1 decides which branch of W1-S05 applies, and the envelope.
   - S4 decides the shape of W1-D04 and W1-D05.
   - S3 decides any packaging notes.
   - Edit `wave-1.md`, `wave-3.md`, the README interfaces and the prompts wherever names changed. List every change in the gate report.
-- [ ] **Step 2:** Confirm the plan call on `travel_days` in W1-D07 (`max(1, ceil(road_hours / 24))`) with Gabriel.
+- [x] **Step 2:** Confirm the plan call on `travel_days` in W1-D07 (`max(1, ceil(road_hours / 24))`) with Gabriel. Confirmed 2026-11-04.
 - [ ] **Step 3:** Open the `w0/foundation` PR. Get the verifier's review (requirements + diff + tests). Run `/devkit:ship-check`. With Gabriel's OK, merge into `v1-local`. Then run `node scripts/quality/run.cjs full` and the connected e2e (`PP_RUN_CONNECTED=1`) on `v1-local`. Expected: PASS, 0 skipped.
 - [ ] **Step 4:** Set up the three wave-1 worktrees ([ORCHESTRATION.md §3](ORCHESTRATION.md#3-wave-lifecycle)), fill in `{{BASE_SHA}}` in `prompts/w1-*.md`, and update BOARD.md.
 - [ ] **Step 5:** Verify whether a lane session opened in `~/code/PantryPulse-data` appears in `ListAgents`. Record the result in ORCHESTRATION.md §2.
-- [ ] **Step 6:** Send the wave-start report with the spike verdicts. **Gabriel approves the wave 1 start.** Then run `/vault-wrap-up` for W0.
+- [ ] **Step 6:** Send the wave-start report with the spike verdicts. **Gabriel approves the wave 1 start.**

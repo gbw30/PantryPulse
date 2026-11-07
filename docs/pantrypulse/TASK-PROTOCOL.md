@@ -1,5 +1,7 @@
 # PantryPulse task and integration protocol
 
+> **v1 authority (2026-11-06):** [V1-SPEC](V1-SPEC.md) and the [v1 plan](../plans/v1/README.md) override this document where they conflict; [SPEC-V5](SPEC-V5.md) governs what V1-SPEC leaves open. For v1 lanes, ports, databases and merges follow the plan README's isolation table and ORCHESTRATION.md, not the packet and port rules below.
+
 ## Task packet
 
 Copy one packet per task into docs/pantrypulse/tasks/PP-NN.md. Lead creates it before delegation.

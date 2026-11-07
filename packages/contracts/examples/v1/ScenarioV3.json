@@ -1,0 +1,193 @@
+{
+  "id": "7293a415-6f80-41a2-9d3e-5f6071829304",
+  "network_id": "8b2f4c1e-3a5d-4e6f-9a7b-1c2d3e4f5a60",
+  "recorded_at": "2026-11-06T09:15:00Z",
+  "content_hash": "9f2c1e7a9f2c1e7a9f2c1e7a9f2c1e7a9f2c1e7a9f2c1e7a9f2c1e7a9f2c1e7a",
+  "payload": {
+    "schema_version": "or-input-v3",
+    "network_id": "8b2f4c1e-3a5d-4e6f-9a7b-1c2d3e4f5a60",
+    "organization_id": "6f0c5a52-4c2e-5d1b-9a57-0b1f4c7d2e02",
+    "dataset_version_id": "2d4e6f80-1a3b-4c5d-8e9f-0a1b2c3d4e5f",
+    "forecast_run_id": "61829304-5e7f-4091-8c2d-4e5f60718293",
+    "mode": "PANTRY",
+    "transfer_mode": "HUB_ONLY",
+    "timezone": "America/New_York",
+    "snapshot_as_of": "2026-11-05",
+    "first_planning_date": "2026-11-06",
+    "horizon_days": 7,
+    "locations": [
+      {
+        "id": "HUB-N",
+        "name": "Hub North",
+        "role": "hub"
+      },
+      {
+        "id": "P-12",
+        "name": "Pantry 12",
+        "role": "pantry"
+      },
+      {
+        "id": "P-07",
+        "name": "Pantry 7",
+        "role": "pantry"
+      }
+    ],
+    "products": [
+      {
+        "id": "WATER-24",
+        "name": "Bottled water",
+        "unit": "case",
+        "handling_units_per_unit": 1,
+        "unit_value_usd": null
+      },
+      {
+        "id": "RICE-5",
+        "name": "Rice, 5 lb",
+        "unit": "bag",
+        "handling_units_per_unit": 1,
+        "unit_value_usd": null
+      }
+    ],
+    "batches": [
+      {
+        "id": "B-100",
+        "location_id": "HUB-N",
+        "product_id": "WATER-24",
+        "quantity": 120,
+        "expiry_date": "2026-11-12",
+        "non_expiring": false
+      },
+      {
+        "id": "B-101",
+        "location_id": "P-12",
+        "product_id": "WATER-24",
+        "quantity": 15,
+        "expiry_date": null,
+        "non_expiring": true
+      },
+      {
+        "id": "B-102",
+        "location_id": "HUB-N",
+        "product_id": "RICE-5",
+        "quantity": 60,
+        "expiry_date": "2027-03-01",
+        "non_expiring": false
+      }
+    ],
+    "demand": [
+      {
+        "location_id": "P-12",
+        "product_id": "WATER-24",
+        "basis": "demand",
+        "actual_provider": "seasonal_naive",
+        "fallback_reason": null,
+        "central_literals": [
+          "9",
+          "10",
+          "12",
+          "11",
+          "9",
+          "8",
+          "11"
+        ],
+        "targets": [
+          9,
+          10,
+          12,
+          11,
+          9,
+          8,
+          11
+        ]
+      },
+      {
+        "location_id": "P-07",
+        "product_id": "RICE-5",
+        "basis": "sales",
+        "actual_provider": "moving_average",
+        "fallback_reason": "fewer than 14 days for seasonal naive",
+        "central_literals": [
+          "1.5",
+          "1.5",
+          "1.5",
+          "1.5",
+          "1.5",
+          "1.5",
+          "1.5"
+        ],
+        "targets": [
+          2,
+          1,
+          2,
+          1,
+          2,
+          1,
+          2
+        ]
+      }
+    ],
+    "inbound": [
+      {
+        "id": "IN-1",
+        "location_id": "HUB-N",
+        "product_id": "RICE-5",
+        "quantity": 40,
+        "arrival_date": "2026-11-09",
+        "expiry_date": "2027-04-01",
+        "non_expiring": false
+      }
+    ],
+    "inbound_file_provided": true,
+    "routes": [
+      {
+        "from_location_id": "HUB-N",
+        "to_location_id": "P-12",
+        "travel_days": 1,
+        "method": "straight_line_estimate",
+        "road_miles": "42.3",
+        "cost_per_handling_unit_usd": null,
+        "capacity_per_batch": null
+      },
+      {
+        "from_location_id": "HUB-N",
+        "to_location_id": "P-07",
+        "travel_days": 1,
+        "method": "google_road",
+        "road_miles": "61.8",
+        "cost_per_handling_unit_usd": null,
+        "capacity_per_batch": null
+      }
+    ],
+    "capacities": [
+      {
+        "location_id": "P-12",
+        "receiving": 80,
+        "dispatch": null,
+        "storage": null
+      }
+    ],
+    "global_handling": null,
+    "cost_budget_minor": null,
+    "reserves": [],
+    "retail_weights": null,
+    "vulnerability": [
+      {
+        "location_id": "P-12",
+        "poverty_rate": "0.18",
+        "snap_rate": "0.22",
+        "source": "ACS 5-year 2023, tract 0102"
+      },
+      {
+        "location_id": "P-07",
+        "poverty_rate": "0.11",
+        "snap_rate": "0.09",
+        "source": "manual"
+      }
+    ],
+    "assumptions": [
+      "capacity not provided — no limit assumed",
+      "reserve floors default to 0",
+      "cost budget off"
+    ]
+  }
+}

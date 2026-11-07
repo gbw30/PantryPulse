@@ -74,7 +74,7 @@ Stop the affected task and write it up under "Escalations" or "Change requests" 
 
 ## Never
 
-- **Never write to the second-brain vault**, and never run `/vault-wrap-up` or `vault_guard.py` writes. Put durable findings in your status file under "Gotchas"; the orchestrator moves them to the vault.
+- Put durable findings (gotchas, decisions and why) in your status file under "Gotchas"; the orchestrator consolidates them at wave end.
 - Don't spawn nested workers, don't edit another worktree, don't change global configuration, don't read `.env` secrets.
 
 ## Finish

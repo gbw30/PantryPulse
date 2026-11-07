@@ -1,41 +1,125 @@
-# Local development database only. Mirrors the CI postgres:16 service.
-# Credentials are local test values; never reuse them for preview or demo hosting.
+# PantryPulse v1 local install: `docker compose up` (strangers pull the named images) or
+# `docker compose up --build` (contributors build them). Only the web port is published, on
+# loopback. Start over with `docker compose down -v` (destroys this install's data).
+# The contributor dev database on 127.0.0.1:55432 is in compose.dev.yaml.
 name: pantrypulse
+
+x-api: &api
+  image: ghcr.io/gbw30/pantrypulse-api:0.1.0
+  build:
+    context: ./apps/api
+  environment: &api-env
+    # The database is reachable only on the compose network; nothing publishes it.
+    DATABASE_URL: postgresql+psycopg://pantrypulse:local_stack_only@postgres:5432/pantrypulse
+    DATABASE_URL_UNPOOLED: postgresql+psycopg://pantrypulse:local_stack_only@postgres:5432/pantrypulse
+    PP_ALLOWED_ORIGINS: http://127.0.0.1:${PP_WEB_PORT:-3000},http://localhost:${PP_WEB_PORT:-3000}
+    PP_COOKIE_SECURE: "false"
+    # Local login: the seed stores only the scrypt hash in local_logins; the API reads it there.
+    PP_PRESENTER_USERNAME: local
+    PP_PRESENTER_ORGANIZATION_ID: 6f0c5a52-4c2e-5d1b-9a57-0b1f4c7d2e01
+    PP_TRUSTED_PROXY_TOKEN_FILE: /run/pantrypulse/proxy-token
+    # Uploaded import files until the import.v1 job commits or aborts (W0-08).
+    PP_IMPORT_DIR: /var/lib/pantrypulse/imports
+
+x-long-running: &long-running
+  # `docker compose restart` stops Postgres alongside the others; reconnect instead of staying down.
+  restart: unless-stopped
+
+x-after-setup: &after-setup
+  migrate:
+    condition: service_completed_successfully
+  seed:
+    condition: service_completed_successfully
+
 services:
   postgres:
     image: postgres:16
+    restart: unless-stopped
     environment:
       POSTGRES_USER: pantrypulse
-      POSTGRES_PASSWORD: local_dev_only
-      POSTGRES_DB: pantrypulse_dev
-    ports:
-      # 5432/5433/15432 are taken by other local Postgres instances on this machine.
-      - "127.0.0.1:55432:5432"
+      POSTGRES_PASSWORD: local_stack_only
+      POSTGRES_DB: pantrypulse
     volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./scripts/db/init:/docker-entrypoint-initdb.d:ro
+      - db:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pantrypulse -d pantrypulse_dev"]
+      test: ["CMD-SHELL", "pg_isready -U pantrypulse -d pantrypulse"]
       interval: 5s
       timeout: 5s
-      retries: 10
-  api:
-    profiles: ["api"]
-    build:
-      context: ./apps/api
-    ports:
-      - "127.0.0.1:8000:8000"
+      retries: 20
+
+  migrate:
+    <<: *api
+    command: ["uv", "run", "--frozen", "python", "scripts/migrate.py", "upgrade", "head"]
     depends_on:
       postgres:
         condition: service_healthy
+
+  seed:
+    <<: *api
+    command: ["uv", "run", "--frozen", "python", "scripts/local_bootstrap.py"]
     environment:
-      APP_ENV: development
-      DEMO_MODE: "true"
-      DATABASE_URL: postgresql+psycopg://pantrypulse:local_dev_only@postgres:5432/pantrypulse_dev
+      <<: *api-env
+      PP_WEB_PORT: ${PP_WEB_PORT:-3000}
+      PP_LOCAL_LOGIN_FILE: /host/.pantrypulse/local-login.txt
+    volumes:
+      # The only service that sees the host folder holding the generated password.
+      - ./.pantrypulse:/host/.pantrypulse
+      - proxy-token:/run/pantrypulse
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  api:
+    <<: [*api, *long-running]
+    depends_on: *after-setup
+    volumes:
+      - proxy-token:/run/pantrypulse:ro
+      - imports:/var/lib/pantrypulse/imports
     healthcheck:
       test: ["CMD", "uv", "run", "--frozen", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
+
+  worker:
+    <<: [*api, *long-running]
+    command: ["uv", "run", "--frozen", "python", "-m", "app.workers.supervisor", "--registry", "production"]
+    depends_on: *after-setup
+    volumes:
+      - imports:/var/lib/pantrypulse/imports
+    init: true
+    # CLAUDE.md worker ceilings: 6 CPU / 8 GiB, 725 s stop grace.
+    cpus: 6
+    mem_limit: 8g
+    memswap_limit: 8g
+    stop_signal: SIGTERM
+    stop_grace_period: 725s
+
+  web:
+    restart: unless-stopped
+    image: ghcr.io/gbw30/pantrypulse-web:0.1.0
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      PANTRYPULSE_API_ORIGIN: http://api:8000
+      PP_TRUSTED_PROXY_TOKEN_FILE: /run/pantrypulse/proxy-token
+    volumes:
+      - proxy-token:/run/pantrypulse:ro
+    ports:
+      - "127.0.0.1:${PP_WEB_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
 volumes:
-  pgdata:
+  db:
+  # The trusted proxy token, generated once by seed; never published to the host.
+  proxy-token:
+  # Uploaded import files, shared by api (writes) and worker (reads); never published.
+  imports:
