@@ -1,6 +1,8 @@
 # ADR 0001: V4 research-first architecture
 
-> **Current authority:** [Project specification V5](../pantrypulse/SPEC-V5.md). Retain the research gate and compatible architecture. V5 incorporates later accepted proxy/job/scenario/mode/runtime decisions and current implementation evidence; illustrative mathematical values below remain gated.
+> **v1 authority (2026-11-06):** [V1-SPEC](../pantrypulse/V1-SPEC.md) and the [v1 plan](../plans/v1/README.md) override this document where they conflict; [SPEC-V5](../pantrypulse/SPEC-V5.md) governs what V1-SPEC leaves open. The research gate still applies; v1 uses Census ACS vulnerability attributes instead of simulated ones (V1-D04).
+
+> **Before v1:** [Project specification V5](../pantrypulse/SPEC-V5.md). Retain the research gate and compatible architecture. V5 incorporates later accepted proxy/job/scenario/mode/runtime decisions and current implementation evidence; illustrative mathematical values below remain gated.
 
 Date: 2026-10-23. Accepted for scaffold; mathematical implementation remains gated.
 

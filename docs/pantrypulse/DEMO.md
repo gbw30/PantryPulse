@@ -1,6 +1,8 @@
 # PantryPulse demo runbook
 
-> **Current authority:** [Project specification V5](SPEC-V5.md). Historical demonstration runbook. Use the V5 research-first narrative, expanded population, paired methods, proxy/job architecture and current implementation limits.
+> **v1 authority (2026-11-06):** [V1-SPEC](V1-SPEC.md) and the [v1 plan](../plans/v1/README.md) override this document where they conflict; [SPEC-V5](SPEC-V5.md) governs what V1-SPEC leaves open. Historical hackathon runbook.
+
+> **Before v1:** [Project specification V5](SPEC-V5.md). Historical demonstration runbook. Use the V5 research-first narrative, expanded population, paired methods, proxy/job architecture and current implementation limits.
 
 Audience: Gator Hack V judges. Target length: 2–3 minutes, adjusted to the actual event limit. The official event deadline, eligibility, judging rubric, AI/tool disclosure, sponsor requirements, video length and submission format are not present in the source spec; confirm them from the organizer before the event. All hour numbers in this kit are relative to the actual start time.
 

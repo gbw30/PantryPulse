@@ -1,6 +1,8 @@
 # Proposed Backend Data Flow and API Behavior
 
-> **Current authority:** [Project specification V5](SPEC-V5.md). Explanatory reference. V5 supersedes conflicting target, transfer-mode, proxy/job, scenario and supplier policies and distinguishes implemented from planned behavior.
+> **v1 authority (2026-11-06):** [V1-SPEC](V1-SPEC.md) and the [v1 plan](../plans/v1/README.md) override this document where they conflict; [SPEC-V5](SPEC-V5.md) governs what V1-SPEC leaves open. Overridden here in v1: routes are `/api/v1/networks/{id}/…` plus the import routes in the v1 plan README; method sets per V1-SPEC §6.2; supplier planning is v2.
+
+> **Before v1:** [Project specification V5](SPEC-V5.md). Explanatory reference. V5 supersedes conflicting target, transfer-mode, proxy/job, scenario and supplier policies and distinguishes implemented from planned behavior.
 
 The backend is proposed to take **records of stock, past demand, donations, and operating rules**, turn them into **estimates of future shortages**, and then calculate **feasible recommendations for moving resources between locations**.
 

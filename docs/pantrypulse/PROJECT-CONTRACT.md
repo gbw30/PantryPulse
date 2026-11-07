@@ -1,6 +1,8 @@
 # PantryPulse project contract
 
-> Historical contract. [Project specification V5](SPEC-V5.md) is the current source of truth and supersedes conflicting scope, proxy/job/scenario/provider policies and implementation-status statements below. Retain compatible invariants and historical rationale; do not adopt old numerical examples as new defaults.
+> **v1 authority (2026-11-06):** [V1-SPEC](V1-SPEC.md) and the [v1 plan](../plans/v1/README.md) override this document where they conflict; [SPEC-V5](SPEC-V5.md) governs what V1-SPEC leaves open. Overridden here in v1: a lot is usable through its expiry day (BD-44); imports are all-or-nothing raw `text/csv` uploads that save nothing on failure, not even the network (decision W0-08 §4); methods are V1-SPEC §6.2's five Pantry and three Retail methods, not the four policies below; networks are user-imported, up to 100 locations × 500 products; the Retail objective is `w_exp×expired + w_lost×lost_sales`; optimization runs per product (decision W0-optimizer-decomposition).
+
+> Historical contract. Before v1, [Project specification V5](SPEC-V5.md) was the source of truth and superseded conflicting scope, proxy/job/scenario/provider policies and implementation-status statements below. Retain compatible invariants and historical rationale; do not adopt old numerical examples as new defaults.
 
 Status: proposed implementation contract derived from source spec v1.0 and the supplied orchestration research. Product requirements below come from the spec; details labeled decision resolve gaps for the 48-hour build. Record accepted changes in an ADR before changing shared schemas. D08–D09 and the status-code, shortage-response, schema-column and observability sections were added on 2026-10-23 after a source-spec audit. The HANDBOOK.md appendix copy predates them, so this file is authoritative.
 

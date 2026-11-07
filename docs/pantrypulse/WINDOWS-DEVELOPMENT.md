@@ -1,5 +1,7 @@
 # Windows development
 
+> **v1 authority (2026-11-06):** [V1-SPEC](V1-SPEC.md) and the [v1 plan](../plans/v1/README.md) override this document where they conflict; [SPEC-V5](SPEC-V5.md) governs what V1-SPEC leaves open. This repository root is the only Git repo (CLAUDE.md); the v1 install is `docker compose up` on Windows 11 or Linux.
+
 For first-time setup, use the complete [installation guide](../../INSTALLATION.md), including manual tool installation and optional dependency decisions. This document is a command reference.
 
 Run from the OUTER Git root, not PantryPulse/. PowerShell 5.1/7 supported.

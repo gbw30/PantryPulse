@@ -1,10 +1,12 @@
 # PantryPulse developer installation
 
+> **v1 authority (2026-11-06):** [V1-SPEC](docs/pantrypulse/V1-SPEC.md) and the [v1 plan](docs/plans/v1/README.md) override this document where they conflict; [SPEC-V5](docs/pantrypulse/SPEC-V5.md) governs what V1-SPEC leaves open. The v1 install supports Windows 11 and Linux through `docker compose up`; the migration head is now `ppv1_0010`.
+
 For a shorter walkthrough with separate host and teammate instructions, follow the [Windows installation and Cloudflare connection quickstart](docs/setup/WINDOWS-QUICKSTART.md).
 
 This guide targets Windows x64 with PowerShell 5.1 or 7. [Current status](docs/pantrypulse/CURRENT-STATUS.md) and [SPEC-V5](docs/pantrypulse/SPEC-V5.md) distinguish merged source, running images and remaining release work. The [V4 tab](https://docs.google.com/document/d/1WcsV69YCE1mqW2pI7IyEFQBSuwQB_hMhVQKfU20ZFk8/edit?tab=t.951hp1xdarlq) and saved snapshot are historical. Local backend/Chronos preparation is resumed; cloud deployment and supplier planning remain separate authorizations.
 
-**Current state:** presenter-protected baseline forecasts, persisted scenarios/comparisons, two bounded allocation methods and independent verification, connected `/optimization`/same-origin proxy, migrations through `ppor_0005`, and active Linux/PostgreSQL/browser CI. Use [local compute](docs/setup/LOCAL-COMPUTE.md) for the opt-in resource-bounded image/model tools and [connected setup](docs/optimization/CONNECTED-INTEGRATION.md) for deliberate synthetic loading. Existing running containers are preserved; a source merge does not upgrade them. Chronos has standalone CPU evidence but is not the application provider.
+**Current state:** presenter-protected baseline forecasts, persisted scenarios/comparisons, two bounded allocation methods and independent verification, connected `/optimization`/same-origin proxy, migrations through `ppor_0005` (now `ppv1_0010`), and active Linux/PostgreSQL/browser CI. Use [local compute](docs/setup/LOCAL-COMPUTE.md) for the opt-in resource-bounded image/model tools and [connected setup](docs/optimization/CONNECTED-INTEGRATION.md) for deliberate synthetic loading. Existing running containers are preserved; a source merge does not upgrade them. Chronos has standalone CPU evidence but is not the application provider.
 
 ## v1 local stack (one start command)
 

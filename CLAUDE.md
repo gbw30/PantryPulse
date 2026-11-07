@@ -15,7 +15,7 @@ Build PantryPulse v1: a stranger installs it locally with one start command (Doc
 - docs/pantrypulse/BOARD.md: current integration summary followed by historical delivery rows. Existing task packets are in docs/pantrypulse/tasks/; lead records bounded ownership before delegation.
 - docs/pantrypulse/IMPLEMENTATION-PLAN.md and docs/architecture/ (ADR 0001 research gate, ADR 0002 UI stack): current V4 plan and decisions.
 - docs/pantrypulse/ACCEPTANCE-MATRIX.md: required evidence per requirement. docs/pantrypulse/BACKEND-DATA-FLOW.md: how data moves through the API.
-- INSTALLATION.md and docs/pantrypulse/WINDOWS-DEVELOPMENT.md: setup. SCAFFOLD-VERIFICATION.md: what has actually been run and what has not.
+- INSTALLATION.md and docs/pantrypulse/WINDOWS-DEVELOPMENT.md: setup. docs/pantrypulse/SCAFFOLD-VERIFICATION.md: what has actually been run and what has not.
 - Reference only, don't preload: docs/pantrypulse/SOURCE-SPEC.md (original PRD), docs/pantrypulse/HANDBOOK.md (orchestration rationale), docs/pantrypulse/templates/ (scaffold fragments for the lead), docs/pantrypulse/ENVIRONMENT.md (toolchain and config verification status).
 
 ## Repository map
@@ -40,7 +40,7 @@ The repository root is this folder and the only Git repo. Do not create or run f
 
 ## Superpowers methods
 Superpowers (`superpowers@claude-plugins-official`, reviewed at v7.0.1) supplies engineering methods. The PantryPulse lead stays the orchestrator, and the project agents keep their roles. Precedence, highest first:
-1. The consolidated project specification docs/pantrypulse/SPEC-V5.md and later explicit user decisions. SOURCE-SPEC.md and PROJECT-CONTRACT.md retain historical material where compatible.
+1. docs/pantrypulse/V1-SPEC.md, then docs/pantrypulse/SPEC-V5.md where V1-SPEC is silent, and later explicit user decisions (docs/plans/v1/decisions/). SOURCE-SPEC.md and PROJECT-CONTRACT.md retain historical material where compatible.
 2. Contracts, invariants and deterministic fixtures.
 3. This file, the rules, the agent definitions and the task packet.
 4. Superpowers skills.
@@ -48,7 +48,7 @@ Superpowers (`superpowers@claude-plugins-official`, reviewed at v7.0.1) supplies
 When a skill conflicts with a project constraint, keep the project rule and use the compatible form below. Never weaken verification or approved product behavior. Full rationale: HANDBOOK.md, Amendment A1.
 - **Every lane:** `verification-before-completion` (mandatory: run the commands and read their output before any pass/fixed/deployed claim), `systematic-debugging` (mandatory: root cause before fixing; the two-failed-fix limit below still applies), `test-driven-development` (failing test first for inventory, forecasting, optimization, simulation and API logic; delete only code you wrote in this task) and `receiving-code-review`.
 - **Lead only:**
-  - `writing-plans`: run once, from the approved PRD. Save the plan to docs/pantrypulse/IMPLEMENTATION-PLAN.md, track tasks on BOARD.md, and turn each task into a PP-NN packet.
+  - `writing-plans`: the v1 plan lives in docs/plans/v1 (wave files, lane prompts, status files); BOARD.md tracks waves. Use the skill only for new plans inside that structure.
   - `brainstorming`: only for decisions that are genuinely open. Don't redo settled requirements.
   - `subagent-driven-development`: selective, for complex independent tasks only. Dispatch the project builder agent for that domain with a packet, never `general-purpose`. At most three builders, no nested workers, and no per-task review cycle for trivial UI changes.
 - **`using-git-worktrees`:** the lead creates worktrees at the packet's exact base SHA. Builders started with `isolation: worktree` are already isolated: they check their base and never create a nested worktree.
@@ -78,7 +78,7 @@ When a skill conflicts with a project constraint, keep the project rule and use 
 - E2E: node scripts/quality/run.cjs e2e
 - Config tests: node --test scripts/quality/tests/*.test.cjs
 - App checks: npm run check (types, lint, ruff, API tests), npm run build, npm run test:e2e.
-- Backend runs in Docker on this Windows host because Application Control blocks OR-Tools natively: npm run dev:api:docker, npm run test:api:docker, npm run check:runtime:docker.
+- On the Windows host, Application Control blocks OR-Tools natively, so the backend runs in Docker there: npm run dev:api:docker, npm run test:api:docker, npm run check:runtime:docker. Under WSL/Linux, `uv run --frozen` runs it natively (the v1 lanes do).
 - The Stop gate is enabled and runs the quick gate; it does not run full or e2e.
 Gate commands are declared in .claude/quality-gate.json. Active .github/workflows/pantrypulse-ci.yml verifies Linux/PostgreSQL and connected browser behavior and rejects skipped evidence. Do not install historical templates over executable manifests. Solver ceilings are now 300s search / 330s method / 690s comparison, queue expiry 1800s; local stop grace is 725s. Forecast 270/300s and worker 6-CPU/8-GiB ceilings remain.
 

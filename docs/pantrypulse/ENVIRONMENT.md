@@ -1,5 +1,7 @@
 # Environment record
 
+> **v1 authority (2026-11-06):** [V1-SPEC](V1-SPEC.md) and the [v1 plan](../plans/v1/README.md) override this document where they conflict; [SPEC-V5](SPEC-V5.md) governs what V1-SPEC leaves open. For v1 lanes, test databases and ports follow the plan README's isolation table.
+
 ## Current source/environment summary — October 25, 2026
 
 See [CURRENT-STATUS.md](CURRENT-STATUS.md) for the supported source/runtime distinction. Node 24.16.0, npm 11.13.0, uv 0.11.15 and Python 3.12.13 remain pinned. Active `.github/workflows/pantrypulse-ci.yml` runs Linux/PostgreSQL and connected browser gates; the template/Node-22 remarks below are historical. The opt-in local compute configuration, persistent model cache and real standalone Chronos evidence are in [LOCAL-COMPUTE.md](../setup/LOCAL-COMPUTE.md). Existing running images are not replaced by a source merge.
@@ -7,7 +9,7 @@ See [CURRENT-STATUS.md](CURRENT-STATUS.md) for the supported source/runtime dist
 ## Historical tooling record
 
 
-> **Current authority:** [Project specification V5](SPEC-V5.md). Dated environment/configuration history. Use V5 for current project contracts and evidence; machine/plugin details below are not product prerequisites or live-state guarantees.
+> **Before v1:** [Project specification V5](SPEC-V5.md). Dated environment/configuration history. Use V5 for current project contracts and evidence; machine/plugin details below are not product prerequisites or live-state guarantees.
 
 Recorded 2026-10-23 when the Claude Code kit was installed. Update this file when a toolchain version changes.
 

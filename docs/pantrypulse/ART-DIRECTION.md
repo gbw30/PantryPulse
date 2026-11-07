@@ -1,6 +1,8 @@
 # PantryPulse art direction
 
-> **Current authority:** [Project specification V5](SPEC-V5.md). Retain compatible design guidance. V5 governs six-beneficiary scope, real result/method states, accepted libraries and the distinction between proposed style and verified UI.
+> **v1 authority (2026-11-06):** [V1-SPEC](V1-SPEC.md) and the [v1 plan](../plans/v1/README.md) override this document where they conflict; [SPEC-V5](SPEC-V5.md) governs what V1-SPEC leaves open. Overridden here in v1: "Sample data — fictional" labels only sample networks (imported data is the user's own), and plan rows follow V1-SPEC §6.5 (action, why, effect). The visual direction and tokens below still apply.
+
+> **Before v1:** [Project specification V5](SPEC-V5.md). Retain compatible design guidance. V5 governs six-beneficiary scope, real result/method states, accepted libraries and the distinction between proposed style and verified UI.
 
 Direction: **calm community operations desk**. The interface feels like a carefully typeset logistics ledger with a living resource network. It helps a coordinator see risk, an action and its consequence. This is a proposed default for human approval, not an inferred existing brand.
 

@@ -2,6 +2,8 @@
 
 # PantryPulse — Project Specification V5
 
+> **v1 authority (2026-11-06):** [V1-SPEC](V1-SPEC.md) overrides this specification where they conflict (its §4 change table) and the [v1 plan](../plans/v1/README.md) implements it; V5 governs everything V1-SPEC leaves open.
+
 **Version:** 5.1 · **Consolidated:** October 25, 2026, America/New_York
 **Purpose:** the project source of truth for product scope, accepted decisions, implementation status, contracts, unresolved work and acceptance.  
 **Status:** consolidated specification with explicit implementation gates. The complete product is not implemented or release-ready.

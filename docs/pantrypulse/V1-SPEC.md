@@ -180,6 +180,7 @@ Import rules:
 Method notes:
 
 - **All methods in a comparison share one frozen scenario and one feasible region**, and each result goes through the independent verifier before it's published. Heuristics (equal share, most-urgent-first, soonest-expiry-first) are deterministic, with declared tie-breaks.
+  - **Per product (decided after S1, 2026-11-04):** each optimizing method solves one CP-SAT model per product, by default only at-risk products. Shared capacity is split between products before solving, and an independent union check confirms the combined plan respects every shared limit. Fairness and EGP terms apply within each product, so there is no network-wide objective total. Details: `docs/plans/v1/decisions/W0-optimizer-decomposition.md`.
 - **Retail "Optimized"** is a new CP-SAT objective: minimize `w_exp × expired + w_lost × lost_sales` over the allocation window, in units or USD.
   - (lead call) Defaults are `w_exp = 1`, `w_lost = 1`. They are shown in the scenario and editable. These are disclosed v1 defaults, not a research claim.
   - It needs its own small hand-derived oracle fixtures before integration, mirroring V5 §10.4 steps 3–4.
@@ -261,7 +262,7 @@ Method notes:
 - **Login:** keep presenter authentication in the backend, with no bypass (lead call).
   - On first start, the stack generates a random local password. It stores the password's hash in the database, and stores the password itself only in a gitignored file, `./.pantrypulse/local-login.txt`.
   - It prints `Open http://127.0.0.1:3000 — username: local — password: see .pantrypulse/local-login.txt` on startup.
-  - The proxy token is generated the same way.
+  - The proxy token is generated once by the seed and kept in a file on a volume shared only by the services that need it, never in the database or on the host (decision `docs/plans/v1/decisions/W0-network-model.md`).
   - The scrypt-hash `$` gotcha must not be reproducible: values are never passed through shell `eval`.
 - **Neon / Vercel / Fly / Cloudflare:** optional and documented as before. None is needed for any v1 acceptance criterion.
 - **Start over:** `docker compose down -v` deletes all local data. It's documented with a warning. This is the v1 "reset". A scoped in-app reset is deferred.
@@ -338,6 +339,7 @@ Ordered by risk. Each spike is time-boxed, its code is throwaway, and its findin
    - Can CP-SAT produce verified Pantry (EGP with RP group means over up to ~100 receivers per product) and Retail results within the existing 300 s search / 690 s comparison ceilings?
    - Spike: build a synthetic 100 × 500 scenario and test decomposition by product, k-nearest routes, and optimizing only at-risk products.
    - If it doesn't fit, apply V1-D15 in order: optimize only at-risk products first, then lower the envelope. Raise ceilings only as a last resort, with evidence.
+   - **Answered by S1 (2026-11-04):** a single network model doesn't build in time; v1 solves one model per product (at-risk by default) with shared capacity split in advance. See `docs/plans/v1/decisions/W0-optimizer-decomposition.md`.
 2. **Retail objective correctness.** A new objective has no oracle yet. Hand-derive 3–4 tiny fixtures (expiry-driven transfer, lost-sales-vs-waste trade-off, USD vs units flip, nothing worth moving) before building it.
 3. **Cross-platform Docker.**
    - Windows CRLF, first-run time, and Docker Desktop memory defaults on Windows 11.
@@ -367,10 +369,10 @@ PASS needs evidence for the exact commit and environment: command, timestamp, ar
 | V1-A11 | Distance: the straight-line default produces labeled routes; with a user key, Google distances are cached and labeled, and the key never reaches logs or the browser; `routes.csv` overrides both | Tests with a recorded Google response + one live keyed run |
 | V1-A12 | Forecast: every eligible series gets seven dated points with actual provider/fallback; the backtest shows WAPE/bias on the same scored set, or "accuracy not evaluated" under 35 days | API + e2e |
 | V1-A13 | Atlas: the danger ranking matches an independent calculation on a fixture; never sums units across products; has a text/table alternative | Unit + e2e + axe |
-| V1-A14 | Pantry comparison: all five methods run on one frozen scenario in both transfer modes; every published result passes the independent verifier; method failures show honestly | Integration + e2e |
+| V1-A14 | Pantry comparison: all five methods run on one frozen scenario in both transfer modes; every published result passes the independent verifier; method failures show honestly; results are labeled "optimized per product, with shared capacity split in advance" and name the products solved | Integration + e2e |
 | V1-A15 | Retail comparison: all three methods run in units and USD (USD unavailable with reason when prices are missing); the optimized method matches the hand-derived oracle fixtures | Oracle + integration + e2e |
 | V1-A16 | Decisions: each action shows action/why/effect; the effect equals an independent remove-one re-projection; the non-additive label is visible; export CSV/print contains the scenario hash and "simulated plan" text; no stock changes | Unit + e2e + DB unchanged check |
-| V1-A17 | Scale: a 100 × 500 forecast and a full comparison per mode finish within the ceilings in force (or the documented raised ceilings), with peak RAM/CPU recorded | Benchmark artifact |
+| V1-A17 | Scale: a 100 × 500 forecast and a full comparison per mode finish within the ceilings in force (or the documented raised ceilings), with peak RAM/CPU recorded; the per-product union check passes for every shared limit | Benchmark artifact |
 | V1-A18 | README: a person who has never seen the repo follows only the README on Windows 11 and on Linux and completes install → sample → import own template (including `inbound.csv` and `donation_history.csv`) → forecast → compare → export | Observed run notes per OS |
 | V1-A23 | Inbound and donations: confirmed `inbound.csv` arrivals enter the projection once on their date; out-of-horizon rows are listed; donation history keeps 0 vs missing distinct; donation forecasts are shown labeled "not confirmed" and change no allocation or danger score | API + projection golden test + e2e |
 | V1-A19 | Hardware: README requirements come from the measured runs in A09/A17 | Measurement artifact linked from README |
