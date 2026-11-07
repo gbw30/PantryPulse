@@ -14,7 +14,7 @@ Mocked e2e runs prove UI behavior against the contract examples in `packages/con
 | W1-W03b | done | see `git log` (W1-W03b) | `npx vitest run tests/unit/import-errors.test.tsx` → 8 passed; `PLAYWRIGHT_PORT=3003 npx playwright test tests/e2e/import-upload.spec.ts` → 5 passed (@V1-A07, @V1-A23, @V1-A20 keyboard + axe at 1440×900, 1280×720, 390×844; mocked import flow from the Import* contract examples). Screenshots `artifacts/w1-web/import-*.png`. |
 | W1-W04 | done | see `git log` (W1-W04) | `npx vitest run tests/unit/google-key-form.test.tsx` → 4 passed; `PLAYWRIGHT_PORT=3003 npx playwright test tests/e2e/enrichment.spec.ts` → 3 passed (mocked EnrichmentStatus, LocationAttributes, RouteList, LocalSettings, GoogleLookupPreview, ForecastAccepted). |
 | W1-W05 | done, except map placement and inspector (blocked: CR-w1-web-1, -2, -3) | see `git log` (W1-W05) | `npx vitest run tests/unit/danger-ranking.test.tsx` → 5 passed; `PLAYWRIGHT_PORT=3003 npx playwright test tests/e2e/atlas-ranking.spec.ts` → 4 passed (@V1-A13 table alternative; @V1-A20 axe + keyboard toggle at 1440×900, 1280×720, 390×844; mocked `DangerRanking`). Not written: `@V1-A13 selecting a row opens the site inspector`, and placement by real coordinates. Both need data no frozen route returns (see CRs). |
-| W1-W06 | todo | — | — |
+| W1-W06 | done, except method/fallback/donations from a live run (CR-w1-web-4) | see `git log` (W1-W06) | `npx vitest run tests/unit/trust-panel.test.tsx` → 6 passed; `PLAYWRIGHT_PORT=3003 npx playwright test tests/e2e/forecast-trust.spec.ts` → 1 passed (mocked `BacktestResult`). RED was not run before implementing; instead a mutation check (bias sign flipped, quantile check removed) failed 2 of 6 unit tests, and they passed again after restoring. |
 | W1-W07 | todo | — | — |
 | W1-W08 | todo | — | — |
 
@@ -48,6 +48,7 @@ Visual check of 647f6a8: at 1440×900 the builder panel is 24rem and step-1 cont
 - `/settings` (sidebar footer link, now built): write-only Google key form, then the chosen network's enrichment (lookup state, retry, unmatched addresses, EGP blocker banner, per-location attribute editor with source line) and routes (method labels, Google fetch behind a lookup-count dialog). The key input is uncontrolled, so the key never enters React state or a DOM attribute (React mirrors controlled `value` into the attribute). — W1-W04
 - Attribute values are sent as typed decimal strings (`"0.25"`), validated client-side as a share in [0, 1]; the API accepts number or string. — W1-W04
 - Danger ranking is its own section on `/overview` for the chosen v1 network, never merged into the demo atlas snapshot (fixture and v1 data are never mixed). Bands: high = diamond, medium = triangle, low = open circle, each with a text label and a legend. Retail rows show the score's reason. — W1-W05
+- Forecast trust is a section on the `/data` dashboard for the chosen v1 network (`?forecast_job_id=` until CR-w1-web-2). `forecast-chart.tsx` was not changed: it already draws the p10–p90 band only for a single-site series with model quantiles, and says why otherwise. Bias wording follows V5 §7 (error = prediction − actual, so positive bias = "forecast too high"). — W1-W06
 - The top-bar "Simulated network" pill is unchanged: the existing screens still read the demo network until they are rewired to v1 networks. — W1-W02
 
 ## Gotchas
@@ -77,6 +78,13 @@ Visual check of 647f6a8: at 1440×900 the builder panel is 24rem and step-1 cont
 - **Exact change:** either add `latest_forecast_run_id: uuid | null` (with its `dataset_version_id`) to `Network`, or add `GET /networks/{network_id}/forecasts` → `[{forecast_run_id, job_id, dataset_version_id, recorded_at, state}]`.
 - **Why:** `GET /networks/{id}/danger` requires `forecast_run_id`, and `GET /forecasts/{job_id}/backtest` a job id, but the only place either appears is the 202 `ForecastAccepted` from `POST /networks/{id}/forecasts`. After a reload the UI cannot find the run. Interim in this lane: `/overview?forecast_run_id=` (the danger e2e uses it).
 - **Unblocks:** W1-W05 without the URL parameter, W1-W06 backtest fetch.
+- **Status:** open
+
+### CR-w1-web-4 — v1 forecast series result, and a per-location accuracy roll-up
+- **File(s):** `packages/contracts/examples/v1/` + forecast schemas (lead-only; service in w3-forecast)
+- **Exact change:** (a) name the read that returns a `forecast.v1` network run's series and add its example, keyed by v1 `location_id`/`product_id`, with `basis`, `actual_provider`, `fallback_used`, `fallback_reason`, `diagnostics.missing_count`, `points` (p10/p90 only from quantile providers) and the donation forecast per location × product; (b) add per-location WAPE/bias to `BacktestResult` (e.g. `locations: [{location_id, score: BacktestScore}]`) computed on the pooled scored set.
+- **Why:** V1-SPEC §6.4 requires method, fallback reason, missing days, quantile band and "rolled up per location". `BacktestResult` has only per-series scores, and WAPE percentages can't be averaged into a per-location figure without the underlying sums. The existing `ForecastSeriesResult` is keyed by v2 UUIDs, and no v1 example exists. `TrustPanel` already renders all of it from `ForecastSeriesResult` fields (unit-tested with a typed subset, since no example exists).
+- **Unblocks:** W1-W06 method/fallback/donation rows on the live page; the per-location roll-up.
 - **Status:** open
 
 ### CR-w1-web-3 — per-location projection for the site inspector
