@@ -73,7 +73,7 @@ def _fails(engine, sql, **params):
 def test_upgrade_head_on_fresh_database(engine):
     with engine.connect() as conn:
         assert V1_TABLES <= _tables(conn)
-        assert conn.scalar(sa.text("SELECT version_num FROM alembic_version")) == "ppv1_0011"
+        assert conn.scalar(sa.text("SELECT version_num FROM alembic_version")) == "ppv1_0012"
 
 
 def test_downgrade_to_ppvp_0007_and_up_again():
@@ -338,6 +338,37 @@ def test_downgrade_refuses_to_drop_saved_scenarios():
             command.downgrade(alembic_config(conn), "ppv1_0010")
         with eng.connect() as conn:
             assert "planning_scenarios_v3" in _tables_in(conn, schema)
+    finally:
+        eng.dispose()
+        reset_schema(url, schema)
+
+
+def test_handling_units_given_defaults_true_and_is_required(engine):
+    """CR-w1-data-6: the flag says whether the file gave handling units (blank → 1, listed)."""
+    with engine.begin() as conn:
+        ids = _network(conn)
+        assert conn.scalar(sa.text("SELECT handling_units_given FROM net_products "
+                                   "WHERE id = :prod"), ids) is True
+    _fails(engine, "INSERT INTO net_products (id, organization_id, dataset_version_id, "
+                   "external_id, name, unit, handling_units_given) VALUES "
+                   "(gen_random_uuid(), :org, :ver, 'P-NULL', 'x', 'case', NULL)")
+
+
+def test_downgrade_refuses_to_lose_a_defaulted_handling_unit():
+    url = database_url()
+    schema = "v1_schema_handling_refusal_test"
+    reset_schema(url, schema)
+    eng = create_queue_engine(url, schema=schema)
+    try:
+        with eng.begin() as conn:
+            command.upgrade(alembic_config(conn), "head")
+            ids = _network(conn)
+            conn.execute(sa.text("INSERT INTO net_products (id, organization_id, "
+                                 "dataset_version_id, external_id, name, unit, "
+                                 "handling_units_given) VALUES (gen_random_uuid(), :org, :ver, "
+                                 "'P-BLANK', 'x', 'case', false)"), ids)
+        with pytest.raises(Exception, match="V1_DATA_PRESENT"), eng.begin() as conn:
+            command.downgrade(alembic_config(conn), "ppv1_0011")
     finally:
         eng.dispose()
         reset_schema(url, schema)
