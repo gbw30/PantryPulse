@@ -119,5 +119,5 @@ Evidence follows CLAUDE.md: exact commit, command and result. Skipped, mocked or
 - Use the TDD loop for every task: write the failing test, run it and see it fail for the expected reason, write the minimal implementation, run it and see it pass, commit. Use `superpowers:verification-before-completion` before any "done" claim.
 - Tag every new e2e title with `@V1-Axx` (the story-coverage convention adopted in W0-09). Put `# covers: V1-Axx` on the first line of new Python test modules.
 - Run `research-claims-check` before writing any UI copy or doc that mentions the EGP-PI research, fairness, forecasts or impact.
-- Gates before the PR: your task's focused tests, `node scripts/quality/run.cjs quick`, then `node scripts/quality/run.cjs full` with `.env.lane` loaded. Zero skips.
+- Gates before the PR: your task's focused tests, `node scripts/quality/run.cjs quick`, then `node scripts/quality/run.cjs full` with `.env.lane` loaded. Quick runs in the standard env; name the PostgreSQL (PP19) suites it skips and never count them as validated. Full runs with `PP19_TEST_SCHEMA_ISOLATION=1` and must show zero skips (Gabriel, 2026-11-07; the api-tests step limit is 480 s).
 - Put durable findings in your status file under "Gotchas". The orchestrator consolidates them at wave end.

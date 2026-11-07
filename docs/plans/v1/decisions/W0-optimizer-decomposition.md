@@ -35,3 +35,8 @@ V1-D15 step reached: **1**. No lower envelope and no raised ceilings.
 ## Retail USD shared-capacity split (CR-w1-solver-2, Gabriel, 2026-11-07)
 
 In Retail USD mode, shared receiving capacity is split across products in proportion to `need × handling_units_per_unit × unit_value_usd`, so the decomposed solve values capacity the way the USD objective does. Units mode keeps the need-weighted split. Built by w1-solver.
+
+## Localized capacity split and the EGP singleton rule (Gabriel, 2026-11-07)
+
+- **Localized split.** The full-size Retail bench (`docs/optimization/evidence/v1-scale.json`) left 123 of 209 at-risk products (150 in USD) with a share below one unit's handling, so they got no transfers. Each receiver's shared capacity is therefore split only among the products with positive need at that receiver, using the same weights (need × handling, × unit value in USD). Then shares are rounded to whole units: a product whose share can't fit one unit gets one unit's handling in deterministic priority order (largest weight first, then product ID) until the capacity runs out. The split never exceeds the shared limit, so the union check still holds. Products still starved are listed with the label "capacity share too small to move one unit". Built by w1-solver with tests.
+- **Singleton groups.** EGP_PI_INSPIRED skips a product with fewer than two pantries that have positive targets, labelling it "relative-priority group has fewer than two pantries; EGP-PI not defined" (SPEC-V5 §11, ADR 0001). CLASSICAL_GP still optimizes it. Accepted.
