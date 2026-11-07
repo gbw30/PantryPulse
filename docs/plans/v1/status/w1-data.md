@@ -20,9 +20,9 @@
 
 | Gate | Commit | Result |
 |---|---|---|
-| `node scripts/quality/run.cjs quick` | `1615264` | PASS in the standard `.env.lane` env (web typecheck, web lint, api lint, api tests). Not validated: the PP19 PostgreSQL suites (`test_operational_postgres`, `test_forecast_api_postgres`, `test_planning_postgres`, stock), skipped without `PP19_TEST_SCHEMA_ISOLATION=1`. With it exported, the api-tests step hits its 360 s timeout about 42% through, with no failed test. Decision recorded on the BOARD for the lead's resume. |
-| `node scripts/quality/run.cjs full` (with `.env.lane`) | | |
-| `/devkit:ship-check` | | |
+| `node scripts/quality/run.cjs quick` | `d4404ac` | PASS 4/4 in the standard `.env.lane` env. `uv run --frozen pytest -q -rs` → 1571 passed, 77 skipped, 161 s. Not validated here (PP19 opt-in): `test_operational_postgres` 25, `test_stock_postgres` 17, `test_stock_adjustment_api_postgres` 9, `test_operations_api_postgres` 7, `test_forecast_api_postgres` 6, `test_inventory_api_postgres` 5, `test_planning_postgres` 4, `test_planning_api_postgres` 4 |
+| `node scripts/quality/run.cjs full` (with `.env.lane`, `PP19_TEST_SCHEMA_ISOLATION=1`) | `d4404ac` | PASS 8/8 in 248 s. `uv run --frozen pytest -q -rs` → 1648 passed, 0 skipped, 228 s (step limit 480 s) |
+| `/devkit:ship-check` | `d4404ac` | step 1 the gates above; step 2 project `verifier` on `0df19db` (F1–F4, fixed test-first in `8ae588f`) and a re-check on `ed5a188` (F1–F4 PASS; capacity rounding listed in `d4404ac`; CR-w1-data-6 open); step 3 skipped (security-guidance not installed); steps 4–5 wait for Gabriel's PR approval |
 
 ## Pause point (2026-11-07)
 
