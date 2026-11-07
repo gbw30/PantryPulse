@@ -175,13 +175,14 @@ def publishable(scenario, baseline, result):
         return result
     solved = [p.native_status for p in result.products if p.native_status]
     status = None if not solved else "FEASIBLE" if "FEASIBLE" in solved else "OPTIMAL"
+    status = status if result.method in OPTIMIZING else None
     rebuilt = assemble_method(
         scenario,
         result.method,
         result.measure,
         baseline,
         quantities_of(result.transfers),
-        status if result.method in OPTIMIZING else None,
+        status,
         result.products,
         {},
     )
@@ -197,7 +198,7 @@ def publishable(scenario, baseline, result):
         scenario,
         result.method,
         result.measure,
-        result.native_status,
+        status,
         f"PUBLICATION_VERIFICATION_FAILED:{','.join(problems)}",
         result.products,
     )

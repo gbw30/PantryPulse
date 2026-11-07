@@ -149,6 +149,7 @@ def test_tampered_result_fields_are_published_unverified(field, value):
     method = PUBLISHER.validate(validated, outcomes)["comparison"]["methods"][2]
     assert (method["verified"], method["transfers"]) == (False, [])
     assert method["failure_reason"] == f"PUBLICATION_VERIFICATION_FAILED:{field}"
+    assert method["native_status"] == optimized.native_status  # derived, never the claim
 
 
 def test_product_status_relabel_is_published_unverified():

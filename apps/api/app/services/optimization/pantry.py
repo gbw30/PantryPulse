@@ -191,6 +191,8 @@ def pantry_objectives(s, report, method) -> dict[str, int]:
         pid = product.id
         product_goals = goals(s, pid)
         n = len(product_goals)
+        if not n:  # no pantry needs it in the window: never solved, so no objective to replay
+            continue
         qs = [
             (S * v[loc].numerator * (target - served[loc, pid])) // (v[loc].denominator * target)
             for loc, target in product_goals

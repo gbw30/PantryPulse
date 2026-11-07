@@ -364,6 +364,16 @@ def moved(result):
     return out
 
 
+@pytest.mark.parametrize("method", PANTRY)
+def test_product_nobody_needs_does_not_break_a_method(method):
+    """Rice sits at the hub but no pantry asks for it in the window (n = 0 goals): the replay
+    has no objective for it and the beans plan stays the fixture's."""
+    s, expected = load("pantry-four-methods")
+    beans = tuple((d.location_id, d.product_id, d.targets) for d in s.demand)
+    s = with_rice(beans, CapacityV3(location_id="H", receiving=None, dispatch=None, storage=None))
+    assert plan_of(run_method(s, method, "UNITS")) == expected["plans"][method]
+
+
 def test_singleton_product_keeps_the_shared_split():
     """One feasible region (V1-SPEC 6.2): rice is needed only at P1 (15 bags in the window), so
     EGP leaves it unoptimized, but its share of the hub's dispatch 4 (need 15:15, so 2 and 2)
