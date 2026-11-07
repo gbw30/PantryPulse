@@ -468,6 +468,21 @@ def bench_scenario(locations, products, mode="retail"):
     return bench.generate(locations, products, mode)
 
 
+def test_bench_clean_tree_ignores_only_its_evidence_file(tmp_path):
+    """The first porcelain line starts with a space (" M path"); the path must survive it."""
+    import importlib.util
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parents[4] / "scripts" / "or" / "bench_v1.py"
+    spec = importlib.util.spec_from_file_location("bench_v1", path)
+    bench = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(bench)
+    evidence = tmp_path / "docs/evidence.json"
+    status = " M docs/evidence.json\n?? notes.txt\n"
+    assert bench.changed_paths(status, tmp_path, evidence) == ["notes.txt"]
+    assert bench.changed_paths(" M docs/evidence.json\n", tmp_path, evidence) == []
+
+
 def test_restricted_probe_equals_full_probe():
     """The heuristic probe replays only the changed sender and its receivers. Starting from a
     plan that passes, that must give exactly the full probe's violations for any change."""

@@ -208,20 +208,23 @@ def peak_rss_mb() -> float:
     return round(max(own, children) / 1024, 1)  # Linux reports KiB
 
 
+def changed_paths(porcelain: str, root: Path, evidence: Path) -> list[str]:
+    """Paths `git status --porcelain` reports, except the evidence file this run writes."""
+    paths = [line[3:] for line in porcelain.splitlines() if line]
+    return [p for p in paths if (root / p).resolve() != evidence.resolve()]
+
+
 def source(evidence: Path) -> dict:
     """The commit this run measures; the tree must be clean apart from the evidence file itself."""
 
     def git(*argv):
         return subprocess.run(
             ["git", *argv], cwd=Path(__file__).parent, capture_output=True, text=True, check=True
-        ).stdout.strip()
+        ).stdout
 
-    changed = [
-        line[3:]
-        for line in git("status", "--porcelain").splitlines()
-        if Path(git("rev-parse", "--show-toplevel"), line[3:]).resolve() != evidence.resolve()
-    ]
-    return {"commit": git("rev-parse", "HEAD"), "tree_clean": not changed}
+    root = Path(git("rev-parse", "--show-toplevel").strip())
+    changed = changed_paths(git("status", "--porcelain"), root, evidence)
+    return {"commit": git("rev-parse", "HEAD").strip(), "tree_clean": not changed}
 
 
 def run(args) -> dict:
