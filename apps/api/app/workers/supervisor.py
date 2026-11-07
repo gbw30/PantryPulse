@@ -21,6 +21,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+import sqlalchemy as sa
+
 from app.repositories.jobs import (
     ClaimedAttempt,
     CommitUncertain,
@@ -48,7 +50,13 @@ from app.services.jobs.policies import (
     should_run_step,
     supervisor_advertisement,
 )
-from app.services.jobs.registry import PublicationRejected, Registration, Registry
+from app.services.jobs.registry import (
+    PublicationIdentity,
+    PublicationRejected,
+    Registration,
+    Registry,
+    secret_env,
+)
 from app.workers.publication import reason_for, step_outcome
 from app.workers.recovery import containment_evidence
 
@@ -120,8 +128,11 @@ class Execution:
     finalize_pending: bool = False
     failure_reason: ReasonCode | None = None
     failure_error: dict | None = None
+    timeout_pending: bool = False  # the stop is requested again after a storage blip
     uncertain: bool = False
     last_state_poll: float = 0.0
+    package: dict | None = None  # validated (and prepared) publication package
+    prepared: bool = False  # the publisher's prepare hook ran; discard on non-success
 
 
 def _overflowing(handle: Any) -> bool:
@@ -344,6 +355,9 @@ class Supervisor:
                 self.driver.force_stop(handle)
                 time.sleep(0.02)
             self.driver.dispose(handle)
+        if ex is not None and ex.prepared:
+            ex.prepared = False
+            self._discard(ex)  # fenced: this attempt can never publish its prepared data
         self.active = None
         self.close()
 
@@ -419,10 +433,23 @@ class Supervisor:
                 spec.name,
             ]
             try:
+                secrets = self._child_secrets(ex.registration)
+            except Exception as exc:  # noqa: BLE001 - missing or unreadable: never spawn
+                log_event(
+                    "SECRET_UNAVAILABLE",
+                    attempt_id=ex.claim.attempt_id,
+                    error_type=type(exc).__name__,
+                )
+                self._finish(
+                    ex, failure_reason=ReasonCode.SPAWN_FAILED, error={"code": "SECRET_UNAVAILABLE"}
+                )
+                return
+            try:
                 handle = self.driver.start(
                     argv,
                     canonical_json(envelope).encode("utf-8"),
                     max_stdout_bytes=ex.registration.max_output_bytes,
+                    **({"child_env": secrets} if secrets else {}),
                 )
             except Exception as exc:  # noqa: BLE001 - no boundary was created
                 log_event(
@@ -444,6 +471,9 @@ class Supervisor:
         self._publish(ex)
 
     def _drive(self, ex: Execution, now: float) -> None:
+        if ex.timeout_pending:
+            self._timeout(ex)
+            return
         if ex.finalize_pending:
             self._finish(ex, failure_reason=ex.failure_reason, error=ex.failure_error)
             return
@@ -583,6 +613,9 @@ class Supervisor:
         An attempt already finalized elsewhere (operator attestation while local cleanup
         was pending) is left as recorded; the loop continues.
         """
+        if ex.prepared:
+            ex.prepared = False  # discard once, even if finalization is retried
+            self._discard(ex)
         ex.finalize_pending = True
         ex.failure_reason = failure_reason
         ex.failure_error = error
@@ -602,7 +635,9 @@ class Supervisor:
             self._recovery_pass()
 
     def _timeout(self, ex: Execution) -> None:
+        ex.timeout_pending = True
         self.repo.request_stop(self.own, ex.claim, ReasonCode.EXECUTION_DEADLINE_EXCEEDED)
+        ex.timeout_pending = False
         self._finish(ex)
 
     def _publish(self, ex: Execution) -> None:
@@ -610,18 +645,44 @@ class Supervisor:
         if self.clock() >= ex.hard_deadline:
             self._timeout(ex)
             return
-        try:
-            package = ex.registration.publisher.validate(ex.validated, ex.outcomes)
-        except PublicationRejected as rejected:
-            if rejected.timed_out:
+        if ex.package is None:
+            try:
+                package = ex.registration.publisher.validate(ex.validated, ex.outcomes)
+                prepare = getattr(ex.registration.publisher, "prepare", None)
+                if prepare:
+                    reserve = self.profile.publication_reserve_s
+                    remaining_s = ex.hard_deadline - self.clock() - reserve
+                    if remaining_s <= 0:
+                        self._timeout(ex)
+                        return
+                    ex.prepared = True
+                    try:
+                        package = prepare(
+                            self.repo.engine, self._identity(ex), package, remaining_s=remaining_s
+                        )
+                    except PublicationRejected:
+                        raise
+                    except Exception as exc:  # a failed load fails the attempt, then discards
+                        log_event(
+                            "PUBLICATION_PREPARE_FAILED",
+                            attempt_id=ex.claim.attempt_id,
+                            error_type=type(exc).__name__,
+                        )
+                        raise PublicationRejected("PREPARE_FAILED") from None
+            except PublicationRejected as rejected:
+                if rejected.timed_out:
+                    self._timeout(ex)
+                else:
+                    self._finish(
+                        ex, failure_reason=reason_for(rejected.code), error={"code": rejected.code}
+                    )
+                return
+            ex.package = package
+            if self.clock() >= ex.hard_deadline:
                 self._timeout(ex)
-            else:
-                self._finish(
-                    ex, failure_reason=reason_for(rejected.code), error={"code": rejected.code}
-                )
-            return
+                return
         try:
-            self.repo.publish(self.own, ex.claim, package)
+            self.repo.publish(self.own, ex.claim, ex.package)
         except Fenced:
             attempt = self.repo.read_attempt(ex.claim.attempt_id)
             if attempt.state is AttemptState.RUNNING:
@@ -644,6 +705,45 @@ class Supervisor:
         log_event("ATTEMPT_PUBLISHED", attempt_id=ex.claim.attempt_id)
         self.active = None
 
+    def _child_secrets(self, registration: Registration) -> dict[str, str]:
+        names = registration.child_secrets
+        if not names:
+            return {}
+        with self.repo.engine.connect() as conn:
+            rows = dict(
+                conn.execute(
+                    sa.text("SELECT name, value FROM local_secrets WHERE name = ANY(:n)"),
+                    {"n": list(names)},
+                ).all()
+            )
+        missing = [n for n in names if n not in rows]
+        if missing:
+            raise LookupError(f"{len(missing)} declared secret(s) not set")
+        return {secret_env(n): rows[n] for n in names}
+
+    @staticmethod
+    def _identity(ex: Execution) -> PublicationIdentity:
+        return PublicationIdentity(
+            job_id=ex.claim.job_id,
+            attempt_id=ex.claim.attempt_id,
+            organization_id=ex.claim.organization_id,
+            handler_contract=ex.claim.contract,
+            input_sha256=ex.claim.input_sha256,
+        )
+
+    def _discard(self, ex: Execution) -> None:
+        discard = getattr(ex.registration.publisher, "discard", None)
+        if discard is None:
+            return
+        try:
+            discard(self.repo.engine, self._identity(ex))
+        except Exception as exc:  # cleanup must never block finalization or the loop
+            log_event(
+                "PUBLICATION_DISCARD_FAILED",
+                attempt_id=ex.claim.attempt_id,
+                error_type=type(exc).__name__,
+            )
+
     def _reconcile(self, ex: Execution) -> None:
         try:
             outcome = self.repo.reconcile_publication(self.own, ex.claim)
@@ -659,6 +759,9 @@ class Supervisor:
             ex.uncertain = False
             self._finish(ex)
         else:
+            if outcome != "COMMITTED" and outcome != "OTHER_SUCCEEDED" and ex.prepared:
+                ex.prepared = False
+                self._discard(ex)  # finalized elsewhere without our publication
             self.active = None
 
     # --- shutdown --------------------------------------------------------------------------

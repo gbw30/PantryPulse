@@ -1,0 +1,37 @@
+CREATE TABLE planning_scenarios_v3 (
+	network_id UUID NOT NULL, 
+	dataset_version_id UUID NOT NULL, 
+	forecast_run_id UUID NOT NULL, 
+	content_hash VARCHAR(64) NOT NULL, 
+	payload JSONB NOT NULL, 
+	organization_id UUID NOT NULL, 
+	id UUID NOT NULL, 
+	recorded_at TIMESTAMP WITH TIME ZONE DEFAULT clock_timestamp() NOT NULL, 
+	CONSTRAINT pk_planning_scenarios_v3 PRIMARY KEY (id), 
+	CONSTRAINT fk_planning_scenarios_v3_organization_id_network_id_networks FOREIGN KEY(organization_id, network_id) REFERENCES networks (organization_id, id) ON DELETE RESTRICT, 
+	CONSTRAINT fk_planning_scenarios_v3_organization_id_dataset_versio_dff3 FOREIGN KEY(organization_id, dataset_version_id) REFERENCES dataset_versions (organization_id, id) ON DELETE RESTRICT, 
+	CONSTRAINT ck_planning_scenarios_v3_hash CHECK (content_hash ~ '^[0-9a-f]{64}$'), 
+	CONSTRAINT fk_planning_scenarios_v3_organization_id_organizations FOREIGN KEY(organization_id) REFERENCES organizations (id) ON DELETE RESTRICT, 
+	CONSTRAINT uq_planning_scenarios_v3_organization_id_id UNIQUE (organization_id, id)
+);
+CREATE TABLE planning_comparisons_v3 (
+	network_id UUID NOT NULL, 
+	scenario_id UUID NOT NULL, 
+	job_id UUID NOT NULL, 
+	attempt_id UUID NOT NULL, 
+	measure TEXT NOT NULL, 
+	result JSONB NOT NULL, 
+	organization_id UUID NOT NULL, 
+	id UUID NOT NULL, 
+	recorded_at TIMESTAMP WITH TIME ZONE DEFAULT clock_timestamp() NOT NULL, 
+	CONSTRAINT pk_planning_comparisons_v3 PRIMARY KEY (id), 
+	CONSTRAINT fk_planning_comparisons_v3_organization_id_network_id_networks FOREIGN KEY(organization_id, network_id) REFERENCES networks (organization_id, id) ON DELETE RESTRICT, 
+	CONSTRAINT fk_planning_comparisons_v3_organization_id_scenario_id__9337 FOREIGN KEY(organization_id, scenario_id) REFERENCES planning_scenarios_v3 (organization_id, id) ON DELETE RESTRICT, 
+	CONSTRAINT fk_planning_comparisons_v3_organization_id_job_id_compute_jobs FOREIGN KEY(organization_id, job_id) REFERENCES compute_jobs (organization_id, job_id) ON DELETE RESTRICT, 
+	CONSTRAINT fk_planning_comparisons_v3_organization_id_attempt_id_c_4d45 FOREIGN KEY(organization_id, attempt_id) REFERENCES compute_attempts (organization_id, attempt_id) ON DELETE RESTRICT, 
+	CONSTRAINT ck_planning_comparisons_v3_measure CHECK (measure IN ('UNITS', 'USD')), 
+	CONSTRAINT fk_planning_comparisons_v3_organization_id_organizations FOREIGN KEY(organization_id) REFERENCES organizations (id) ON DELETE RESTRICT, 
+	CONSTRAINT uq_planning_comparisons_v3_organization_id_id UNIQUE (organization_id, id), 
+	CONSTRAINT uq_planning_comparisons_v3_job_id UNIQUE (job_id), 
+	CONSTRAINT uq_planning_comparisons_v3_attempt_id UNIQUE (attempt_id)
+);

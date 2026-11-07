@@ -109,6 +109,26 @@ def test_child_environment_carries_no_database_secrets(driver, monkeypatch):
     wait_exit(driver, handle)
 
 
+def test_named_secret_reaches_only_the_child_env(driver):  # CR-w1-data-2 (b)
+    secret = {"PP_SECRET_GOOGLE_MAPS_API_KEY": "k-test-123"}
+    handle = driver.start(
+        child_argv(), envelope({"sleep_s": 2}), max_stdout_bytes=4096, child_env=secret
+    )
+    wait_members(driver, handle.identity, 1)
+    with open(f"/proc/{handle.identity.leader_pid}/environ", "rb") as f:
+        environ = f.read()
+    assert b"PP_SECRET_GOOGLE_MAPS_API_KEY=k-test-123" in environ
+    driver.force_stop(handle)
+    wait_exit(driver, handle)
+
+
+def test_child_env_accepts_only_secret_variables(driver):
+    with pytest.raises(ValueError):
+        driver.start(
+            child_argv(), envelope(), max_stdout_bytes=4096, child_env={"DATABASE_URL": "x"}
+        )
+
+
 def test_stop_kills_descendants_in_the_group(driver):  # WQ-T12
     handle = driver.start(
         child_argv(), envelope({"sleep_s": 60, "spawn_descendant": True}), max_stdout_bytes=4096
