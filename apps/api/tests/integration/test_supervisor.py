@@ -1065,3 +1065,110 @@ def test_fenced_during_uncertain_commit_never_discards(db, org, prep):  # verifi
     run_until(sup, lambda: sup.ownership_lost)
     assert repo.get_job(org, accepted.job_id).attempts[0].state is AttemptState.SUCCEEDED
     assert publisher.discarded == []
+
+
+# --- follow-up jobs admitted with the publication (CR-w1-data-5) ------------------------
+
+
+class _FollowingPublisher(FixturePublisher):
+    """Echo publisher whose committed result queues the jobs in `self.follow`."""
+
+    def __init__(self, follow):
+        super().__init__("echo")
+        self.follow = follow
+
+    def follow_ups(self, identity, manifest):
+        from app.services.jobs.registry import FollowUp
+
+        return [FollowUp(contract, payload) for contract, payload in self.follow]
+
+
+def _follow_registry(follow):
+    def reg(contract, publisher):
+        return Registration(
+            contract=contract,
+            operation_kind=OperationKind.ALLOCATION,
+            input_schema_version="1",
+            max_input_bytes=16_384,
+            max_output_bytes=65_536,
+            handler=EchoHandler(),
+            publisher=publisher,
+        )
+
+    return Registry(
+        [reg("test.parent.v1", _FollowingPublisher(follow)),
+         reg("test.child.v1", FixturePublisher("echo"))]
+    )
+
+
+def _follow_run(db, org, follow, cls=QueueRepository, admission=None, monkeypatch=None):
+    registry = _follow_registry(follow)
+    repo = cls(db, registry=registry, profile=PROFILE)
+    if admission is not None:
+        real = repo._admission
+
+        def patched(conn, ctl, now, contract, validated=None):
+            if contract == "test.child.v1":
+                return admission
+            return real(conn, ctl, now, contract, validated)
+
+        monkeypatch.setattr(repo, "_admission", patched)
+    config = SupervisorConfig(registry_name="test", profile=PROFILE, tick_s=0.02)
+    sup = Supervisor(repo, registry, FakeDriver(registry=registry), config)
+    _created.append(sup)
+    assert sup.start()
+    accepted = submit(repo, org, contract="test.parent.v1")
+    done = settled(repo, org, accepted.job_id)
+    run_until(sup, lambda: done() and sup.active is None)
+    sup.shutdown_drain()
+    with db.connect() as conn:
+        children = conn.execute(
+            sa.text(
+                "SELECT organization_id, requested_by_ref FROM compute_jobs"
+                " WHERE handler_contract = 'test.child.v1' AND organization_id = :o"
+            ),
+            {"o": org.organization_id},
+        ).all()
+    return repo, accepted, children
+
+
+CHILD = ("test.child.v1", {"value": 5, "behavior": {}})
+
+
+def test_follow_up_is_admitted_with_the_publication(db, org):
+    repo, accepted, children = _follow_run(db, org, [CHILD])
+    assert job_state(repo, org, accepted.job_id) is AttemptState.SUCCEEDED
+    assert children == [(org.organization_id, org.actor_ref)]
+
+
+def test_follow_up_is_rolled_back_with_a_lost_publication(db, org):
+    repo, accepted, children = _follow_run(db, org, [CHILD], cls=_LoseBeforeCommit)
+    assert job_state(repo, org, accepted.job_id) is AttemptState.FAILED
+    assert children == []
+
+
+@pytest.mark.parametrize(
+    ("follow", "admission", "code"),
+    [
+        ([("test.nope.v1", {"value": 1})], None, "UNKNOWN_CONTRACT"),
+        ([("test.child.v1", {"value": "x"})], None, "INVALID_INPUT"),
+        ([CHILD], "COMPUTE_QUEUE_FULL", "COMPUTE_QUEUE_FULL"),
+    ],
+)
+def test_rejected_follow_up_never_fails_the_publication(
+    db, org, monkeypatch, follow, admission, code
+):
+    from app.services.jobs.contracts import AdmissionOutcome
+
+    outcome = AdmissionOutcome(admission) if admission else None
+    repo, accepted, children = _follow_run(
+        db, org, follow, admission=outcome, monkeypatch=monkeypatch
+    )
+    assert job_state(repo, org, accepted.job_id) is AttemptState.SUCCEEDED
+    assert children == []
+    rejected = [
+        e for e in repo.audit_events(accepted.job_id) if e["event_type"] == "FOLLOW_UP_REJECTED"
+    ]
+    assert [(e["reason_code"], e["details"]["contract"]) for e in rejected] == [
+        (code, follow[0][0])
+    ]

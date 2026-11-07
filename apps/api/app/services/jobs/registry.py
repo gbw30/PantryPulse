@@ -104,6 +104,20 @@ class Publisher(Protocol):
     #     Never called after a committed publication. Best effort: it must be idempotent,
     #     and a supervisor crash between prepare and publish can leave data that a later
     #     prepare must tolerate or clean.
+    # follow_ups(identity, manifest) -> Sequence[FollowUp]   (CR-w1-data-5)
+    #     Runs right after `publish`, in the same locked transaction. Each FollowUp is
+    #     admitted there as a new job with the parent's organization and actor, so it exists
+    #     only if the publication commits. A rejected follow-up (unknown contract, invalid
+    #     input, queue full, compute unavailable) never fails the publication: it is rolled
+    #     back alone and audited as FOLLOW_UP_REJECTED with the reason code.
+
+
+@dataclass(frozen=True, slots=True)
+class FollowUp:
+    """A job a publisher queues together with its committed result (Publisher.follow_ups)."""
+
+    contract: str
+    payload: Mapping[str, Any]
 
 
 @dataclass(frozen=True, slots=True)
