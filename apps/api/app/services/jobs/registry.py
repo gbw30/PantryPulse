@@ -90,6 +90,19 @@ class Publisher(Protocol):
         self, connection: Any, identity: PublicationIdentity, package: Mapping[str, Any]
     ) -> dict[str, Any]: ...
 
+    # Optional hooks (CR-w1-data-2), looked up with getattr like `execution_budget`:
+    #
+    # prepare(engine, identity, package, *, remaining_s) -> package
+    #     Runs in the supervisor after `validate` and before `publish`, outside the queue
+    #     lock, once per attempt. It may do slow database work (bulk loads) in its own
+    #     transactions, finishing within `remaining_s`; its result is the package passed
+    #     to `publish`. Raise PublicationRejected to fail the attempt.
+    # discard(engine, identity) -> None
+    #     Undoes `prepare` when the attempt ends without a committed publication (rejected,
+    #     timed out, cancelled, fenced, or commit lost). Never called after a committed
+    #     publication. Best effort: it must be idempotent, and a supervisor crash between
+    #     prepare and publish can leave data that a later prepare must tolerate or clean.
+
 
 @dataclass(frozen=True, slots=True)
 class Registration:

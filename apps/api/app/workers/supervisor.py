@@ -48,7 +48,12 @@ from app.services.jobs.policies import (
     should_run_step,
     supervisor_advertisement,
 )
-from app.services.jobs.registry import PublicationRejected, Registration, Registry
+from app.services.jobs.registry import (
+    PublicationIdentity,
+    PublicationRejected,
+    Registration,
+    Registry,
+)
 from app.workers.publication import reason_for, step_outcome
 from app.workers.recovery import containment_evidence
 
@@ -122,6 +127,8 @@ class Execution:
     failure_error: dict | None = None
     uncertain: bool = False
     last_state_poll: float = 0.0
+    package: dict | None = None  # validated (and prepared) publication package
+    prepared: bool = False  # the publisher's prepare hook ran; discard on non-success
 
 
 def _overflowing(handle: Any) -> bool:
@@ -583,6 +590,9 @@ class Supervisor:
         An attempt already finalized elsewhere (operator attestation while local cleanup
         was pending) is left as recorded; the loop continues.
         """
+        if ex.prepared:
+            ex.prepared = False  # discard once, even if finalization is retried
+            self._discard(ex)
         ex.finalize_pending = True
         ex.failure_reason = failure_reason
         ex.failure_error = error
@@ -610,18 +620,44 @@ class Supervisor:
         if self.clock() >= ex.hard_deadline:
             self._timeout(ex)
             return
-        try:
-            package = ex.registration.publisher.validate(ex.validated, ex.outcomes)
-        except PublicationRejected as rejected:
-            if rejected.timed_out:
+        if ex.package is None:
+            try:
+                package = ex.registration.publisher.validate(ex.validated, ex.outcomes)
+                prepare = getattr(ex.registration.publisher, "prepare", None)
+                if prepare:
+                    reserve = self.profile.publication_reserve_s
+                    remaining_s = ex.hard_deadline - self.clock() - reserve
+                    if remaining_s <= 0:
+                        self._timeout(ex)
+                        return
+                    ex.prepared = True
+                    try:
+                        package = prepare(
+                            self.repo.engine, self._identity(ex), package, remaining_s=remaining_s
+                        )
+                    except PublicationRejected:
+                        raise
+                    except Exception as exc:  # a failed load fails the attempt, then discards
+                        log_event(
+                            "PUBLICATION_PREPARE_FAILED",
+                            attempt_id=ex.claim.attempt_id,
+                            error_type=type(exc).__name__,
+                        )
+                        raise PublicationRejected("PREPARE_FAILED") from None
+            except PublicationRejected as rejected:
+                if rejected.timed_out:
+                    self._timeout(ex)
+                else:
+                    self._finish(
+                        ex, failure_reason=reason_for(rejected.code), error={"code": rejected.code}
+                    )
+                return
+            ex.package = package
+            if self.clock() >= ex.hard_deadline:
                 self._timeout(ex)
-            else:
-                self._finish(
-                    ex, failure_reason=reason_for(rejected.code), error={"code": rejected.code}
-                )
-            return
+                return
         try:
-            self.repo.publish(self.own, ex.claim, package)
+            self.repo.publish(self.own, ex.claim, ex.package)
         except Fenced:
             attempt = self.repo.read_attempt(ex.claim.attempt_id)
             if attempt.state is AttemptState.RUNNING:
@@ -643,6 +679,29 @@ class Supervisor:
             return
         log_event("ATTEMPT_PUBLISHED", attempt_id=ex.claim.attempt_id)
         self.active = None
+
+    @staticmethod
+    def _identity(ex: Execution) -> PublicationIdentity:
+        return PublicationIdentity(
+            job_id=ex.claim.job_id,
+            attempt_id=ex.claim.attempt_id,
+            organization_id=ex.claim.organization_id,
+            handler_contract=ex.claim.contract,
+            input_sha256=ex.claim.input_sha256,
+        )
+
+    def _discard(self, ex: Execution) -> None:
+        discard = getattr(ex.registration.publisher, "discard", None)
+        if discard is None:
+            return
+        try:
+            discard(self.repo.engine, self._identity(ex))
+        except Exception as exc:  # cleanup must never block finalization or the loop
+            log_event(
+                "PUBLICATION_DISCARD_FAILED",
+                attempt_id=ex.claim.attempt_id,
+                error_type=type(exc).__name__,
+            )
 
     def _reconcile(self, ex: Execution) -> None:
         try:
