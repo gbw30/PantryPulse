@@ -37,6 +37,7 @@ from app.services.forecasting.schemas import (
 from app.services.jobs.contracts import TERMINAL_STATES, AttemptState, OperationKind, StepSpec
 from app.services.jobs.registry import InputRejected, Registration, Registry
 from app.services.networks.api import create_scenario
+from app.services.networks.scenario import _batch_id
 from app.services.optimization.canonical import operational_hash
 from app.services.presenter_access import AccessError
 from app.workers.supervisor import Supervisor, SupervisorConfig
@@ -268,6 +269,41 @@ def test_fractional_capacities_are_rounded_down_and_listed(engine, tmp_path, for
             for r in p.routes}[("H1", "P1")] == 12
     [text] = _assumption(p, "rounded down")
     assert "P1 receiving 50.5 → 50" in text and "H1→P1 per batch 12.5 → 12" in text
+
+
+def test_long_external_ids_still_freeze_with_short_unique_batch_ids(engine, tmp_path, forecasts):
+    """Each external id may be 64 characters, so `location/product/batch` can be 194."""
+    hub, lot = "FL-TALLAHASSEE-CENTRAL-HUB-00001", "LOT-2026-11-04-PALLET-0001-0001"
+    inventory = FILES["inventory"].replace("H1,", f"{hub},").replace(
+        f"{hub},RICE,B1,", f"{hub},RICE,{lot},")
+    locations = FILES["locations"].replace("H1,", f"{hub},")
+    network = _network(engine, tmp_path, {**FILES, "inventory": inventory, "locations": locations})
+    p = _scenario(engine, network, forecasts(network)).payload
+    ids = [b.id for b in p.batches]
+    assert len(set(ids)) == len(ids) and all(len(i) <= 64 for i in ids)
+    assert "P1/RICE/B1" in ids  # ids that fit stay readable
+
+
+def test_payload_order_does_not_depend_on_the_database_collation(engine, tmp_path, forecasts):
+    """en_US sorts "a9" before "H1", C after it: the payload (and its hash) uses code-point
+    order everywhere, so every install freezes the same bytes."""
+    locations = FILES["locations"] + (
+        "a9,Annex Hub,hub,1 Main St,Tallahassee,FL,32301,30.44,-84.28,,,\n")
+    inventory = FILES["inventory"] + "a9,RICE,B1,5,2026-11-20,,\n"
+    network = _network(engine, tmp_path, {**FILES, "locations": locations, "inventory": inventory})
+    p = _scenario(engine, network, forecasts(network)).payload
+    ids = [c.location_id for c in p.capacities]
+    assert ids == sorted(ids) and ids[-1] == "a9"
+    batches = [(b.location_id, b.product_id, b.id) for b in p.batches]
+    assert batches == sorted(batches)
+    routes = [(r.from_location_id, r.to_location_id) for r in p.routes]
+    assert routes == sorted(routes) and routes[-1][0] == "a9"
+
+
+def test_batch_ids_never_collide_when_external_ids_contain_a_slash():
+    assert _batch_id("P1", "RICE/B", "1") != _batch_id("P1", "RICE", "B/1")
+    assert _batch_id("P1", "RICE", "B1") == "P1/RICE/B1"
+    assert len(_batch_id("L" * 64, "P" * 64, "B" * 64)) <= 64
 
 
 def test_reserve_floors_default_zero_listed_as_assumption(engine, tmp_path, forecasts):

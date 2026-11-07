@@ -219,6 +219,16 @@ def test_manual_override_labeled_manual(engine, network, acs):
     assert _attributes(engine, network)["P4"].state == "manual"
 
 
+def test_a_manual_rate_beside_a_looked_up_rate_names_both_sources(engine, network, acs):
+    """P4's CSV gives poverty_rate only; its snap_rate comes from ACS and keeps that label."""
+    _enrich(engine, network, acs, Census())
+    p4 = _attributes(engine, network)["P4"]
+    assert (p4.state, p4.poverty_rate) == ("manual", Decimal("0.3"))
+    assert p4.snap_rate is not None and p4.fetched_at is not None
+    assert p4.source is not None and p4.source.startswith("poverty_rate: manual; snap_rate: ACS ")
+    assert p4.source.endswith(f"tract {LAUDERDALE_TRACT}")
+
+
 def test_unknown_location_is_404(engine, network):
     with pytest.raises(AccessError) as error:
         set_location_attributes(_rt(engine), SCOPE, network.network_id, "NOPE",

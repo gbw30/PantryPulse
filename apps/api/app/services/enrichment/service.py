@@ -34,7 +34,7 @@ TIE_HINT = ("Census found more than one match. Make the address more specific, o
 def enrichment_input(conn: sa.Connection, version_id: UUID) -> dict[str, Any]:
     rows = conn.execute(sa.text(
         "SELECT external_id, street, city, state, zip FROM net_locations WHERE "
-        "dataset_version_id = :v AND latitude IS NULL ORDER BY external_id"),
+        "dataset_version_id = :v AND latitude IS NULL ORDER BY external_id COLLATE \"C\""),
         {"v": version_id}).all()
     return {"dataset_version_id": str(version_id), "addresses": [list(r) for r in rows]}
 
@@ -141,7 +141,8 @@ _ATTRIBUTES = (
 
 def location_attributes(conn: sa.Connection, version_id: UUID,
                         external_id: str | None = None) -> list[LocationAttributes]:
-    sql = _ATTRIBUTES + (" AND external_id = :e" if external_id else "") + " ORDER BY external_id"
+    sql = (_ATTRIBUTES + (" AND external_id = :e" if external_id else "")
+           + ' ORDER BY external_id COLLATE "C"')  # code-point order: frozen payloads match
     return [_attributes(r) for r in conn.execute(sa.text(sql),
                                                  {"v": version_id, "e": external_id})]
 
@@ -154,8 +155,19 @@ def _attributes(r: sa.Row) -> LocationAttributes:
     poverty = r.poverty_rate if r.manual_poverty_rate is None else r.manual_poverty_rate
     snap = r.snap_rate if r.manual_snap_rate is None else r.manual_snap_rate
     if r.manual_poverty_rate is not None or r.manual_snap_rate is not None:
+        # One manual rate beside a looked-up one: name each rate's source.
+        acs_rate = next((name for name, manual, value in (
+            ("poverty_rate", r.manual_poverty_rate, r.poverty_rate),
+            ("snap_rate", r.manual_snap_rate, r.snap_rate))
+            if manual is None and value is not None), None)
+        if acs_rate is None or looked_up is None:
+            source, fetched_at = "manual", None
+        else:
+            manual_rate = "snap_rate" if acs_rate == "poverty_rate" else "poverty_rate"
+            source = f"{manual_rate}: manual; {acs_rate}: {looked_up}"
+            fetched_at = r.acs_fetched_at
         return LocationAttributes(location_id=r.external_id, state="manual", poverty_rate=poverty,
-                                  snap_rate=snap, source="manual", fetched_at=None)
+                                  snap_rate=snap, source=source, fetched_at=fetched_at)
     return LocationAttributes(
         location_id=r.external_id,
         state="known" if poverty is not None and snap is not None else "unknown",
@@ -167,7 +179,7 @@ def blockers(conn: sa.Connection, version_id: UUID) -> list[tuple[str, tuple[str
     """(location_id, missing rates) for each EGP receiver that is neither known nor excluded."""
     found = []
     for a, row in ((_attributes(r), r) for r in conn.execute(
-            sa.text(_ATTRIBUTES + " ORDER BY external_id"), {"v": version_id})):
+            sa.text(_ATTRIBUTES + ' ORDER BY external_id COLLATE "C"'), {"v": version_id})):
         if row.role in EGP_ROLES and a.state != "excluded":
             missing = tuple(name for name, value in (("poverty_rate", a.poverty_rate),
                                                      ("snap_rate", a.snap_rate)) if value is None)

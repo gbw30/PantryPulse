@@ -8,6 +8,7 @@ don't carry are explicit assumptions: blank capacities mean no limit, reserve fl
 set, no cost budget unless set, Retail weights 1/1 unless set.
 """
 
+import hashlib
 import math
 from datetime import timedelta
 from decimal import Decimal
@@ -72,10 +73,11 @@ def build_scenario(conn: sa.Connection, network: sa.Row, options: ScenarioOption
 
     locations = _rows(conn, "SELECT id, external_id, name, role, receiving_capacity_per_day "
                             "FROM net_locations WHERE dataset_version_id = :v "
-                            "ORDER BY external_id", version_id)
+                            'ORDER BY external_id COLLATE "C"', version_id)
     products = _rows(conn, "SELECT id, external_id, name, unit, unit_value_usd, "
                            "handling_units_per_unit FROM net_products "
-                           "WHERE dataset_version_id = :v ORDER BY external_id", version_id)
+                           'WHERE dataset_version_id = :v ORDER BY external_id COLLATE "C"',
+                           version_id)
     fractional = [p.external_id for p in products if p.handling_units_per_unit % 1]
     if fractional:
         raise _rejected("HANDLING_UNITS_NOT_WHOLE", "The optimizer needs whole handling units "
@@ -109,15 +111,16 @@ def build_scenario(conn: sa.Connection, network: sa.Row, options: ScenarioOption
                  "(set in this scenario)")
         weights = weights or RetailWeights(w_exp=1, w_lost=1)
 
-    batches = [BatchV3(id=f"{r[0]}/{r[1]}/{r[2]}", location_id=r[0], product_id=r[1],
+    batches = [BatchV3(id=_batch_id(r[0], r[1], r[2]), location_id=r[0], product_id=r[1],
                        quantity=r.quantity, expiry_date=r.expiry_date,
                        non_expiring=r.non_expiring)
-               # shortcut: the id joins three external ids (max 64 chars); hash if users hit it.
                for r in _rows(conn, "SELECT l.external_id, p.external_id, b.external_id, "
                               "b.quantity, b.expiry_date, b.non_expiring FROM net_batches b "
                               "JOIN net_locations l ON l.id = b.location_id "
                               "JOIN net_products p ON p.id = b.product_id "
-                              "WHERE b.dataset_version_id = :v ORDER BY 1, 2, 3", version_id)]
+                              "WHERE b.dataset_version_id = :v ORDER BY "
+                              'l.external_id COLLATE "C", p.external_id COLLATE "C", '
+                              'b.external_id COLLATE "C"', version_id)]
     try:
         return ORInputV3(
             network_id=network.id, organization_id=org, dataset_version_id=version_id,
@@ -214,6 +217,17 @@ def _inbound(conn: sa.Connection, version_id: UUID,
             for r in rows if r.within_horizon], provided
 
 
+def _batch_id(location: str, product: str, batch: str) -> str:
+    """`location/product/batch` when it fits BatchV3.id (64) unambiguously; otherwise a
+    deterministic hash. Readable ids have exactly two slashes, hashed ones none."""
+    parts = (location, product, batch)
+    readable = "/".join(parts)
+    if len(readable) <= 64 and not any("/" in part for part in parts):
+        return readable
+    # NUL can't appear in an imported cell, so it separates the parts unambiguously.
+    return "h-" + hashlib.sha256("\x00".join(parts).encode()).hexdigest()[:40]
+
+
 def _whole(value: Decimal | None, label: str, rounded: list[str]) -> int | None:
     """Floor to whole handling units, so a capacity is never exceeded; list any change."""
     if value is None:
@@ -231,7 +245,8 @@ def _routes(conn: sa.Connection, version_id: UUID, transfer_mode,
                        "r.capacity_per_batch FROM net_routes r "
                        "JOIN net_locations f ON f.id = r.from_location_id "
                        "JOIN net_locations t ON t.id = r.to_location_id "
-                       "WHERE r.dataset_version_id = :v AND NOT r.disabled ORDER BY 1, 2",
+                       "WHERE r.dataset_version_id = :v AND NOT r.disabled "
+                       'ORDER BY f.external_id COLLATE "C", t.external_id COLLATE "C"',
                  version_id)
     if transfer_mode == "HUB_ONLY":
         rows = [r for r in rows if r.role in SENDERS]
