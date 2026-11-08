@@ -910,6 +910,36 @@ def test_failed_discard_does_not_block_finalization(db, org, prep):
     assert len(publisher.discarded) == 1
 
 
+def test_unexpected_publication_error_fails_the_attempt_and_the_loop_runs_on(
+    db, org, prep, caplog
+):  # W2-06: a DataError in publish once ended the worker process
+    import logging
+
+    caplog.set_level(logging.INFO, logger="pantrypulse.worker")
+    publisher, registry = prep
+    real_publish = publisher.publish
+
+    def publish(connection, identity, package):
+        if not publisher.discarded:  # the first publication hits an error nobody expects
+            connection.execute(sa.text("SELECT CAST(:v AS text)"), {"v": "user-data\x00"})
+        return real_publish(connection, identity, package)
+
+    publisher.publish = publish
+    repo = QueueRepository(db, registry=registry, profile=PROFILE)
+    sup = _prep_started(repo, registry)
+    first = submit(repo, org, contract="test.prepared.v1")
+    second = submit(repo, org, contract="test.prepared.v1")
+    run_until(sup, lambda: settled(repo, org, second.job_id)() and sup.active is None)
+    failed = repo.get_job(org, first.job_id).attempts[0]
+    assert (failed.state, failed.reason_code) == (
+        AttemptState.FAILED, "PUBLICATION_STORAGE_FAILED")
+    assert [i.attempt_id for i in publisher.discarded] == [failed.attempt_id]
+    assert repo.get_job(org, second.job_id).attempts[0].state is AttemptState.SUCCEEDED
+    assert not sup.closed and repo.control().active_attempt_id is None
+    assert "DataError" in caplog.text and "user-data" not in caplog.text
+    sup.shutdown_drain()
+
+
 # --- named secrets in the child environment (W1-D08 Google key, Gabriel 2026-11-07) --------
 
 

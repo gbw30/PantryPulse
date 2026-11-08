@@ -265,6 +265,19 @@ def test_nul_inside_a_number_is_reported_once():
     assert "NUL" in error.reason
 
 
+@pytest.mark.parametrize("locations", [
+    LOCATIONS.replace("location_id", "location_id\x00", 1),
+    LOCATIONS.encode("utf-16-le"),  # saved as UTF-16 without a BOM: ASCII plus 0x00 is UTF-8
+], ids=["stray-nul", "utf16-no-bom"])
+def test_nul_in_the_header_is_one_readable_error(locations):
+    """W2-06: the header must not reach the stored error with its NUL (PostgreSQL refuses it)."""
+    error = _only_error(locations=locations)  # one error: the file is unusable, not re-checked
+    assert (error.file, error.line, error.code) == ("locations", 1, "MALFORMED")
+    for text in (error.column, error.reason, error.fix, error.value):
+        assert "\x00" not in (text or "")
+    assert "NUL" in error.reason and "CSV UTF-8" in error.fix
+
+
 def test_ids_case_sensitive_after_trim():
     report = validate_files(_files(products=PRODUCTS + " rice ,Lowercase rice,case\n"), PANTRY)
     assert report.ok, report.errors
