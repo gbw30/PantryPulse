@@ -200,9 +200,14 @@ class Validator:
                             f"Upload {name}.csv, starting from the blank template")
         as_of = self.settings.as_of_date or self._default_as_of(files)
         if as_of is None:
-            self.report("demand_history", 1, "date", "MALFORMED",
-                        "no valid history date, so the as-of date can't be set",
-                        "Add dated history rows, or enter the as-of date for the inventory")
+            for name in FILE_ORDER:  # still say why each file can't be read (e.g. UTF-16)
+                if name in files:
+                    for _ in self._records(name, files[name]):
+                        pass
+            if not self.unusable.intersection(HISTORY_FILES):  # else that file's error says why
+                self.report("demand_history", 1, "date", "MALFORMED",
+                            "no valid history date, so the as-of date can't be set",
+                            "Add dated history rows, or enter the as-of date for the inventory")
             return ValidationReport(ok=False, errors=tuple(self.errors),
                                     error_count=self.error_count)
         self.as_of = as_of
