@@ -1,6 +1,6 @@
 """v1 network reads: networks, templates, backtest scores and the danger ranking (W0-08)."""
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Annotated, Literal, Self
 from uuid import UUID
@@ -211,6 +211,8 @@ class NetworkSeries(ORContract):
             raise ValueError("NO_FORECAST_NEEDS_REASON_AND_NO_POINTS")
         if self.fallback_used != (self.fallback_reason is not None):
             raise ValueError("FALLBACK_NEEDS_REASON")
+        if self.fallback_used and self.actual_provider is None:
+            raise ValueError("FALLBACK_NEEDS_PROVIDER")
         return self
 
 
@@ -225,6 +227,16 @@ class NetworkForecastRun(ORContract):
     planning_ready: Bool
     generated_at: datetime
     series: tuple[NetworkSeries, ...]  # ordered by location_id, product_id, kind
+
+    @model_validator(mode="after")
+    def one_series_per_key_on_the_horizon(self) -> Self:
+        keys = [(x.location_id, x.product_id, x.kind) for x in self.series]
+        if len(set(keys)) != len(keys):
+            raise ValueError("DUPLICATE_SERIES")
+        horizon = [self.data_cutoff_date + timedelta(days=i) for i in range(1, 8)]
+        if any(x.points and [pt.day for pt in x.points] != horizon for x in self.series):
+            raise ValueError("POINTS_NOT_ON_HORIZON")  # the 7 days after the cutoff, in order
+        return self
 
 
 Daily = tuple[Annotated[int, Field(ge=0)] | None, ...]  # one value per date; None = unknown

@@ -50,8 +50,9 @@ OPTIMIZING = ("CLASSICAL_GP", "EGP_PI_INSPIRED", "RETAIL_OPTIMIZED")
 UNITS_NOT_SUMMED = "units objective is per product; not summed across products"
 
 
-def solver_run(method) -> SolverRun | None:
-    if method not in OPTIMIZING:
+def solver_run(ran: bool) -> SolverRun | None:
+    """The CP-SAT settings every per-product solve used; None when CP-SAT never ran."""
+    if not ran:
         return None
     return SolverRun(
         engine="OR-Tools CP-SAT", version=ortools.__version__, seed=SEED, workers=WORKERS
@@ -162,39 +163,45 @@ def _optimized(s, method, measure, baseline, search_seconds, deadline) -> Method
                 ProductSolve(product_id=p.id, native_status=o.native_status, gap=o.gap, label=None)
             )
     statuses = [o.native_status for o in outcomes.values()]
+    run = solver_run(bool(outcomes.keys() - set(late)))  # late products were never solved
     failed = sorted(
         p for p, o in outcomes.items() if o.native_status not in ("OPTIMAL", "FEASIBLE")
     )
     if late:
         reason = f"METHOD_TIME_LIMIT:{','.join(late)}"
-        return failed_result(s, method, measure, "UNKNOWN", reason, products)
+        return failed_result(s, method, measure, "UNKNOWN", reason, products, run)
     if failed:
         status = outcomes[failed[0]].native_status
         return failed_result(
-            s, method, measure, status, f"NO_SOLUTION:{','.join(failed)}", products
+            s, method, measure, status, f"NO_SOLUTION:{','.join(failed)}", products, run
         )
     status = None if not statuses else "FEASIBLE" if "FEASIBLE" in statuses else "OPTIMAL"
     quantities = {k: v for o in outcomes.values() for k, v in o.quantities.items()}
     native = {p: o.primary for p, o in outcomes.items()}
-    return assemble(s, method, measure, baseline, quantities, status, tuple(products), native)
+    return assemble(
+        s, method, measure, baseline, quantities, status, tuple(products), native, run
+    )
 
 
-def assemble(s, method, measure, baseline, quantities, status, products, native) -> MethodResult:
+def assemble(
+    s, method, measure, baseline, quantities, status, products, native, solver=None
+) -> MethodResult:
     """Pack, verify the union plan, replay native objectives, publish only verified plans."""
     try:
         packed = pack(s, quantities)
     except ValueError as exc:
-        return failed_result(s, method, measure, status, f"PACKING_FAILED:{exc}", products)
+        reason = f"PACKING_FAILED:{exc}"
+        return failed_result(s, method, measure, status, reason, products, solver)
     transfers = tuple(p.transfer for p in packed)
     report = verify_plan(s, transfers)
     if not report.passed:
         reason = f"VERIFICATION_FAILED:{','.join(report.violations)}"
-        return failed_result(s, method, measure, status, reason, products)
+        return failed_result(s, method, measure, status, reason, products, solver)
     replay = product_objectives(s, report, method)
     mismatched = sorted(p for p, value in native.items() if replay.get(p, 0) != value)
     if mismatched:
         reason = f"NATIVE_OBJECTIVE_REPLAY_MISMATCH:{','.join(mismatched)}"
-        return failed_result(s, method, measure, status, reason, products)
+        return failed_result(s, method, measure, status, reason, products, solver)
     labels = []
     if method in OPTIMIZING:
         solved = [p.native_status for p in products if p.native_status]
@@ -220,11 +227,11 @@ def assemble(s, method, measure, baseline, quantities, status, products, native)
         usd_unavailable_reason=usd_unavailable_reason(s),
         retail_weights=s.retail_weights,
         labels=tuple(labels),
-        solver=solver_run(method),
+        solver=solver,
     )
 
 
-def failed_result(s, method, measure, status, reason, products) -> MethodResult:
+def failed_result(s, method, measure, status, reason, products, solver=None) -> MethodResult:
     return MethodResult(
         method=method,
         measure=measure,
@@ -238,7 +245,7 @@ def failed_result(s, method, measure, status, reason, products) -> MethodResult:
         usd_unavailable_reason=usd_unavailable_reason(s),
         retail_weights=s.retail_weights,
         labels=(),
-        solver=solver_run(method),
+        solver=solver,
     )
 
 

@@ -481,9 +481,16 @@ def test_network_forecast_series_say_how_they_were_made():  # CR-w1-web-4 (a)
         {**missing, "reason": None},
         {**available, "kind": "donation"},  # a donation series has no demand basis
         {**available, "basis": None},
+        {**missing, "fallback_used": True, "fallback_reason": "INSUFFICIENT_DATA"},  # no method
     ):
         with pytest.raises(ValidationError):
             NetworkForecastRun.model_validate({**run, "series": [bad]})
+    shifted = [
+        {**pt, "day": f"2026-11-{int(pt['day'][-2:]) + 1:02d}"} for pt in available["points"]
+    ]
+    for series in ([available, available], [{**available, "points": shifted}]):
+        with pytest.raises(ValidationError):  # one series per key; days are the 7 after cutoff
+            NetworkForecastRun.model_validate({**run, "series": series})
 
 
 def test_backtest_rolls_up_per_location_and_unit():  # CR-w1-web-4 (b)

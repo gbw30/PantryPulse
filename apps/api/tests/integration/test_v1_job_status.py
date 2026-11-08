@@ -33,7 +33,12 @@ REGISTRY = Registry(
             handler=EchoHandler(),
             publisher=FixturePublisher("echo"),
         )
-        for contract in ("or-comparison.v3", "or-comparison.v2", "forecast.v1")
+        for contract in (
+            "or-comparison.v3",
+            "or-comparison.v2",
+            "forecast.v1",
+            "forecast.chronos.v1",
+        )
     ]
 )
 
@@ -98,3 +103,9 @@ def test_only_v1_network_jobs_are_read_across_organizations(install):  # securit
 def test_network_forecast_job_is_visible(install):  # W2-06 lead CR, before W3-F03
     job_id = _submit(install, install.network, "forecast.v1")
     assert job_status(job_id, rt=install.rt, scope=install.presenter).job_id == job_id
+
+
+def test_chronos_network_job_stays_hidden(install):  # excluded at W2-06; a CR if W3 needs it
+    job_id = _submit(install, install.network, "forecast.chronos.v1")
+    with pytest.raises(JobNotFound):
+        job_status(job_id, rt=install.rt, scope=install.presenter)

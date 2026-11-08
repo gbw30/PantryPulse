@@ -185,6 +185,7 @@ def publishable(scenario, baseline, result):
         status,
         result.products,
         {},
+        result.solver,  # the solver's own claim, like per-product native status
     )
     if not rebuilt.verified:
         problems = [rebuilt.failure_reason]
@@ -201,4 +202,5 @@ def publishable(scenario, baseline, result):
         status,
         f"PUBLICATION_VERIFICATION_FAILED:{','.join(problems)}",
         result.products,
+        result.solver,
     )
