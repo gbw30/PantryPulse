@@ -1,6 +1,6 @@
 # PantryPulse
 
-> **v1 authority (2026-11-06):** [V1-SPEC](docs/pantrypulse/V1-SPEC.md) and the [v1 plan](docs/plans/v1/README.md) override this document where they conflict; [SPEC-V5](docs/pantrypulse/SPEC-V5.md) governs what V1-SPEC leaves open. The v1 local install is `docker compose up`; the migration head is now `ppv1_0011`. The full README rewrite is W5 packaging.
+> **v1 authority (2026-11-06):** [V1-SPEC](docs/pantrypulse/V1-SPEC.md) and the [v1 plan](docs/plans/v1/README.md) override this document where they conflict; [SPEC-V5](docs/pantrypulse/SPEC-V5.md) governs what V1-SPEC leaves open. The v1 local install is `docker compose up`; the migration head is now `ppv1_0012`. The full README rewrite is W5 packaging.
 
 PantryPulse is a project for Gator Hack V, October 23–25, 2026, exploring how food banks and community organizations can share limited supplies more fairly.
 
@@ -33,7 +33,7 @@ The goal of the reproducible demonstration is to show when these research-derive
 
 Main includes the connected simulated application: presenter access, persisted baseline forecasts, frozen scenarios, sequential classical/research-inspired comparisons, independent result verification and the `/optimization` workspace through a same-origin proxy. PR #75 integrated operational storage and baseline forecasting; PR #76 connected the bounded allocation workflow and active Linux/PostgreSQL/browser CI. These are simulated decisions, not operational dispatch or evidence of real-world policy effectiveness.
 
-The [connected integration guide](docs/optimization/CONNECTED-INTEGRATION.md) records the supported domain and explicit demo loader. The migration head at that integration was `ppor_0005` (now `ppv1_0011`); all predecessor revisions are preserved. [Stock services](docs/pantrypulse/STOCK-SERVICES.md), [inventory projection](docs/pantrypulse/INVENTORY-PROJECTION.md) and [migration instructions](apps/api/migrations/README.md) describe the persistence boundary. Deployment and any update of existing running images remain controlled operations.
+The [connected integration guide](docs/optimization/CONNECTED-INTEGRATION.md) records the supported domain and explicit demo loader. The migration head at that integration was `ppor_0005` (now `ppv1_0012`); all predecessor revisions are preserved. [Stock services](docs/pantrypulse/STOCK-SERVICES.md), [inventory projection](docs/pantrypulse/INVENTORY-PROJECTION.md) and [migration instructions](apps/api/migrations/README.md) describe the persistence boundary. Deployment and any update of existing running images remain controlled operations.
 
 The production [worker](docs/setup/WORKER-QUEUE.md) supports `forecast.v1` and `or-comparison.v2`, with one active operation and two waiting jobs. PR #77 supplies [bounded local compute](docs/setup/LOCAL-COMPUTE.md), persistent model storage and prepared [Fly configuration](docs/setup/FLY.md). Full pinned Chronos-2 has passed real standalone CPU inference and synthetic timing checks; the application provider remains baseline-only. Representative forecast accuracy, integrated Chronos, supplier planning, visitor access, general imports and real operational actions remain separate work.
 

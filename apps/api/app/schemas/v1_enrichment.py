@@ -18,7 +18,9 @@ class LocationAttributes(ORContract):
     state: AttributeState
     poverty_rate: Decimal | None
     snap_rate: Decimal | None
-    source: str | None  # "ACS 5-year YYYY, tract NNNN" or "manual"
+    # "ACS 5-year YYYY, tract NNNN", "manual", or one manual rate beside a looked-up one:
+    # "poverty_rate: manual; snap_rate: ACS 5-year YYYY, tract NNNN" (either order)
+    source: str | None
     fetched_at: datetime | None
 
 

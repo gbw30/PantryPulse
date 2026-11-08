@@ -95,32 +95,12 @@ KEYED = {"Idempotency-Key": "contract-test-1"}
 NEW_NETWORK = {"name": "N", "mode": "PANTRY", "timezone": "America/New_York"}
 ACTIONS = f"/networks/{NET}/comparisons/{CMP}/methods/EQUAL_SHARE"
 STUBS = [
-    ("GET", "/networks", None, None, "W1-D05"),
-    ("GET", f"/networks/{NET}", None, None, "W1-D05"),
-    ("GET", "/templates", None, None, "W1-D03"),
-    ("GET", "/templates/locations.csv?kind=blank", None, None, "W1-D03"),
     ("GET", "/templates/locations.csv?kind=example", None, None, "W3-P03"),
-    ("POST", "/imports", {"network": NEW_NETWORK}, None, "W1-D05"),
-    ("POST", f"/imports/{IMP}/files/demand_history", b"a" * 70_000, CSV, "W1-D04"),
-    ("POST", f"/imports/{IMP}/commit", {}, KEYED, "W1-D05"),
-    ("GET", f"/imports/{IMP}", None, None, "W1-D05"),
-    ("GET", f"/networks/{NET}/enrichment", None, None, "W1-D06"),
-    ("POST", f"/networks/{NET}/enrichment/retry", {}, KEYED, "W1-D06"),
-    ("PUT", f"/networks/{NET}/locations/{LOC}/attributes", {"excluded": True}, None, "W1-D06"),
-    ("GET", f"/networks/{NET}/routes", None, None, "W1-D07"),
-    ("GET", "/settings", None, None, "W1-D08"),
-    ("PUT", "/settings/google-maps-key", {"key": "k"}, None, "W1-D08"),
-    ("DELETE", "/settings/google-maps-key", None, None, "W1-D08"),
-    ("POST", f"/networks/{NET}/routes/google-preview", {}, None, "W1-D08"),
-    ("POST", f"/networks/{NET}/routes/google-fetch", {}, KEYED, "W1-D08"),
     ("GET", f"/networks/{NET}/danger?forecast_run_id={JOB}", None, None, "W3-F05"),
     ("GET", f"/networks/{NET}/forecasts", None, None, "W3-F03"),
     ("GET", f"/networks/{NET}/projection?forecast_run_id={JOB}&location_id=P-1", None, None,
      "W3-F05"),
     ("GET", f"/forecasts/{JOB}/backtest", None, None, "W3-F03"),
-    ("GET", f"/networks/{NET}/comparisons/{CMP}", None, None, "W1-S04"),
-    ("GET", f"{ACTIONS}/actions", None, None, "W1-S06"),
-    ("POST", f"{ACTIONS}/export", {"action_ids": ["t1"]}, None, "W1-S07"),
 ]
 
 
@@ -136,13 +116,8 @@ def test_unimplemented_routes_return_501_with_task_id(client, method, path, body
 
 
 def test_network_scoped_job_routes_return_501(client):
-    scenario = {"dataset_version_id": str(uuid4()), "forecast_run_id": str(uuid4()),
-                "transfer_mode": "HUB_ONLY"}
     for path, body, task in (
-        (f"/networks/{NET}/scenarios", scenario, "W1-D09"),
         (f"/networks/{NET}/forecasts", {"dataset_version_id": str(uuid4())}, "W3-F03"),
-        (f"/networks/{NET}/comparisons",
-         {"scenario_id": str(uuid4()), "methods": ["NO_TRANSFERS"], "measure": "UNITS"}, "W1-S04"),
     ):
         response = client.post("/api/v1" + path, json=body, headers=KEYED)
         assert response.status_code == 501, (path, response.text)

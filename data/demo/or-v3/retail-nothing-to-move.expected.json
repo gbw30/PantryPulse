@@ -1,0 +1,31 @@
+{
+  "fixture": "retail-nothing-to-move",
+  "weights": {
+    "w_exp": 1,
+    "w_lost": 1
+  },
+  "UNITS": {
+    "objective": "5",
+    "transfers": [],
+    "starved_products": [],
+    "products": {
+      "P": {
+        "expired": 5,
+        "lost": 0,
+        "objective": "5"
+      }
+    }
+  },
+  "USD": {
+    "objective": "15.00",
+    "transfers": [],
+    "starved_products": [],
+    "products": {
+      "P": {
+        "expired": 5,
+        "lost": 0,
+        "objective": "15.00"
+      }
+    }
+  }
+}

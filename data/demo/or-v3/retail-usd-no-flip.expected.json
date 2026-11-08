@@ -1,0 +1,87 @@
+{
+  "fixture": "retail-usd-no-flip",
+  "weights": {
+    "w_exp": 1,
+    "w_lost": 1
+  },
+  "UNITS": {
+    "objective": null,
+    "transfers": [
+      {
+        "product_id": "P",
+        "from_location_id": "D",
+        "to_location_id": "B",
+        "quantity": 4,
+        "ship_date": "2026-11-02",
+        "arrival_date": "2026-11-03",
+        "batch_ids": [
+          "p1"
+        ]
+      },
+      {
+        "product_id": "Q",
+        "from_location_id": "D",
+        "to_location_id": "B",
+        "quantity": 10,
+        "ship_date": "2026-11-02",
+        "arrival_date": "2026-11-03",
+        "batch_ids": [
+          "q1"
+        ]
+      }
+    ],
+    "starved_products": [],
+    "products": {
+      "P": {
+        "expired": 0,
+        "lost": 10,
+        "objective": "10"
+      },
+      "Q": {
+        "expired": 0,
+        "lost": 4,
+        "objective": "4"
+      }
+    }
+  },
+  "USD": {
+    "objective": "50.00",
+    "transfers": [
+      {
+        "product_id": "P",
+        "from_location_id": "D",
+        "to_location_id": "B",
+        "quantity": 4,
+        "ship_date": "2026-11-02",
+        "arrival_date": "2026-11-03",
+        "batch_ids": [
+          "p1"
+        ]
+      },
+      {
+        "product_id": "Q",
+        "from_location_id": "D",
+        "to_location_id": "B",
+        "quantity": 10,
+        "ship_date": "2026-11-02",
+        "arrival_date": "2026-11-03",
+        "batch_ids": [
+          "q1"
+        ]
+      }
+    ],
+    "starved_products": [],
+    "products": {
+      "P": {
+        "expired": 0,
+        "lost": 10,
+        "objective": "10.00"
+      },
+      "Q": {
+        "expired": 0,
+        "lost": 4,
+        "objective": "40.00"
+      }
+    }
+  }
+}

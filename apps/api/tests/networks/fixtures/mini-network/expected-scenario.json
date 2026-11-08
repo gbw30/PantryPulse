@@ -1,0 +1,286 @@
+{
+  "assumptions": [
+    "No available forecast, so no demand target (not zero): P3 \u00d7 BEANS (INSUFFICIENT_DATA)",
+    "Expected donations (forecast, not confirmed) for 1 series are shown but never counted as supply",
+    "Inbound outside the seven-day horizon, not counted: line 3 P1 \u00d7 BEANS 5 arriving 2026-11-20",
+    "Route capacity per batch on 3 of 3 routes: capacity not provided \u2014 no limit assumed",
+    "Receiving capacity at P2, P3: capacity not provided \u2014 no limit assumed",
+    "Dispatch, storage and global handling capacity: capacity not provided \u2014 no limit assumed (the templates don't carry them)",
+    "Reserve floors: 0 for every location and product (none set in this scenario)",
+    "Cost budget: off (none set)"
+  ],
+  "batches": [
+    {
+      "expiry_date": null,
+      "id": "H1/BEANS/B1",
+      "location_id": "H1",
+      "non_expiring": true,
+      "product_id": "BEANS",
+      "quantity": 60
+    },
+    {
+      "expiry_date": "2026-11-20",
+      "id": "H1/RICE/B1",
+      "location_id": "H1",
+      "non_expiring": false,
+      "product_id": "RICE",
+      "quantity": 120
+    },
+    {
+      "expiry_date": "2026-11-08",
+      "id": "P1/RICE/B1",
+      "location_id": "P1",
+      "non_expiring": false,
+      "product_id": "RICE",
+      "quantity": 4
+    },
+    {
+      "expiry_date": null,
+      "id": "P2/BEANS/B1",
+      "location_id": "P2",
+      "non_expiring": true,
+      "product_id": "BEANS",
+      "quantity": 0
+    }
+  ],
+  "capacities": [
+    {
+      "dispatch": null,
+      "location_id": "H1",
+      "receiving": null,
+      "storage": null
+    },
+    {
+      "dispatch": null,
+      "location_id": "P1",
+      "receiving": 50,
+      "storage": null
+    },
+    {
+      "dispatch": null,
+      "location_id": "P2",
+      "receiving": null,
+      "storage": null
+    },
+    {
+      "dispatch": null,
+      "location_id": "P3",
+      "receiving": null,
+      "storage": null
+    }
+  ],
+  "cost_budget_minor": null,
+  "dataset_version_id": "00000000-0000-0000-0000-000000000003",
+  "demand": [
+    {
+      "actual_provider": "SEASONAL_NAIVE",
+      "basis": "demand",
+      "central_literals": [
+        "3",
+        "2.5",
+        "0",
+        "4.2",
+        "3",
+        "1",
+        "2"
+      ],
+      "fallback_reason": null,
+      "location_id": "P1",
+      "product_id": "RICE",
+      "targets": [
+        3,
+        3,
+        0,
+        5,
+        3,
+        1,
+        2
+      ]
+    },
+    {
+      "actual_provider": "MOVING_AVERAGE",
+      "basis": "sales",
+      "central_literals": [
+        "1.5",
+        "1.5",
+        "1.5",
+        "1.5",
+        "1.5",
+        "1.5",
+        "1.5"
+      ],
+      "fallback_reason": "seasonal-naive history too short",
+      "location_id": "P2",
+      "product_id": "RICE",
+      "targets": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ]
+    }
+  ],
+  "first_planning_date": "2026-11-05",
+  "forecast_run_id": "00000000-0000-0000-0000-000000000004",
+  "global_handling": null,
+  "horizon_days": 7,
+  "inbound": [
+    {
+      "arrival_date": "2026-11-06",
+      "expiry_date": "2026-11-30",
+      "id": "inbound-2",
+      "location_id": "P2",
+      "non_expiring": false,
+      "product_id": "RICE",
+      "quantity": 10
+    }
+  ],
+  "inbound_file_provided": true,
+  "locations": [
+    {
+      "id": "H1",
+      "name": "North Hub",
+      "role": "hub"
+    },
+    {
+      "id": "P1",
+      "name": "Pantry One",
+      "role": "pantry"
+    },
+    {
+      "id": "P2",
+      "name": "Pantry Two",
+      "role": "pantry"
+    },
+    {
+      "id": "P3",
+      "name": "Pantry Three",
+      "role": "pantry"
+    }
+  ],
+  "mode": "PANTRY",
+  "network_id": "00000000-0000-0000-0000-000000000001",
+  "organization_id": "00000000-0000-0000-0000-000000000002",
+  "planning_days": 2,
+  "policy": {
+    "ap_cap_bp": 2500,
+    "ap_threshold": 7500,
+    "beta_percent": 50,
+    "coefficients": [
+      {
+        "attribute_id": "poverty_rate",
+        "percent": 50
+      },
+      {
+        "attribute_id": "snap_rate",
+        "percent": 50
+      }
+    ],
+    "decision_ids": [
+      "OR-DEC-001",
+      "OR-DEC-002",
+      "OR-DEC-003",
+      "OR-DEC-004",
+      "OR-DEC-005",
+      "OR-DEC-006",
+      "OR-DEC-007",
+      "OR-DEC-008",
+      "OR-DEC-009",
+      "OR-DEC-010",
+      "OR-DEC-011",
+      "OR-DEC-012",
+      "OR-DEC-013",
+      "OR-DEC-014",
+      "OR-DEC-015",
+      "OR-DEC-016",
+      "OR-DEC-017",
+      "OR-DEC-018",
+      "OR-DEC-019",
+      "OR-DEC-020"
+    ],
+    "epsilon_cost_bp": 100,
+    "epsilon_waste_bp": 100,
+    "gamma_ap_percent": 100,
+    "gamma_rp_percent": 100,
+    "lambda_percent": 100,
+    "purpose": "PRIMARY",
+    "rp_cap_bp": 2500,
+    "rp_threshold": 2500,
+    "schema_version": "or-policy-v1",
+    "version": "or-draft-1.1"
+  },
+  "products": [
+    {
+      "handling_units_per_unit": 1,
+      "id": "BEANS",
+      "name": "Beans",
+      "unit": "case",
+      "unit_value_usd": null
+    },
+    {
+      "handling_units_per_unit": 2,
+      "id": "RICE",
+      "name": "Rice",
+      "unit": "case",
+      "unit_value_usd": null
+    }
+  ],
+  "reserves": [],
+  "retail_weights": null,
+  "routes": [
+    {
+      "capacity_per_batch": null,
+      "cost_per_handling_unit_usd": null,
+      "from_location_id": "H1",
+      "method": "straight_line_estimate",
+      "road_miles": "167.688",
+      "to_location_id": "P1",
+      "travel_days": 1
+    },
+    {
+      "capacity_per_batch": null,
+      "cost_per_handling_unit_usd": null,
+      "from_location_id": "H1",
+      "method": "straight_line_estimate",
+      "road_miles": "129.219",
+      "to_location_id": "P2",
+      "travel_days": 1
+    },
+    {
+      "capacity_per_batch": null,
+      "cost_per_handling_unit_usd": null,
+      "from_location_id": "H1",
+      "method": "straight_line_estimate",
+      "road_miles": "101.316",
+      "to_location_id": "P3",
+      "travel_days": 1
+    }
+  ],
+  "schema_version": "or-input-v3",
+  "snapshot_as_of": "2026-11-04",
+  "timezone": "America/New_York",
+  "transfer_mode": "HUB_ONLY",
+  "vulnerability": [
+    {
+      "location_id": "P1",
+      "poverty_rate": "0.21",
+      "snap_rate": "0.18",
+      "source": "manual"
+    },
+    {
+      "location_id": "P2",
+      "poverty_rate": "0.3",
+      "snap_rate": "0.25",
+      "source": "manual"
+    },
+    {
+      "location_id": "P3",
+      "poverty_rate": "0.15",
+      "snap_rate": "0.12",
+      "source": "manual"
+    }
+  ]
+}

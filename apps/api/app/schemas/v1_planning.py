@@ -214,7 +214,9 @@ class VulnerabilityV3(ORContract):
     location_id: Id
     poverty_rate: str
     snap_rate: str
-    source: str = Field(min_length=1)  # "ACS 5-year YYYY, tract NNNN" or "manual"
+    # "ACS 5-year YYYY, tract NNNN", "manual", or one manual rate beside a looked-up one:
+    # "poverty_rate: manual; snap_rate: ACS 5-year YYYY, tract NNNN" (either order)
+    source: str = Field(min_length=1)
 
     @field_validator("poverty_rate", "snap_rate")
     @classmethod
@@ -429,7 +431,9 @@ class ActionEffect(ORContract):
     sender_unmet_delta: int = Field(strict=True)
     receiver_unmet_delta: int = Field(strict=True)
     expired_delta: int = Field(strict=True)
-    usd_delta: str | None  # None when USD is unavailable
+    # Retail: price × (Δunmet + Δexpired), the dollar value of the units changed; not the
+    # objective. None when USD is unavailable.
+    usd_delta: str | None
 
 
 class DecisionAction(ORContract):
