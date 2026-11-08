@@ -4756,6 +4756,16 @@
               }
             ]
           },
+          "solver": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SolverRun"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "transfers": {
             "items": {
               "$ref": "#/components/schemas/TransferV3"
@@ -7909,6 +7919,41 @@
           "timezone"
         ],
         "title": "SiteSummary",
+        "type": "object"
+      },
+      "SolverRun": {
+        "additionalProperties": false,
+        "description": "How an optimizing method's per-product solves ran, for replay (solver S2).",
+        "properties": {
+          "engine": {
+            "const": "OR-Tools CP-SAT",
+            "title": "Engine",
+            "type": "string"
+          },
+          "seed": {
+            "minimum": 0.0,
+            "title": "Seed",
+            "type": "integer"
+          },
+          "version": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Version",
+            "type": "string"
+          },
+          "workers": {
+            "minimum": 1.0,
+            "title": "Workers",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "engine",
+          "version",
+          "seed",
+          "workers"
+        ],
+        "title": "SolverRun",
         "type": "object"
       },
       "SourceCoverage": {

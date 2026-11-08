@@ -9,6 +9,8 @@ import time
 from collections import defaultdict
 from decimal import Decimal
 
+import ortools
+
 from app.schemas.v1_planning import (
     NOT_AT_RISK_LABEL,
     AllocationMethod,
@@ -17,6 +19,7 @@ from app.schemas.v1_planning import (
     MethodResult,
     ORInputV3,
     ProductSolve,
+    SolverRun,
     require_methods_for_mode,
 )
 from app.services.optimization.decompose import at_risk, protected_senders, split
@@ -29,7 +32,7 @@ from app.services.optimization.pantry import (
     solve_pantry_product,
 )
 from app.services.optimization.projection import project_v3
-from app.services.optimization.retail import ProductOutcome, solve_retail_product
+from app.services.optimization.retail import SEED, WORKERS, ProductOutcome, solve_retail_product
 from app.services.optimization.v3 import (
     PER_PRODUCT_LABEL,
     STARVED_LABEL,
@@ -45,6 +48,14 @@ PER_PRODUCT_SEARCH_S = 5.0
 METHOD_SEARCH_S = 300.0  # solver search ceiling per method (CLAUDE.md: 300 s search / 330 s method)
 OPTIMIZING = ("CLASSICAL_GP", "EGP_PI_INSPIRED", "RETAIL_OPTIMIZED")
 UNITS_NOT_SUMMED = "units objective is per product; not summed across products"
+
+
+def solver_run(method) -> SolverRun | None:
+    if method not in OPTIMIZING:
+        return None
+    return SolverRun(
+        engine="OR-Tools CP-SAT", version=ortools.__version__, seed=SEED, workers=WORKERS
+    )
 
 
 def usd_unavailable_reason(s: ORInputV3) -> str | None:
@@ -209,6 +220,7 @@ def assemble(s, method, measure, baseline, quantities, status, products, native)
         usd_unavailable_reason=usd_unavailable_reason(s),
         retail_weights=s.retail_weights,
         labels=tuple(labels),
+        solver=solver_run(method),
     )
 
 
@@ -226,6 +238,7 @@ def failed_result(s, method, measure, status, reason, products) -> MethodResult:
         usd_unavailable_reason=usd_unavailable_reason(s),
         retail_weights=s.retail_weights,
         labels=(),
+        solver=solver_run(method),
     )
 
 

@@ -3048,6 +3048,7 @@ export interface components {
             /** Products */
             products: components["schemas"]["ProductSolve"][];
             retail_weights: components["schemas"]["RetailWeights"] | null;
+            solver?: components["schemas"]["SolverRun"] | null;
             /** Transfers */
             transfers: components["schemas"]["TransferV3"][];
             /** Usd Unavailable Reason */
@@ -4227,6 +4228,23 @@ export interface components {
             role: "HUB" | "BENEFICIARY";
             /** Timezone */
             timezone: string;
+        };
+        /**
+         * SolverRun
+         * @description How an optimizing method's per-product solves ran, for replay (solver S2).
+         */
+        SolverRun: {
+            /**
+             * Engine
+             * @constant
+             */
+            engine: "OR-Tools CP-SAT";
+            /** Seed */
+            seed: number;
+            /** Version */
+            version: string;
+            /** Workers */
+            workers: number;
         };
         /** SourceCoverage */
         SourceCoverage: {

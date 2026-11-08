@@ -10,6 +10,7 @@ from decimal import Decimal
 from fractions import Fraction
 from uuid import UUID
 
+import ortools
 import pytest
 
 from app.schemas.v1_planning import (
@@ -457,3 +458,23 @@ def test_singleton_product_keeps_the_shared_split():
     assert moved(gp) == {"F": 2, "G": 2}
     assert moved(egp) == {"F": 2}
     assert next(p for p in egp.products if p.product_id == "G").label == SINGLETON_LABEL
+
+
+@pytest.mark.parametrize(
+    "fixture,mode", [("pantry-four-methods", "PANTRY"), ("retail-usd-flip", "RETAIL")]
+)
+def test_optimizers_record_the_solver_run(fixture, mode):  # W2-06 lead CR (solver S2)
+    s, _ = load(fixture)
+    for method in METHODS_BY_MODE[mode]:
+        result = run_method(s, method, "UNITS")
+        assert result.verified, (method, result.failure_reason)
+        if method in ("NO_TRANSFERS", "EQUAL_SHARE", "MOST_URGENT_FIRST", "SOONEST_EXPIRY_FIRST"):
+            assert result.solver is None, method
+        else:
+            got = result.solver.model_dump()
+            assert got == {
+                "engine": "OR-Tools CP-SAT",
+                "version": ortools.__version__,
+                "seed": 0,
+                "workers": 1,
+            }, method
