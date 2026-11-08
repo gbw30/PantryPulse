@@ -3,8 +3,9 @@
 The one `validate` step has no database access: it reads the uploaded CSVs from the imports
 volume, runs the Validator and writes COPY-ready files next to them. `prepare` bulk-loads those
 into tables named by the attempt, outside the queue lock; `publish`, inside it, writes the error
-report, or moves the rows in and attaches the history partitions. `discard` drops the attempt's
-tables, and `prepare` clears whatever a crashed attempt left (app/services/imports/staging.py).
+report, or moves the small tables' rows in and attaches the batches and history partitions.
+`discard` drops the attempt's tables, and `prepare` clears whatever a crashed attempt left
+(app/services/imports/staging.py).
 Row errors are a result, not a crash: the job succeeds and the import reads `failed`.
 A committed version queues its enrichment.v1 in the same transaction (`follow_ups`, CR-w1-data-5).
 """
@@ -104,7 +105,8 @@ class ImportPublisher:
         return package
 
     def publish(self, connection, identity, package):
-        """Inside the queue lock: the small inserts, the history FKs and ATTACH."""
+        """Inside the queue lock: the small inserts, then ATTACH of the batches and history
+        partitions, which clones and validates the parent's FKs (no batch row is inserted)."""
         return publish_staged(connection, identity.organization_id, identity.attempt_id,
                               package["job"], package["step"])
 

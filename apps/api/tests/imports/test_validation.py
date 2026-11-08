@@ -9,6 +9,7 @@ import pytest
 
 from app.schemas.v1_envelope import Envelope
 from app.schemas.v1_imports import ImportSettings, RowError
+from app.services.imports.columns import COLUMNS, header
 from app.services.imports.validate import validate_files
 
 LOCATIONS = (
@@ -28,6 +29,7 @@ DEMAND = (
     "P1,RICE,2026-11-02,,demand\n"
 )
 PANTRY = ImportSettings(mode="PANTRY", timezone="America/New_York", as_of_date=date(2026, 11, 4))
+NO_AS_OF = PANTRY.model_copy(update={"as_of_date": None})
 
 
 def _files(**overrides: str | bytes) -> dict[Any, BinaryIO]:
@@ -263,6 +265,48 @@ def test_nul_inside_a_number_is_reported_once():
     error = _only_error(inventory=INVENTORY.replace("H1,RICE,B1,40,", "H1,RICE,B1,4\x000,"))
     assert (error.line, error.column, error.code) == (2, "quantity", "MALFORMED")
     assert "NUL" in error.reason
+
+
+@pytest.mark.parametrize("locations", [
+    LOCATIONS.replace("location_id", "location_id\x00", 1),
+    LOCATIONS.encode("utf-16-le"),  # saved as UTF-16 without a BOM: ASCII plus 0x00 is UTF-8
+], ids=["stray-nul", "utf16-no-bom"])
+def test_nul_in_the_header_is_one_readable_error(locations):
+    """W2-06: the header must not reach the stored error with its NUL (PostgreSQL refuses it)."""
+    error = _only_error(locations=locations)  # one error: the file is unusable, not re-checked
+    assert (error.file, error.line, error.code) == ("locations", 1, "MALFORMED")
+    for text in (error.column, error.reason, error.fix, error.value):
+        assert "\x00" not in (text or "")
+    assert "NUL" in error.reason and "CSV UTF-8" in error.fix
+
+
+@pytest.mark.parametrize("cell", ["first", "middle", "last"])
+@pytest.mark.parametrize("name", list(COLUMNS))
+def test_nul_in_any_header_cell_of_any_template_is_one_readable_error(name, cell):
+    cells = header(name).split(",")
+    i = {"first": 0, "middle": len(cells) // 2, "last": len(cells) - 1}[cell]
+    cells[i] = cells[i][:1] + "\x00" + cells[i][1:]
+    report = validate_files(_files(**{name: ",".join(cells) + "\n"}), PANTRY)
+    [error] = [e for e in report.errors if e.file == name]
+    assert (error.line, error.code, error.column, error.value) == (1, "MALFORMED", None, None)
+    assert "\x00" not in error.reason + error.fix and "CSV UTF-8" in error.fix
+
+
+def test_files_saved_as_utf16_are_named_without_an_as_of_date():
+    """W2-06 F1: the default as-of date comes from the history, so an unreadable history file
+    gets its own error (as does every other unreadable file), not "no valid history date"."""
+    texts = {"locations": LOCATIONS, "products": PRODUCTS, "inventory": INVENTORY,
+             "demand_history": DEMAND}
+    report = validate_files(_files(**{n: t.encode("utf-16-le") for n, t in texts.items()}),
+                            NO_AS_OF)
+    assert [(e.file, e.line, e.code) for e in report.errors] == [
+        (name, 1, "MALFORMED") for name in texts]
+    assert all("NUL" in e.reason and "CSV UTF-8" in e.fix for e in report.errors)
+
+
+def test_readable_history_without_a_date_still_asks_for_the_as_of_date():
+    report = validate_files(_files(demand_history=DEMAND.split("\n")[0] + "\n"), NO_AS_OF)
+    assert [(e.file, e.line, e.column) for e in report.errors] == [("demand_history", 1, "date")]
 
 
 def test_ids_case_sensitive_after_trim():

@@ -200,9 +200,14 @@ class Validator:
                             f"Upload {name}.csv, starting from the blank template")
         as_of = self.settings.as_of_date or self._default_as_of(files)
         if as_of is None:
-            self.report("demand_history", 1, "date", "MALFORMED",
-                        "no valid history date, so the as-of date can't be set",
-                        "Add dated history rows, or enter the as-of date for the inventory")
+            for name in FILE_ORDER:  # still say why each file can't be read (e.g. UTF-16)
+                if name in files:
+                    for _ in self._records(name, files[name]):
+                        pass
+            if not self.unusable.intersection(HISTORY_FILES):  # else that file's error says why
+                self.report("demand_history", 1, "date", "MALFORMED",
+                            "no valid history date, so the as-of date can't be set",
+                            "Add dated history rows, or enter the as-of date for the inventory")
             return ValidationReport(ok=False, errors=tuple(self.errors),
                                     error_count=self.error_count)
         self.as_of = as_of
@@ -270,6 +275,12 @@ class Validator:
             self.unusable.add(name)
             report(name, 1, None, "MALFORMED", f"the header row can't be read: {exc}",
                    f"Start from the blank template; the first row is: {header(name)}")
+            return
+        if any("\x00" in cell for cell in head):  # e.g. UTF-16 without a BOM; PostgreSQL can't
+            self.unusable.add(name)                # store the header in the error, so omit it
+            report(name, 1, None, "MALFORMED",
+                   "the header row contains a NUL character (0x00), so the file can't be read",
+                   "Save the file as \"CSV UTF-8 (Comma delimited)\" and upload it again")
             return
         if not self._header_ok(name, head, report):
             self.unusable.add(name)

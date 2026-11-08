@@ -704,6 +704,16 @@ class Supervisor:
         except QueueStorageUnavailable:
             ex.publish_pending = True  # retried while the original deadline allows
             return
+        except OwnershipLost:
+            raise  # tick() hands the lane over
+        except Exception as exc:  # rolled back before COMMIT (a failed COMMIT is CommitUncertain)
+            log_event(  # the type only: a database error's message can quote user data
+                "PUBLICATION_STORAGE_FAILED",
+                attempt_id=ex.claim.attempt_id,
+                error_type=type(exc).__name__,
+            )
+            self._finish(ex, failure_reason=ReasonCode.PUBLICATION_STORAGE_FAILED)
+            return
         log_event("ATTEMPT_PUBLISHED", attempt_id=ex.claim.attempt_id)
         self.active = None
 

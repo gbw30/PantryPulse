@@ -40,7 +40,10 @@ def _tables(conn):
     return set(sa.inspect(conn).get_table_names(schema=SCHEMA))
 
 
-def _network(conn, mode="PANTRY"):
+PARTITIONED = ("net_demand_history", "net_donation_history", "net_batches")  # by version
+
+
+def _network(conn, mode="PANTRY", partitioned=PARTITIONED):
     """Create organization → network → dataset version → one location and one product."""
     ids = {k: uuid.uuid4() for k in ("org", "net", "ver", "run", "loc", "prod")}
     q = lambda sql, **kw: conn.execute(sa.text(sql), {**{k: v for k, v in ids.items()}, **kw})  # noqa: E731
@@ -56,7 +59,7 @@ def _network(conn, mode="PANTRY"):
       "'Gainesville', 'FL', '32601')")
     q("INSERT INTO net_products (id, organization_id, dataset_version_id, external_id, name, unit) "
       "VALUES (:prod, :org, :ver, 'P1', 'Rice', 'case')")
-    for table in ("net_demand_history", "net_donation_history"):
+    for table in partitioned:
         part = f"{table}_{ids['ver'].hex}"
         conn.execute(sa.text(f"CREATE TABLE {part} PARTITION OF {table} "
                              f"FOR VALUES IN ('{ids['ver']}')"))
@@ -73,7 +76,7 @@ def _fails(engine, sql, **params):
 def test_upgrade_head_on_fresh_database(engine):
     with engine.connect() as conn:
         assert V1_TABLES <= _tables(conn)
-        assert conn.scalar(sa.text("SELECT version_num FROM alembic_version")) == "ppv1_0012"
+        assert conn.scalar(sa.text("SELECT version_num FROM alembic_version")) == "ppv1_0013"
 
 
 def test_downgrade_to_ppvp_0007_and_up_again():
@@ -369,6 +372,106 @@ def test_downgrade_refuses_to_lose_a_defaulted_handling_unit():
                                  "'P-BLANK', 'x', 'case', false)"), ids)
         with pytest.raises(Exception, match="V1_DATA_PRESENT"), eng.begin() as conn:
             command.downgrade(alembic_config(conn), "ppv1_0011")
+    finally:
+        eng.dispose()
+        reset_schema(url, schema)
+
+
+# W2-06 (Gabriel, 2026-11-08): net_batches is LIST-partitioned by dataset version (ppv1_0013).
+BATCH_COLUMNS = ("id, organization_id, dataset_version_id, location_id, product_id, external_id, "
+                 "quantity, expiry_date, non_expiring, received_date, recorded_at")
+
+
+def _batch_rows(conn):
+    return [tuple(r) for r in conn.execute(sa.text(
+        f"SELECT {BATCH_COLUMNS} FROM net_batches ORDER BY id"))]
+
+
+def _batches_catalog(conn):
+    """net_batches as the catalog defines it: columns, constraints, indexes, triggers."""
+    query = {
+        "columns": "SELECT a.attnum, a.attname, format_type(a.atttypid, a.atttypmod), "
+                   "a.attnotnull, pg_get_expr(d.adbin, d.adrelid) FROM pg_attribute a "
+                   "LEFT JOIN pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum "
+                   "WHERE a.attrelid = to_regclass('net_batches') AND a.attnum > 0 "
+                   "AND NOT a.attisdropped",
+        "constraints": "SELECT conname, contype, pg_get_constraintdef(oid), convalidated "
+                       "FROM pg_constraint WHERE conrelid = to_regclass('net_batches')",
+        "indexes": "SELECT c.relname, pg_get_indexdef(i.indexrelid) FROM pg_index i "
+                   "JOIN pg_class c ON c.oid = i.indexrelid "
+                   "WHERE i.indrelid = to_regclass('net_batches')",
+        "triggers": "SELECT tgname, pg_get_triggerdef(oid), tgenabled FROM pg_trigger "
+                    "WHERE tgrelid = to_regclass('net_batches') AND NOT tgisinternal",
+        "relation": "SELECT relkind, relpersistence, pg_get_partkeydef(oid) FROM pg_class "
+                    "WHERE oid = to_regclass('net_batches')",
+    }
+    return {k: sorted(tuple(r) for r in conn.execute(sa.text(q))) for k, q in query.items()}
+
+
+def _homes(conn):
+    """(dataset version, relation holding the row) for every batch."""
+    return {tuple(r) for r in conn.execute(sa.text(
+        "SELECT b.dataset_version_id, c.relname FROM net_batches b "
+        "JOIN pg_class c ON c.oid = b.tableoid"))}
+
+
+def test_batches_are_partitioned_by_version_and_immutable(engine):
+    with engine.begin() as conn:
+        ids = _network(conn)
+        conn.execute(sa.text(BATCH), {**ids, "qty": "4", "exp": "2026-11-10", "ne": False})
+        assert conn.scalar(sa.text("SELECT pg_get_partkeydef(to_regclass('net_batches'))")) == (
+            "LIST (dataset_version_id)")
+        assert (ids["ver"], f"net_batches_{ids['ver'].hex}") in _homes(conn)
+    for sql in ("UPDATE net_batches SET quantity = 5 WHERE dataset_version_id = :ver",
+                "DELETE FROM net_batches WHERE dataset_version_id = :ver"):
+        with pytest.raises(DBAPIError, match="immutable"), engine.begin() as conn:
+            conn.execute(sa.text(sql), ids)
+
+
+def test_ppv1_0013_moves_every_batch_into_its_version_partition_and_back():
+    url = database_url()
+    schema = "v1_batches_partition_test"
+    reset_schema(url, schema)
+    eng = create_queue_engine(url, schema=schema)
+    try:
+        with eng.begin() as conn:
+            command.upgrade(alembic_config(conn), "ppv1_0012")
+            fresh = _batches_catalog(conn)
+            versions = []
+            for qty in ("40", "7"):  # two dataset versions, as after a re-import
+                ids = _network(conn, partitioned=PARTITIONED[:2])
+                conn.execute(sa.text(BATCH), {**ids, "qty": qty, "exp": "2026-11-10", "ne": False})
+                conn.execute(sa.text(BATCH.replace("'B1'", "'B2'")),
+                             {**ids, "qty": "0", "exp": None, "ne": True})
+                conn.execute(sa.text("UPDATE net_batches SET received_date = '2026-10-01' "
+                                     "WHERE dataset_version_id = :ver AND external_id = 'B1'"),
+                             ids)
+                versions.append(ids["ver"])
+            before = _batch_rows(conn)
+        assert len(before) == 4
+
+        with eng.begin() as conn:
+            command.upgrade(alembic_config(conn), "ppv1_0013")
+        with eng.connect() as conn:
+            assert conn.scalar(sa.text(
+                "SELECT pg_get_partkeydef(to_regclass('net_batches'))")) == (
+                "LIST (dataset_version_id)")
+            assert _homes(conn) == {(v, f"net_batches_{v.hex}") for v in versions}
+            assert _batch_rows(conn) == before
+        for sql in ("UPDATE net_batches SET quantity = 1 WHERE dataset_version_id = :v",
+                    "DELETE FROM net_batches WHERE dataset_version_id = :v"):
+            with pytest.raises(DBAPIError, match="immutable"), eng.begin() as conn:
+                conn.execute(sa.text(sql), {"v": versions[0]})
+
+        with eng.begin() as conn:
+            command.downgrade(alembic_config(conn), "ppv1_0012")
+        with eng.connect() as conn:
+            assert conn.scalar(sa.text(
+                "SELECT relkind FROM pg_class WHERE oid = to_regclass('net_batches')")) == "r"
+            assert _homes(conn) == {(v, "net_batches") for v in versions}
+            assert _batch_rows(conn) == before
+            assert not {t for t in _tables_in(conn, schema) if t.startswith("net_batches_")}
+            assert _batches_catalog(conn) == fresh  # what ppv1_0012 built, nothing lost
     finally:
         eng.dispose()
         reset_schema(url, schema)
