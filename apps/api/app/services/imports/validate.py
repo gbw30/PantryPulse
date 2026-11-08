@@ -271,6 +271,12 @@ class Validator:
             report(name, 1, None, "MALFORMED", f"the header row can't be read: {exc}",
                    f"Start from the blank template; the first row is: {header(name)}")
             return
+        if any("\x00" in cell for cell in head):  # e.g. UTF-16 without a BOM; PostgreSQL can't
+            self.unusable.add(name)                # store the header in the error, so omit it
+            report(name, 1, None, "MALFORMED",
+                   "the header row contains a NUL character (0x00), so the file can't be read",
+                   "Save the file as \"CSV UTF-8 (Comma delimited)\" and upload it again")
+            return
         if not self._header_ok(name, head, report):
             self.unusable.add(name)
             return
