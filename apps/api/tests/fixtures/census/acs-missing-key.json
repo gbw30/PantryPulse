@@ -1,0 +1,18 @@
+{
+  "recorded": {
+    "kind": "live_response",
+    "at": "2026-11-07T06:54:25Z",
+    "by": "W1-D01 spike S5",
+    "note": "keyless ACS 5-year tract query for Leon County; the Data API now requires a key (CR-w1-data-1)"
+  },
+  "request": {
+    "method": "GET",
+    "url": "https://api.census.gov/data/2024/acs/acs5",
+    "query": "get=NAME,B17001_001E,B17001_002E,B22003_001E,B22003_002E&for=tract:*&in=state:12&in=county:073"
+  },
+  "response": {
+    "status": 302,
+    "location": "https://api.census.gov/data/missing_key.html",
+    "body": ""
+  }
+}

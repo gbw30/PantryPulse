@@ -1,0 +1,22 @@
+{
+  "recorded": {
+    "kind": "live_response",
+    "at": "2026-11-07T06:53:26Z",
+    "by": "W1-D01 spike S5",
+    "note": "12 Florida public buildings (courthouses, libraries) plus one deliberately nonexistent address"
+  },
+  "request": {
+    "method": "POST",
+    "url": "https://geocoding.geo.census.gov/geocoder/geographies/addressbatch",
+    "form": {
+      "benchmark": "Public_AR_Current",
+      "vintage": "Current_Current"
+    },
+    "addressFile": "1,301 S Monroe St,Tallahassee,FL,32301\n2,201 E University Ave,Gainesville,FL,32601\n3,73 W Flagler St,Miami,FL,33130\n4,800 E Twiggs St,Tampa,FL,33602\n5,425 N Orange Ave,Orlando,FL,32801\n6,501 W Adams St,Jacksonville,FL,32202\n7,190 W Government St,Pensacola,FL,32502\n8,315 Court St,Clearwater,FL,33756\n9,900 N Ashley Dr,Tampa,FL,33602\n10,303 N Laura St,Jacksonville,FL,32202\n11,200 W Park Ave,Tallahassee,FL,32301\n12,100 S Andrews Ave,Fort Lauderdale,FL,33301\n13,99999 Nonexistent Pantry Rd,Tallahassee,FL,32301\n"
+  },
+  "response": {
+    "status": 200,
+    "content_type": "text/plain",
+    "body": "\"11\",\"200 W Park Ave, Tallahassee, FL, 32301\",\"Match\",\"Exact\",\"200 W PARK AVE, TALLAHASSEE, FL, 32301\",\"-84.283168356173,30.442263729417\",\"82850676\",\"R\",\"12\",\"073\",\"000200\",\"3033\"\n\"12\",\"100 S Andrews Ave, Fort Lauderdale, FL, 33301\",\"Match\",\"Non_Exact\",\"100 N ANDREWS AVE, FORT LAUDERDALE, FL, 33301\",\"-80.143468620837,26.123255411276\",\"114722798\",\"R\",\"12\",\"011\",\"042501\",\"2035\"\n\"13\",\"99999 Nonexistent Pantry Rd, Tallahassee, FL, 32301\",\"No_Match\"\n\"1\",\"301 S Monroe St, Tallahassee, FL, 32301\",\"Match\",\"Exact\",\"301 S MONROE ST, TALLAHASSEE, FL, 32301\",\"-84.280588998653,30.439935478013\",\"82850785\",\"L\",\"12\",\"073\",\"000200\",\"3067\"\n\"2\",\"201 E University Ave, Gainesville, FL, 32601\",\"Match\",\"Exact\",\"201 E UNIVERSITY AVE, GAINESVILLE, FL, 32601\",\"-82.32304564155,29.651900077559\",\"6808855\",\"R\",\"12\",\"001\",\"000500\",\"1045\"\n\"3\",\"73 W Flagler St, Miami, FL, 33130\",\"Match\",\"Exact\",\"73 W FLAGLER ST, MIAMI, FL, 33130\",\"-80.195092070079,25.774170804286\",\"116018407\",\"R\",\"12\",\"086\",\"003706\",\"1016\"\n\"4\",\"800 E Twiggs St, Tampa, FL, 33602\",\"Match\",\"Exact\",\"800 E TWIGGS ST, TAMPA, FL, 33602\",\"-82.454354325542,27.950696278644\",\"104530560\",\"L\",\"12\",\"057\",\"005101\",\"2002\"\n\"5\",\"425 N Orange Ave, Orlando, FL, 32801\",\"Match\",\"Exact\",\"425 N ORANGE AVE, ORLANDO, FL, 32801\",\"-81.379067837198,28.548045658823\",\"94399513\",\"R\",\"12\",\"095\",\"018902\",\"1008\"\n\"6\",\"501 W Adams St, Jacksonville, FL, 32202\",\"Match\",\"Exact\",\"501 W ADAMS ST, JACKSONVILLE, FL, 32202\",\"-81.663763122856,30.329168071532\",\"83897181\",\"R\",\"12\",\"031\",\"017200\",\"2085\"\n\"7\",\"190 W Government St, Pensacola, FL, 32502\",\"Match\",\"Non_Exact\",\"190 E GOVERNMENT ST, PENSACOLA, FL, 32502\",\"-87.212163248076,30.409736910732\",\"93238462\",\"L\",\"12\",\"033\",\"000100\",\"1063\"\n\"8\",\"315 Court St, Clearwater, FL, 33756\",\"Match\",\"Exact\",\"315 COURT ST, CLEARWATER, FL, 33756\",\"-82.801576991141,27.962264234508\",\"124664426\",\"R\",\"12\",\"103\",\"025902\",\"2056\"\n\"9\",\"900 N Ashley Dr, Tampa, FL, 33602\",\"Match\",\"Exact\",\"900 N ASHLEY DR, TAMPA, FL, 33602\",\"-82.461432449041,27.950779461045\",\"104530051\",\"L\",\"12\",\"057\",\"005101\",\"1050\"\n\"10\",\"303 N Laura St, Jacksonville, FL, 32202\",\"Match\",\"Exact\",\"303 N LAURA ST, JACKSONVILLE, FL, 32202\",\"-81.658715087776,30.328874952727\",\"83899707\",\"R\",\"12\",\"031\",\"017200\",\"1031\"\n"
+  }
+}
