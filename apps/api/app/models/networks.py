@@ -173,6 +173,8 @@ class Product(OwnedIdentity, Base):
     unit = sa.Column(sa.Text, nullable=False)
     unit_value_usd = sa.Column(sa.Numeric(14, 4))  # NULL: Retail $ results unavailable
     handling_units_per_unit = sa.Column(sa.Numeric(14, 6), nullable=False, server_default="1")
+    # False when the file left it blank and 1 was assumed (listed in the scenario; CR-w1-data-6)
+    handling_units_given = sa.Column(sa.Boolean, nullable=False, server_default=sa.true())
     __table_args__ = owned(
         fk(["dataset_version_id"], "dataset_versions", ["id"]),
         sa.UniqueConstraint("organization_id", "dataset_version_id", "id"),

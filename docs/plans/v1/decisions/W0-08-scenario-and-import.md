@@ -90,3 +90,18 @@ An import either succeeds completely or leaves nothing behind, including the net
   - cancel and retry still refuse v1 jobs (W2 candidate);
   - a first import's job answers only once its network row exists, so imports report through `/imports/{id}`, their status URL.
 - **Import publish lock:** 4.47 s at the envelope maximum (4.5 M demand rows; `net_batches` INSERT is 3.53 s of it) is accepted for W1. W2 runs `bench_import.py` on the Windows Docker stack. Above 3.5 s there, `net_batches` becomes version-partitioned like the history tables.
+
+## 8. W2-01 review rulings (lead, 2026-11-07)
+
+- **Comparison and decision error codes (#107):**
+  - `SCENARIO_NOT_FOUND` 404, `METHOD_NOT_IN_COMPARISON` 404, `NETWORK_NOT_FOUND` 404;
+  - `RESULT_NOT_VERIFIED` 409;
+  - `UNKNOWN_ACTION_ID` 422, checked before any work.
+
+  A stored result that contradicts itself is an internal error (500), not a client error.
+- **Independent verifier cost:** `verify.cost_minor` keeps its own formula and never imports solver code or OR-Tools. An agreement test pins it to the solver's unit cost.
+- **`usd_delta` wording:** Retail only. It is price × (Δunmet + Δexpired): the "dollar value of the units changed", not the objective. The CSV and the web use that phrase.
+- **Frozen batch ids (#108):** `location/product/batch` when that fits 64 characters and no part contains `/`. Otherwise `h-` plus 40 hex characters of a SHA-256 over the three ids. Showing the external batch id for hashed ids needs a contract field (W2 contract pass).
+- **Donations:** one blank row makes that location × product × day unknown; it is never partially summed.
+- **Unknown EGP attributes block every Pantry freeze** (all five methods run together), as V1-SPEC §6.2 says. There is no silent exclusion.
+- **CR-w1-data-6:** `ppv1_0012` adds `net_products.handling_units_given`. It is true when the file gave a value and false when 1 was assumed; the scenario lists the assumed ones. Downgrade refuses while any product has an assumed value.
