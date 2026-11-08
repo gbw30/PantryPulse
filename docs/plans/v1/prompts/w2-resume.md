@@ -2,6 +2,21 @@
 
 W2 is lead-only (no lanes run). At the save point, W2-05 is done and W2-06 is partly landed. Decisions: [decisions/W2-06-change-requests.md](../decisions/W2-06-change-requests.md).
 
+## Progress since the save point (2026-11-09)
+
+- Steps 1–3 are done. v1-local is now `74efe6e`, which includes:
+  - #116, the NUL fix (`fdb3a5e`);
+  - #117, the partition plus the ATTACH foreign-key test (`5ff9add`; verifier R1–R6 PASS).
+
+  The full gate passed 8/8 on `fdb3a5e` and again on `74efe6e`.
+- The `CLAUDE.md` migration head is now `ppv1_0013`, on this branch (`da0f4a1`); it lands with the next docs PR.
+- Step 4 is in progress as two `integration-fixer` packets based on `74efe6e`:
+  - A2 and A5: branch `w2/data-fix-imports`, DB `pantrypulse_data_test`;
+  - A6 and A7: branch `w2/data-fix-freeze`, DB `pantrypulse_verify2_test`.
+
+  Each needs a verifier pass and then Gabriel's OK for its PR.
+- The lead's partition worktree `.claude/worktrees/lead-partition` (branch `w2/partition-integration`) is merged, so it can be removed with Gabriel's OK.
+
 ## State at the save point
 
 **v1-local is `d07c94c`** (PR #115 merged). It holds:
