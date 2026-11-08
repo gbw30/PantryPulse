@@ -264,9 +264,19 @@ def test_fractional_handling_units_are_a_row_error():
     assert "whole number of handling units" in error.fix
 
 
+def test_handling_units_above_the_freeze_maximum_are_a_row_error():
+    """W2-06 A5/F1: the freeze allows 1 to 1000 (ProductV3), so the import refuses 1001."""
+    products = ("product_id,name,unit,handling_units_per_unit\n"
+                "RICE,Rice,case,1001\nBEANS,Beans,case,\n")
+    error = _only_error(products=products)
+    assert (error.file, error.line, error.column, error.code, error.value) == (
+        "products", 2, "handling_units_per_unit", "MALFORMED", "1001")
+    assert error.fix == "Enter a whole number from 1 to 1000, or leave it blank to assume 1"
+
+
 @pytest.mark.parametrize(("raw", "expected", "given"), [
-    ("2.0", 2, True), ("3", 3, True), ("", 1, False),
-], ids=["whole-decimal", "integer", "blank"])
+    ("2.0", 2, True), ("3", 3, True), ("1000", 1000, True), ("", 1, False),
+], ids=["whole-decimal", "integer", "freeze-maximum", "blank"])
 def test_whole_or_blank_handling_units_are_accepted(raw, expected, given):
     products = f"product_id,name,unit,handling_units_per_unit\nRICE,Rice,case,{raw}\n" \
                "BEANS,Beans,case,\n"
