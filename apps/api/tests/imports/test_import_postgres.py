@@ -121,6 +121,17 @@ def test_products_record_whether_handling_units_were_given(engine, tmp_path):
             "WHERE dataset_version_id = :v"), {"v": outcome.dataset_version_id}).all()
     assert {r[0]: (r[1], r[2]) for r in rows} == {"RICE": (2, True), "BEANS": (1, False)}
 
+def test_fractional_handling_units_fail_the_import_and_save_nothing(engine, tmp_path):
+    before = _counts(engine, NETWORK_TABLES)
+    products = ("product_id,name,unit,handling_units_per_unit\n"
+                "RICE,Rice,case,2.5\nBEANS,Beans,case,\n")
+    outcome = _import(engine, tmp_path, {**FILES, "products": products})
+    assert not outcome.ok and outcome.network_id is None
+    assert [(e.file, e.line, e.column, e.code) for e in outcome.errors] == [
+        ("products", 2, "handling_units_per_unit", "FRACTIONAL")]
+    assert _counts(engine, NETWORK_TABLES) == before
+
+
 def test_any_error_saves_nothing(engine, tmp_path):
     first = _import(engine, tmp_path / "a", FILES)
     assert first.ok

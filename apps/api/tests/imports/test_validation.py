@@ -254,6 +254,28 @@ def test_handling_units_that_round_to_zero_in_their_column_are_rejected():
         "products", 2, "handling_units_per_unit", "MALFORMED")
 
 
+def test_fractional_handling_units_are_a_row_error():
+    """W2-06 A5: the import refuses what the freeze would refuse (HANDLING_UNITS_NOT_WHOLE)."""
+    products = ("product_id,name,unit,handling_units_per_unit\n"
+                "RICE,Rice,case,2.5\nBEANS,Beans,case,\n")
+    error = _only_error(products=products)
+    assert (error.file, error.line, error.column, error.code, error.value) == (
+        "products", 2, "handling_units_per_unit", "FRACTIONAL", "2.5")
+    assert "whole number of handling units" in error.fix
+
+
+@pytest.mark.parametrize(("raw", "expected", "given"), [
+    ("2.0", 2, True), ("3", 3, True), ("", 1, False),
+], ids=["whole-decimal", "integer", "blank"])
+def test_whole_or_blank_handling_units_are_accepted(raw, expected, given):
+    products = f"product_id,name,unit,handling_units_per_unit\nRICE,Rice,case,{raw}\n" \
+               "BEANS,Beans,case,\n"
+    report = validate_files(_files(products=products), PANTRY)
+    assert report.ok, report.errors
+    rice = next(p for p in report.rows.products if p.product_id == "RICE")
+    assert (rice.handling_units_per_unit, rice.handling_units_given) == (expected, given)
+
+
 def test_nul_character_rejected_before_the_bulk_load():
     error = _only_error(locations=LOCATIONS.replace("North Hub", "North\x00Hub"))
     assert (error.file, error.line, error.column, error.code) == ("locations", 2, "name",
