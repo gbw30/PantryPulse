@@ -118,8 +118,9 @@ def main(argv=None) -> dict:
                         help="a *_test database (default: PP_TEST_DATABASE_URL)")
     parser.add_argument("--import-dir", type=Path, default=os.environ.get("PP_IMPORT_DIR"),
                         help="where the files go (default: PP_IMPORT_DIR, else the temp folder)")
+    # .parent stops at "/"; .parents[1] raises IndexError in the image, where API_ROOT is /app
     parser.add_argument("--out", type=Path,
-                        default=API_ROOT.parents[1] / "artifacts" / "bench" / "import.json")
+                        default=API_ROOT.parent.parent / "artifacts" / "bench" / "import.json")
     args = parser.parse_args(argv)
     if not 0 < args.rows <= LOCATIONS * PRODUCTS * DAYS or not 0 < args.batches <= 200_000:
         parser.error("--rows must be 1..4,500,000 and --batches 1..200,000 (the v1 envelope)")
