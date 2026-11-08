@@ -1,4 +1,6 @@
-# Resuming W2-06 after the 2026-11-08 save point
+# Resuming W2-06 (save points 2026-11-08 and 2026-11-09)
+
+**Start at "Second save point (2026-11-09): resume here" below.** The later sections are the history from the first save point.
 
 W2 is lead-only (no lanes run). At the save point, W2-05 is done and W2-06 is partly landed. Decisions: [decisions/W2-06-change-requests.md](../decisions/W2-06-change-requests.md).
 
@@ -15,8 +17,47 @@ W2 is lead-only (no lanes run). At the save point, W2-05 is done and W2-06 is pa
   - #119 (A2/A5) merged as `e7daa17`.
 
   The full gate passed 8/8 on each merge. The decisions file records how each fix landed.
-- Step 5 is in progress. `wave-2.md` and the `BOARD.md` W2 row now record the W2-06 outcome, and `wave-3.md` gives the samples lane its `is_sample` interface. Still to do: the wave-end report, the W3 worktrees, the wave-start report, and Gabriel's approval of the W3 start.
-- The lead's partition worktree `.claude/worktrees/lead-partition` (branch `w2/partition-integration`) is merged, so it can be removed with Gabriel's OK.
+- Step 5 is in progress. `wave-2.md` and the `BOARD.md` W2 row now record the W2-06 outcome, and `wave-3.md` gives the samples lane its `is_sample` interface. The wave-end report went to Gabriel on 2026-11-09.
+- Step 6 (cleanup) is done, with Gabriel's OK on 2026-11-09:
+  - the `pp-smoke` stack and its volumes;
+  - `pantrypulse_bench_test`;
+  - the 3 bench images;
+  - the 5 merged worktrees;
+  - the `w2/w2-05-docs` branch.
+
+## Second save point (2026-11-09): resume here
+
+**State:**
+- v1-local is `e7daa17`. The full gate passed 8/8 on it.
+- **PR #120**, this docs branch `w2/w2-06-resume`, is open. Gabriel approved "push + merge after CI". It was still in CI at the save point.
+- The only worktree left is `.claude/worktrees/lead-resume` (this branch).
+- The main tree is detached at `e7daa17`.
+
+**Next steps:**
+1. Check `gh pr checks 120`. If CI is green, merge with `gh pr merge 120 --merge --match-head-commit <head sha>`. Then run the full gate on the merged v1-local with `pantrypulse_test` (the command is in §1 below). The merged head is the **W3 base SHA**.
+2. W3 setup (ORCHESTRATION.md §2, README isolation table). For each lane `forecast`, `samples` and `web`:
+   - `git worktree add ~/code/PantryPulse-<lane> -b lane/w3-<lane> <base>`;
+   - `cp`, never print, `apps/api/.env`, `apps/api/.env.demo`, `apps/web/.env.local` and `.claude/settings.local.json`;
+   - write `.env.lane`:
+
+     | Lane | API port | Playwright port | Stack port | Test DB | Compose project |
+     |---|---|---|---|---|---|
+     | forecast | 8001 | 3001 | 3101 | `pantrypulse_forecast_test` | `pp-forecast` |
+     | samples | 8002 | 3002 | 3102 | `pantrypulse_samples_test` | `pp-samples` |
+     | web | 8003 | 3003 | 3103 | `pantrypulse_web_test` | `pp-web` |
+
+     `.env.lane` never holds the presenter hash.
+   - `docker exec pp-ci-postgres createdb -U pantrypulse pantrypulse_<lane>_test` (forecast and samples; web's DB exists);
+   - `npm ci`, `uv sync --frozen --project apps/api`, `npx playwright install chromium`.
+3. Fill `{{BASE_SHA}}` in `prompts/w3-*.md` into paste-ready copies. Send the wave-start report (ORCHESTRATION §7). **Gabriel approves the W3 start** and opens one CLI session per lane.
+4. `/vault-wrap-up`. Notes still to write:
+   - the NUL-header worker crash;
+   - that a gate invalidates itself when the source changes;
+   - that the publication check must derive provenance;
+   - smoke-stack isolation;
+   - that fixer and verifier subagents stopped at 25 turns (one verifier at 30) and each needed a resume; update the "Cap at 35 Turns" note;
+   - one unidentified test failure seen once in a fixer's full run, not reproduced in about 6 later runs.
+5. Known nit for W5 copy polish: for handling units over 1000, the reason line reads "must be between 0 and 1000" while the fix reads "1 to 1000".
 
 ## State at the save point
 
@@ -113,4 +154,4 @@ cd ~/code/PantryPulse && claude --continue    # or claude --resume and pick the 
 
 If that conversation is gone, start `claude` in `~/code/PantryPulse` and paste:
 
-> You are the PantryPulse v1 orchestrator (lead). Read CLAUDE.md, docs/plans/v1/ORCHESTRATION.md, docs/plans/v1/wave-2.md, docs/plans/v1/decisions/W2-06-change-requests.md and this runbook (`git show w2/w2-06-resume:docs/plans/v1/prompts/w2-resume.md` until it is merged). Resume W2-06 from "Next steps" step 2: the gates on v1-local `d07c94c` passed. Start by bringing me the `w2/fix-nul-header` `b0ec518` PR for approval (it is verified). Bring me each PR for approval.
+> You are the PantryPulse v1 orchestrator (lead). Read CLAUDE.md, docs/plans/v1/ORCHESTRATION.md, docs/plans/v1/wave-3.md, docs/plans/v1/decisions/W2-06-change-requests.md and this runbook (`git show origin/w2/w2-06-resume:docs/plans/v1/prompts/w2-resume.md` until PR #120 merges). Resume from "Second save point (2026-11-09)": check PR #120's CI and merge it (I approved "push + merge after CI"), gate the merged v1-local, then set up the W3 worktrees and send me the wave-start report. Every status check includes progress bars for running processes.
