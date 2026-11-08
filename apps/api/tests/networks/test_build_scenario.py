@@ -311,6 +311,48 @@ def test_assumed_handling_units_are_listed_in_code_point_order(engine, tmp_path,
     assert {r.id: r.handling_units_per_unit for r in p.products} == {
         "BEANS": 1, "RICE": 2, "aa": 1}
 
+# --- lots already expired at as_of_date (W2-06 A6) -------------------------------------------
+# A lot is usable through its expiry date (kernel.py: lost only when expires_on < day;
+# v3.eligible: expiry_date >= arrival), so it is expired at as_of only when expiry < as_of.
+EXPIRED = "Batches already expired at the as-of date"
+
+
+def test_lot_expired_before_as_of_is_left_out_and_listed_per_product(engine, tmp_path, forecasts):
+    """Each product's left-out lots are named in that product's unit, never summed across."""
+    products = FILES["products"].replace("BEANS,Beans,case,,", "BEANS,Beans,can,,")
+    inventory = (FILES["inventory"] + "P1,RICE,B2,7,2026-11-03,,\n"
+                 "H1,BEANS,B2,5,2026-11-01,,\n" "P3,RICE,B3,2,2026-10-30,,\n")
+    network = _network(engine, tmp_path, {**FILES, "products": products,
+                                          "inventory": inventory})
+    p = _scenario(engine, network, forecasts(network)).payload
+    ids = {b.id for b in p.batches}
+    assert not ids & {"P1/RICE/B2", "H1/BEANS/B2", "P3/RICE/B3"}
+    assert ids == {"H1/BEANS/B1", "H1/RICE/B1", "P1/RICE/B1", "P2/BEANS/B1"}
+    assert _assumption(p, EXPIRED) == [
+        f"{EXPIRED} 2026-11-04, left out: BEANS: H1 B2 5 can (expiry 2026-11-01); "
+        "RICE: P1 B2 7 case (expiry 2026-11-03), P3 B3 2 case (expiry 2026-10-30)"]
+
+
+def test_expiry_boundary_day_before_as_of_out_on_and_after_kept(engine, tmp_path, forecasts):
+    inventory = (FILES["inventory"] + "P3,RICE,BEFORE,1,2026-11-03,,\n"
+                 "P3,RICE,ON,2,2026-11-04,,\n" "P3,RICE,AFTER,3,2026-11-05,,\n")
+    network = _network(engine, tmp_path, {**FILES, "inventory": inventory})
+    p = _scenario(engine, network, forecasts(network)).payload
+    p3 = {b.id: b.quantity for b in p.batches if b.location_id == "P3"}
+    assert p3 == {"P3/RICE/ON": 2, "P3/RICE/AFTER": 3}
+    [text] = _assumption(p, EXPIRED)
+    assert "P3 BEFORE 1 case" in text and " ON " not in text and "AFTER" not in text
+
+
+def test_no_expired_lots_no_assumption_and_non_expiring_lots_kept(engine, tmp_path, forecasts):
+    network = _network(engine, tmp_path)
+    p = _scenario(engine, network, forecasts(network)).payload
+    assert _assumption(p, "expired") == []
+    kept = {b.id: (b.expiry_date, b.non_expiring) for b in p.batches}
+    assert kept["H1/BEANS/B1"] == (None, True) and kept["P2/BEANS/B1"] == (None, True)
+    assert len(kept) == 4
+
+
 def test_batch_ids_never_collide_when_external_ids_contain_a_slash():
     assert _batch_id("P1", "RICE/B", "1") != _batch_id("P1", "RICE", "B/1")
     assert _batch_id("P1", "RICE", "B1") == "P1/RICE/B1"
