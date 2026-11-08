@@ -20,6 +20,7 @@ class LocationAttributes(ORContract):
     snap_rate: Decimal | None
     # "ACS 5-year YYYY, tract NNNN", "manual", or one manual rate beside a looked-up one:
     # "poverty_rate: manual; snap_rate: ACS 5-year YYYY, tract NNNN" (either order)
+    # A Census Non_Exact match ends the ACS part with " (unconfirmed address match)".
     source: str | None
     fetched_at: datetime | None
 
