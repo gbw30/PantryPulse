@@ -6,8 +6,8 @@
 
 | Task | Status | Commit | Evidence (command → result) |
 |---|---|---|---|
-| W3-F02 | done | this commit | `uv run --frozen pytest -q tests/forecasting/test_backtest.py` → 13 passed, 0 skipped |
-| W3-F01 | todo | — | — |
+| W3-F02 | done | `94737e5` | `uv run --frozen pytest -q tests/forecasting/test_backtest.py` → 13 passed, 0 skipped |
+| W3-F01 | done | this commit | S7 verdict **fits with a compact network input** ([S7](../spikes/S7-forecast-volume.md)): `bench_forecast.py --part compact --series 50000` → 10.27 s compute, 1,714 MB peak; `--part db` → 50,001 rows, 8.7 + 8.5 MB; `--part existing --sample 500` → ~10,700 s extrapolated (does not fit) |
 | W3-F04 | todo | — | — |
 | W3-F03 | todo | — | — |
 | W3-F05 | todo | — | — |
