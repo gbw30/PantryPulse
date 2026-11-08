@@ -6,10 +6,10 @@ The job splits the all-or-nothing commit in three, so nothing slow runs under th
   volume, in a folder named by the attempt.
 - `load_staged` is `prepare`, outside the lock: it drops what crashed attempts left, then
   COPYs those files into tables named by the attempt and builds the version's batches and
-  history partitions with their keys (S4 variant e4, minus the FKs to rows that don't exist yet).
+  history partitions with their keys (S4 variant e4, without FKs).
 - `publish_staged` is `publish`, inside the lock: the error report, or the network (first
-  import), the version, the small row inserts from the staged tables, the partitions' FKs and
-  ATTACH. No batch row is inserted under the lock (W2-06).
+  import), the version, the small row inserts from the staged tables, and ATTACH, which clones
+  and validates the parent's FKs. No batch row is inserted under the lock (W2-06).
 `drop_staged` is `discard`. Any failure before the publication commits saves nothing.
 `run_import` runs the same three in one process (tests and the bench).
 """
@@ -61,24 +61,17 @@ LOAD_FILES = {
 }
 RAW_COLUMNS = "file, line_no, c01, c02, c03, c04, c05"
 HISTORY_KEY = "PRIMARY KEY (dataset_version_id, location_id, product_id, day)"
-# FKs to the version's own rows, added in publish once those rows exist. ON DELETE RESTRICT as on
-# the parent, so ATTACH reuses each FK instead of adding and validating a second copy.
-FOREIGN_KEYS = {
-    "version": "(organization_id, dataset_version_id) REFERENCES dataset_versions "
-               "(organization_id, id)",
-    "location": "(organization_id, dataset_version_id, location_id) REFERENCES net_locations "
-                "(organization_id, dataset_version_id, id)",
-    "product": "(organization_id, dataset_version_id, product_id) REFERENCES net_products "
-               "(organization_id, dataset_version_id, id)",
-}
-# Version-partitioned tables by staged suffix: table, keys built in prepare, FKs added in publish.
+# Version-partitioned tables by staged suffix: table and the keys prepare builds. The FKs are the
+# parent's, cloned and validated by ATTACH in publish: a partition's own FK would be merged there,
+# which drops its triggers on the referenced table under an ACCESS EXCLUSIVE lock, so any reader
+# of dataset_versions, net_locations, net_products or organizations would block publish.
 PARTITIONS = {
     "batches": ("net_batches", (
         "PRIMARY KEY (dataset_version_id, id)",
         "UNIQUE (dataset_version_id, location_id, product_id, external_id)",
-    ), ("version", "location", "product")),
-    "demand": ("net_demand_history", (HISTORY_KEY,), ("location", "product")),
-    "donation": ("net_donation_history", (HISTORY_KEY,), ("location", "product")),
+    )),
+    "demand": ("net_demand_history", (HISTORY_KEY,)),
+    "donation": ("net_donation_history", (HISTORY_KEY,)),
 }
 
 
@@ -397,13 +390,11 @@ def _load_history(conn: sa.Connection, name: str, raw: str, attempt_id: UUID, or
 
 
 def _partition_keys(conn: sa.Connection, part: str, suffix: str, version_id: UUID) -> None:
-    """The keys, the organization FK and the version bound as a CHECK, all as on the parent, so
-    ATTACH reuses each instead of building (or scanning to validate) its own."""
-    _, keys, _ = PARTITIONS[suffix]
+    """The keys and the version bound as a CHECK, as on the parent, so ATTACH reuses them instead
+    of building its own indexes or scanning to check the bound. No FKs: see PARTITIONS."""
+    _, keys = PARTITIONS[suffix]
     for statement in (
         *(f"ALTER TABLE {part} ADD {key}" for key in keys),
-        f"ALTER TABLE {part} ADD FOREIGN KEY (organization_id) REFERENCES organizations (id) "
-        f"ON DELETE RESTRICT",
         f"ALTER TABLE {part} ADD CHECK (dataset_version_id = '{version_id}')",
     ):
         conn.execute(sa.text(statement))
@@ -451,15 +442,11 @@ def _commit(conn: sa.Connection, run: repo.Run, attempt_id: UUID, step: Mapping[
         staged = stage_table(attempt_id, name)
         conn.execute(sa.text(f"INSERT INTO {table} SELECT * FROM {staged}"))
         conn.execute(sa.text(f"DROP TABLE {staged}"))
-    for suffix, (table, _, foreign_keys) in PARTITIONS.items():
+    for suffix, (table, _) in PARTITIONS.items():  # ATTACH clones and validates the parent's FKs
         part, final = stage_table(attempt_id, suffix), f"{table}_{version_id.hex}"
-        for statement in (
-            *(f"ALTER TABLE {part} ADD FOREIGN KEY {FOREIGN_KEYS[key]} ON DELETE RESTRICT"
-              for key in foreign_keys),
-            f"ALTER TABLE {part} RENAME TO {final}",
-            f"ALTER TABLE {table} ATTACH PARTITION {final} FOR VALUES IN ('{version_id}')",
-        ):
-            conn.execute(sa.text(statement))
+        conn.execute(sa.text(f"ALTER TABLE {part} RENAME TO {final}"))
+        conn.execute(sa.text(
+            f"ALTER TABLE {table} ATTACH PARTITION {final} FOR VALUES IN ('{version_id}')"))
     conn.execute(sa.text(
         "INSERT INTO import_events (id, organization_id, dataset_version_id, import_run_id, "
         "actor, files) VALUES (:id, :org, :ver, :run, :actor, CAST(:files AS jsonb))"),

@@ -149,7 +149,7 @@ def test_commit_runs_the_job_and_publishes_one_version(lane):
         hex=version.hex) == 3  # batches and both history partitions, attached by version
     assert _count(lane.engine, (
         "SELECT count(*) FROM pg_constraint WHERE contype = 'f' AND conrelid = "
-        "to_regclass('net_demand_history_' || :hex)"), hex=version.hex) == 3  # the parent's, reused
+        "to_regclass('net_demand_history_' || :hex)"), hex=version.hex) == 3  # the parent's, cloned
     assert _staged(lane.engine) == []
     assert not list((lane.base / str(import_id)).glob("attempt-*"))
 

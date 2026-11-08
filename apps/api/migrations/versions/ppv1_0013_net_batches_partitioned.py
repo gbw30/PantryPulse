@@ -71,6 +71,8 @@ def upgrade():
 
 
 def downgrade():
+    """Fails cleanly (UniqueViolation on pk_net_batches) if two versions hold the same batch id:
+    only direct SQL can do that, since imports give every batch a new uuid4."""
     tenant_key = ",\n\tCONSTRAINT uq_net_batches_organization_id_id UNIQUE (organization_id, id)"
     old = _rebuild(TABLE.format(primary_key="id", tenant_key=tenant_key, partition_by=""))
     op.execute(f"INSERT INTO net_batches ({COLUMNS}) SELECT {COLUMNS} FROM {old}")
