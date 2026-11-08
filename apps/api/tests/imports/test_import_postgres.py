@@ -15,7 +15,17 @@ from alembic import command
 from app.repositories import imports as repo
 from app.repositories.jobs import create_queue_engine
 from app.schemas.v1_imports import NewNetwork
-from app.services.imports.staging import run_import, upload_path, write_upload
+from app.services.imports.staging import (
+    drop_staged,
+    job_input,
+    load_staged,
+    publish_staged,
+    run_import,
+    stage_table,
+    upload_path,
+    write_load_files,
+    write_upload,
+)
 from tests.integration.wq_support import alembic_config, database_url, reset_schema
 
 pytestmark = pytest.mark.integration
@@ -148,6 +158,126 @@ def test_batches_round_trip_exact(engine, tmp_path):
         ("H1", "RICE", "B2", 100000, date(2026, 11, 5), False, None),
         ("P1", "BEANS", "B1", 0, None, True, None),
     ]
+
+
+def _prepared(engine, base: Path):
+    """A new network's run through the job's `validate` step and `prepare`."""
+    with engine.begin() as conn:
+        run = repo.create_run(conn, NEW, None)
+    _write(engine, base, run.id, FILES)
+    with engine.connect() as conn:
+        job = job_input(conn, repo.get_run(conn, run.id), AS_OF, base, "local")
+    attempt = uuid.uuid4()
+    step = write_load_files(job, attempt)
+    load_staged(engine, attempt, job, step)
+    return run, attempt, job, step
+
+
+def _batch_partitions(conn) -> list[tuple[str, str]]:
+    return [tuple(r) for r in conn.execute(sa.text(
+        "SELECT c.relname, pg_get_expr(c.relpartbound, c.oid) FROM pg_inherits i "
+        "JOIN pg_class c ON c.oid = i.inhrelid "
+        "WHERE i.inhparent = to_regclass('net_batches') ORDER BY 1"))]
+
+
+def test_publish_attaches_the_batches_partition_prepare_built(engine, tmp_path):
+    """W2-06: net_batches is LIST-partitioned by version like the history. Publish ATTACHes the
+    very table prepare loaded, so no batch row is inserted under the queue lock."""
+    run, attempt, job, step = _prepared(engine, tmp_path)
+    with engine.connect() as conn:
+        loaded = conn.scalar(sa.text("SELECT to_regclass(CAST(:t AS text))::oid"),
+                             {"t": stage_table(attempt, "batches")})
+    with engine.begin() as conn:
+        publish_staged(conn, run.organization_id, attempt, job, step)
+    version = uuid.UUID(step["dataset_version_id"])
+    with engine.connect() as conn:
+        assert conn.scalar(sa.text("SELECT pg_get_partkeydef(to_regclass('net_batches'))")) == (
+            "LIST (dataset_version_id)")
+        home = conn.execute(sa.text(
+            "SELECT c.relname, pg_get_expr(c.relpartbound, c.oid) FROM pg_inherits i "
+            "JOIN pg_class c ON c.oid = i.inhrelid "
+            "WHERE i.inhparent = to_regclass('net_batches') AND i.inhrelid = :oid"),
+            {"oid": loaded}).one()
+        assert tuple(home) == (f"net_batches_{version.hex}", f"FOR VALUES IN ('{version}')")
+        assert conn.scalar(sa.text(f"SELECT count(*) FROM net_batches_{version.hex}")) == 3
+        assert conn.scalar(sa.text(
+            "SELECT count(*) FROM pg_constraint WHERE contype = 'f' AND conrelid = :oid"),
+            {"oid": loaded}) == 4  # organization, version, location, product: the parent's
+
+
+PARTITIONED = ("net_batches", "net_demand_history", "net_donation_history")
+
+
+def _foreign_keys(conn, table: str) -> list[str]:
+    return sorted(conn.scalars(sa.text(
+        "SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE contype = 'f' "
+        "AND conrelid = to_regclass(CAST(:t AS text))"), {"t": table}))
+
+
+@pytest.mark.parametrize("referenced", [
+    "dataset_versions", "net_locations", "net_products", "organizations"])
+def test_publish_does_not_wait_for_readers_of_referenced_tables(engine, tmp_path, referenced):
+    """Lead review F1: a reader idle in a transaction on a table the partitions reference must
+    not block publish. Merging a partition's own FK at ATTACH drops its triggers on the
+    referenced table under an ACCESS EXCLUSIVE lock; cloning the parent's FK does not."""
+    run, attempt, job, step = _prepared(engine, tmp_path)
+    with engine.connect() as reader, reader.begin():
+        reader.execute(sa.text(f"SELECT count(*) FROM {referenced}"))
+        with engine.begin() as conn:
+            conn.execute(sa.text("SET LOCAL lock_timeout = '1s'"))
+            assert publish_staged(conn, run.organization_id, attempt, job, step)["ok"]
+    version = uuid.UUID(step["dataset_version_id"])
+    with engine.connect() as conn:
+        for table in PARTITIONED:  # exactly the parent's FKs, none duplicated
+            assert _foreign_keys(conn, f"{table}_{version.hex}") == _foreign_keys(conn, table)
+
+
+def test_attached_partitions_refuse_rows_their_fks_forbid(engine, tmp_path):
+    outcome = _import(engine, tmp_path, FILES)
+    version = outcome.dataset_version_id
+    with engine.connect() as conn:
+        loc, prod = conn.execute(sa.text(
+            "SELECT l.id, p.id FROM net_locations l JOIN net_products p USING "
+            "(dataset_version_id) WHERE l.dataset_version_id = :v LIMIT 1"), {"v": version}).one()
+    key = {"org": _run_org(engine, outcome.import_id), "v": version, "l": loc, "p": prod}
+    batch = ("INSERT INTO net_batches (id, organization_id, dataset_version_id, location_id, "
+             "product_id, external_id, quantity, non_expiring) "
+             "VALUES (gen_random_uuid(), :org, :v, :l, :p, 'NEW', 1, true)")
+    demand = ("INSERT INTO net_demand_history (organization_id, dataset_version_id, location_id, "
+              "product_id, day, quantity, basis) VALUES (:org, :v, :l, :p, '2026-10-01', 1, "
+              "'demand')")
+    for sql, change in ((batch, {"l": uuid.uuid4()}), (batch, {"p": uuid.uuid4()}),
+                        (batch, {"org": uuid.uuid4()}), (demand, {"l": uuid.uuid4()}),
+                        (demand, {"p": uuid.uuid4()})):
+        with pytest.raises(sa.exc.IntegrityError, match="foreign key"), engine.begin() as conn:
+            conn.execute(sa.text(sql), {**key, **change})
+    with pytest.raises(sa.exc.IntegrityError, match="foreign key"), engine.begin() as conn:
+        conn.execute(sa.text("DELETE FROM net_products WHERE id = :p"), key)  # ON DELETE RESTRICT
+
+
+def _run_org(engine, import_id: uuid.UUID) -> uuid.UUID:
+    with engine.connect() as conn:
+        return conn.scalar(sa.text("SELECT organization_id FROM import_runs WHERE id = :r"),
+                           {"r": import_id})
+
+
+def test_a_publish_rolled_back_leaves_no_batches_partition(engine, tmp_path):
+    """All or nothing: a publication that does not commit attaches nothing; discard then drops
+    the attempt's tables."""
+    run, attempt, job, step = _prepared(engine, tmp_path)
+    with engine.connect() as conn:
+        before = _batch_partitions(conn)
+    with pytest.raises(RuntimeError, match="lost the lock"), engine.begin() as conn:
+        publish_staged(conn, run.organization_id, attempt, job, step)
+        raise RuntimeError("lost the lock")
+    drop_staged(engine, attempt)
+    with engine.connect() as conn:
+        assert _batch_partitions(conn) == before
+        assert conn.scalar(sa.text("SELECT count(*) FROM net_batches WHERE dataset_version_id = "
+                                   ":v"), {"v": step["dataset_version_id"]}) == 0
+        assert conn.scalar(sa.text(
+            "SELECT count(*) FROM pg_tables WHERE schemaname = current_schema() "
+            "AND tablename LIKE 'pp\\_stage\\_%'")) == 0
 
 
 def test_blank_demand_stays_null_in_database(engine, tmp_path):
