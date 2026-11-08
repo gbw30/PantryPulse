@@ -75,7 +75,7 @@ def build_scenario(conn: sa.Connection, network: sa.Row, options: ScenarioOption
                             "FROM net_locations WHERE dataset_version_id = :v "
                             'ORDER BY external_id COLLATE "C"', version_id)
     products = _rows(conn, "SELECT id, external_id, name, unit, unit_value_usd, "
-                           "handling_units_per_unit FROM net_products "
+                           "handling_units_per_unit, handling_units_given FROM net_products "
                            'WHERE dataset_version_id = :v ORDER BY external_id COLLATE "C"',
                            version_id)
     fractional = [p.external_id for p in products if p.handling_units_per_unit % 1]
@@ -83,6 +83,10 @@ def build_scenario(conn: sa.Connection, network: sa.Row, options: ScenarioOption
         raise _rejected("HANDLING_UNITS_NOT_WHOLE", "The optimizer needs whole handling units "
                         "per unit; enter a whole number in products.csv and import again",
                         products=fractional)
+    assumed = [p.external_id for p in products if not p.handling_units_given]
+    if assumed:  # V1-SPEC §6.1: a blank handling_units_per_unit is 1, shown as an assumption
+        assumptions.append(f"Handling units per unit: 1 assumed for {', '.join(assumed)} "
+                           "(blank in products.csv)")
     location_ids = {r.id: r.external_id for r in locations}
     product_ids = {r.id: r.external_id for r in products}
 

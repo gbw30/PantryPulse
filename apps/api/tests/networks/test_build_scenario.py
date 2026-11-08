@@ -300,6 +300,17 @@ def test_payload_order_does_not_depend_on_the_database_collation(engine, tmp_pat
     assert routes == sorted(routes) and routes[-1][0] == "a9"
 
 
+def test_assumed_handling_units_are_listed_in_code_point_order(engine, tmp_path, forecasts):
+    """BEANS and aa leave handling_units_per_unit blank: 1 is assumed and listed, "BEANS"
+    before "aa" as in the payload; RICE gave 2 and is not listed."""
+    products = FILES["products"] + "aa,Apples,case,,\n"
+    network = _network(engine, tmp_path, {**FILES, "products": products})
+    p = _scenario(engine, network, forecasts(network)).payload
+    assert ("Handling units per unit: 1 assumed for BEANS, aa (blank in products.csv)"
+            in p.assumptions)
+    assert {r.id: r.handling_units_per_unit for r in p.products} == {
+        "BEANS": 1, "RICE": 2, "aa": 1}
+
 def test_batch_ids_never_collide_when_external_ids_contain_a_slash():
     assert _batch_id("P1", "RICE/B", "1") != _batch_id("P1", "RICE", "B/1")
     assert _batch_id("P1", "RICE", "B1") == "P1/RICE/B1"

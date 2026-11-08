@@ -98,6 +98,19 @@ def test_clean_import_commits_everything(engine, tmp_path):
                       "net_demand_history": 3}
 
 
+def test_products_record_whether_handling_units_were_given(engine, tmp_path):
+    """A blank handling_units_per_unit is stored as 1 and flagged, so the scenario can list
+    the assumption (CR-w1-data-6)."""
+    products = ("product_id,name,unit,handling_units_per_unit\n"
+                "RICE,Rice,case,2\nBEANS,Beans,case,\n")
+    outcome = _import(engine, tmp_path, {**FILES, "products": products})
+    assert outcome.ok, outcome.errors
+    with engine.connect() as conn:
+        rows = conn.execute(sa.text(
+            "SELECT external_id, handling_units_per_unit, handling_units_given FROM net_products "
+            "WHERE dataset_version_id = :v"), {"v": outcome.dataset_version_id}).all()
+    assert {r[0]: (r[1], r[2]) for r in rows} == {"RICE": (2, True), "BEANS": (1, False)}
+
 def test_any_error_saves_nothing(engine, tmp_path):
     first = _import(engine, tmp_path / "a", FILES)
     assert first.ok
