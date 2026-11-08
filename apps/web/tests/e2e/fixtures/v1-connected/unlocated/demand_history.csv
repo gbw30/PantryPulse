@@ -1,0 +1,5 @@
+location_id,product_id,date,quantity,basis
+P1,RICE,2026-11-01,3,demand
+P2,RICE,2026-11-01,2,sales
+P3,BEANS,2026-11-02,,demand
+P1,RICE,2026-11-03,4,demand

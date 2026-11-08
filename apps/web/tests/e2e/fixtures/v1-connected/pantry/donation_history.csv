@@ -1,0 +1,4 @@
+location_id,product_id,date,quantity,donor
+P1,RICE,2026-11-01,5,Fictional Farm Co-op
+P1,RICE,2026-11-02,0,
+P2,RICE,2026-11-02,,
