@@ -226,7 +226,28 @@ def test_a_manual_rate_beside_a_looked_up_rate_names_both_sources(engine, networ
     assert (p4.state, p4.poverty_rate) == ("manual", Decimal("0.3"))
     assert p4.snap_rate is not None and p4.fetched_at is not None
     assert p4.source is not None and p4.source.startswith("poverty_rate: manual; snap_rate: ACS ")
-    assert p4.source.endswith(f"tract {LAUDERDALE_TRACT}")
+    assert p4.source.endswith(f"tract {LAUDERDALE_TRACT} ({UNCONFIRMED})")  # Non_Exact (A7)
+
+
+UNCONFIRMED = "unconfirmed address match"
+
+
+def test_non_exact_match_source_says_unconfirmed_address_match(engine, tmp_path, acs):
+    """W2-06 A7: a Non_Exact match (P4) stays stored and non-blocking, but its source says the
+    address match is unconfirmed; an Exact match's source (H1) is unchanged."""
+    outcome = _import(engine, tmp_path, {**FILES, "locations": LOCATIONS.replace(
+        "33301,,,0.3,", "33301,,,,")})
+    manifest = _enrich(engine, outcome, acs, Census())
+    assert "P4" in {u["location_id"] for u in manifest["unmatched"]}  # still listed for review
+    p4, h1 = _location(engine, outcome, "P4"), _location(engine, outcome, "H1")
+    assert (p4.tract_geoid, p4.coordinates_source) == (LAUDERDALE_TRACT, "census_geocoder")
+    assert UNCONFIRMED in p4.acs_source and UNCONFIRMED not in h1.acs_source
+    attributes = _attributes(engine, outcome)
+    assert (attributes["P4"].state, attributes["P4"].source) == (
+        "known", f"ACS 5-year 2024, tract {LAUDERDALE_TRACT} ({UNCONFIRMED})")
+    assert attributes["H1"].source == f"ACS 5-year 2024, tract {TALLAHASSEE_TRACT}"
+    blockers = egp_blockers(_rt(engine), outcome.network_id, outcome.dataset_version_id)
+    assert "P4" not in {b.location_id for b in blockers}
 
 
 def test_unknown_location_is_404(engine, network):
