@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { components } from "../../../../packages/contracts/src/schema";
 import { expectNoSeriousA11yViolations } from "./a11y";
+import { example } from "./v1-mocks";
 import type { Methodology } from "../../src/lib/planning-api";
 
 type Schema = components["schemas"];
@@ -65,6 +66,8 @@ for (const fallback of [false, true]) {
         let status = 200;
         if (pathname.endsWith("/allocation-methodology")) {
           body = methodology;
+        } else if (pathname === "/api/v1/networks") {
+          body = example("NetworkList"); // shell network switcher (W1-W02)
         } else if (pathname.endsWith("/planning-catalog")) {
           body = { source_revision: "a".repeat(64), assumptions: [],
             forecasts: generated && fallback ? [{ ...saved, id: jobId }, saved] : [saved],
@@ -128,7 +131,7 @@ for (const width of [1440, 390]) {
     };
     await page.route("**/api/v1/**", async (route) => {
       const path = new URL(route.request().url()).pathname;
-      const body = path.endsWith("/allocation-methodology") ? methodology : path.endsWith("/forecast-catalog") ? network : {
+      const body = path.endsWith("/allocation-methodology") ? methodology : path.endsWith("/forecast-catalog") ? network : path === "/api/v1/networks" ? example("NetworkList") : {
         source_revision: "a".repeat(64), assumptions: [], forecasts: [], scenarios: [], comparisons: [], next_before: null, next_before_id: null,
       } satisfies Schema["PlanningCatalog"];
       await route.fulfill({ json: body });

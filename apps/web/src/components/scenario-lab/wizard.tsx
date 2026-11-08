@@ -12,7 +12,11 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Schema } from "@/lib/planning-api";
 import { pluralize } from "@/components/data-explorer/format";
 import { cn } from "@/lib/utils";
-import { MODE_LABEL, checkMultiplier, shortId, when, type ProductInfo, type SiteInfo } from "./model";
+import { transferModeLabel, type NetworkMode, type TransferMode } from "@/lib/mode-vocabulary";
+import {
+  DEFAULT_PANTRY_POLICY, MODE_LABEL, V1_METHOD_LABEL, V1_METHODS, checkMultiplier, policySummary, shortId, usdUnavailableReason, when,
+  type ProductInfo, type SiteInfo, type V1Measure,
+} from "./model";
 
 // R3 GuidedScenarioStepper: four numbered steps. Desktop shows all; below md one step at a time.
 
@@ -246,6 +250,162 @@ export function GuidedScenarioStepper(props: Props) {
         <Button type="button" variant="outline" disabled={current === 1} onClick={() => setCurrent((c) => Math.max(1, c - 1))}>Previous step</Button>
         <Button type="button" variant="outline" disabled={current === 4} onClick={() => setCurrent((c) => Math.min(4, c + 1))}>Next step</Button>
       </div>
+    </form>
+  );
+}
+
+// v1 comparison setup (V1-SPEC §6.2): an explicit transfer mode with no default, Retail weights, then
+// the measure. Freezing saves the inputs; comparing runs every method of the mode on that frozen copy.
+
+type SetupProps = {
+  mode: NetworkMode;
+  busy: boolean;
+  /** The last frozen scenario; comparing always runs this, never the unsaved choices. */
+  scenario: Schema["ScenarioV3"] | null;
+  /** Why freezing is not possible yet (no dataset or forecast run); null when it is. */
+  blocked?: string | null;
+  onFreeze: (options: FreezeOptions) => void;
+  onCompare: (measure: V1Measure) => void;
+};
+/** Retail sends weights; Pantry sends its window and policy. Each mode's other fields are null. */
+export type FreezeOptions = { transferMode: TransferMode; retailWeights: Schema["RetailWeights"] | null;
+  planningDays: number | null; policy: Schema["ORPolicy"] | null };
+
+const TRANSFERS: TransferMode[] = ["HUB_ONLY", "HUB_AND_PANTRY"];
+// The server's RetailWeights are strict integers 0–1000.
+const weightError = (text: string) => (/^\d{1,4}$/.test(text.trim()) && Number(text) <= 1000 ? null : "Enter a whole number from 0 to 1000.");
+// ORPolicy percents are strict integers 0–100; the two attribute shares must add up to 100.
+const percentError = (text: string) => (/^\d{1,3}$/.test(text.trim()) && Number(text) <= 100 ? null : "Enter a whole number from 0 to 100.");
+const DAYS = ["1", "2", "3"];
+type PolicyKey = "lambda" | "beta" | "poverty" | "snap";
+const POLICY_FIELDS: [PolicyKey, string, string | null][] = [
+  ["lambda", "Vulnerability weight λ (%)", "How much the poverty and SNAP rates raise a pantry's shortfall weight in EGP-PI-inspired and in the poverty-weighted shortfall. 0 turns this off."],
+  ["beta", "Weight on total shortfall β (%)", "Classical GP and EGP-PI-inspired: the rest weights the worst single shortfall."],
+  ["poverty", "Poverty rate share (%)", null],
+  ["snap", "SNAP rate share (%)", null],
+];
+const share = (id: string) => String(DEFAULT_PANTRY_POLICY.coefficients.find((c) => c.attribute_id === id)?.percent ?? 0);
+const POLICY_START: Record<PolicyKey, string> = { lambda: String(DEFAULT_PANTRY_POLICY.lambda_percent),
+  beta: String(DEFAULT_PANTRY_POLICY.beta_percent), poverty: share("poverty_rate"), snap: share("snap_rate") };
+
+export function ComparisonSetup({ mode, busy, scenario, blocked = null, onFreeze, onCompare }: SetupProps) {
+  const retail = mode === "RETAIL";
+  const [transfer, setTransfer] = useState<TransferMode | "">("");
+  const [weights, setWeights] = useState({ w_exp: "1", w_lost: "1" });
+  const [days, setDays] = useState("");
+  const [policy, setPolicy] = useState(POLICY_START);
+  // Pantry measures unmet need in units only; Retail picks units or USD per scenario.
+  const [measure, setMeasure] = useState<V1Measure | "">(retail ? "" : "UNITS");
+  const usdReason = scenario ? usdUnavailableReason(scenario.payload.products) : null;
+  const weightErrors = { w_exp: weightError(weights.w_exp), w_lost: weightError(weights.w_lost) };
+  // E-1 (lead, 2026-11-07): with both weights 0 the Optimized objective is constant; the server rejects it too.
+  const bothZero = !weightErrors.w_exp && !weightErrors.w_lost && Number(weights.w_exp) === 0 && Number(weights.w_lost) === 0
+    ? "At least one weight must be above 0." : null;
+  const policyErrors = Object.fromEntries(POLICY_FIELDS.map(([key]) => [key, percentError(policy[key])])) as Record<PolicyKey, string | null>;
+  const shareError = !policyErrors.poverty && !policyErrors.snap && Number(policy.poverty) + Number(policy.snap) !== 100
+    ? "The poverty and SNAP rate shares must add up to 100." : null;
+  const pantryReady = !!days && !shareError && !Object.values(policyErrors).some(Boolean);
+  const canFreeze = !busy && !blocked && !!transfer && (retail ? !(weightErrors.w_exp || weightErrors.w_lost || bothZero) : pantryReady);
+  const canCompare = !busy && !!scenario && (measure === "UNITS" || (measure === "USD" && !usdReason));
+
+  const freeze = () => transfer && onFreeze({ transferMode: transfer,
+    retailWeights: retail ? { w_exp: Number(weights.w_exp), w_lost: Number(weights.w_lost) } : null,
+    planningDays: retail ? null : Number(days),
+    policy: retail ? null : { ...DEFAULT_PANTRY_POLICY, lambda_percent: Number(policy.lambda), beta_percent: Number(policy.beta),
+      coefficients: [{ attribute_id: "poverty_rate", percent: Number(policy.poverty) }, { attribute_id: "snap_rate", percent: Number(policy.snap) }] } });
+
+  return (
+    <form aria-label="Comparison setup" className="grid min-w-0 gap-5" onSubmit={(e) => e.preventDefault()}>
+      <fieldset className="grid min-w-0 gap-3 border-0 p-0">
+        <legend className="pb-2 text-sm font-semibold">1 · Freeze a scenario</legend>
+        <RadioGroup aria-label="Transfer mode (required)" value={transfer} disabled={busy} onValueChange={(v) => setTransfer(v as TransferMode)}>
+          {TRANSFERS.map((t) => (
+            <div key={t} className="flex items-center gap-2">
+              <RadioGroupItem id={`v1-transfer-${t}`} value={t} />
+              <Label htmlFor={`v1-transfer-${t}`}>{transferModeLabel(mode, t)}</Label>
+            </div>
+          ))}
+        </RadioGroup>
+        {!transfer && <p className="text-xs text-muted-foreground">Choose a transfer mode first. There is no default.</p>}
+        {!retail && (
+          <>
+            <RadioGroup aria-label="Planning window (required)" value={days} disabled={busy} onValueChange={setDays} className="flex flex-wrap gap-4">
+              {DAYS.map((d) => (
+                <div key={d} className="flex items-center gap-2">
+                  <RadioGroupItem id={`v1-days-${d}`} value={d} />
+                  <Label htmlFor={`v1-days-${d}`}>{d === "1" ? "1 day" : `${d} days`}</Label>
+                </div>
+              ))}
+            </RadioGroup>
+            {!days && <p className="text-xs text-muted-foreground">Choose a planning window of 1 to 3 days. There is no default.</p>}
+            <div role="group" aria-labelledby="v1-policy-heading" className="grid gap-2">
+              <p id="v1-policy-heading" className="text-xs font-medium">Goal-programming policy</p>
+              <p className="text-xs text-muted-foreground">v1 defaults are the connected flow&apos;s values; change them here. The two shares must add up to 100.</p>
+              {POLICY_FIELDS.map(([key, label, hint]) => {
+                const own = policyErrors[key];
+                const shared = !own && (key === "poverty" || key === "snap") ? shareError : null;
+                return (
+                  <div key={key} className="grid gap-1">
+                    <Label htmlFor={`v1-policy-${key}`}>{label}</Label>
+                    <Input id={`v1-policy-${key}`} type="number" min={0} max={100} step={1} className="h-9 w-28" value={policy[key]} disabled={busy}
+                      aria-invalid={own || shared ? true : undefined}
+                      aria-describedby={own ? `v1-policy-${key}-error` : shared ? "v1-policy-share-error" : undefined}
+                      onChange={(e) => setPolicy((p) => ({ ...p, [key]: e.target.value }))} />
+                    {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+                    {own && <p id={`v1-policy-${key}-error`} className="text-xs text-pp-danger">{own}</p>}
+                  </div>
+                );
+              })}
+              {shareError && <p id="v1-policy-share-error" className="text-xs text-pp-danger">{shareError}</p>}
+            </div>
+          </>
+        )}
+        {retail && (
+          <div className="grid gap-2">
+            <p className="text-xs text-muted-foreground">Optimized minimizes weight × expired units + weight × lost sales. v1 defaults are 1 and 1; change them here.</p>
+            {(["w_exp", "w_lost"] as const).map((key) => (
+              <div key={key} className="grid gap-1">
+                <Label htmlFor={`v1-${key}`}>{key === "w_exp" ? "Weight on expired units" : "Weight on lost sales"}</Label>
+                <Input id={`v1-${key}`} type="number" min={0} max={1000} step={1} className="h-9 w-28" value={weights[key]} disabled={busy}
+                  aria-invalid={weightErrors[key] || bothZero ? true : undefined}
+                  aria-describedby={weightErrors[key] ? `v1-${key}-error` : bothZero ? "v1-weights-error" : undefined}
+                  onChange={(e) => setWeights((w) => ({ ...w, [key]: e.target.value }))} />
+                {weightErrors[key] && <p id={`v1-${key}-error`} className="text-xs text-pp-danger">{weightErrors[key]}</p>}
+              </div>
+            ))}
+            {bothZero && <p id="v1-weights-error" className="text-xs text-pp-danger">{bothZero}</p>}
+          </div>
+        )}
+        <Button type="button" className="justify-self-start" disabled={!canFreeze} onClick={freeze}>Freeze scenario</Button>
+        {blocked && <p className="text-xs text-muted-foreground">{blocked}</p>}
+        {scenario && (
+          <div className="grid gap-1 text-xs">
+            <p className="font-medium">Frozen scenario {shortId(scenario.id)} · {transferModeLabel(mode, scenario.payload.transfer_mode)}</p>
+            {scenario.payload.planning_days != null && scenario.payload.policy && <p>{policySummary(scenario.payload.planning_days, scenario.payload.policy)}</p>}
+            {scenario.payload.assumptions.length > 0 && (
+              <ul aria-label="Assumptions" className="ml-4 list-disc text-muted-foreground">{scenario.payload.assumptions.map((a) => <li key={a}>{a}</li>)}</ul>
+            )}
+          </div>
+        )}
+      </fieldset>
+
+      <fieldset className="grid min-w-0 gap-3 border-0 p-0">
+        <legend className="pb-2 text-sm font-semibold">2 · Compare methods</legend>
+        <ol aria-label="Methods compared" className="ml-5 list-decimal text-sm">
+          {V1_METHODS[mode].map((m) => <li key={m}>{V1_METHOD_LABEL[m]}</li>)}
+        </ol>
+        {retail ? (
+          <div className="grid gap-1.5">
+            <RadioGroup aria-label="Measure" value={measure} disabled={busy || !scenario} onValueChange={(v) => setMeasure(v as V1Measure)} className="flex gap-4">
+              <div className="flex items-center gap-2"><RadioGroupItem id="v1-measure-units" value="UNITS" /><Label htmlFor="v1-measure-units">Units</Label></div>
+              <div className="flex items-center gap-2"><RadioGroupItem id="v1-measure-usd" value="USD" disabled={!!usdReason} /><Label htmlFor="v1-measure-usd">USD</Label></div>
+            </RadioGroup>
+            {usdReason && <p className="text-xs text-muted-foreground">USD unavailable: {usdReason}.</p>}
+          </div>
+        ) : <p className="text-xs text-muted-foreground">Measure: unmet need in units, per product.</p>}
+        <Button type="button" className="justify-self-start" variant={scenario ? "default" : "outline"} disabled={!canCompare} onClick={() => measure && onCompare(measure)}>Compare methods</Button>
+        <p className="text-xs text-muted-foreground">Every method runs on the same frozen scenario. Simulation only: nothing is reserved or moved.</p>
+      </fieldset>
     </form>
   );
 }

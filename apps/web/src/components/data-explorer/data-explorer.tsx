@@ -22,6 +22,7 @@ import { SevenDayPulse } from "./pulse";
 import { SitePerformanceTable } from "./site-table";
 import type { ExplorerTabKey } from "./tabs";
 import type { ExplorerSnapshot, Product } from "./types";
+import { ForecastTrustSection } from "./backtest-summary";
 
 type View = Extract<ExplorerTabKey, "dashboard" | "pulse" | "operations">;
 type LoadState = { status: "loading" } | { status: "ready"; snapshot: ExplorerSnapshot } | { status: "error"; code: string };
@@ -191,11 +192,12 @@ function Screen({ view, initialProductId }: { view: View; initialProductId: stri
 }
 
 /** Client root for /data, /data/pulse and /data/operations. */
-export function DataExplorerScreen({ view, initialProductId = null }: { view: View; initialProductId?: string | null }) {
+export function DataExplorerScreen({ view, initialProductId = null, forecastJobId }: { view: View; initialProductId?: string | null; forecastJobId?: string }) {
   return (
     <MotionConfig reducedMotion="user">
       <AppShell active="data">
         <Screen view={view} initialProductId={initialProductId} />
+        {view === "dashboard" && <div className="px-4 pb-6 md:px-6"><ForecastTrustSection forecastJobId={forecastJobId} /></div>}
       </AppShell>
     </MotionConfig>
   );

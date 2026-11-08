@@ -33,7 +33,7 @@ export function ExplorerTabLink({ tab, active, productId, className }: { tab: Ex
  */
 export function DataExplorerHeader({ active, controls, meta, productId }: { active: ExplorerTabKey; controls?: React.ReactNode; meta?: React.ReactNode; productId?: string | null }) {
   const { state } = usePresenter();
-  const tabs = EXPLORER_TABS.filter((tab) => !tab.presenterOnly || state === "presenter");
+  const tabs = EXPLORER_TABS.filter((tab) => !tab.stockChanging && (!tab.presenterOnly || state === "presenter"));
   return (
     <header data-explorer-header className="flex flex-col gap-3">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">

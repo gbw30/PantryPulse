@@ -15,6 +15,7 @@ import { PanelGrip, PanelGripHint } from "./panel-grip";
 import { RiskLegend } from "./risk-legend";
 import { SchematicMapRenderer, type MapMarker } from "./schematic-map";
 import { SelectionCard } from "./selection-card";
+import { DangerRankingSection } from "./danger-ranking";
 import { SiteInspector } from "./site-inspector";
 import { SiteList } from "./site-list";
 import { StatusGlyph } from "./status-glyph";
@@ -80,7 +81,7 @@ function ScrollCue({ className }: { className?: string }) {
   );
 }
 
-export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
+export function NetworkAtlas({ statePreview, forecastRunId }: { statePreview?: string; forecastRunId?: string }) {
   const { source, preview } = overviewSourceFor(statePreview);
   const [load, setLoad] = useState<LoadState>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
@@ -415,6 +416,8 @@ export function NetworkAtlas({ statePreview }: { statePreview?: string }) {
               {snapshot.emptyReason}
             </p>
           )}
+
+          <DangerRankingSection forecastRunId={forecastRunId} />
 
           {productMatches.length > 0 && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">

@@ -15,6 +15,10 @@ export function pluralize(unit: string) {
   return `${unit}s`;
 }
 
+const UNPLURAL = /^(each|lb|lbs|kg|g|oz)$/i;
+/** "55 cases": one product's quantity in its own unit; never combined with another product's. */
+export const formatUnits = (n: number, unit: string) => `${n.toLocaleString("en-US")} ${n === 1 || UNPLURAL.test(unit) ? unit : pluralize(unit)}`;
+
 function shortName(name: string) {
   return name.replace(/ Pantry$/, "").replace(/ Distribution Hub$/, " Hub");
 }

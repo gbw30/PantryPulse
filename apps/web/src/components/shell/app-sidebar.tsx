@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpenText, FlaskConical, ListChecks, Map as MapIcon, Settings, Table2 } from "lucide-react";
+import { BookOpenText, FlaskConical, ListChecks, Map as MapIcon, Settings, Table2, Upload } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -11,11 +11,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { NetworkSwitcher } from "./network-switcher";
 import { PresenterFooter } from "./presenter-footer";
 
 // "methodology" (research and audit, blueprint §7) is a utility destination, not one of the four
 // blueprint pages. "optimization" is kept for compatibility while /optimization redirects to /scenarios.
-export type NavKey = "overview" | "data" | "recommendations" | "scenarios" | "optimization" | "methodology";
+export type NavKey = "overview" | "data" | "recommendations" | "scenarios" | "optimization" | "methodology" | "import" | "settings";
 
 // Proposed routes from the blueprint (§2). Only built destinations are links; the rest stay visible
 // but disabled so the shell geometry is identical on every page without linking to missing screens.
@@ -24,6 +25,7 @@ const NAV: { key: NavKey; label: string; href: string; built: boolean; icon: Rea
   { key: "data", label: "Data Explorer", href: "/data", built: true, icon: Table2 },
   { key: "recommendations", label: "Recommendations", href: "/recommendations", built: true, icon: ListChecks },
   { key: "scenarios", label: "Scenario Lab", href: "/scenarios", built: true, icon: FlaskConical },
+  { key: "import", label: "Import data", href: "/import", built: true, icon: Upload },
 ];
 
 function BrandMark() {
@@ -40,11 +42,12 @@ export function AppSidebar({ active }: { active: NavKey }) {
   const hasUnbuilt = NAV.some((item) => !item.built);
   return (
     <Sidebar collapsible="offcanvas" aria-label="Main navigation">
-      <SidebarHeader className="px-4 pt-5 pb-3">
+      <SidebarHeader className="gap-4 px-4 pt-5 pb-3">
         <Link href="/overview" className="flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring">
           <BrandMark />
           <span className="text-lg font-semibold tracking-tight">PantryPulse</span>
         </Link>
+        <NetworkSwitcher />
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup className="px-3">
@@ -89,9 +92,11 @@ export function AppSidebar({ active }: { active: NavKey }) {
       <SidebarFooter className="gap-3 px-3 pb-5">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton disabled className="h-10 gap-3 px-3 text-[15px]">
-              <Settings className="size-[18px]" />
-              <span>Settings<span className="sr-only"> (not built yet)</span></span>
+            <SidebarMenuButton asChild isActive={active === "settings"} className="h-10 gap-3 px-3 text-[15px]">
+              <Link href="/settings" aria-current={active === "settings" ? "page" : undefined}>
+                <Settings className="size-[18px]" />
+                <span>Settings</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
