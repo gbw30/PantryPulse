@@ -26,6 +26,16 @@
 - [ ] **Step 2:** run with `PP_RUN_CONNECTED=1 PP_E2E_PRODUCTION=1 node scripts/quality/run.cjs e2e`. Send each failure to an `integration-fixer` packet.
 - [ ] **Step 3:** PASS, 0 skipped. Commit on `w4/integration`, open the PR, and merge with Gabriel's OK.
 
+### W2-06 deferrals (schedule at W4-02/W4-03)
+
+Hardening items decided at W2-06 ([decisions/W2-06-change-requests.md](decisions/W2-06-change-requests.md) §4). Each lands test-first through a small PR with Gabriel's OK:
+- Solver S1: an independent FEFO check in the verifier.
+- The F2 residual.
+- One tenancy helper.
+- Cancel and retry for v1 jobs.
+- Enrichment says why it didn't start.
+- Reverse geocoding when coordinates are given.
+
 ### W4-03: Review gates · M · depends on: W4-02 · V1-A20, V1-A13
 
 - [ ] **Step 1:** `adversarial-reviewer` on the `v1-local` head. Seed cases:

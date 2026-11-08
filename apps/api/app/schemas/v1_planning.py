@@ -383,6 +383,15 @@ class LocationEffect(ORContract):
     expired_with_plan: Count
 
 
+class SolverRun(ORContract):
+    """How an optimizing method's per-product solves ran, for replay (solver S2)."""
+
+    engine: Literal["OR-Tools CP-SAT"]
+    version: str = Field(min_length=1, max_length=40)
+    seed: int = Field(strict=True, ge=0)
+    workers: int = Field(strict=True, ge=1)
+
+
 class MethodResult(ORContract):
     method: AllocationMethod
     measure: Measure
@@ -396,6 +405,7 @@ class MethodResult(ORContract):
     usd_unavailable_reason: str | None
     retail_weights: RetailWeights | None
     labels: tuple[str, ...]  # e.g. "optimized per product, with shared capacity split in advance"
+    solver: SolverRun | None = None  # None for the deterministic baselines
 
     @model_validator(mode="after")
     def published_only_if_verified(self) -> Self:

@@ -27,6 +27,32 @@
       }
     }
   ],
+  "locations": [
+    {
+      "location_id": "P-07",
+      "unit": "case",
+      "series_count": 1,
+      "score": {
+        "origins_evaluated": 0,
+        "wape_pct": null,
+        "bias_pct": null,
+        "status": "not_evaluated_insufficient_history",
+        "scored_points": 0
+      }
+    },
+    {
+      "location_id": "P-12",
+      "unit": "case",
+      "series_count": 1,
+      "score": {
+        "origins_evaluated": 4,
+        "wape_pct": "18.4",
+        "bias_pct": "-3.1",
+        "status": "evaluated",
+        "scored_points": 28
+      }
+    }
+  ],
   "ineligible": [
     {
       "location_id": "P-07",

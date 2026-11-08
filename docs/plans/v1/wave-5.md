@@ -81,6 +81,7 @@ Agent role: `solver-engineer` ("solver/data"), with Docker. It owns README.md an
   - start over with `docker compose down -v`, plus a warning;
   - troubleshooting: port in use / `PP_WEB_PORT`, Docker memory for the 6-CPU / 8 GiB worker, the WSL 2 backend;
   - a link to HARDWARE.md. macOS is untested.
+  - known limits from W2-06 ([decisions/W2-06-change-requests.md](decisions/W2-06-change-requests.md) §5): ids over 64 characters or containing `/` show as hashed batch ids; no abort or cleanup for abandoned imports; one worker; no live row count in import progress; no publish retry backoff.
   - Run `research-claims-check` on the README.
 - [ ] **Step 3:** run the tests (PASS). Commit.
 - [ ] **Step 4:** lane done. Run `full`, then `/devkit:ship-check`, then open the PR `lane/w5-packaging → v1-local`.

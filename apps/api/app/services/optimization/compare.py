@@ -10,6 +10,7 @@ from app.services.optimization.methods import (
     PER_PRODUCT_SEARCH_S,
     failed_result,
     run_method,
+    solver_run,
 )
 from app.services.optimization.methods import assemble as assemble_method
 from app.services.optimization.projection import project_v3
@@ -176,6 +177,7 @@ def publishable(scenario, baseline, result):
     solved = [p.native_status for p in result.products if p.native_status]
     status = None if not solved else "FEASIBLE" if "FEASIBLE" in solved else "OPTIMAL"
     status = status if result.method in OPTIMIZING else None
+    run = solver_run(status is not None)  # optimizers only; their solved products are CP-SAT's
     rebuilt = assemble_method(
         scenario,
         result.method,
@@ -185,6 +187,7 @@ def publishable(scenario, baseline, result):
         status,
         result.products,
         {},
+        run,
     )
     if not rebuilt.verified:
         problems = [rebuilt.failure_reason]
@@ -201,4 +204,5 @@ def publishable(scenario, baseline, result):
         status,
         f"PUBLICATION_VERIFICATION_FAILED:{','.join(problems)}",
         result.products,
+        run,
     )
