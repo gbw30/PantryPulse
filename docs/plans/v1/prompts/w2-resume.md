@@ -10,11 +10,12 @@ W2 is lead-only (no lanes run). At the save point, W2-05 is done and W2-06 is pa
 
   The full gate passed 8/8 on `fdb3a5e` and again on `74efe6e`.
 - The `CLAUDE.md` migration head is now `ppv1_0013`, on this branch (`da0f4a1`); it lands with the next docs PR.
-- Step 4 is in progress as two `integration-fixer` packets based on `74efe6e`:
-  - A2 and A5: branch `w2/data-fix-imports`, DB `pantrypulse_data_test`;
-  - A6 and A7: branch `w2/data-fix-freeze`, DB `pantrypulse_verify2_test`.
+- Step 4 is done:
+  - #118 (A6/A7) merged as `46a1e4a`;
+  - #119 (A2/A5) merged as `e7daa17`.
 
-  Each needs a verifier pass and then Gabriel's OK for its PR.
+  The full gate passed 8/8 on each merge. The decisions file records how each fix landed.
+- Step 5 is in progress. `wave-2.md` and the `BOARD.md` W2 row now record the W2-06 outcome, and `wave-3.md` gives the samples lane its `is_sample` interface. Still to do: the wave-end report, the W3 worktrees, the wave-start report, and Gabriel's approval of the W3 start.
 - The lead's partition worktree `.claude/worktrees/lead-partition` (branch `w2/partition-integration`) is merged, so it can be removed with Gabriel's OK.
 
 ## State at the save point
