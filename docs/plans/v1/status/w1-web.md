@@ -96,6 +96,11 @@ PASS on mocks, no must-fix. The two should-fix items and the notes are fixed tes
 - N4 (lead call, no change): the imported network's danger ranking sits under the legacy fixture atlas. The lead sent it to the W2 UX-critic gate.
 - research-claims-check grep over the added source lines: no research, fairness, probability or outcome claim. The hits are comments, types and "nothing is known yet about what was saved".
 
+## Merges after #107 and #110 (2026-11-07, local only, not pushed)
+
+- `git merge origin/v1-local` at 4e75fe8 (data #108, lead #109 ppv1_0012, solver #107) gave d18e00c: a normal merge, no conflicts, no rebase. Then `git merge origin/v1-local` at c7d00b6 (#110, backend only, no apps/web or contract files) gave 4aafcdd.
+- **Live smoke: not run, Gabriel's call ("Skip it for now").** It would have needed the seed-generated local login (a credential) and, for locations without coordinates, the Census geocoder (a new outbound destination for this lane). All evidence below is mocks plus backend tests; nothing here is live evidence.
+
 ## Pause point (2026-11-07, at Gabriel's request via the orchestrator)
 
 **Done:** W1-W01 … W1-W08 committed and pushed. The reviewed candidate is b2f32ec; this commit adds only this file. Partial items, each with a CR or waiting on the v1-local merge (#103):
@@ -143,6 +148,12 @@ PASS on mocks, no must-fix. The two should-fix items and the notes are fixed tes
 
 | Gate | Commit | Result |
 |---|---|---|
+| quick gate (standard env) + `pytest -q -rs` | 4aafcdd | PASS (4 of 4). 1870 passed, 77 skipped, all in the same eight PP19 isolated-schema suites (operational 25, stock 17, stock_adjustment_api 9, operations_api 7, forecast_api 6, inventory_api 5, planning 4, planning_api 4). |
+| `npx vitest run` / `node --test tests/*.test.mjs` | 4aafcdd | 22 files, 118 passed / 12 passed, 0 skipped |
+| 8 v1 e2e specs on mocks (`--workers=1`) | 4aafcdd | 31 passed, 0 skipped |
+| tsc, lint, `contracts:check`, `npm run build` | d18e00c | all exit 0 ("OpenAPI matches the application schemas", "21 v1 examples valid"); #110 changed no web or contract file |
+| quick gate (standard env) + `pytest -q -rs` | d18e00c | PASS (4 of 4). 1868 passed, 77 skipped (same eight suites) |
+| vitest / node --test / 8 v1 e2e specs (`--workers=1`) | d18e00c | 118 passed / 12 passed / 31 passed, 0 skipped |
 | `node scripts/quality/run.cjs quick` (standard env) | fd0d9a7 | PASS (4 of 4) |
 | `node scripts/quality/run.cjs full` (`.env.lane` + `PP19_TEST_SCHEMA_ISOLATION=1`) | fd0d9a7 | PASS (8 of 8). fd0d9a7 changes only apps/web, so the backend evidence at 71b116a (1471 passed, 0 skipped) still applies. |
 | `npx vitest run` / `node --test tests/*.test.mjs` | fd0d9a7 | 22 files, 118 passed / 12 passed, 0 skipped |
