@@ -81,8 +81,8 @@ The lane may continue with other unblocked tasks in its list.
 
 - The orchestrator prepares each merge: the lane PR is green in CI, the verifier and `/code-review` findings are fixed or accepted, the lane branch contains the current `origin/v1-local`, and the full gate passes on the merge candidate.
 - It **asks Gabriel before merging into `v1-local`**, one PR at a time, in the order the wave file gives.
-- `gh pr merge <n> --merge`. Never squash a lane PR away, never force-push, never rebase a pushed branch.
-- After each merge: `node scripts/quality/run.cjs full` on `v1-local`, plus the e2e gate when web changed. The next lane merges `origin/v1-local` before its own merge.
+- `gh pr merge <n> --merge --match-head-commit <reviewed sha>`, so a push after the review can't slip in (W1 practice). Never squash a lane PR away, never force-push, never rebase a pushed branch.
+- After each merge: `node scripts/quality/run.cjs full` on `v1-local`, plus the e2e gate when web changed. Run local e2e with `PLAYWRIGHT_PORT` set to a free port: the WSL Docker stack holds 3000, and Playwright would silently test that stale app instead (W2 prep, 2026-11-07). The next lane merges `origin/v1-local` before its own merge.
 - `v1-local` → `main` is out of scope for this plan and needs a separate decision.
 
 ## 7. Reporting to Gabriel

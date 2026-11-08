@@ -10,7 +10,7 @@
 
 ### W2-02: Merge `w1-data` · S · depends on: W2-01 (data)
 
-- [ ] **Step 1:** "PR ready" report to Gabriel. Wait for approval, then `gh pr merge <n> --merge`.
+- [ ] **Step 1:** "PR ready" report to Gabriel. Wait for approval, then `gh pr merge <n> --merge --match-head-commit <reviewed sha>`.
 - [ ] **Step 2:** on `v1-local`, run `node scripts/quality/run.cjs full`. Expected: PASS, 0 skipped.
 
 ### W2-03: Merge `w1-solver` · S · depends on: W2-02
@@ -35,8 +35,20 @@
   - fetches the actions;
   - exports the CSV;
   - asserts the stock tables are unchanged.
+  W1 carry-in (2026-11-07):
+  - **The Retail twin doesn't exist yet**, so build it as a fixture next to `tests/networks/fixtures/mini-network`.
+  - Insert the forecast run the way `tests/networks/test_build_scenario.py` does. `POST /networks/{id}/forecasts` is 501 until W3.
+  - Every committed import queues `enrichment.v1` (follow-up hook) and `max_queued` is 2, so drain those jobs before submitting comparisons.
+  - Every mini-network location has coordinates, so A10 needs one extra location without coordinates plus a recorded geocoder response.
 - [ ] **Step 2:** run it. Each failure goes to an `integration-fixer` packet: the minimal failing case, the owning wave-1 paths, and the base SHA. Its fix lands through a small PR with Gabriel's OK.
 - [ ] **Step 3:** PASS. Commit on `w2/integration`, open the PR, and merge with Gabriel's OK.
+- [ ] **Step 4: live smoke of the W1 screens** (moved here from W1 by Gabriel, 2026-11-07).
+  - Run the merged stack with a worker (commit answers 503 without one), with the web on a free `PLAYWRIGHT_PORT`/port.
+  - Import the mini network through the UI. Every location has coordinates, so there is no outbound call.
+  - Use a fixture forecast run through `?forecast_run_id=`.
+  - Walk through the comparison (both modes), Decisions, export and print.
+  - Danger, projection and forecasts are 501 until W3; check that they render as honest errors.
+  - Signing in uses the generated local login, which needs Gabriel's OK. Never print it.
 
 ### W2-06: Adversarial pass and change-request decisions · S–M · depends on: W2-05
 
@@ -51,6 +63,29 @@
   - USD with one price missing.
   Each reproduced failure becomes a fix packet or a wave-3 task.
 - [ ] **Step 2:** decide with Gabriel every open CR from the wave-1 status files. Land the approved ones (contract, schema) on `v1-local`, and regenerate the contract.
+  - Also open from W1 (BOARD W2 row; lane status files; the W2 prep review):
+    - **Must land before W3:** `forecast.v1` in `V1_NETWORK_JOBS` (lead CR); the importer sets `networks.is_sample` (data CR).
+    - **Contracts:**
+      - an external batch id field for hashed frozen batch ids;
+      - cancel and retry for v1 jobs;
+      - an abort route plus cleanup of abandoned import runs and files (W0-08 §2, §4).
+    - **Enrichment:**
+      - say why it didn't start;
+      - given coordinates get no tract or ACS rates (reverse-geocode, or keep it and say so in the column guide);
+      - should the automatic Census lookup after an import be labeled explicitly (V1-SPEC §4 "explicit, labeled")?
+      - enrichment updates the published version (by design; record it).
+    - **Data:**
+      - a fractional `handling_units_per_unit` is accepted at import but blocks the freeze (reject it at import?);
+      - batches already expired at `as_of_date` are frozen unfiltered (solver S3);
+      - the staging sweep with more than one worker;
+      - progress has no live row count (V1-A09).
+    - **Solver:** an independent FEFO check (S1), record seed, worker count and OR-Tools version (S2), the F2 residual, publish retry backoff, and one tenancy helper.
+    - **Web and UX:**
+      - the legacy fixture atlas shown above an imported network's ranking (UX critic);
+      - names not yet wired in trust and decisions;
+      - the "Simulated network" pill;
+      - sample rates read as "manual" while V1-SPEC §8 wants a "sample values" label.
+    - **Projection:** should W3-F04/F05 reuse `project_v3`?
   - Carried from W1 (decisions §7 of `decisions/W0-08-scenario-and-import.md`):
     - define CR-w1-web-4 (forecast series read and per-location accuracy) with the D09 forecast-run interface;
     - run `bench_import.py` on Gabriel's Windows Docker stack. If the publish lock exceeds 3.5 s, land the `net_batches` version partition.

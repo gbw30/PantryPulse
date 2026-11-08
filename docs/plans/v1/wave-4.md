@@ -20,7 +20,7 @@
   - `@V1-A05 both samples present and labeled after first start`.
   - `@V1-A06 example downloads equal data/templates/examples`.
   - `@V1-A12 forecast with backtest or "accuracy not evaluated"`.
-  - `@V1-A13 atlas ranking equals GET /danger and the table alternative`.
+  - `@V1-A13 atlas ranking equals GET /danger and the table alternative`, and selecting a row opens the live site inspector (`GET /networks/{id}/projection`, W0-08 §6).
   - `@V1-A14 @V1-A15 @V1-A16 compare → decisions → export on both samples`.
   - `@V1-A23 donation forecast shown "not confirmed", danger unchanged with and without it`.
 - [ ] **Step 2:** run with `PP_RUN_CONNECTED=1 PP_E2E_PRODUCTION=1 node scripts/quality/run.cjs e2e`. Send each failure to an `integration-fixer` packet.

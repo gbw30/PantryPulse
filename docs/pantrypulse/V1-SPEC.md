@@ -100,8 +100,8 @@ These remain binding in v1:
 
 | Dimension | v1 target | Note |
 |---|---|---|
-| Locations per network | ≤ 100 (hubs/DCs + pantries/stores) | Today the scenario schema caps at 14 (`schemas/or_inputs.py:304`) |
-| Products per network | ≤ 500 | Today capped at 8 (`or_inputs.py:305`) |
+| Locations per network | ≤ 100 (hubs/DCs + pantries/stores) | or-input-v3 caps at 100 (`v1_envelope.py`, W0-08 §1); the v2 schema keeps 14 |
+| Products per network | ≤ 500 | or-input-v3 caps at 500 (`v1_envelope.py`); the v2 schema keeps 8 |
 | History | ≤ 90 days daily per location × product; ≥ 14 days to forecast | ≤ 4.5 M history rows |
 | Inventory batches | ≤ 200,000 rows | Builder may adjust after measurement |
 | Forecast series per run | ≤ 50,000 (seven days each) | Baseline methods only by default |
@@ -135,15 +135,15 @@ Templates are UTF-8 CSV files. Each has a header row, a downloadable blank copy,
 | `products.csv` | `product_id`, `name`, `unit` (e.g. case, each, lb) | `unit_value_usd` (Retail $ results), `handling_units_per_unit` (default 1, shown as an assumption) |
 | `inventory.csv` | `location_id`, `product_id`, `batch_id`, `quantity` (nonnegative integer, in the product unit), `expiry_date` **or** `non_expiring=true` | `received_date` |
 | `demand_history.csv` | `location_id`, `product_id`, `date`, `quantity`, `basis` (`demand` or `sales`) | blank `quantity` = unknown day (kept as missing, never zero) |
-| `routes.csv` (optional file) | `from_location_id`, `to_location_id` | `travel_days`, `cost_per_handling_unit`, `capacity_per_batch`, `disabled=true` |
+| `routes.csv` (optional file) | `from_location_id`, `to_location_id` | `travel_days`, `cost_per_handling_unit`, `capacity_per_batch`, `disabled=true`. A blank `travel_days` needs coordinates at both ends, otherwise it is a row error |
 | `inbound.csv` (optional file, V1-D13) | `location_id`, `product_id`, `quantity`, `arrival_date`, `expiry_date` **or** `non_expiring=true` | `source` (`dc_delivery`, `supplier`, `donation`, `other`), `reference` |
 | `donation_history.csv` (optional file, V1-D14) | `location_id` (receiving location), `product_id`, `date`, `quantity` | `donor` (free text, kept separate from the receiving location) |
 
 Inbound and donation rules:
 
-- **`inbound.csv`** rows are **confirmed** arrivals. They enter the projection and planning on their arrival date, under the BD-48 daily order (arrivals first). Arrival dates must fall inside the seven forecast days after `as_of_date`; later rows are kept and listed as "outside horizon". Each arrival enters the network's stock only once: it is never counted as on-hand as well (V5 §5.3).
+- **`inbound.csv`** rows are **confirmed** arrivals. They enter the projection and planning on their arrival date, under the BD-48 daily order (arrivals first). Arrival dates must fall inside the seven forecast days after `as_of_date`; later rows are kept and listed as "outside horizon". Each arrival enters the network's stock only once: it is never counted as on-hand as well (V5 §5.3). Arrivals on or before `as_of_date` are rejected; they belong in `inventory.csv`.
 - **`donation_history.csv`** works like demand history, but for received donations, summed per receiving location × product × day (V5 §5.2).
-  - A row with quantity `0` means "reported, nothing received". A missing day stays **unknown**, never zero. This keeps V5's coverage distinction without a separate coverage file.
+  - A row with quantity `0` means "reported, nothing received". A missing day stays **unknown**, never zero. One blank quantity among a day's rows makes that location × product × day unknown; it is never partly summed (W0-08 §8). This keeps V5's coverage distinction without a separate coverage file.
   - It is available in both modes; it's expected mainly in Pantry mode.
 - **Forecast donations** (lead call, following BD-07: the baseline counts only confirmed resources):
   - Donation forecasts are shown in the Overview/forecast views, and in each location's "why" text as "expected donations (forecast, not confirmed): X".
@@ -165,7 +165,7 @@ Import rules:
 - Sales history is labeled **"sales (undercounts demand when shelves were empty)"** everywhere it shows up. This follows BD-06's explicit-proxy rule: choosing `basis=sales` is the opt-in.
 - Import never "posts" stock through the receipt ledger UI. Imported batches become the network's opening snapshot, recorded as one audited import event.
 - Re-import: a user can import a newer snapshot into an existing network. It is a new dataset version; earlier scenarios and results keep the version they used.
-- Large files: the current 64 KB request limit (`main.py:71`) cannot carry 4.5 M rows. **Builder** designs a bulk upload path (e.g. streamed upload into staging tables plus PostgreSQL `COPY`), run as a durable job with progress, within the size envelope.
+- Large files: the current 64 KB request limit (`main.py:71`) cannot carry 4.5 M rows. As built (W0-08 §2, §4): create the import, stream each file to the API (160 MiB cap per file), then commit it as an `import.v1` durable job that stages with PostgreSQL `COPY` and publishes all or nothing, within the size envelope.
 
 ### 6.2 Network modes and methods (V1-D03, V1-D08)
 
@@ -182,11 +182,11 @@ Method notes:
 - **All methods in a comparison share one frozen scenario and one feasible region**, and each result goes through the independent verifier before it's published. Heuristics (equal share, most-urgent-first, soonest-expiry-first) are deterministic, with declared tie-breaks.
   - **Per product (decided after S1, 2026-11-04):** each optimizing method solves one CP-SAT model per product, by default only at-risk products. Shared capacity is split between products before solving, and an independent union check confirms the combined plan respects every shared limit. Fairness and EGP terms apply within each product, so there is no network-wide objective total. Details: `docs/plans/v1/decisions/W0-optimizer-decomposition.md`.
 - **Retail "Optimized"** is a new CP-SAT objective: minimize `w_exp × expired + w_lost × lost_sales` over the allocation window, in units or USD.
-  - (lead call) Defaults are `w_exp = 1`, `w_lost = 1`. They are shown in the scenario and editable. These are disclosed v1 defaults, not a research claim.
+  - (lead call) Defaults are `w_exp = 1`, `w_lost = 1`. Weights are whole numbers 0–1000, and at least one must be above 0 (`RETAIL_WEIGHTS_ALL_ZERO`, W0-08 §7). They are shown in the scenario and editable. These are disclosed v1 defaults, not a research claim.
   - It needs its own small hand-derived oracle fixtures before integration, mirroring V5 §10.4 steps 3–4.
 - **EGP_PI_INSPIRED** vulnerability attributes come from Census (§6.3). There are two attributes, poverty rate and SNAP-household rate, which satisfies V5 §10.2's "at least two documented attributes".
-  - Coefficients and λ/β keep the values already used by the connected flow, shown and editable as today.
-  - Locations with unknown attributes are listed. The user must enter values or explicitly exclude those locations before an EGP scenario can be frozen; there is no silent exclusion (BD-08).
+  - Coefficients and λ/β keep the values already used by the connected flow, shown and editable as today, with 50/50 weights on `poverty_rate` and `snap_rate`, the only two attributes allowed. A Pantry scenario needs an explicit 1–3-day planning window, with no default (`PLANNING_DAYS_REQUIRED`, W0-08 §5).
+  - Pantries with unknown attributes are listed (hubs never block). The user must enter values or explicitly exclude those pantries before any Pantry scenario is frozen, because a Pantry comparison runs all five methods together (422 `EGP_ATTRIBUTES_UNRESOLVED`); there is no silent exclusion (BD-08, W0-08 §8).
 - Hubs/DCs never receive. In Retail mode a store sends only surplus beyond its own protected seven-day sales forecast plus reserve. This is BD-49 applied to stores.
 - **Retail horizon** (lead call, following V1-D03's "sell before it expires"):
   - The batch is still dispatched once, on the first planning day (BD-50).
@@ -199,13 +199,13 @@ Method notes:
 ### 6.3 Location enrichment (V1-D04, V1-D10)
 
 - **Geocoding:** US Census Geocoder batch endpoint (free, no key). It returns coordinates and the census tract. Unmatched addresses are listed; the user fixes the address or enters coordinates.
-- **Poverty attributes:** American Community Survey 5-year estimates by tract (poverty rate and SNAP-household share; Census Data API, free, key optional at low volume). Fetch by county, so 100 locations is a handful of calls. Store the source table, year and fetch time; show "Source: ACS 5-year YYYY, tract NNNN".
+- **Poverty attributes:** American Community Survey 5-year estimates by tract (poverty rate and SNAP-household share), looked up locally in a bundled ACS 5-year 2024 whole-US tract table with no key, because the Census Data API now requires one (CR-w1-data-1). Store the source table, year and fetch time; show "Source: ACS 5-year YYYY, tract NNNN".
 - **Travel distance and time:**
   - Default: straight-line distance × 1.3 road factor (lead call), at an assumed 45 mph average (lead call). Converted to whole `travel_days` (BD-50).
-  - Candidate routes are each receiver's k = 10 nearest senders within 150 miles (lead call; editable).
+  - Candidate routes are every hub/DC within 150 miles of a receiver, plus its 10 nearest other senders within 150 miles (lead call; editable).
   - **Optional Google Maps:** if the user pastes their own key in Settings, compute road distance and time for candidate routes, cache the results, and label each route with its method ("straight-line estimate" or "Google road distance, fetched DATE").
   - The key is stored only in the local database or env, never logged, and never sent to the browser.
-  - **Builder** confirms which current Google endpoint to use (Routes API route matrix vs legacy Distance Matrix) and its limits at build time.
+  - Google distances use the Routes API `computeRouteMatrix` (`TRAFFIC_UNAWARE`, one request per receiver); legacy Distance Matrix can't be enabled for new projects (spike S6).
   - `routes.csv` overrides any computed value.
 - **Offline behavior:** if Census or Google is unreachable, import still succeeds. Affected fields are marked unknown with a retry button, and EGP stays blocked for locations with unknown attributes (§6.2). The sample networks ship with pre-filled values and never call out.
 - Census is US-only. v1 testing is Florida; non-US addresses are rejected with a clear message.
@@ -224,7 +224,7 @@ Method notes:
 - The Decisions section starts from one chosen method result on one scenario. Each suggested action is one transfer, shown as three parts:
   1. **Action:** "Move 40 cases of Bottled water from Hub North to Pantry 12, ship on Nov 6, arrives Nov 7."
   2. **Why:** derived from the frozen inputs, for example "Pantry 12 runs out on Nov 8 (projected unmet 55 cases over 3 days); Hub North has 120 cases beyond its protected need; 30 of them expire Nov 12." Distinguish a proven binding constraint from an inferred reason, as V5 §14.1 requires.
-  3. **Effect:** a **remove-one-transfer counterfactual** (lead call; resolves OPEN-02 for v1). Re-project the plan with this one transfer removed, without re-optimizing, and show the difference at the sender and receiver: unmet units, expired units, USD in Retail mode when available.
+  3. **Effect:** a **remove-one-transfer counterfactual** (lead call; resolves OPEN-02 for v1). Re-project the plan with this one transfer removed, without re-optimizing, and show the difference at the sender and receiver: unmet units, expired units, USD in Retail mode when available. The USD line is the dollar value of the units changed, price × (Δunmet + Δexpired), not the objective (W0-08 §8).
 - Effects are labeled **"effect of this action given the rest of the plan; effects don't add up across actions"**.
 - The user selects actions and **exports a plan**: CSV plus a print-friendly page (lead call). Each row carries the scenario ID and hash, method, network mode, units, the why/effect text, and "simulated plan; no stock was reserved or moved".
 - No in-app approval, reservation or stock change. The existing "Mark reviewed — simulation" stays as-is.
@@ -236,7 +236,7 @@ Method notes:
   - Pantry mode: the worst product's **share of 7-day demand projected unmet**, a unitless ratio. Ties are broken by the earliest first-deficit day.
   - Retail mode: the same, plus the share of stock projected to expire unsold. The higher of the two is shown, with its reason.
   - Units are never summed across products. The ranked list shows the driving product and its units.
-- Atlas color/shape encodes the danger band, with a text label and accessible table (V5 §14.2). Selecting a location opens the existing site inspector.
+- Atlas color/shape encodes the danger band, with a text label and accessible table (V5 §14.2). Selecting a location opens a site inspector with that location's per-product 7-day projection.
 
 ## 7. Local runtime and the one start command
 
@@ -365,7 +365,7 @@ PASS needs evidence for the exact commit and environment: command, timestamp, ar
 | V1-A07 | Import validation: malformed, duplicate, negative, fractional, unknown-ID, missing-expiry and over-envelope rows are each rejected with file/line/column/reason, and nothing is saved | API + e2e tests per error class |
 | V1-A08 | Import truth: blank demand stays missing (never zero); `basis=sales` is labeled wherever it's shown; batch quantities and expiry round-trip exactly | Round-trip test |
 | V1-A09 | Bulk import: a maximum-envelope dataset (100 × 500 × 90 days) imports as a durable job with progress, within a measured time recorded in the README | Timed run on reference hardware |
-| V1-A10 | Enrichment: geocoding and ACS attributes are stored with source/year; unmatched addresses and outages are reported with retry; EGP stays blocked until unknown attributes are resolved or explicitly excluded | Tests with recorded Census responses + one live run |
+| V1-A10 | Enrichment: geocoding and ACS attributes are stored with source/year; unmatched addresses and outages are reported with retry; EGP stays blocked until unknown attributes are resolved or explicitly excluded | Tests with recorded geocoder responses and the bundled ACS table + one live geocoding run |
 | V1-A11 | Distance: the straight-line default produces labeled routes; with a user key, Google distances are cached and labeled, and the key never reaches logs or the browser; `routes.csv` overrides both | Tests with a recorded Google response + one live keyed run |
 | V1-A12 | Forecast: every eligible series gets seven dated points with actual provider/fallback; the backtest shows WAPE/bias on the same scored set, or "accuracy not evaluated" under 35 days | API + e2e |
 | V1-A13 | Atlas: the danger ranking matches an independent calculation on a fixture; never sums units across products; has a text/table alternative | Unit + e2e + axe |

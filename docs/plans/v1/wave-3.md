@@ -36,6 +36,17 @@ Agent role: `forecast-engineer`. Skill: `verify-forecast`. Rules: `.claude/rules
 
 **Files:** modify `apps/api/app/workers/forecasting.py` and `apps/api/app/services/forecasting/*` (network series source, backtest persistence); test `apps/api/tests/forecasting/test_network_forecast.py`.
 
+**W1 carry-in (2026-11-07):**
+- `create_scenario` (W1-D09, `services/networks/scenario.py`) already accepts only a forecast run that:
+  - is `planning_ready`;
+  - has `frozen_input.dataset_id` equal to the network's dataset version;
+  - has `data_cutoff_date` equal to that version's `as_of_date`;
+  - keys its series by `net_locations.id` and `net_products.id`.
+  Anything else is 409. Publish runs in exactly that shape, and add `test_create_scenario_accepts_a_published_network_run`.
+- Implement `list_forecast_runs(rt, scope, network_id) -> ForecastRunList` (CR-w1-web-2) next to `submit_network_forecast`.
+- `forecast.v1` is not in `V1_NETWORK_JOBS` (`app/routers/forecasts.py`), so `GET /jobs/{id}` 404s for a network forecast. The lead CR is decided at W2-06 and must land before this task.
+- A re-import publishes a new dataset version, and older runs are then refused with `STALE_DATASET_VERSION`.
+
 - [ ] **Step 1:** write the failing tests:
   - `test_every_eligible_series_gets_seven_dated_points_with_actual_provider_and_fallback`.
   - `test_series_under_14_days_listed_ineligible_not_zero_filled`.
@@ -64,6 +75,10 @@ Agent role: `forecast-engineer`. Skill: `verify-forecast`. Rules: `.claude/rules
 
 **Interface:** `danger_ranking(projection, mode) -> list[DangerRow{location_id, rank, score_ratio: Decimal, band, reason: "unmet" | "expiry", driving_product_id, driving_units, unit, first_deficit_date}]`. Band thresholds are declared in the module and tested.
 
+**W1 carry-in:**
+- Also implement `get_projection(rt, scope, network_id, forecast_run_id, location_id) -> LocationProjection` (CR-w1-web-3). Its route is a 501 stub today (STUBS in `tests/test_v1_contract.py`), and the W1 site inspector reads it.
+- W2-06 decides whether danger and the projection reuse `services/optimization/projection.py::project_v3`, which already counts frozen inbound once. Reusing it would keep the danger ranking in step with the solver.
+
 - [ ] **Step 1:** write the failing tests:
   - `test_pantry_score_is_worst_product_unmet_share_of_7_day_demand`, computed independently in the test.
   - `test_ties_broken_by_earliest_first_deficit_day`.
@@ -84,7 +99,21 @@ Agent role: `forecast-engineer`. Skill: `verify-forecast`. Rules: `.claude/rules
 
 ## Lane `w3-samples` — two fictional Florida networks, examples and seed
 
-Agent role: `solver-engineer` ("solver/data"). Rules: `.claude/rules/data.md`. Samples are generated, then **imported through the merged W1 importer** (`app.services.imports.api`), never written to the tables directly.
+Agent role: `solver-engineer` ("solver/data"). Rules: `.claude/rules/data.md`. Samples are generated, then **imported through the merged W1 importer** (`app.services.imports.staging.run_import`; the seed runs before the worker starts, so the API commit path would answer 503), never written to the tables directly.
+
+**W1 rules every sample must pass** (2026-11-07; see `decisions/W0-08-scenario-and-import.md` §7–§8):
+- Coordinates on every location, and both rates (`poverty_rate`, `snap_rate`) on every pantry. Given coordinates skip geocoding, so no ACS lookup fills them.
+- Every receiver within 150 mi of its hub/DC.
+- At least 2 pantries with demand per product (EGP's singleton rule).
+- Whole `handling_units_per_unit`; a fractional value blocks the freeze.
+- Quantities ≤ 100,000.
+- History ≤ 90 days and never after `as_of_date`; inbound strictly after `as_of_date`.
+- Short batch ids with no `/`, so frozen batch ids stay readable instead of hashed.
+- `unit_value_usd` on every Retail product.
+- Add `test_each_sample_freezes_cleanly`.
+- Open at W2-06:
+  - the importer never sets `networks.is_sample`, so it needs a CR;
+  - `run_import` queues no `enrichment.v1`, so a sample's enrichment shows `not_started`.
 
 ### W3-P01: Pantry sample · M · depends on: none · V1-A05
 
@@ -149,7 +178,7 @@ Test `apps/api/tests/samples/test_examples.py`:
 
 Agent role: `frontend-engineer`. The wave-1 screens exist. This lane replaces mocks with the real API wherever the wave-1 backend is merged:
 - **real API:** import, enrichment, routes, scenario, comparison, actions, export;
-- **contract examples until W4:** the forecast backtest, danger and sample-example endpoints, which are built in parallel this wave.
+- **contract examples until W4:** the forecast backtest, danger and sample-example endpoints, which are built in parallel this wave. That also covers the W1-added `ForecastRunList`, `LocationProjection` and network-forecast POST mocks; drop W1's `?forecast_run_id=` / `?forecast_job_id=` URL stopgaps once runs can be listed.
 
 ### W3-W01: Wire import, enrichment and settings · M · depends on: none · V1-A06, A07, A10, A11, A23
 
@@ -158,7 +187,7 @@ Agent role: `frontend-engineer`. The wave-1 screens exist. This lane replaces mo
 - [ ] **Step 1:** write the failing tests:
   - connected `@V1-A07 bad file rejected: failure message and per-row fixes shown, and no network or dataset version created`.
   - connected `@V1-A06 @V1-A23 good template set with inbound and donation_history imports and shows progress`.
-  - connected `@V1-A10 offline enrichment marks unknown with retry`. The API runs with no egress; sample coordinates mean no calls.
+  - connected `@V1-A10 offline enrichment marks unknown with retry`. The API runs with no egress. Use a fixture with at least one address without coordinates: located rows are never looked up, so sample data alone proves nothing here.
   - connected `@V1-A11 route labels`.
 - [ ] **Step 2:** run them (FAIL), implement, run them (PASS) against the lane's API on 8003 and the `pantrypulse_web_test` schema. Commit.
 
@@ -169,7 +198,7 @@ Agent role: `frontend-engineer`. The wave-1 screens exist. This lane replaces mo
 - [ ] **Step 1:** write the failing tests:
   - connected `@V1-A14 pantry: import → scenario (both transfer modes) → 5 methods verified → decisions → export`.
   - connected `@V1-A15 retail: 3 methods units and USD, USD unavailable with reason on a no-price variant`.
-  - connected `@V1-A16 export CSV contains hash and simulated text; stock tables unchanged`, checked through an API read of the lot versions.
+  - connected `@V1-A16 export CSV contains hash and simulated text; stock tables unchanged`, checked with the W1-S07 row-count check (no v1 route reads batches).
 - [ ] **Step 2:** run them (FAIL), implement, run them (PASS), commit.
 
 ### W3-W03: Accessibility at three viewports · S–M · depends on: W3-W02 · V1-A20

@@ -27,6 +27,7 @@ You are the PantryPulse lane agent for **`w3-samples`** (two fictional Florida s
 3. `docs/plans/v1/README.md`: Global Constraints, Review Focus, the ownership matrix and the frozen interfaces
 4. `docs/plans/v1/ORCHESTRATION.md` §4–§8
 5. `docs/plans/v1/wave-3.md`, section "Lane `w3-samples`": **your tasks with their exact tests**
+6. `docs/plans/v1/decisions/W0-08-scenario-and-import.md` §7–§8 (W1 decisions and review rulings) and the **W1 carry-in** notes in your wave-3.md section
 
 ## Your tasks (full steps and test names in the wave file)
 
