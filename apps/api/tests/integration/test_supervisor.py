@@ -13,7 +13,12 @@ import pytest
 import sqlalchemy as sa
 from fake_driver import FakeDriver
 
-from app.repositories.jobs import QueueRepository, QueueStorageUnavailable, TrustedScope
+from app.repositories.jobs import (
+    OwnershipLost,
+    QueueRepository,
+    QueueStorageUnavailable,
+    TrustedScope,
+)
 from app.services.jobs.contracts import (
     AttemptState,
     OperationKind,
@@ -910,8 +915,18 @@ def test_failed_discard_does_not_block_finalization(db, org, prep):
     assert len(publisher.discarded) == 1
 
 
+def _store_nul(connection):  # psycopg refuses NUL in text: a real DataError
+    connection.execute(sa.text("SELECT CAST(:v AS text)"), {"v": "user-data\x00"})
+
+
+def _quote_user_data(connection):  # like a constraint error that names the row's values
+    raise ValueError("Key (external_id)=(user-data) already exists")
+
+
+@pytest.mark.parametrize(("fail", "error_type"),
+                         [(_store_nul, "DataError"), (_quote_user_data, "ValueError")])
 def test_unexpected_publication_error_fails_the_attempt_and_the_loop_runs_on(
-    db, org, prep, caplog
+    db, org, prep, caplog, fail, error_type
 ):  # W2-06: a DataError in publish once ended the worker process
     import logging
 
@@ -921,7 +936,7 @@ def test_unexpected_publication_error_fails_the_attempt_and_the_loop_runs_on(
 
     def publish(connection, identity, package):
         if not publisher.discarded:  # the first publication hits an error nobody expects
-            connection.execute(sa.text("SELECT CAST(:v AS text)"), {"v": "user-data\x00"})
+            fail(connection)
         return real_publish(connection, identity, package)
 
     publisher.publish = publish
@@ -936,7 +951,42 @@ def test_unexpected_publication_error_fails_the_attempt_and_the_loop_runs_on(
     assert [i.attempt_id for i in publisher.discarded] == [failed.attempt_id]
     assert repo.get_job(org, second.job_id).attempts[0].state is AttemptState.SUCCEEDED
     assert not sup.closed and repo.control().active_attempt_id is None
-    assert "DataError" in caplog.text and "user-data" not in caplog.text
+    assert f'"error_type":"{error_type}"' in caplog.text  # the type, never the message
+    assert "user-data" not in caplog.text
+    sup.shutdown_drain()
+
+
+def test_ownership_lost_during_publication_hands_the_lane_over(db, org, prep, monkeypatch):
+    publisher, registry = prep
+    repo = QueueRepository(db, registry=registry, profile=PROFILE)
+
+    def lost(*args, **kwargs):
+        raise OwnershipLost("lane ownership changed")
+
+    monkeypatch.setattr(repo, "publish", lost)
+    sup = _prep_started(repo, registry)
+    accepted = submit(repo, org, contract="test.prepared.v1")
+    run_until(sup, lambda: sup.ownership_lost)
+    assert sup.closed and len(publisher.discarded) == 1
+    assert repo.get_job(org, accepted.job_id).attempts[0].state is AttemptState.RUNNING
+
+
+class _CommitThenError(QueueRepository):
+    def _commit(self, transaction):
+        transaction.commit()  # the publication really commits
+        raise RuntimeError("not a database error")
+
+
+def test_any_error_from_commit_is_reconciled_never_discarded(db, org, prep):  # W2-06 F2
+    publisher, registry = prep
+    repo = _CommitThenError(db, registry=registry, profile=PROFILE)
+    sup = _prep_started(repo, registry)
+    accepted = submit(repo, org, contract="test.prepared.v1")
+    run_until(sup, lambda: settled(repo, org, accepted.job_id)() and sup.active is None)
+    assert repo.get_job(org, accepted.job_id).attempts[0].state is AttemptState.SUCCEEDED
+    assert publisher.discarded == []  # registry contract: never after a committed publication
+    events = [e["event_type"] for e in repo.audit_events(accepted.job_id)]
+    assert "PUBLICATION_RECONCILED" in events and not sup.closed
     sup.shutdown_drain()
 
 
