@@ -27,6 +27,7 @@ ACS_TABLES = "ACS5 B17001,B22003"
 EGP_ROLES = ("pantry",)  # EGP weighs receiving pantries; hubs never receive
 NO_MATCH_HINT = ("Census found no match. Correct the street, city, state or ZIP, or enter "
                  "latitude and longitude for this location in locations.csv")
+UNCONFIRMED = "unconfirmed address match"  # a Non_Exact geocode (W2-06 A7)
 TIE_HINT = ("Census found more than one match. Make the address more specific, or enter "
             "latitude and longitude for this location in locations.csv")
 
@@ -63,9 +64,11 @@ def apply_enrichment(conn: sa.Connection, version_id: UUID, step: dict[str, Any]
         if g.latitude is not None:
             located |= conn.execute(sa.text(
                 "UPDATE net_locations SET latitude = :lat, longitude = :lon, coordinates_source "
-                "= 'census_geocoder', tract_geoid = :tract WHERE dataset_version_id = :v AND "
-                "external_id = :e AND latitude IS NULL"),
+                "= 'census_geocoder', tract_geoid = :tract, acs_source = :note WHERE "
+                "dataset_version_id = :v AND external_id = :e AND latitude IS NULL"),
                 {"lat": g.latitude, "lon": g.longitude, "tract": g.tract_geoid,
+                 # kept in acs_source so a later rate fill still knows (rates are NULL here)
+                 "note": UNCONFIRMED if g.status == "Non_Exact" else None,
                  "v": version_id, "e": g.location_id}).rowcount > 0
         if g.status != "Exact":
             hint = {"No_Match": NO_MATCH_HINT, "Tie": TIE_HINT}.get(g.status) or (
@@ -86,10 +89,11 @@ def apply_enrichment(conn: sa.Connection, version_id: UUID, step: dict[str, Any]
 
 def _fill_rates(conn: sa.Connection, version_id: UUID, acs: AcsTable) -> None:
     pending = conn.execute(sa.text(
-        "SELECT id, tract_geoid FROM net_locations WHERE dataset_version_id = :v AND "
+        "SELECT id, tract_geoid, acs_source FROM net_locations WHERE dataset_version_id = :v AND "
         "tract_geoid IS NOT NULL AND poverty_rate IS NULL AND snap_rate IS NULL"),
         {"v": version_id}).all()
-    updates = [{"id": r.id, "poverty": poverty, "snap": snap, "source": ACS_TABLES,
+    updates = [{"id": r.id, "poverty": poverty, "snap": snap,
+                "source": ACS_TABLES + (f"; {UNCONFIRMED}" if r.acs_source == UNCONFIRMED else ""),
                 "year": acs.year, "at": acs.fetched_at}
                for r in pending for poverty, snap in (acs.rates(r.tract_geoid),)
                if poverty is not None or snap is not None]
@@ -135,7 +139,7 @@ def run_enrichment(engine: sa.Engine, version_id: UUID, client: CensusClient,
 
 _ATTRIBUTES = (
     "SELECT external_id, role, poverty_rate, snap_rate, manual_poverty_rate, manual_snap_rate, "
-    "excluded, tract_geoid, acs_year, acs_fetched_at FROM net_locations "
+    "excluded, tract_geoid, acs_year, acs_fetched_at, acs_source FROM net_locations "
     "WHERE dataset_version_id = :v")
 
 
@@ -149,6 +153,8 @@ def location_attributes(conn: sa.Connection, version_id: UUID,
 
 def _attributes(r: sa.Row) -> LocationAttributes:
     looked_up = None if r.acs_year is None else f"ACS 5-year {r.acs_year}, tract {r.tract_geoid}"
+    if looked_up and UNCONFIRMED in (r.acs_source or ""):
+        looked_up += f" ({UNCONFIRMED})"
     if r.excluded:
         return LocationAttributes(location_id=r.external_id, state="excluded", poverty_rate=None,
                                   snap_rate=None, source=None, fetched_at=None)
