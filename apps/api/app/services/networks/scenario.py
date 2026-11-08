@@ -215,8 +215,9 @@ def _inbound(conn: sa.Connection, version_id: UUID,
 
 def _batches(conn: sa.Connection, version_id: UUID, as_of, units: dict[str, str],
              assumptions: list[str]) -> list[BatchV3]:
-    """On-hand lots, less those already expired at as_of. A lot is usable through its expiry
-    date (optimization/kernel.py, v3.eligible), so it is expired only when expiry < as_of."""
+    """On-hand lots, less those no planning day can use. A lot is usable through its expiry
+    date (optimization/kernel.py, v3.eligible), but planning starts at as_of + 1, so a lot
+    with expiry <= as_of (the as-of day included) would only count as day-1 waste."""
     rows = _rows(conn, "SELECT l.external_id AS loc, p.external_id AS prod, b.external_id AS lot, "
                        "b.quantity, b.expiry_date, b.non_expiring FROM net_batches b "
                        "JOIN net_locations l ON l.id = b.location_id "
@@ -227,10 +228,11 @@ def _batches(conn: sa.Connection, version_id: UUID, as_of, units: dict[str, str]
     kept, expired = [], []
     for r in rows:
         dated = not r.non_expiring and r.expiry_date is not None
-        (expired if dated and r.expiry_date < as_of else kept).append(r)
+        (expired if dated and r.expiry_date <= as_of else kept).append(r)
     if expired:  # per product in its own unit, never summed across products
         assumptions.append(
-            f"Batches already expired at the as-of date {as_of}, left out: " + "; ".join(
+            f"Batches that expire on or before the as-of date {as_of} can't be used from the "
+            f"first planning day {as_of + timedelta(days=1)}, so they are left out: " + "; ".join(
                 f"{prod}: " + ", ".join(f"{r.loc} {r.lot} {r.quantity} {units[prod]} "
                                         f"(expiry {r.expiry_date})"
                                         for r in expired if r.prod == prod)
