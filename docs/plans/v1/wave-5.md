@@ -54,7 +54,7 @@ Agent role: `solver-engineer` ("solver/data"), with Docker. It owns README.md an
 
 **Files:** create `scripts/testing/egress-journey.cjs`, `scripts/testing/tests/egress-journey.test.cjs`.
 
-- [ ] **Step 1:** write the failing tests: the harness's parser flags any destination outside the allowlist (`geocoding.geo.census.gov`, `api.census.gov`, and Google only when a key is set). It also flags the generated password, the proxy token or the Google key appearing in compose logs, in `.next` static output, or anywhere in the Git tree.
+- [ ] **Step 1:** write the failing tests: the harness's parser flags any destination outside the allowlist (`geocoding.geo.census.gov`, and `routes.googleapis.com` only when a key is set; ACS rates come from the bundled table, so `api.census.gov` is never called). It also flags the generated password, the proxy token or the Google key appearing in compose logs, in `.next` static output, or anywhere in the Git tree.
 - [ ] **Step 2:** run them (FAIL). Implement: run the stack with outbound traffic captured (e.g. through a logging HTTP(S) proxy service in a `compose.test.yaml` profile), drive the A07–A16 journey on the samples plus one import of user addresses, and write `artifacts/egress/report.json`.
 - [ ] **Step 3:** run them (PASS). Commit.
 

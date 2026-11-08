@@ -33,7 +33,7 @@ Every task's requirements include these. The values are from V1-SPEC and CLAUDE.
   - the independent verifier on every published result;
   - native solver statuses (FEASIBLE is never relabeled OPTIMAL).
 - Null demand stays null. A donation `0` is distinct from missing. No future leakage. Different units are never summed into an unlabeled total. Per-action effects are never added up.
-- Defaults (lead calls in the spec): road factor 1.3, 45 mph, k = 10 candidate senders within 150 miles, `w_exp = 1`, `w_lost = 1`, reserve floors 0, blank capacity = no limit, cost budget off, Chronos off by default.
+- Defaults (lead calls in the spec): road factor 1.3, 45 mph, candidate senders = every hub/DC plus the 10 nearest other senders within 150 miles, `w_exp = 1`, `w_lost = 1`, reserve floors 0, blank capacity = no limit, cost budget off, Chronos off by default.
 - Exact copy:
   - "Sample data — fictional"
   - "sales (undercounts demand when shelves were empty)"
@@ -249,7 +249,7 @@ Lanes code against these names. W0-08 may adjust them before the freeze. If it d
 | `GET /networks/{id}/comparisons/{comparison_id}/methods/{method}/actions` | `DecisionActions{actions[DecisionAction], non_additive_label}` | W1-S06 |
 | `POST /networks/{id}/comparisons/{comparison_id}/methods/{method}/export` (`action_ids[]`) | `text/csv` | W1-S07 |
 
-**Job kinds** (registered in `workers/production.py` by W0-08, with handlers in lane-owned modules; until a lane builds one, its stub handler from `app/workers/v1_stub.py` answers admission with 501 and is never advertised for execution. `import.v1` uses the new `IMPORT` operation kind and `enrichment.v1`/`routes-google.v1` the new `ENRICHMENT` kind, each with a 300 s ceiling; migration `ppv1_0009`): `import.v1` (`app.workers.imports`), `enrichment.v1` and `routes-google.v1` (`app.workers.enrichment`), `forecast.v1` (existing; extended for networks and the backtest, `app.workers.forecasting`), `or-comparison.v3` (`app.workers.optimization`). The existing `or-comparison.v2` stays (A22).
+**Job kinds** (registered in `workers/production.py` by W0-08, with handlers in lane-owned modules; until a lane builds one, its stub handler from `app/workers/v1_stub.py` answers admission with 501 and is never advertised for execution. **As of W1 (v1-local `9743fd7`) all four v1 kinds are built and advertised.** `import.v1` queues `enrichment.v1` through the `Publisher.follow_ups` hook in its publish transaction (W0-08 §7, CR-w1-data-5). `GET /jobs/{id}` resolves the owning network's organization for `V1_NETWORK_JOBS` (`app/routers/forecasts.py`; CR-w1-solver-5). Comparison and decision error codes are in W0-08 §8. `import.v1` uses the new `IMPORT` operation kind and `enrichment.v1`/`routes-google.v1` the new `ENRICHMENT` kind, each with a 300 s ceiling; migration `ppv1_0009`): `import.v1` (`app.workers.imports`), `enrichment.v1` and `routes-google.v1` (`app.workers.enrichment`), `forecast.v1` (existing; extended for networks and the backtest, `app.workers.forecasting`), `or-comparison.v3` (`app.workers.optimization`). The existing `or-comparison.v2` stays (A22).
 
 **Service functions the routers call** (lane-owned; W0-08 creates each as a stub that raises `NotImplementedV1(task_id)`, `app.services.v1_errors.NotImplementedV1`, which maps to a 501 in the existing error envelope `{"error": {"code": "NOT_IMPLEMENTED", "message": "...", "details": {"task": "<task id>"}}, "request_id": "..."}`; Gabriel, 2026-11-06):
 
@@ -266,13 +266,13 @@ Lanes code against these names. W0-08 may adjust them before the freeze. If it d
 | `app.services.enrichment.api` (routes) | `list_routes(rt, scope, network_id) -> RouteList` | W1-D07 |
 | `app.services.networks.scenario` | `build_scenario(rt, scope, network_id, dataset_version_id, forecast_run_id, options: ScenarioOptions) -> ORInputV3` (`or-input-v3`; v2 untouched, [decision](decisions/W0-08-scenario-and-import.md)) | W1-D09 |
 | `app.services.optimization.methods` | `run_method(scenario: ORInputV3, method: AllocationMethod, measure: Measure) -> MethodResult` | W1-S02/S03 |
-| `app.services.optimization.compare` | `compare_methods(scenario: ORInputV3, methods: Sequence[AllocationMethod], measure: Measure) -> ComparisonResultV3` | W1-S04 |
-| `app.services.optimization.actions` | `decision_actions(scenario: ORInputV3, result: MethodResult) -> DecisionActions`; `remove_one_effect(scenario, result, transfer_id) -> ActionEffect` | W1-S06 |
-| `app.services.optimization.export` | `export_plan_csv(comparison: SavedComparison, method: AllocationMethod, action_ids: Sequence[str]) -> str` | W1-S07 |
+| `app.services.optimization.compare` | `compare_methods(scenario, methods, measure, *, scenario_id, scenario_hash, search_seconds=PER_PRODUCT_SEARCH_S) -> ComparisonResultV3` | W1-S04 |
+| `app.services.optimization.actions` | `decision_actions(scenario: ORInputV3, result: MethodResult, *, comparison_id, ids=None) -> DecisionActions`; `remove_one_effect(scenario, result, transfer_id) -> ActionEffect` | W1-S06 |
+| `app.services.optimization.export` | `export_plan_csv(comparison: SavedComparisonV3, method: AllocationMethod, action_ids: Sequence[str], *, scenario) -> str` | W1-S07 |
 | `app.services.optimization.api_v3` | `submit_comparison(rt, scope, network_id, request: ComparisonRequestV3, idempotency_key) -> ForecastAccepted`; `get_comparison(rt, scope, network_id, comparison_id) -> SavedComparisonV3` (W1-S04); `comparison_actions(rt, scope, network_id, comparison_id, method) -> DecisionActions` (W1-S06); `export_comparison(rt, scope, network_id, comparison_id, method, action_ids) -> str` (W1-S07) | W1-S04/S06/S07 |
-| `app.services.forecasting.network` | `submit_network_forecast(rt, scope, network_id, request: NetworkForecastRequest, idempotency_key) -> ForecastAccepted` | W3-F03 |
+| `app.services.forecasting.network` | `submit_network_forecast(rt, scope, network_id, request: NetworkForecastRequest, idempotency_key) -> ForecastAccepted`; `list_forecast_runs(rt, scope, network_id) -> ForecastRunList` (CR-w1-web-2) | W3-F03 |
 | `app.services.forecasting.backtest` | `backtest_series(history: Sequence[Decimal \| None], fit: Callable, origins: int = 4, horizon: int = 7) -> BacktestScore` (W3-F02); `get_backtest(rt, scope, job_id) -> BacktestResult` (W3-F03) | W3-F02/F03 |
-| `app.services.danger.ranking` | `danger_ranking(projection: NetworkProjection, mode: NetworkMode) -> list[DangerRow]`; `get_danger(rt, scope, network_id, forecast_run_id) -> DangerRanking` | W3-F05 |
+| `app.services.danger.ranking` | `danger_ranking(projection, mode: NetworkMode) -> list[DangerRow]` (the projection type is W3-F05's to define); `get_danger(rt, scope, network_id, forecast_run_id) -> DangerRanking`; `get_projection(rt, scope, network_id, forecast_run_id, location_id) -> LocationProjection` (CR-w1-web-3) | W3-F05 |
 | `app.services.samples` | `ensure_samples(session, today: date) -> SeedReport` | W3-P04 (W0-05 stub returns `SeedReport(loaded=())`) |
 
 **Contract examples:** one JSON example per response schema in `packages/contracts/examples/v1/<SchemaName>.json`, validated against the Pydantic model by `contracts:check`. `w1-web` builds its Playwright mocks from these files and never from hand-typed payloads.

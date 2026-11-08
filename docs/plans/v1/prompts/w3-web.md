@@ -29,6 +29,11 @@ You are the PantryPulse lane agent for **`w3-web`** (wire the screens to the rea
 5. `docs/plans/v1/wave-3.md`, section "Lane `w3-web`": **your tasks with their exact tests**
 6. `docs/pantrypulse/ART-DIRECTION.md`
 7. Connected runs: start the API on 8003 against `pantrypulse_web_test`, as in the CI connected step (`.github/workflows/pantrypulse-ci.yml:86-108`); never `eval` the demo env output
+8. `docs/plans/v1/decisions/W0-08-scenario-and-import.md` §7–§8 (W1 decisions and review rulings), the **W1 carry-in** notes in your wave-3.md section, and the W1 web lane's Gotchas (`docs/plans/v1/status/w1-web.md`). Key gotchas:
+   - set `PLAYWRIGHT_PORT` to a free port (the Docker stack holds 3000);
+   - run Playwright and the gates one at a time;
+   - set `PP19_TEST_SCHEMA_ISOLATION=1` for full;
+   - under dev Strict Mode every mount effect runs twice.
 
 ## Your tasks (full steps and test names in the wave file)
 
