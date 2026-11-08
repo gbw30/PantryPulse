@@ -21,8 +21,9 @@ from app.schemas.v1_planning import (
     CapacityV3,
     ORInputV3,
     ProductV3,
+    SolverRun,
 )
-from app.services.optimization.compare import compare_methods
+from app.services.optimization.compare import compare_methods, publishable
 from app.services.optimization.methods import PER_PRODUCT_LABEL, run_method
 from app.services.optimization.pantry import (
     SINGLETON_LABEL,
@@ -517,3 +518,26 @@ def test_no_solver_run_recorded_when_cp_sat_never_ran(case, monkeypatch):  # W2-
     s, _ = load(fixture)
     result = run_method(change(s) if change else s, method, measure)
     assert calls == [] and result.solver is None
+
+
+def test_no_solver_run_when_every_product_misses_the_deadline():  # W2-06 (S2) re-check
+    s, _ = load("pantry-four-methods")
+    result = run_method(s, "CLASSICAL_GP", "UNITS", method_seconds=0)
+    assert result.failure_reason.startswith("METHOD_TIME_LIMIT") and result.solver is None
+
+
+@pytest.mark.parametrize("method", ["EQUAL_SHARE", "CLASSICAL_GP"])
+@pytest.mark.parametrize("solver", ["fake", None])
+def test_publication_rebuilds_the_solver_run(method, solver):  # W2-06 (S2) re-check
+    """A stored result can't publish provenance its own products don't imply."""
+    s, _ = load("pantry-four-methods")
+    result = run_method(s, method, "UNITS")
+    baseline = project_v3(s).days
+    assert publishable(s, baseline, result) == result
+    fake = SolverRun(engine="OR-Tools CP-SAT", version="0.0-fake", seed=99, workers=64)
+    claimed = fake if solver == "fake" else None
+    if claimed == result.solver:
+        return  # EQUAL_SHARE already has no solver run
+    published = publishable(s, baseline, result.model_copy(update={"solver": claimed}))
+    assert not published.verified
+    assert published.failure_reason == "PUBLICATION_VERIFICATION_FAILED:solver"
