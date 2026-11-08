@@ -18,7 +18,8 @@ class Run:
     id: UUID
     organization_id: UUID
     network_id: UUID | None
-    new_network: dict[str, Any] | None  # {name, mode, timezone} until a first import succeeds
+    # {name, mode, timezone, is_sample} until a first import succeeds
+    new_network: dict[str, Any] | None
     job_id: UUID | None
     phase: str
     files: list[dict[str, Any]]
@@ -31,14 +32,17 @@ _COLUMNS = ("id, organization_id, network_id, new_network, job_id, phase, files,
             "error_count, errors_truncated")
 
 
-def create_run(conn: sa.Connection, network: NewNetwork | None, network_id: UUID | None) -> Run:
-    """A new network gets its own organization now; its networks row waits for the commit."""
+def create_run(conn: sa.Connection, network: NewNetwork | None, network_id: UUID | None,
+               *, is_sample: bool = False) -> Run:
+    """A new network gets its own organization now; its networks row waits for the commit.
+    `is_sample` marks a new network as a fictional sample: internal callers only (no request
+    schema carries it), and a re-import never changes an existing network's flag."""
     if network is not None:
         organization_id = uuid.uuid4()
         conn.execute(sa.text("INSERT INTO organizations (id, name, is_demo) "
                              "VALUES (:id, :name, false)"),
                      {"id": organization_id, "name": network.name})
-        new_network = json.dumps(network.model_dump(mode="json"))
+        new_network = json.dumps({**network.model_dump(mode="json"), "is_sample": is_sample})
     else:
         organization_id = conn.scalar(sa.text(
             "SELECT organization_id FROM networks WHERE id = :id"), {"id": network_id})

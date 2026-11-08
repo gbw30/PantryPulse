@@ -115,16 +115,8 @@ def build_scenario(conn: sa.Connection, network: sa.Row, options: ScenarioOption
                  "(set in this scenario)")
         weights = weights or RetailWeights(w_exp=1, w_lost=1)
 
-    batches = [BatchV3(id=_batch_id(r[0], r[1], r[2]), location_id=r[0], product_id=r[1],
-                       quantity=r.quantity, expiry_date=r.expiry_date,
-                       non_expiring=r.non_expiring)
-               for r in _rows(conn, "SELECT l.external_id, p.external_id, b.external_id, "
-                              "b.quantity, b.expiry_date, b.non_expiring FROM net_batches b "
-                              "JOIN net_locations l ON l.id = b.location_id "
-                              "JOIN net_products p ON p.id = b.product_id "
-                              "WHERE b.dataset_version_id = :v ORDER BY "
-                              'l.external_id COLLATE "C", p.external_id COLLATE "C", '
-                              'b.external_id COLLATE "C"', version_id)]
+    batches = _batches(conn, version_id, network.as_of_date,
+                       {r.external_id: r.unit for r in products}, assumptions)
     try:
         return ORInputV3(
             network_id=network.id, organization_id=org, dataset_version_id=version_id,
@@ -219,6 +211,35 @@ def _inbound(conn: sa.Connection, version_id: UUID,
                       quantity=r.quantity, arrival_date=r.arrival_date,
                       expiry_date=r.expiry_date, non_expiring=r.non_expiring)
             for r in rows if r.within_horizon], provided
+
+
+def _batches(conn: sa.Connection, version_id: UUID, as_of, units: dict[str, str],
+             assumptions: list[str]) -> list[BatchV3]:
+    """On-hand lots, less those no planning day can use. A lot is usable through its expiry
+    date (optimization/kernel.py, v3.eligible), but planning starts at as_of + 1, so a lot
+    with expiry <= as_of (the as-of day included) would only count as day-1 waste."""
+    rows = _rows(conn, "SELECT l.external_id AS loc, p.external_id AS prod, b.external_id AS lot, "
+                       "b.quantity, b.expiry_date, b.non_expiring FROM net_batches b "
+                       "JOIN net_locations l ON l.id = b.location_id "
+                       "JOIN net_products p ON p.id = b.product_id "
+                       "WHERE b.dataset_version_id = :v ORDER BY "
+                       'l.external_id COLLATE "C", p.external_id COLLATE "C", '
+                       'b.external_id COLLATE "C"', version_id)
+    kept, expired = [], []
+    for r in rows:
+        dated = not r.non_expiring and r.expiry_date is not None
+        (expired if dated and r.expiry_date <= as_of else kept).append(r)
+    if expired:  # per product in its own unit, never summed across products
+        assumptions.append(
+            f"Batches that expire on or before the as-of date {as_of} can't be used from the "
+            f"first planning day {as_of + timedelta(days=1)}, so they are left out: " + "; ".join(
+                f"{prod}: " + ", ".join(f"{r.loc} {r.lot} {r.quantity} {units[prod]} "
+                                        f"(expiry {r.expiry_date})"
+                                        for r in expired if r.prod == prod)
+                for prod in sorted({r.prod for r in expired}, key=str.encode)))
+    return [BatchV3(id=_batch_id(r.loc, r.prod, r.lot), location_id=r.loc, product_id=r.prod,
+                    quantity=r.quantity, expiry_date=r.expiry_date, non_expiring=r.non_expiring)
+            for r in kept]
 
 
 def _batch_id(location: str, product: str, batch: str) -> str:

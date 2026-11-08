@@ -18,12 +18,15 @@ from typing import BinaryIO
 from app.schemas.v1_envelope import V1_ENVELOPE, Envelope
 from app.schemas.v1_imports import ErrorCode, ImportSettings, RowError, ValidationReport
 from app.schemas.v1_networks import REQUIRED_TEMPLATES, TemplateName
-from app.schemas.v1_planning import ROLES_BY_MODE
+from app.schemas.v1_planning import ROLES_BY_MODE, ProductV3
 from app.services.imports.columns import COLUMNS, header
 
 # The or-input-v3 `Count` bound (or_inputs.py:14): a larger quantity would fail at scenario freeze.
 MAX_QUANTITY = 100_000
 MAX_DECIMAL = Decimal(99_999_999)  # the narrowest stored column, Numeric(14, 6), holds < 10^8
+# The freeze's own limit (ProductV3, 1 to 1000), so the import refuses what the freeze would.
+MAX_HANDLING_UNITS = next(m.le for m in ProductV3.model_fields["handling_units_per_unit"]
+                          .metadata if hasattr(m, "le"))
 HORIZON_DAYS = 7
 ID_MAX_LENGTH = 64
 US_STATES = frozenset(
@@ -407,12 +410,22 @@ class Validator:
                 self.product_ids.add(product_id)
             name, unit = row.required("name"), row.required("unit")
             value = row.decimal("unit_value_usd", Decimal(0))
-            handling = row.decimal("handling_units_per_unit", Decimal(0))
+            # `high` is checked before the storage envelope, so every value over the limit,
+            # however large, gets this error and fix (W2-06 A5).
+            handling = row.decimal("handling_units_per_unit", Decimal(0),
+                                   Decimal(MAX_HANDLING_UNITS), range_fix=(
+                                       f"Enter a whole number from 1 to {MAX_HANDLING_UNITS}, "
+                                       "or leave it blank to assume 1"))
             # Numeric(14, 6) stores anything smaller as 0, which the > 0 check refuses.
             if handling is not None and handling < Decimal("0.000001"):
                 row.fail("handling_units_per_unit", "MALFORMED",
-                         "must be greater than 0 (at least 0.000001)",
+                         "must be a whole number greater than 0",
                          "Enter how many handling units one product unit takes, e.g. 1, or "
+                         "leave it blank to assume 1", cells["handling_units_per_unit"])
+            elif handling is not None and handling % 1:  # the freeze needs whole units
+                row.fail("handling_units_per_unit", "FRACTIONAL",
+                         "handling_units_per_unit must be a whole number",
+                         "Enter a whole number of handling units per unit, e.g. 1 or 2, or "
                          "leave it blank to assume 1", cells["handling_units_per_unit"])
             if row.ok and len(self.product_index) >= self.envelope.max_products:
                 row.fail(None, "OVER_ENVELOPE",

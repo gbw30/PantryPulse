@@ -37,9 +37,10 @@ FAILED_JOBS = frozenset({AttemptState.FAILED, AttemptState.TIMED_OUT, AttemptSta
 FAILED_MESSAGE = "Import failed — nothing was saved."
 
 
-def create_import(rt, scope, request: ImportCreate) -> ImportCreated:
+def create_import(rt, scope, request: ImportCreate, *, is_sample: bool = False) -> ImportCreated:
+    """`is_sample` is for the internal sample seed only; the router never passes it."""
     with rt.engine.begin() as conn:
-        run = repo.create_run(conn, request.network, request.network_id)
+        run = repo.create_run(conn, request.network, request.network_id, is_sample=is_sample)
     return ImportCreated(import_id=run.id, network_id=run.network_id)
 
 

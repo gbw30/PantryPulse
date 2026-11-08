@@ -423,10 +423,10 @@ def _commit(conn: sa.Connection, run: repo.Run, attempt_id: UUID, step: Mapping[
         network = _network_settings(conn, run)
         network_id = uuid.uuid4()
         conn.execute(sa.text(
-            "INSERT INTO networks (id, organization_id, name, mode, timezone) "
-            "VALUES (:id, :org, :name, :mode, :tz)"),
+            "INSERT INTO networks (id, organization_id, name, mode, timezone, is_sample) "
+            "VALUES (:id, :org, :name, :mode, :tz, :sample)"),
             {"id": network_id, "org": org, "name": network["name"], "mode": network["mode"],
-             "tz": network["timezone"]})
+             "tz": network["timezone"], "sample": network.get("is_sample", False)})
     version_id = UUID(step["dataset_version_id"])
     files_hash = hashlib.sha256("".join(
         f"{f['name']}:{f['sha256']}\n" for f in sorted(run.files, key=lambda f: f["name"])
