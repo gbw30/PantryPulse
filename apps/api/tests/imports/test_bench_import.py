@@ -4,6 +4,7 @@ lock) on a generated network, with peak RSS (W1-D05 step 3). Small here; 4.5 M r
 
 import importlib.util
 import json
+from pathlib import Path
 
 import pytest
 
@@ -32,3 +33,14 @@ def test_small_bench_writes_phase_seconds_and_peak_rss(tmp_path):
     assert set(report["seconds"]) == {"generate", "step", "prepare", "publish", "total"}
     assert all(s > 0 for s in report["seconds"].values())
     assert report["peak_rss_bytes"] > 0
+
+
+@pytest.mark.parametrize("given", [True, False], ids=["out-given", "default-out"])
+def test_arguments_parse_when_the_script_sits_at_app_scripts(monkeypatch, tmp_path, capsys, given):
+    bench = _bench()
+    monkeypatch.setattr(bench, "API_ROOT", Path("/app"))  # the API image; /app has no grandparent
+    out = ["--out", str(tmp_path / "import.json")] if given else []
+    with pytest.raises(SystemExit) as stop:  # --rows 0 stops at the envelope check, before any DB
+        bench.main([*out, "--rows", "0"])
+    assert stop.value.code == 2
+    assert "--rows must be 1..4,500,000" in capsys.readouterr().err
