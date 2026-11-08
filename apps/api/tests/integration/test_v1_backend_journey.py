@@ -9,8 +9,10 @@ production registrations; only the Census transport is replayed and the fixture 
 added. The session logs in under its own organization, never the network's. Never skipped in CI.
 """
 
+import csv
 import dataclasses
 import hashlib
+import io
 import json
 import time
 import uuid
@@ -58,7 +60,8 @@ MIAMI_TRACT = "12086003706"
 # Everything the plan must never touch: the network's stock and every P1 stock table.
 STOCK = (
     "net_batches", "net_inbound", "stock_ledger", "stock_commands", "inventory_lots",
-    "receipts", "receipt_lines", "receipt_postings", "supply_receipts",
+    "receipts", "receipt_lines", "receipt_postings", "supply_receipts", "inventory_versions",
+    "expected_supplies",
 )
 
 
@@ -246,10 +249,20 @@ def decide_and_export(stack, saved: dict, method: str) -> None:
     exported = stack.client.post(f"{base}/export", json={"action_ids": ids}, headers=stack.headers)
     assert exported.status_code == 200, exported.text
     assert exported.headers["content-type"].startswith("text/csv")
-    lines = exported.text.strip().splitlines()
-    assert len(lines) == 1 + len(ids)
-    assert all(saved["result"]["scenario_hash"] in line and SIMULATED_NOTE in line
-               for line in lines[1:])
+    rows = list(csv.DictReader(io.StringIO(exported.text)))
+    assert len(rows) == len(ids)
+    effects = [a["effect"] for a in body["actions"]]  # export rows follow the requested order
+    for row, effect in zip(rows, effects, strict=True):
+        assert (row["scenario_hash"], row["method"]) == (saved["result"]["scenario_hash"], method)
+        assert SIMULATED_NOTE in row["note"], row
+        # The exported effect carries the action's remove-one deltas (signed) and the label.
+        for label, key in (("sender unmet", "sender_unmet_delta"),
+                           ("receiver unmet", "receiver_unmet_delta"),
+                           ("expired", "expired_delta")):
+            assert f"{label} {effect[key]:+d} " in row["effect"], row
+        assert body["non_additive_label"] in row["effect"], row
+        if effect["usd_delta"] is not None:
+            assert f"USD {effect['usd_delta']}" in row["effect"], row
 
 
 def test_import_to_export_pantry(stack):
@@ -312,8 +325,10 @@ def test_import_to_export_retail(stack):
     files, series = fixture("retail-twin")
     status = import_network(stack, files, "RETAIL")
     network_id = status["network_id"]
-    assert [(r["location_id"], r["arrival_date"]) for r in status["outside_horizon_inbound"]] == [
-        ("S2", "2026-11-25")]
+    # The horizon is 11-05..11-11: 11-11 is planned, 11-12 is the first day kept but not planned.
+    assert sorted((r["location_id"], r["arrival_date"])
+                  for r in status["outside_horizon_inbound"]) == [
+        ("S1", "2026-11-12"), ("S2", "2026-11-25")]
     enriched = enrichment(stack, network_id)
     assert (enriched["state"], enriched["last_error"], enriched["unmatched"]) == (
         "done", None, [])
@@ -324,10 +339,16 @@ def test_import_to_export_retail(stack):
     frozen = scenario(stack, status, run_id, "HUB_ONLY")
     payload = frozen["payload"]
     assert (payload["mode"], payload["planning_days"], payload["policy"]) == ("RETAIL", None, None)
-    assert [(i["location_id"], i["arrival_date"]) for i in payload["inbound"]] == [
-        ("S3", "2026-11-07")]
+    assert sorted((i["location_id"], i["arrival_date"]) for i in payload["inbound"]) == [
+        ("S1", "2026-11-11"), ("S3", "2026-11-07")]
     for measure in ("UNITS", "USD"):
         saved = compare(stack, network_id, frozen, measure)
         assert all(m["usd_unavailable_reason"] is None for m in saved["result"]["methods"])
+        [none] = [m for m in saved["result"]["methods"] if m["method"] == "NO_TRANSFERS"]
+        effects = {(e["location_id"], e["product_id"]): e for e in none["effects"]}
+        # By hand: S3 has no BREAD, sells 5 a day and receives 12 on 11-07 (usable that day), so
+        # lost sales are 5 + 5 (11-05, 11-06), 0, 0, 3, 5, 5 = 23. Counting the delivery twice
+        # would give 11; ignoring it, 35.
+        assert effects[("S3", "BREAD")]["unmet_without_plan"] == 23, effects[("S3", "BREAD")]
         decide_and_export(stack, saved, "RETAIL_OPTIMIZED")
     assert snapshot(stack.engine) == before
