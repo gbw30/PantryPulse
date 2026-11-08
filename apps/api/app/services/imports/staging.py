@@ -48,7 +48,7 @@ LOAD_FILES = {
                   "coordinates_source, receiving_capacity_per_day, manual_poverty_rate, "
                   "manual_snap_rate"),
     "products": ("net_products", "id, organization_id, dataset_version_id, external_id, name, "
-                 "unit, unit_value_usd, handling_units_per_unit"),
+                 "unit, unit_value_usd, handling_units_per_unit, handling_units_given"),
     "batches": ("net_batches", "id, organization_id, dataset_version_id, location_id, "
                 "product_id, external_id, quantity, expiry_date, non_expiring, received_date"),
     "routes": ("net_routes", "id, organization_id, dataset_version_id, from_location_id, "
@@ -247,7 +247,8 @@ def _write_rows(folder: Path, org: UUID, version_id: UUID, rows: ParsedNetwork) 
                        r.receiving_capacity_per_day, r.poverty_rate, r.snap_rate)
                       for r in rows.locations),
         "products": ((products[p.product_id], *key, p.product_id, p.name, p.unit,
-                      p.unit_value_usd, p.handling_units_per_unit) for p in rows.products),
+                      p.unit_value_usd, p.handling_units_per_unit, p.handling_units_given)
+                     for p in rows.products),
         "batches": ((uuid.uuid4(), *key, locations[b.location_id], products[b.product_id],
                      b.batch_id, b.quantity, b.expiry_date, b.non_expiring, b.received_date)
                     for b in rows.batches),
