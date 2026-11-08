@@ -177,7 +177,7 @@ def publishable(scenario, baseline, result):
     solved = [p.native_status for p in result.products if p.native_status]
     status = None if not solved else "FEASIBLE" if "FEASIBLE" in solved else "OPTIMAL"
     status = status if result.method in OPTIMIZING else None
-    run = solver_run(bool(solved))  # a verified result's solved products are exactly CP-SAT's
+    run = solver_run(status is not None)  # optimizers only; their solved products are CP-SAT's
     rebuilt = assemble_method(
         scenario,
         result.method,

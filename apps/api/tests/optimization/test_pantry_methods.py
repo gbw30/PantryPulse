@@ -541,3 +541,14 @@ def test_publication_rebuilds_the_solver_run(method, solver):  # W2-06 (S2) re-c
     published = publishable(s, baseline, result.model_copy(update={"solver": claimed}))
     assert not published.verified
     assert published.failure_reason == "PUBLICATION_VERIFICATION_FAILED:solver"
+
+
+def test_baseline_never_publishes_a_solver_run():  # W2-06 (S2) re-check
+    """Even with a product claiming a native status, a baseline never ran CP-SAT."""
+    s, _ = load("pantry-four-methods")
+    result = run_method(s, "EQUAL_SHARE", "UNITS")
+    products = (result.products[0].model_copy(update={"native_status": "OPTIMAL"}),)
+    real = SolverRun(engine="OR-Tools CP-SAT", version=ortools.__version__, seed=0, workers=1)
+    forged = result.model_copy(update={"products": products + result.products[1:], "solver": real})
+    published = publishable(s, project_v3(s).days, forged)
+    assert published.failure_reason == "PUBLICATION_VERIFICATION_FAILED:solver"
