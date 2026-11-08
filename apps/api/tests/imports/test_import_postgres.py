@@ -205,6 +205,62 @@ def test_publish_attaches_the_batches_partition_prepare_built(engine, tmp_path):
             {"oid": loaded}) == 4  # organization, version, location, product: the parent's
 
 
+PARTITIONED = ("net_batches", "net_demand_history", "net_donation_history")
+
+
+def _foreign_keys(conn, table: str) -> list[str]:
+    return sorted(conn.scalars(sa.text(
+        "SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE contype = 'f' "
+        "AND conrelid = to_regclass(CAST(:t AS text))"), {"t": table}))
+
+
+@pytest.mark.parametrize("referenced", [
+    "dataset_versions", "net_locations", "net_products", "organizations"])
+def test_publish_does_not_wait_for_readers_of_referenced_tables(engine, tmp_path, referenced):
+    """Lead review F1: a reader idle in a transaction on a table the partitions reference must
+    not block publish. Merging a partition's own FK at ATTACH drops its triggers on the
+    referenced table under an ACCESS EXCLUSIVE lock; cloning the parent's FK does not."""
+    run, attempt, job, step = _prepared(engine, tmp_path)
+    with engine.connect() as reader, reader.begin():
+        reader.execute(sa.text(f"SELECT count(*) FROM {referenced}"))
+        with engine.begin() as conn:
+            conn.execute(sa.text("SET LOCAL lock_timeout = '1s'"))
+            assert publish_staged(conn, run.organization_id, attempt, job, step)["ok"]
+    version = uuid.UUID(step["dataset_version_id"])
+    with engine.connect() as conn:
+        for table in PARTITIONED:  # exactly the parent's FKs, none duplicated
+            assert _foreign_keys(conn, f"{table}_{version.hex}") == _foreign_keys(conn, table)
+
+
+def test_attached_partitions_refuse_rows_their_fks_forbid(engine, tmp_path):
+    outcome = _import(engine, tmp_path, FILES)
+    version = outcome.dataset_version_id
+    with engine.connect() as conn:
+        loc, prod = conn.execute(sa.text(
+            "SELECT l.id, p.id FROM net_locations l JOIN net_products p USING "
+            "(dataset_version_id) WHERE l.dataset_version_id = :v LIMIT 1"), {"v": version}).one()
+    key = {"org": _run_org(engine, outcome.import_id), "v": version, "l": loc, "p": prod}
+    batch = ("INSERT INTO net_batches (id, organization_id, dataset_version_id, location_id, "
+             "product_id, external_id, quantity, non_expiring) "
+             "VALUES (gen_random_uuid(), :org, :v, :l, :p, 'NEW', 1, true)")
+    demand = ("INSERT INTO net_demand_history (organization_id, dataset_version_id, location_id, "
+              "product_id, day, quantity, basis) VALUES (:org, :v, :l, :p, '2026-10-01', 1, "
+              "'demand')")
+    for sql, change in ((batch, {"l": uuid.uuid4()}), (batch, {"p": uuid.uuid4()}),
+                        (batch, {"org": uuid.uuid4()}), (demand, {"l": uuid.uuid4()}),
+                        (demand, {"p": uuid.uuid4()})):
+        with pytest.raises(sa.exc.IntegrityError, match="foreign key"), engine.begin() as conn:
+            conn.execute(sa.text(sql), {**key, **change})
+    with pytest.raises(sa.exc.IntegrityError, match="foreign key"), engine.begin() as conn:
+        conn.execute(sa.text("DELETE FROM net_products WHERE id = :p"), key)  # ON DELETE RESTRICT
+
+
+def _run_org(engine, import_id: uuid.UUID) -> uuid.UUID:
+    with engine.connect() as conn:
+        return conn.scalar(sa.text("SELECT organization_id FROM import_runs WHERE id = :r"),
+                           {"r": import_id})
+
+
 def test_a_publish_rolled_back_leaves_no_batches_partition(engine, tmp_path):
     """All or nothing: a publication that does not commit attaches nothing; discard then drops
     the attempt's tables."""

@@ -387,6 +387,27 @@ def _batch_rows(conn):
         f"SELECT {BATCH_COLUMNS} FROM net_batches ORDER BY id"))]
 
 
+def _batches_catalog(conn):
+    """net_batches as the catalog defines it: columns, constraints, indexes, triggers."""
+    query = {
+        "columns": "SELECT a.attnum, a.attname, format_type(a.atttypid, a.atttypmod), "
+                   "a.attnotnull, pg_get_expr(d.adbin, d.adrelid) FROM pg_attribute a "
+                   "LEFT JOIN pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum "
+                   "WHERE a.attrelid = to_regclass('net_batches') AND a.attnum > 0 "
+                   "AND NOT a.attisdropped",
+        "constraints": "SELECT conname, contype, pg_get_constraintdef(oid), convalidated "
+                       "FROM pg_constraint WHERE conrelid = to_regclass('net_batches')",
+        "indexes": "SELECT c.relname, pg_get_indexdef(i.indexrelid) FROM pg_index i "
+                   "JOIN pg_class c ON c.oid = i.indexrelid "
+                   "WHERE i.indrelid = to_regclass('net_batches')",
+        "triggers": "SELECT tgname, pg_get_triggerdef(oid), tgenabled FROM pg_trigger "
+                    "WHERE tgrelid = to_regclass('net_batches') AND NOT tgisinternal",
+        "relation": "SELECT relkind, relpersistence, pg_get_partkeydef(oid) FROM pg_class "
+                    "WHERE oid = to_regclass('net_batches')",
+    }
+    return {k: sorted(tuple(r) for r in conn.execute(sa.text(q))) for k, q in query.items()}
+
+
 def _homes(conn):
     """(dataset version, relation holding the row) for every batch."""
     return {tuple(r) for r in conn.execute(sa.text(
@@ -415,6 +436,7 @@ def test_ppv1_0013_moves_every_batch_into_its_version_partition_and_back():
     try:
         with eng.begin() as conn:
             command.upgrade(alembic_config(conn), "ppv1_0012")
+            fresh = _batches_catalog(conn)
             versions = []
             for qty in ("40", "7"):  # two dataset versions, as after a re-import
                 ids = _network(conn, partitioned=PARTITIONED[:2])
@@ -449,6 +471,7 @@ def test_ppv1_0013_moves_every_batch_into_its_version_partition_and_back():
             assert _homes(conn) == {(v, "net_batches") for v in versions}
             assert _batch_rows(conn) == before
             assert not {t for t in _tables_in(conn, schema) if t.startswith("net_batches_")}
+            assert _batches_catalog(conn) == fresh  # what ppv1_0012 built, nothing lost
     finally:
         eng.dispose()
         reset_schema(url, schema)
