@@ -411,8 +411,13 @@ class Validator:
             # Numeric(14, 6) stores anything smaller as 0, which the > 0 check refuses.
             if handling is not None and handling < Decimal("0.000001"):
                 row.fail("handling_units_per_unit", "MALFORMED",
-                         "must be greater than 0 (at least 0.000001)",
+                         "must be a whole number greater than 0",
                          "Enter how many handling units one product unit takes, e.g. 1, or "
+                         "leave it blank to assume 1", cells["handling_units_per_unit"])
+            elif handling is not None and handling % 1:  # the freeze needs whole units
+                row.fail("handling_units_per_unit", "FRACTIONAL",
+                         "handling_units_per_unit must be a whole number",
+                         "Enter a whole number of handling units per unit, e.g. 1 or 2, or "
                          "leave it blank to assume 1", cells["handling_units_per_unit"])
             if row.ok and len(self.product_index) >= self.envelope.max_products:
                 row.fail(None, "OVER_ENVELOPE",
