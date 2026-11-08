@@ -24,6 +24,7 @@ from app.services.imports.columns import COLUMNS, header
 # The or-input-v3 `Count` bound (or_inputs.py:14): a larger quantity would fail at scenario freeze.
 MAX_QUANTITY = 100_000
 MAX_DECIMAL = Decimal(99_999_999)  # the narrowest stored column, Numeric(14, 6), holds < 10^8
+MAX_HANDLING_UNITS = 1000  # the freeze allows 1 to 1000 (ProductV3, schemas/v1_planning.py)
 HORIZON_DAYS = 7
 ID_MAX_LENGTH = 64
 US_STATES = frozenset(
@@ -419,6 +420,11 @@ class Validator:
                          "handling_units_per_unit must be a whole number",
                          "Enter a whole number of handling units per unit, e.g. 1 or 2, or "
                          "leave it blank to assume 1", cells["handling_units_per_unit"])
+            elif handling is not None and handling > MAX_HANDLING_UNITS:
+                row.fail("handling_units_per_unit", "MALFORMED",
+                         f"must be from 1 to {MAX_HANDLING_UNITS}",
+                         f"Enter a whole number from 1 to {MAX_HANDLING_UNITS}, or leave it "
+                         "blank to assume 1", cells["handling_units_per_unit"])
             if row.ok and len(self.product_index) >= self.envelope.max_products:
                 row.fail(None, "OVER_ENVELOPE",
                          f"more than {self.envelope.max_products} products "
