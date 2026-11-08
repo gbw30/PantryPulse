@@ -423,6 +423,13 @@
             "title": "Ineligible",
             "type": "array"
           },
+          "locations": {
+            "items": {
+              "$ref": "#/components/schemas/LocationBacktest"
+            },
+            "title": "Locations",
+            "type": "array"
+          },
           "network_id": {
             "format": "uuid",
             "title": "Network Id",
@@ -440,6 +447,7 @@
           "forecast_job_id",
           "network_id",
           "series",
+          "locations",
           "ineligible"
         ],
         "title": "BacktestResult",
@@ -3987,6 +3995,40 @@
         "title": "LocationAttributesUpdate",
         "type": "object"
       },
+      "LocationBacktest": {
+        "additionalProperties": false,
+        "description": "A location's roll-up (V1-SPEC §6.4) on the pooled scored set of its demand series in one\nunit. Series in different units are never pooled, so a location has one row per unit.",
+        "properties": {
+          "location_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Location Id",
+            "type": "string"
+          },
+          "score": {
+            "$ref": "#/components/schemas/BacktestScore"
+          },
+          "series_count": {
+            "minimum": 1.0,
+            "title": "Series Count",
+            "type": "integer"
+          },
+          "unit": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "location_id",
+          "unit",
+          "series_count",
+          "score"
+        ],
+        "title": "LocationBacktest",
+        "type": "object"
+      },
       "LocationEffect": {
         "additionalProperties": false,
         "description": "Per location and product, in that product's unit; never summed across products.",
@@ -4756,6 +4798,16 @@
               }
             ]
           },
+          "solver": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SolverRun"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "transfers": {
             "items": {
               "$ref": "#/components/schemas/TransferV3"
@@ -5014,6 +5066,65 @@
         "title": "NetworkForecastRequest",
         "type": "object"
       },
+      "NetworkForecastRun": {
+        "additionalProperties": false,
+        "description": "GET /networks/{id}/forecasts/{forecast_run_id}: a published run's series (CR-w1-web-4).",
+        "properties": {
+          "data_cutoff_date": {
+            "format": "date",
+            "title": "Data Cutoff Date",
+            "type": "string"
+          },
+          "dataset_version_id": {
+            "format": "uuid",
+            "title": "Dataset Version Id",
+            "type": "string"
+          },
+          "forecast_run_id": {
+            "format": "uuid",
+            "title": "Forecast Run Id",
+            "type": "string"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "job_id": {
+            "format": "uuid",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "network_id": {
+            "format": "uuid",
+            "title": "Network Id",
+            "type": "string"
+          },
+          "planning_ready": {
+            "title": "Planning Ready",
+            "type": "boolean"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/NetworkSeries"
+            },
+            "title": "Series",
+            "type": "array"
+          }
+        },
+        "required": [
+          "network_id",
+          "forecast_run_id",
+          "job_id",
+          "dataset_version_id",
+          "data_cutoff_date",
+          "planning_ready",
+          "generated_at",
+          "series"
+        ],
+        "title": "NetworkForecastRun",
+        "type": "object"
+      },
       "NetworkList": {
         "additionalProperties": false,
         "properties": {
@@ -5029,6 +5140,132 @@
           "networks"
         ],
         "title": "NetworkList",
+        "type": "object"
+      },
+      "NetworkSeries": {
+        "additionalProperties": false,
+        "description": "One series of a network forecast run, keyed by the CSV ids (CR-w1-web-4 a).\n\nThe run stores series by `net_locations.id`/`net_products.id` (W1-D09); this read maps them\nback. Quantiles appear only when the provider produced them (ForecastPoint enforces it).",
+        "properties": {
+          "actual_provider": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProviderIdentity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "basis": {
+            "anyOf": [
+              {
+                "enum": [
+                  "demand",
+                  "sales"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Basis"
+          },
+          "fallback_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fallback Reason"
+          },
+          "fallback_used": {
+            "title": "Fallback Used",
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "demand",
+              "donation"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "location_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Location Id",
+            "type": "string"
+          },
+          "missing_count": {
+            "minimum": 0.0,
+            "title": "Missing Count",
+            "type": "integer"
+          },
+          "observed_count": {
+            "minimum": 0.0,
+            "title": "Observed Count",
+            "type": "integer"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/ForecastPoint"
+            },
+            "title": "Points",
+            "type": "array"
+          },
+          "product_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Product Id",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "status": {
+            "enum": [
+              "AVAILABLE",
+              "INSUFFICIENT_DATA",
+              "FAILED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "unit": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "location_id",
+          "product_id",
+          "kind",
+          "basis",
+          "unit",
+          "status",
+          "reason",
+          "actual_provider",
+          "fallback_used",
+          "fallback_reason",
+          "observed_count",
+          "missing_count",
+          "points"
+        ],
+        "title": "NetworkSeries",
         "type": "object"
       },
       "NewNetwork": {
@@ -7909,6 +8146,41 @@
           "timezone"
         ],
         "title": "SiteSummary",
+        "type": "object"
+      },
+      "SolverRun": {
+        "additionalProperties": false,
+        "description": "How an optimizing method's per-product solves ran, for replay (solver S2).",
+        "properties": {
+          "engine": {
+            "const": "OR-Tools CP-SAT",
+            "title": "Engine",
+            "type": "string"
+          },
+          "seed": {
+            "minimum": 0.0,
+            "title": "Seed",
+            "type": "integer"
+          },
+          "version": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Version",
+            "type": "string"
+          },
+          "workers": {
+            "minimum": 1.0,
+            "title": "Workers",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "engine",
+          "version",
+          "seed",
+          "workers"
+        ],
+        "title": "SolverRun",
         "type": "object"
       },
       "SourceCoverage": {
@@ -12847,6 +13119,129 @@
           }
         },
         "summary": "Submit Forecast",
+        "tags": [
+          "v1-networks"
+        ]
+      }
+    },
+    "/api/v1/networks/{network_id}/forecasts/{forecast_run_id}": {
+      "get": {
+        "operationId": "get_forecast_run_api_v1_networks__network_id__forecasts__forecast_run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "network_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Network Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "forecast_run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Forecast Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkForecastRun"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Implemented"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Get Forecast Run",
         "tags": [
           "v1-networks"
         ]

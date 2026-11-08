@@ -30,7 +30,8 @@
         "objective": null,
         "usd_unavailable_reason": "no unit values in products.csv",
         "retail_weights": null,
-        "labels": []
+        "labels": [],
+        "solver": null
       },
       {
         "method": "CLASSICAL_GP",
@@ -81,7 +82,13 @@
         "retail_weights": null,
         "labels": [
           "optimized per product, with shared capacity split in advance"
-        ]
+        ],
+        "solver": {
+          "engine": "OR-Tools CP-SAT",
+          "version": "9.15.6755",
+          "seed": 0,
+          "workers": 1
+        }
       },
       {
         "method": "EGP_PI_INSPIRED",
@@ -110,7 +117,13 @@
         "retail_weights": null,
         "labels": [
           "optimized per product, with shared capacity split in advance"
-        ]
+        ],
+        "solver": {
+          "engine": "OR-Tools CP-SAT",
+          "version": "9.15.6755",
+          "seed": 0,
+          "workers": 1
+        }
       }
     ]
   },

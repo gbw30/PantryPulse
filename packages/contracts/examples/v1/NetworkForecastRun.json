@@ -1,0 +1,210 @@
+{
+  "network_id": "8b2f4c1e-3a5d-4e6f-9a7b-1c2d3e4f5a60",
+  "forecast_run_id": "5a718293-4d6e-4f80-9b1c-3d4e5f607182",
+  "job_id": "4f607182-3c5d-4e7f-8a0b-2c3d4e5f6071",
+  "dataset_version_id": "6b829304-5e7f-4091-8c2d-4e5f60718293",
+  "data_cutoff_date": "2026-11-04",
+  "planning_ready": true,
+  "generated_at": "2026-11-04T14:05:00Z",
+  "series": [
+    {
+      "location_id": "P-07",
+      "product_id": "RICE-5",
+      "kind": "demand",
+      "basis": "demand",
+      "unit": "bag",
+      "status": "INSUFFICIENT_DATA",
+      "reason": "9 days of history; needs 14",
+      "actual_provider": null,
+      "fallback_used": false,
+      "fallback_reason": null,
+      "observed_count": 9,
+      "missing_count": 0,
+      "points": []
+    },
+    {
+      "location_id": "P-12",
+      "product_id": "WATER-24",
+      "kind": "demand",
+      "basis": "sales",
+      "unit": "case",
+      "status": "AVAILABLE",
+      "reason": null,
+      "actual_provider": {
+        "name": "SEASONAL_NAIVE",
+        "adapter_version": "core-v1",
+        "package_version": null,
+        "checkpoint": null,
+        "checkpoint_revision": null
+      },
+      "fallback_used": false,
+      "fallback_reason": null,
+      "observed_count": 86,
+      "missing_count": 4,
+      "points": [
+        {
+          "day": "2026-11-05",
+          "central_estimate": 14.0,
+          "estimate_kind": "POINT",
+          "p10": null,
+          "p50": null,
+          "p90": null,
+          "interval_method": "NONE",
+          "postprocessing_policy": "reject-invalid-v1"
+        },
+        {
+          "day": "2026-11-06",
+          "central_estimate": 12.0,
+          "estimate_kind": "POINT",
+          "p10": null,
+          "p50": null,
+          "p90": null,
+          "interval_method": "NONE",
+          "postprocessing_policy": "reject-invalid-v1"
+        },
+        {
+          "day": "2026-11-07",
+          "central_estimate": 11.0,
+          "estimate_kind": "POINT",
+          "p10": null,
+          "p50": null,
+          "p90": null,
+          "interval_method": "NONE",
+          "postprocessing_policy": "reject-invalid-v1"
+        },
+        {
+          "day": "2026-11-08",
+          "central_estimate": 15.0,
+          "estimate_kind": "POINT",
+          "p10": null,
+          "p50": null,
+          "p90": null,
+          "interval_method": "NONE",
+          "postprocessing_policy": "reject-invalid-v1"
+        },
+        {
+          "day": "2026-11-09",
+          "central_estimate": 18.0,
+          "estimate_kind": "POINT",
+          "p10": null,
+          "p50": null,
+          "p90": null,
+          "interval_method": "NONE",
+          "postprocessing_policy": "reject-invalid-v1"
+        },
+        {
+          "day": "2026-11-10",
+          "central_estimate": 9.0,
+          "estimate_kind": "POINT",
+          "p10": null,
+          "p50": null,
+          "p90": null,
+          "interval_method": "NONE",
+          "postprocessing_policy": "reject-invalid-v1"
+        },
+        {
+          "day": "2026-11-11",
+          "central_estimate": 13.0,
+          "estimate_kind": "POINT",
+          "p10": null,
+          "p50": null,
+          "p90": null,
+          "interval_method": "NONE",
+          "postprocessing_policy": "reject-invalid-v1"
+        }
+      ]
+    },
+    {
+      "location_id": "P-12",
+      "product_id": "WATER-24",
+      "kind": "donation",
+      "basis": null,
+      "unit": "case",
+      "status": "AVAILABLE",
+      "reason": null,
+      "actual_provider": {
+        "name": "MOVING_AVERAGE",
+        "adapter_version": "core-v1",
+        "package_version": null,
+        "checkpoint": null,
+        "checkpoint_revision": null
+      },
+      "fallback_used": true,
+      "fallback_reason": "INSUFFICIENT_DATA",
+      "observed_count": 31,
+      "missing_count": 12,
+      "points": [
+        {
+          "day": "2026-11-05",
+          "central_estimate": 3.0,
+          "estimate_kind": "POINT",
+          "p10": null,
+          "p50": null,
+          "p90": null,
+          "interval_method": "NONE",
+          "postprocessing_policy": "reject-invalid-v1"
+        },
+        {
+          "day": "2026-11-06",
+          "central_estimate": 3.0,
+          "estimate_kind": "POINT",
+          "p10": null,
+          "p50": null,
+          "p90": null,
+          "interval_method": "NONE",
+          "postprocessing_policy": "reject-invalid-v1"
+        },
+        {
+          "day": "2026-11-07",
+          "central_estimate": 3.0,
+          "estimate_kind": "POINT",
+          "p10": null,
+          "p50": null,
+          "p90": null,
+          "interval_method": "NONE",
+          "postprocessing_policy": "reject-invalid-v1"
+        },
+        {
+          "day": "2026-11-08",
+          "central_estimate": 3.0,
+          "estimate_kind": "POINT",
+          "p10": null,
+          "p50": null,
+          "p90": null,
+          "interval_method": "NONE",
+          "postprocessing_policy": "reject-invalid-v1"
+        },
+        {
+          "day": "2026-11-09",
+          "central_estimate": 3.0,
+          "estimate_kind": "POINT",
+          "p10": null,
+          "p50": null,
+          "p90": null,
+          "interval_method": "NONE",
+          "postprocessing_policy": "reject-invalid-v1"
+        },
+        {
+          "day": "2026-11-10",
+          "central_estimate": 3.0,
+          "estimate_kind": "POINT",
+          "p10": null,
+          "p50": null,
+          "p90": null,
+          "interval_method": "NONE",
+          "postprocessing_policy": "reject-invalid-v1"
+        },
+        {
+          "day": "2026-11-11",
+          "central_estimate": 3.0,
+          "estimate_kind": "POINT",
+          "p10": null,
+          "p50": null,
+          "p90": null,
+          "interval_method": "NONE",
+          "postprocessing_policy": "reject-invalid-v1"
+        }
+      ]
+    }
+  ]
+}

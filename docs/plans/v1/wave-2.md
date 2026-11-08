@@ -50,6 +50,23 @@
   - Danger, projection and forecasts are 501 until W3; check that they render as honest errors.
   - Signing in uses the generated local login, which needs Gabriel's OK. Never print it.
 
+**W2-05 outcome (2026-11-08, done):**
+- **Journey test:** `test_v1_backend_journey.py` runs as two tests, Pantry and Retail, rather than the single test named above. Merged as #113 (`a00c4d4`).
+  - The Pantry A10 case uses three pantries without coordinates, answered by the recorded geocoder: one exact match (stored as known), one `Non_Exact` match (stored, listed for review), and one `No_Match`. The `No_Match` blocks the freeze until the user excludes it.
+  - The verifier's mutation probes all failed the test. Three mutants survived the first version: inbound counted twice in the projection, a blank export effect, and an import horizon one day longer. The hardened test kills all three.
+  - The full gate passed 8/8 on `a00c4d4`.
+- **Live smoke:** run on a separate compose project at `5204265`, web on port 3018, signed in with that project's own generated login.
+  - Passed: the UI import, the comparison in both transfer modes with all 5 methods verified, Decisions, the CSV export with hash and note, and print.
+  - Danger's 501 shows "unavailable (not implemented)".
+  - The comparison, Decisions and print screens raised no API or console errors.
+  - New items for W2-06:
+    - the header shows "Inventory · <today>" instead of the snapshot date;
+    - the product picker stays on "Loading products…";
+    - "simulated network" wording appears beyond the pill: the Live chip, the Atlas subtitle and the session footer.
+- **Benchmark (W1 carry-in):** Docker Desktop, worker limits 6 CPU / 8 GiB, at `5204265`.
+  - Publish held the lock for 6.25 s and 4.91 s, above 3.5 s. Gabriel approved the `net_batches` partition for W2-06.
+  - The script's documented Docker command crashed with `IndexError`. Fixed in #114 (`9f8c7a3`); the full gate passed 8/8 there.
+
 ### W2-06: Adversarial pass and change-request decisions · S–M · depends on: W2-05
 
 - [ ] **Step 1:** dispatch `adversarial-reviewer` on the `v1-local` head with the V1-SPEC §6 behaviors. Seed cases:

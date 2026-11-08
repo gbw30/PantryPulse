@@ -19,7 +19,7 @@ from app.routers.forecasts import presenter, runtime
 from app.schemas.or_inputs import AttributeCoefficient
 from app.schemas.v1_envelope import UPLOAD_CAP_BYTES
 from app.schemas.v1_imports import ImportCreated, ImportStatus, RowError
-from app.schemas.v1_networks import Network
+from app.schemas.v1_networks import BacktestResult, Network, NetworkForecastRun
 from app.schemas.v1_planning import (
     DEFAULT_PANTRY_POLICY,
     METHODS_BY_MODE,
@@ -101,6 +101,7 @@ STUBS = [
     ("GET", f"/networks/{NET}/projection?forecast_run_id={JOB}&location_id=P-1", None, None,
      "W3-F05"),
     ("GET", f"/forecasts/{JOB}/backtest", None, None, "W3-F03"),
+    ("GET", f"/networks/{NET}/forecasts/{JOB}", None, None, "W3-F03"),  # CR-w1-web-4
 ]
 
 
@@ -413,7 +414,7 @@ def test_examples_validate():
     script = Path(__file__).resolve().parents[1] / "scripts/validate_contract_examples.py"
     result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True)
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "21 v1 examples valid" in result.stdout
+    assert "22 v1 examples valid" in result.stdout
 
 
 def _example(name):
@@ -460,3 +461,42 @@ def test_network_says_whether_inbound_was_provided():  # CR-w1-web-6 (b)
         Network.model_validate(
             {**_example("NetworkList")["networks"][1], "inbound_file_provided": False}
         )
+
+
+def test_network_forecast_series_say_how_they_were_made():  # CR-w1-web-4 (a)
+    run = _example("NetworkForecastRun")
+    series = NetworkForecastRun.model_validate(run).model_dump()["series"]
+    by_status = {s["status"]: s for s in series}
+    assert len(by_status["AVAILABLE"]["points"]) == 7
+    kinds = {(s["kind"], s["basis"]) for s in run["series"]}
+    assert ("donation", None) in kinds and ("demand", "sales") in kinds
+    available = next(s for s in run["series"] if s["status"] == "AVAILABLE")
+    missing = next(s for s in run["series"] if s["status"] == "INSUFFICIENT_DATA")
+    for bad in (
+        {**available, "actual_provider": None},  # no unnamed method
+        {**available, "points": available["points"][:6]},
+        {**available, "reason": "should not be here"},
+        {**available, "fallback_used": True, "fallback_reason": None},
+        {**missing, "points": available["points"]},  # never forecast from zeros
+        {**missing, "reason": None},
+        {**available, "kind": "donation"},  # a donation series has no demand basis
+        {**available, "basis": None},
+        {**missing, "fallback_used": True, "fallback_reason": "INSUFFICIENT_DATA"},  # no method
+    ):
+        with pytest.raises(ValidationError):
+            NetworkForecastRun.model_validate({**run, "series": [bad]})
+    shifted = [
+        {**pt, "day": f"2026-11-{int(pt['day'][-2:]) + 1:02d}"} for pt in available["points"]
+    ]
+    for series in ([available, available], [{**available, "points": shifted}]):
+        with pytest.raises(ValidationError):  # one series per key; days are the 7 after cutoff
+            NetworkForecastRun.model_validate({**run, "series": series})
+
+
+def test_backtest_rolls_up_per_location_and_unit():  # CR-w1-web-4 (b)
+    result = _example("BacktestResult")
+    rows = BacktestResult.model_validate(result).locations
+    assert {(r.location_id, r.unit) for r in rows} >= {("P-12", "case")}
+    with pytest.raises(ValidationError, match="DUPLICATE_LOCATION_UNIT"):
+        row = rows[0].model_dump(mode="json")
+        BacktestResult.model_validate({**result, "locations": [row, row]})

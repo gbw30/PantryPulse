@@ -224,7 +224,13 @@ def cancel(
     )
 
 
-V1_NETWORK_JOBS = {"import.v1", "enrichment.v1", "routes-google.v1", "or-comparison.v3"}
+V1_NETWORK_JOBS = {
+    "import.v1",
+    "enrichment.v1",
+    "routes-google.v1",
+    "or-comparison.v3",
+    "forecast.v1",
+}
 
 
 def _job_scope(rt, scope: TrustedScope, job_id: UUID) -> TrustedScope:

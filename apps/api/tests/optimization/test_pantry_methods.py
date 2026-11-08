@@ -10,7 +10,9 @@ from decimal import Decimal
 from fractions import Fraction
 from uuid import UUID
 
+import ortools
 import pytest
+from ortools.sat.python import cp_model
 
 from app.schemas.v1_planning import (
     DEFAULT_PANTRY_POLICY,
@@ -19,8 +21,9 @@ from app.schemas.v1_planning import (
     CapacityV3,
     ORInputV3,
     ProductV3,
+    SolverRun,
 )
-from app.services.optimization.compare import compare_methods
+from app.services.optimization.compare import compare_methods, publishable
 from app.services.optimization.methods import PER_PRODUCT_LABEL, run_method
 from app.services.optimization.pantry import (
     SINGLETON_LABEL,
@@ -457,3 +460,95 @@ def test_singleton_product_keeps_the_shared_split():
     assert moved(gp) == {"F": 2, "G": 2}
     assert moved(egp) == {"F": 2}
     assert next(p for p in egp.products if p.product_id == "G").label == SINGLETON_LABEL
+
+
+@pytest.mark.parametrize(
+    "fixture,mode", [("pantry-four-methods", "PANTRY"), ("retail-usd-flip", "RETAIL")]
+)
+def test_optimizers_record_the_solver_run(fixture, mode, monkeypatch):  # W2-06 (solver S2)
+    """The recorded seed and workers are the ones every CP-SAT solve actually ran with."""
+    seen = []
+    real = cp_model.CpSolver.solve
+
+    def spy(self, *args, **kwargs):
+        seen.append((self.parameters.random_seed, self.parameters.num_workers))
+        return real(self, *args, **kwargs)
+
+    monkeypatch.setattr(cp_model.CpSolver, "solve", spy)
+    s, _ = load(fixture)
+    for method in METHODS_BY_MODE[mode]:
+        seen.clear()
+        result = run_method(s, method, "UNITS")
+        assert result.verified, (method, result.failure_reason)
+        if not seen:
+            assert result.solver is None, method
+            continue
+        run = result.solver
+        assert (run.engine, run.version) == ("OR-Tools CP-SAT", ortools.__version__), method
+        assert set(seen) == {(run.seed, run.workers)}, method
+    assert result.solver is not None  # the fixture's last method is an optimizer that solves
+
+
+def _without_price(s):
+    data = s.model_dump(mode="json")
+    data["products"][0]["unit_value_usd"] = None
+    return ORInputV3.model_validate(data)
+
+
+def _without_p3_rates(s):
+    return s.model_copy(
+        update={"vulnerability": tuple(v for v in s.vulnerability if v.location_id != "P3")}
+    )
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        ("retail-usd-flip", "RETAIL_OPTIMIZED", "USD", _without_price),  # USD_UNAVAILABLE
+        ("pantry-four-methods", "EGP_PI_INSPIRED", "UNITS", _without_p3_rates),  # coverage
+    ],
+)
+def test_no_solver_run_recorded_when_cp_sat_never_ran(case, monkeypatch):  # W2-06 (S2)
+    fixture, method, measure, change = case
+    calls = []
+    real = cp_model.CpSolver.solve
+    monkeypatch.setattr(
+        cp_model.CpSolver, "solve", lambda self, *a, **k: calls.append(1) or real(self, *a, **k)
+    )
+    s, _ = load(fixture)
+    result = run_method(change(s) if change else s, method, measure)
+    assert calls == [] and result.solver is None
+
+
+def test_no_solver_run_when_every_product_misses_the_deadline():  # W2-06 (S2) re-check
+    s, _ = load("pantry-four-methods")
+    result = run_method(s, "CLASSICAL_GP", "UNITS", method_seconds=0)
+    assert result.failure_reason.startswith("METHOD_TIME_LIMIT") and result.solver is None
+
+
+@pytest.mark.parametrize("method", ["EQUAL_SHARE", "CLASSICAL_GP"])
+@pytest.mark.parametrize("solver", ["fake", None])
+def test_publication_rebuilds_the_solver_run(method, solver):  # W2-06 (S2) re-check
+    """A stored result can't publish provenance its own products don't imply."""
+    s, _ = load("pantry-four-methods")
+    result = run_method(s, method, "UNITS")
+    baseline = project_v3(s).days
+    assert publishable(s, baseline, result) == result
+    fake = SolverRun(engine="OR-Tools CP-SAT", version="0.0-fake", seed=99, workers=64)
+    claimed = fake if solver == "fake" else None
+    if claimed == result.solver:
+        return  # EQUAL_SHARE already has no solver run
+    published = publishable(s, baseline, result.model_copy(update={"solver": claimed}))
+    assert not published.verified
+    assert published.failure_reason == "PUBLICATION_VERIFICATION_FAILED:solver"
+
+
+def test_baseline_never_publishes_a_solver_run():  # W2-06 (S2) re-check
+    """Even with a product claiming a native status, a baseline never ran CP-SAT."""
+    s, _ = load("pantry-four-methods")
+    result = run_method(s, "EQUAL_SHARE", "UNITS")
+    products = (result.products[0].model_copy(update={"native_status": "OPTIMAL"}),)
+    real = SolverRun(engine="OR-Tools CP-SAT", version=ortools.__version__, seed=0, workers=1)
+    forged = result.model_copy(update={"products": products + result.products[1:], "solver": real})
+    published = publishable(s, project_v3(s).days, forged)
+    assert published.failure_reason == "PUBLICATION_VERIFICATION_FAILED:solver"

@@ -16,6 +16,7 @@ from app.schemas.v1_networks import (
     LocationProjection,
     Network,
     NetworkForecastRequest,
+    NetworkForecastRun,
     NetworkList,
     TemplateCatalog,
     TemplateName,
@@ -78,6 +79,13 @@ def submit_forecast(
 @router.get("/networks/{network_id}/forecasts", response_model=ForecastRunList)
 def list_forecast_runs(network_id: UUID, rt=RUNTIME, scope=PRESENTER):
     return network.list_forecast_runs(rt, scope, network_id)
+
+
+@router.get(
+    "/networks/{network_id}/forecasts/{forecast_run_id}", response_model=NetworkForecastRun
+)
+def get_forecast_run(network_id: UUID, forecast_run_id: UUID, rt=RUNTIME, scope=PRESENTER):
+    return network.get_forecast_run(rt, scope, network_id, forecast_run_id)
 
 
 @router.get("/forecasts/{job_id}/backtest", response_model=BacktestResult)

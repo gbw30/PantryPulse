@@ -241,8 +241,9 @@ Lanes code against these names. W0-08 may adjust them before the freeze. If it d
 | `GET /settings`, `PUT /settings/google-maps-key`, `DELETE /settings/google-maps-key` | `LocalSettings{google_maps_configured: bool}`; the key is write-only | W1-D08 |
 | `POST /networks/{id}/routes/google-preview`, `POST /networks/{id}/routes/google-fetch` | `GoogleLookupPreview{lookups}`, 202 | W1-D08 |
 | `POST /networks/{id}/scenarios` | `ScenarioV3` | W1-D09 |
-| `POST /networks/{id}/forecasts`, `GET /forecasts/{job_id}/backtest` | `ForecastAccepted`, `BacktestResult` | W3-F02/F03 |
+| `POST /networks/{id}/forecasts`, `GET /forecasts/{job_id}/backtest` | `ForecastAccepted`, `BacktestResult` (per series, plus `locations[]`: one roll-up per location and unit on the pooled scored set, never across units; CR-w1-web-4) | W3-F02/F03 |
 | `GET /networks/{id}/forecasts` | `ForecastRunList` (newest first; `forecast_run_id` null until published; CR-w1-web-2) | W3-F03 |
+| `GET /networks/{id}/forecasts/{forecast_run_id}` | `NetworkForecastRun` (every series by CSV ids: kind demand/donation, basis, unit, status and reason, actual provider, fallback, missing days, 7 points with quantiles only from quantile providers; CR-w1-web-4) | W3-F03 |
 | `GET /networks/{id}/danger?forecast_run_id=` | `DangerRanking` | W3-F05 |
 | `GET /networks/{id}/projection?forecast_run_id=&location_id=` | `LocationProjection` (per product, own unit, null = unknown, no cross-product totals; CR-w1-web-3) | W3-F05 |
 | `POST /networks/{id}/comparisons` (`scenario_id`, `methods[]`, `measure`), `GET /networks/{id}/comparisons/{comparison_id}` | `ForecastAccepted`, `SavedComparisonV3` (per-method result, verification, `usd_unavailable_reason`) | W1-S04 |
