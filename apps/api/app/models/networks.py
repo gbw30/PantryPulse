@@ -192,10 +192,12 @@ def _version_fks():
 
 
 class Batch(OwnedIdentity, Base):
-    """Opening snapshot lot (inventory.csv). Usable through expiry_date (V5 BD-43)."""
+    """Opening snapshot lot (inventory.csv). Usable through expiry_date (V5 BD-43). Immutable
+    (trigger) and LIST-partitioned by version like the history (W2-06, ppv1_0013): every key
+    includes dataset_version_id, so there is no (organization_id, id) key."""
 
     __tablename__ = "net_batches"
-    dataset_version_id = uid(nullable=False)
+    dataset_version_id = uid(primary_key=True)  # the PK is (dataset_version_id, id)
     location_id = uid(nullable=False)
     product_id = uid(nullable=False)
     external_id = sa.Column(sa.Text, nullable=False)
@@ -203,12 +205,14 @@ class Batch(OwnedIdentity, Base):
     expiry_date = sa.Column(sa.Date)
     non_expiring = sa.Column(sa.Boolean, nullable=False)
     received_date = sa.Column(sa.Date)
-    __table_args__ = owned(
+    __table_args__ = (
+        sa.ForeignKeyConstraint(["organization_id"], ["organizations.id"], ondelete="RESTRICT"),
         fk(["dataset_version_id"], "dataset_versions", ["id"]),
         *_version_fks(),
         sa.UniqueConstraint("dataset_version_id", "location_id", "product_id", "external_id"),
         check("quantity >= 0", "quantity"),
         check(_expiry_xor(), "expiry_xor_non_expiring"),
+        {"postgresql_partition_by": "LIST (dataset_version_id)"},
     )
 
 

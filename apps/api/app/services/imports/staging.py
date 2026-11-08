@@ -5,10 +5,11 @@ The job splits the all-or-nothing commit in three, so nothing slow runs under th
   Validator and writes COPY-ready CSVs (rows with their new ids, raw history) to the imports
   volume, in a folder named by the attempt.
 - `load_staged` is `prepare`, outside the lock: it drops what crashed attempts left, then
-  COPYs those files into tables named by the attempt and builds each history partition with
-  its keys (S4 variant e4, minus the FKs to rows that don't exist yet).
+  COPYs those files into tables named by the attempt and builds the version's batches and
+  history partitions with their keys (S4 variant e4, minus the FKs to rows that don't exist yet).
 - `publish_staged` is `publish`, inside the lock: the error report, or the network (first
-  import), the version, the row inserts from the staged tables, the history FKs and ATTACH.
+  import), the version, the small row inserts from the staged tables, the partitions' FKs and
+  ATTACH. No batch row is inserted under the lock (W2-06).
 `drop_staged` is `discard`. Any failure before the publication commits saves nothing.
 `run_import` runs the same three in one process (tests and the bench).
 """
@@ -59,6 +60,26 @@ LOAD_FILES = {
                 "source, reference, within_horizon"),
 }
 RAW_COLUMNS = "file, line_no, c01, c02, c03, c04, c05"
+HISTORY_KEY = "PRIMARY KEY (dataset_version_id, location_id, product_id, day)"
+# FKs to the version's own rows, added in publish once those rows exist. ON DELETE RESTRICT as on
+# the parent, so ATTACH reuses each FK instead of adding and validating a second copy.
+FOREIGN_KEYS = {
+    "version": "(organization_id, dataset_version_id) REFERENCES dataset_versions "
+               "(organization_id, id)",
+    "location": "(organization_id, dataset_version_id, location_id) REFERENCES net_locations "
+                "(organization_id, dataset_version_id, id)",
+    "product": "(organization_id, dataset_version_id, product_id) REFERENCES net_products "
+               "(organization_id, dataset_version_id, id)",
+}
+# Version-partitioned tables by staged suffix: table, keys built in prepare, FKs added in publish.
+PARTITIONS = {
+    "batches": ("net_batches", (
+        "PRIMARY KEY (dataset_version_id, id)",
+        "UNIQUE (dataset_version_id, location_id, product_id, external_id)",
+    ), ("version", "location", "product")),
+    "demand": ("net_demand_history", (HISTORY_KEY,), ("location", "product")),
+    "donation": ("net_donation_history", (HISTORY_KEY,), ("location", "product")),
+}
 
 
 def import_dir() -> Path:
@@ -289,9 +310,15 @@ def load_staged(engine: sa.Engine, attempt_id: UUID, job: Mapping[str, Any],
                 conn.execute(sa.text(f"SET LOCAL statement_timeout = {int(timeout_s * 1000)}"))
             for name, (table, columns) in LOAD_FILES.items():
                 staged = stage_table(attempt_id, name)
-                conn.execute(sa.text(
-                    f"CREATE UNLOGGED TABLE {staged} (LIKE {table} INCLUDING DEFAULTS)"))
+                if name in PARTITIONS:  # a partition to be: logged, with the parent's CHECKs
+                    conn.execute(sa.text(f"CREATE TABLE {staged} (LIKE {table} "
+                                         f"INCLUDING DEFAULTS INCLUDING CONSTRAINTS)"))
+                else:
+                    conn.execute(sa.text(
+                        f"CREATE UNLOGGED TABLE {staged} (LIKE {table} INCLUDING DEFAULTS)"))
                 _copy(conn, staged, columns, folder / f"{name}.csv")
+                if name in PARTITIONS:
+                    _partition_keys(conn, staged, name, version_id)
             raw = stage_table(attempt_id, "raw")
             conn.execute(sa.text(f"CREATE UNLOGGED TABLE {raw} (file text, line_no integer, "
                                  "c01 text, c02 text, c03 text, c04 text, c05 text)"))
@@ -338,7 +365,7 @@ def _sweep(engine: sa.Engine, base: Path, attempt_id: UUID) -> None:
 
 def _load_history(conn: sa.Connection, name: str, raw: str, attempt_id: UUID, org: UUID,
                   version_id: UUID) -> None:
-    """S4 variant e4 up to the FKs: a bare table, bulk INSERT, primary key, CHECK."""
+    """S4 variant e4 up to the FKs: a bare table, bulk INSERT, then its keys."""
     table, suffix = HISTORY_TABLES[name]
     part = stage_table(attempt_id, suffix)
     locations, products = stage_table(attempt_id, "locations"), stage_table(attempt_id, "products")
@@ -364,14 +391,22 @@ def _load_history(conn: sa.Connection, name: str, raw: str, attempt_id: UUID, or
     for statement in (
         f"CREATE TABLE {part} (LIKE {table} INCLUDING DEFAULTS INCLUDING CONSTRAINTS)",
         f"INSERT INTO {part} ({columns}) {select}",
-        f"ALTER TABLE {part} ADD PRIMARY KEY (dataset_version_id, location_id, product_id, day)",
-        # ON DELETE RESTRICT as on the parent, so ATTACH reuses each FK instead of adding and
-        # validating a second copy.
+    ):
+        conn.execute(sa.text(statement), {"org": org, "ver": version_id})
+    _partition_keys(conn, part, suffix, version_id)
+
+
+def _partition_keys(conn: sa.Connection, part: str, suffix: str, version_id: UUID) -> None:
+    """The keys, the organization FK and the version bound as a CHECK, all as on the parent, so
+    ATTACH reuses each instead of building (or scanning to validate) its own."""
+    _, keys, _ = PARTITIONS[suffix]
+    for statement in (
+        *(f"ALTER TABLE {part} ADD {key}" for key in keys),
         f"ALTER TABLE {part} ADD FOREIGN KEY (organization_id) REFERENCES organizations (id) "
         f"ON DELETE RESTRICT",
         f"ALTER TABLE {part} ADD CHECK (dataset_version_id = '{version_id}')",
     ):
-        conn.execute(sa.text(statement), {"org": org, "ver": version_id})
+        conn.execute(sa.text(statement))
 
 
 # --- publish: inside the queue lock -----------------------------------------------------------
@@ -411,18 +446,16 @@ def _commit(conn: sa.Connection, run: repo.Run, attempt_id: UUID, step: Mapping[
         {"id": version_id, "org": org, "net": network_id, "run": run.id,
          "as_of": date.fromisoformat(step["as_of_date"]), "sha": files_hash})
     for name, (table, _) in LOAD_FILES.items():
+        if name in PARTITIONS:
+            continue
         staged = stage_table(attempt_id, name)
         conn.execute(sa.text(f"INSERT INTO {table} SELECT * FROM {staged}"))
         conn.execute(sa.text(f"DROP TABLE {staged}"))
-    for table, suffix in HISTORY_TABLES.values():
+    for suffix, (table, _, foreign_keys) in PARTITIONS.items():
         part, final = stage_table(attempt_id, suffix), f"{table}_{version_id.hex}"
         for statement in (
-            f"ALTER TABLE {part} ADD FOREIGN KEY (organization_id, dataset_version_id, "
-            f"location_id) REFERENCES net_locations (organization_id, dataset_version_id, id) "
-            f"ON DELETE RESTRICT",
-            f"ALTER TABLE {part} ADD FOREIGN KEY (organization_id, dataset_version_id, "
-            f"product_id) REFERENCES net_products (organization_id, dataset_version_id, id) "
-            f"ON DELETE RESTRICT",
+            *(f"ALTER TABLE {part} ADD FOREIGN KEY {FOREIGN_KEYS[key]} ON DELETE RESTRICT"
+              for key in foreign_keys),
             f"ALTER TABLE {part} RENAME TO {final}",
             f"ALTER TABLE {table} ATTACH PARTITION {final} FOR VALUES IN ('{version_id}')",
         ):
