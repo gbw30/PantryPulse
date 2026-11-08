@@ -311,10 +311,11 @@ def test_assumed_handling_units_are_listed_in_code_point_order(engine, tmp_path,
     assert {r.id: r.handling_units_per_unit for r in p.products} == {
         "BEANS": 1, "RICE": 2, "aa": 1}
 
-# --- lots already expired at as_of_date (W2-06 A6) -------------------------------------------
+# --- lots unusable from the first planning day (W2-06 A6, decision 2026-11-09) ---------------
 # A lot is usable through its expiry date (kernel.py: lost only when expires_on < day;
-# v3.eligible: expiry_date >= arrival), so it is expired at as_of only when expiry < as_of.
-EXPIRED = "Batches already expired at the as-of date"
+# v3.eligible: expiry_date >= arrival), and planning starts at as_of + 1, so a lot with
+# expiry <= as_of can't be used on any planning day and is left out.
+EXPIRED = "Batches that expire on or before the as-of date"
 
 
 def test_lot_expired_before_as_of_is_left_out_and_listed_per_product(engine, tmp_path, forecasts):
@@ -329,25 +330,27 @@ def test_lot_expired_before_as_of_is_left_out_and_listed_per_product(engine, tmp
     assert not ids & {"P1/RICE/B2", "H1/BEANS/B2", "P3/RICE/B3"}
     assert ids == {"H1/BEANS/B1", "H1/RICE/B1", "P1/RICE/B1", "P2/BEANS/B1"}
     assert _assumption(p, EXPIRED) == [
-        f"{EXPIRED} 2026-11-04, left out: BEANS: H1 B2 5 can (expiry 2026-11-01); "
+        f"{EXPIRED} 2026-11-04 can't be used from the first planning day 2026-11-05, so they "
+        "are left out: BEANS: H1 B2 5 can (expiry 2026-11-01); "
         "RICE: P1 B2 7 case (expiry 2026-11-03), P3 B3 2 case (expiry 2026-10-30)"]
 
 
-def test_expiry_boundary_day_before_as_of_out_on_and_after_kept(engine, tmp_path, forecasts):
+def test_expiry_boundary_before_and_on_as_of_out_day_after_kept(engine, tmp_path, forecasts):
     inventory = (FILES["inventory"] + "P3,RICE,BEFORE,1,2026-11-03,,\n"
                  "P3,RICE,ON,2,2026-11-04,,\n" "P3,RICE,AFTER,3,2026-11-05,,\n")
     network = _network(engine, tmp_path, {**FILES, "inventory": inventory})
     p = _scenario(engine, network, forecasts(network)).payload
     p3 = {b.id: b.quantity for b in p.batches if b.location_id == "P3"}
-    assert p3 == {"P3/RICE/ON": 2, "P3/RICE/AFTER": 3}
+    assert p3 == {"P3/RICE/AFTER": 3}
     [text] = _assumption(p, EXPIRED)
-    assert "P3 BEFORE 1 case" in text and " ON " not in text and "AFTER" not in text
+    assert "P3 BEFORE 1 case (expiry 2026-11-03)" in text
+    assert "P3 ON 2 case (expiry 2026-11-04)" in text and "AFTER" not in text
 
 
 def test_no_expired_lots_no_assumption_and_non_expiring_lots_kept(engine, tmp_path, forecasts):
     network = _network(engine, tmp_path)
     p = _scenario(engine, network, forecasts(network)).payload
-    assert _assumption(p, "expired") == []
+    assert _assumption(p, "on or before the as-of date") == []
     kept = {b.id: (b.expiry_date, b.non_expiring) for b in p.batches}
     assert kept["H1/BEANS/B1"] == (None, True) and kept["P2/BEANS/B1"] == (None, True)
     assert len(kept) == 4
