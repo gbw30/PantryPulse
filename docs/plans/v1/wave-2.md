@@ -69,7 +69,7 @@
 
 ### W2-06: Adversarial pass and change-request decisions · S–M · depends on: W2-05
 
-- [ ] **Step 1:** dispatch `adversarial-reviewer` on the `v1-local` head with the V1-SPEC §6 behaviors. Seed cases:
+- [x] **Step 1:** dispatch `adversarial-reviewer` on the `v1-local` head with the V1-SPEC §6 behaviors. Seed cases:
   - duplicate keys after trimming;
   - a BOM file;
   - an import during an import;
@@ -79,7 +79,7 @@
   - every route disabled;
   - USD with one price missing.
   Each reproduced failure becomes a fix packet or a wave-3 task.
-- [ ] **Step 2:** decide with Gabriel every open CR from the wave-1 status files. Land the approved ones (contract, schema) on `v1-local`, and regenerate the contract.
+- [x] **Step 2:** decide with Gabriel every open CR from the wave-1 status files. Land the approved ones (contract, schema) on `v1-local`, and regenerate the contract.
   - Also open from W1 (BOARD W2 row; lane status files; the W2 prep review):
     - **Must land before W3:** `forecast.v1` in `V1_NETWORK_JOBS` (lead CR); the importer sets `networks.is_sample` (data CR).
     - **Contracts:**
@@ -106,4 +106,21 @@
   - Carried from W1 (decisions §7 of `decisions/W0-08-scenario-and-import.md`):
     - define CR-w1-web-4 (forecast series read and per-location accuracy) with the D09 forecast-run interface;
     - run `bench_import.py` on Gabriel's Windows Docker stack. If the publish lock exceeds 3.5 s, land the `net_batches` version partition.
+- **Outcome of Steps 1–2 (2026-11-08 to 11-09).** Decisions are in [decisions/W2-06-change-requests.md](decisions/W2-06-change-requests.md). Each PR below was independently verified, merged with `--match-head-commit` after CI, and followed by a full gate run on the merged v1-local.
+  - **Adversarial pass:** all 8 seed behaviours held. The reviewer also found that a NUL byte in a CSV header crashed the worker. Fixed in **#116** (`fdb3a5e`):
+    - the NUL is now a row error;
+    - an unexpected error at publish fails only that attempt, with `PUBLICATION_STORAGE_FAILED`;
+    - any error from the COMMIT itself is reconciled, never discarded.
+  - **Lead CRs, #115** (`d07c94c`):
+    - A1: `forecast.v1` job status;
+    - A3: the CR-w1-web-4 contract (`NetworkForecastRun`, `BacktestResult.locations`, one entry per location and unit);
+    - A4: solver provenance, derived again at publication.
+  - **`net_batches` partition, #117** (`74efe6e`, `ppv1_0013`):
+    - Publish on Docker Desktop dropped from 6.25 s to 1.49 s.
+    - No foreign key is added to a staged partition before it is attached, so readers of the referenced tables no longer block ATTACH.
+    - A refused row at ATTACH fails the import and the worker keeps running.
+  - **Data fixes:**
+    - **#118** (`46a1e4a`), A6 and A7: lots with expiry ≤ as-of are left out of the freeze and listed per product (Gabriel, 2026-11-09). A Census `Non_Exact` match is labelled "unconfirmed address match".
+    - **#119** (`e7daa17`), A2 and A5: only an internal import can create a sample network. A handling-units value the freeze would refuse (a fraction, or over 1000) is a row error.
+  - **Deferred** (decisions §3–§5): the B items go to the W3 lanes as carry-ins; the C items to W4, now including the Non_Exact review-list retry gap; the D items to W5 known limits.
 - [ ] **Step 3:** light re-plan. Update `wave-3.md` and `prompts/w3-*.md` with any interface change, then send the wave-end report, consolidate the lanes' "Gotchas", set up the W3 worktrees and send the wave-start report. **Gabriel approves the wave 3 start.**

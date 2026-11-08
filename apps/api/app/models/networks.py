@@ -141,7 +141,8 @@ class Location(OwnedIdentity, Base):
     tract_geoid = sa.Column(sa.Text)
     poverty_rate = sa.Column(sa.Numeric(6, 5))
     snap_rate = sa.Column(sa.Numeric(6, 5))
-    acs_source = sa.Column(sa.Text)  # ACS table ids, e.g. 'ACS5 S1701,S2201'
+    acs_source = sa.Column(sa.Text)  # ACS table ids, e.g. 'ACS5 B17001,B22003'; a Census
+    # Non_Exact match adds '; unconfirmed address match' (or holds only that before rates exist)
     acs_year = sa.Column(sa.Integer)
     acs_fetched_at = instant()
     manual_poverty_rate = sa.Column(sa.Numeric(6, 5))  # template override of the lookup

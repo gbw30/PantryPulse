@@ -32,6 +32,15 @@ The `adversarial-reviewer` ran on `v1-local` `9f8c7a3` with the V1-SPEC §6 seed
 | 7 | A Census `Non_Exact` match stays non-blocking (W1-D06), but its source reads "unconfirmed address match" | data fixer |
 | — | `net_batches` partitioned by dataset version (`ppv1_0013`), because publish held the lock 6.25 s and 4.91 s on Docker Desktop (above 3.5 s; W2-05) | partition builder |
 
+**How the data fixes landed (Gabriel, 2026-11-09):**
+- **A2:** the interface for the W3 samples lane is `app.services.imports.api.create_import(rt, scope, request, *, is_sample: bool = False)`.
+  - It is passed on to `repositories.imports.create_run(..., *, is_sample=False)` and stored in `import_runs.new_network`, with no migration.
+  - It only applies when a new network is created. A re-import keeps the network's flag.
+  - HTTP can't set it: `ORContract` forbids extra fields, so a request carrying it gets a 422.
+- **A5:** the import refuses any `handling_units_per_unit` the freeze would refuse. A fraction such as 2.5 is a row error, and so is a value over 1000 (`v1_planning.py`, `le=1000`). A value like 2.0 is accepted as 2; a blank is still 1, shown as an assumption. The freeze check stays as a backstop.
+- **A6:** lots with `expiry_date <= as_of_date` are left out of the frozen scenario and listed per product, each in its own unit. A lot is usable through its expiry day (V1-SPEC, BD-44). But planning starts at `as_of + 1`, so no method could use a lot that expires on the as-of date, and every method would count it as day-1 waste. Gabriel chose to leave it out.
+- **A7:** a `Non_Exact` geocode stores the marker "unconfirmed address match" in `acs_source`, before the rates exist. The location's source and the frozen vulnerability input end with "(unconfirmed address match)". It stays non-blocking and listed for review.
+
 ### CR-w1-web-4: the network forecast series read and per-location accuracy
 
 - **(a) `GET /networks/{id}/forecasts/{forecast_run_id}` → `NetworkForecastRun`.** It returns every series of a published run, keyed by the CSV `location_id`/`product_id`. The run itself stores `net_locations.id`/`net_products.id` (W1-D09), and the read maps them back. Each `NetworkSeries` has:
@@ -76,6 +85,8 @@ These are recorded as carry-ins in `wave-3.md`.
 - Cancel and retry for v1 jobs.
 - Enrichment says why it didn't start.
 - Reverse geocoding when a location's coordinates are given (today it gets no tract and no ACS rates).
+- A Census `Non_Exact` location drops off the "listed for review" list after an enrichment retry, because the list reads only the latest job's results. Its source keeps the marker. (Found by the W2-06 verifier; Gabriel deferred it, 2026-11-09.)
+- Not yet decided, to settle at W4 start: inbound deliveries that are already expired on arrival are still frozen (`_inbound`). The projection already excludes them (`ARRIVAL_EXPIRED_ON_RECEIPT`).
 
 ## 5. D: deferred to W5, disclosed as known limits
 

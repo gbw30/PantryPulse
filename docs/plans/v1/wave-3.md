@@ -117,7 +117,7 @@ Agent role: `solver-engineer` ("solver/data"). Rules: `.claude/rules/data.md`. S
 - Add `test_each_sample_freezes_cleanly`.
 - `run_import` queues no `enrichment.v1`, so a sample's enrichment shows `not_started`.
 - W2-06 carry-ins ([decisions/W2-06-change-requests.md](decisions/W2-06-change-requests.md)):
-  - The importer sets `networks.is_sample` (data fixer, W2-06). Use the interface recorded in the decisions file §2.
+  - The importer sets `networks.is_sample` (#119). Create each sample network with `app.services.imports.api.create_import(rt, scope, request, *, is_sample=True)`. HTTP can't set the flag, and a re-import keeps it (decisions §2).
   - A fractional `handling_units_per_unit` is now a row error at import.
   - Lots already expired at `as_of_date` are left out of the frozen scenario and listed as an assumption.
   - Sample rates are labeled "sample values", not "manual" (V1-SPEC §8).
