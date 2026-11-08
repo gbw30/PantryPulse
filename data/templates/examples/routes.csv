@@ -1,0 +1,10 @@
+from_location_id,to_location_id,travel_days,cost_per_handling_unit,capacity_per_batch,disabled
+H01,P01,,1.15,,
+H01,P02,,0.95,,
+H01,P03,,0.42,,
+H01,P04,,0.31,,
+H01,P05,,0.48,300,
+H01,P06,,0.60,,
+H01,P07,,1.00,,
+H01,P08,,0.36,,
+P01,P07,,,,true

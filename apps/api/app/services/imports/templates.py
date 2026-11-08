@@ -1,5 +1,7 @@
 """Blank templates, the column guide (W1-D03) and examples (W3-P03)."""
 
+from datetime import date
+from functools import cache
 from typing import Literal
 
 from app.schemas.v1_networks import (
@@ -11,8 +13,9 @@ from app.schemas.v1_networks import (
 )
 from app.schemas.v1_planning import ROLES_BY_MODE, NetworkMode
 from app.services.imports.columns import COLUMNS, header
-from app.services.v1_errors import NotImplementedV1
+from app.services.samples.pantry import pantry_sample
 
+EXAMPLE_AS_OF = date(2026, 11, 4)  # the examples' as-of date; their history ends the day before
 NO_LIMIT = "capacity not provided — no limit assumed"
 SALES_LABEL = "sales (undercounts demand when shelves were empty)"
 BLANK_UNKNOWN = "Leave blank if unknown: a blank cell is kept as unknown, never as 0."
@@ -143,11 +146,18 @@ def template_catalog(mode: NetworkMode | None) -> TemplateCatalog:
                 effect_on_plan=effect, allowed_values=roles if column == "type" else ()))
         templates.append(Template(name=name, required=name in REQUIRED_TEMPLATES,
                                   description=DESCRIPTIONS[name], columns=tuple(entries),
-                                  example_available=False))
+                                  example_available=True))
     return TemplateCatalog(mode=mode, templates=tuple(templates), notes=NOTES)
 
 
 def template_csv(name: TemplateName, kind: Literal["blank", "example"]) -> str:
     if kind == "example":
-        raise NotImplementedV1("W3-P03")
+        return _examples()[name]
     return header(name) + "\n"
+
+
+@cache
+def _examples() -> dict[TemplateName, str]:
+    """The Pantry sample on a fixed date, so the download matches the committed files in
+    data/templates/examples (written by scripts/generate_samples.py) and the sample itself."""
+    return pantry_sample(EXAMPLE_AS_OF).files
