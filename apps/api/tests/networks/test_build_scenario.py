@@ -505,8 +505,12 @@ def test_new_scenario_on_an_older_version_is_409(engine, tmp_path, forecasts):
 
 
 def test_fractional_handling_units_cannot_be_frozen(engine, tmp_path, forecasts):
-    products = FILES["products"].replace("RICE,Rice,case,,2", "RICE,Rice,case,,0.5")
-    network = _network(engine, tmp_path, {**FILES, "products": products})
+    """Backstop: the import refuses 0.5 (W2-06 A5), so the stored row is changed directly."""
+    network = _network(engine, tmp_path)
+    with engine.begin() as conn:
+        conn.execute(sa.text("UPDATE net_products SET handling_units_per_unit = 0.5 "
+                             "WHERE dataset_version_id = :v AND external_id = 'RICE'"),
+                     {"v": network.dataset_version_id})
     with pytest.raises(InputRejected) as error:
         _scenario(engine, network, forecasts(network))
     assert error.value.code == "HANDLING_UNITS_NOT_WHOLE"
