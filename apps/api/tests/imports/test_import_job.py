@@ -11,9 +11,12 @@ from types import SimpleNamespace
 import pytest
 import sqlalchemy as sa
 from alembic import command
+from fastapi.testclient import TestClient
 
+from app.main import create_app
 from app.repositories.jobs import QueueRepository, TrustedScope, create_queue_engine
 from app.repositories.networks import inbound_file_provided
+from app.routers.forecasts import presenter, runtime
 from app.schemas.v1_imports import ImportCommit, ImportCreate, NewNetwork
 from app.services.imports import api
 from app.services.imports.staging import import_dir, run_import
@@ -97,8 +100,8 @@ def _run(rt, import_id, as_of=date(2026, 11, 4), on_phase=None):
     return run_import(rt.engine, import_id, as_of, import_dir(), "local", on_phase=on_phase)
 
 
-def _imported(rt, files=FILES, request=None, as_of=date(2026, 11, 4)):
-    created = api.create_import(rt, SCOPE, request or _new())
+def _imported(rt, files=FILES, request=None, as_of=date(2026, 11, 4), **create):
+    created = api.create_import(rt, SCOPE, request or _new(), **create)
     _upload(rt, created.import_id, files)
     _commit(rt, created.import_id, as_of)
     _run(rt, created.import_id, as_of)
@@ -314,3 +317,65 @@ def test_outside_horizon_inbound_listed_in_status(rt):
                "P1,RICE,6,2026-11-20,,true\n")
     status = _imported(rt, {**FILES, "inbound": inbound})
     assert [(r.line, r.quantity) for r in status.outside_horizon_inbound] == [(2, 6)]
+
+
+# --- W2-06 A2: only an internal call marks a sample network ------------------------------------
+
+
+def _client(rt):
+    app = create_app()
+    app.dependency_overrides[runtime] = lambda: rt
+    app.dependency_overrides[presenter] = lambda: SCOPE
+    return TestClient(app, raise_server_exceptions=False)
+
+
+def _is_sample(rt, network_id):
+    with rt.engine.connect() as conn:
+        return conn.scalar(sa.text("SELECT is_sample FROM networks WHERE id = :n"),
+                           {"n": network_id})
+
+
+def test_an_internal_sample_import_marks_the_network_as_sample(rt):
+    sample = _imported(rt, is_sample=True)
+    assert sample.phase == "done"
+    assert _is_sample(rt, sample.network_id) is True
+
+
+def test_a_reimport_keeps_the_networks_sample_flag(rt):
+    sample = _imported(rt, is_sample=True)
+    again = _imported(rt, request=ImportCreate(network_id=sample.network_id),
+                      as_of=date(2026, 11, 5))
+    assert again.phase == "done" and again.network_id == sample.network_id
+    assert _is_sample(rt, sample.network_id) is True
+    plain = _imported(rt)
+    again = _imported(rt, request=ImportCreate(network_id=plain.network_id),
+                      as_of=date(2026, 11, 5), is_sample=True)
+    assert again.phase == "done"
+    assert _is_sample(rt, plain.network_id) is False  # a re-import never changes the flag
+
+
+def test_an_http_import_is_never_a_sample(rt):
+    response = _client(rt).post("/api/v1/imports",
+                                json=_new().model_dump(mode="json"))
+    assert response.status_code == 201, response.text
+    import_id = uuid.UUID(response.json()["import_id"])
+    _upload(rt, import_id, FILES)
+    _commit(rt, import_id)
+    _run(rt, import_id)
+    status = api.import_status(rt, SCOPE, import_id)
+    assert status.phase == "done"
+    assert _is_sample(rt, status.network_id) is False
+
+
+@pytest.mark.parametrize("nested", [True, False], ids=["in-network", "top-level"])
+def test_an_http_body_cannot_set_is_sample(rt, nested):
+    network = _new().model_dump(mode="json")["network"]
+    body = ({"network": {**network, "is_sample": True}} if nested
+            else {"network": network, "is_sample": True})
+    with rt.engine.connect() as conn:
+        before = conn.scalar(sa.text("SELECT count(*) FROM import_runs"))
+    response = _client(rt).post("/api/v1/imports", json=body)
+    assert response.status_code == 422, response.text  # ORContract: extra="forbid"
+    assert response.json()["error"]["code"] == "INVALID_REQUEST"
+    with rt.engine.connect() as conn:
+        assert conn.scalar(sa.text("SELECT count(*) FROM import_runs")) == before
