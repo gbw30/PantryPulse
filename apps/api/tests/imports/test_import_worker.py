@@ -23,7 +23,7 @@ from app.schemas.v1_imports import ImportCommit, ImportCreate
 from app.services.enrichment.api import enrichment_status
 from app.services.enrichment.census import CensusClient
 from app.services.imports import api
-from app.services.imports.staging import job_input
+from app.services.imports.staging import job_input, stage_table
 from app.services.jobs.contracts import TERMINAL_STATES, AttemptState, StepStatus
 from app.services.jobs.registry import (
     ExecutionContext,
@@ -206,6 +206,41 @@ def test_rejected_publication_discards_the_staged_tables(lane, monkeypatch):
     assert (status.phase, status.failure.kind) == ("failed", "JOB_FAILED")
     assert _count(lane.engine, "SELECT count(*) FROM networks WHERE name = :n",
                   n=request.network.name) == 0
+
+
+@pytest.mark.parametrize(("suffix", "column"), [
+    ("batches", "location_id"), ("batches", "product_id"), ("batches", "organization_id"),
+    ("demand", "product_id")])
+def test_a_foreign_key_failure_at_attach_fails_the_import(lane, monkeypatch, suffix, column):
+    """W2-06: staged partitions carry no FKs, so ATTACH is the first check. A row it refuses
+    must end the attempt FAILED and discarded, never stop the worker."""
+    prepare = lane.publisher.prepare
+
+    def corrupt(engine, identity, package, *, remaining_s):
+        prepared = prepare(engine, identity, package, remaining_s=remaining_s)
+        with engine.begin() as conn:
+            conn.execute(sa.text(
+                f"UPDATE {stage_table(identity.attempt_id, suffix)} SET {column} = "
+                f"gen_random_uuid() WHERE ctid = (SELECT min(ctid) FROM "
+                f"{stage_table(identity.attempt_id, suffix)})"))
+        return prepared
+
+    monkeypatch.setattr(lane.publisher, "prepare", corrupt)
+    request = _new()
+    import_id, job_id = _commit(lane, FILES, request)
+    job = _settle(lane, import_id, job_id)
+    assert (job.attempts[0].state, job.attempts[0].reason_code) == (
+        AttemptState.FAILED, "PUBLICATION_STORAGE_FAILED")
+    assert _staged(lane.engine) == []
+    assert _count(lane.engine, "SELECT count(*) FROM networks WHERE name = :n",
+                  n=request.network.name) == 0
+    assert _count(lane.engine, "SELECT count(*) FROM dataset_versions WHERE import_run_id = :r",
+                  r=import_id) == 0
+    status = api.import_status(lane, SCOPE, import_id)
+    assert (status.phase, status.failure.kind) == ("failed", "JOB_FAILED")
+    monkeypatch.setattr(lane.publisher, "prepare", prepare)
+    after, after_job = _commit(lane, FILES)  # the supervisor still serves the next job
+    assert _settle(lane, after, after_job).state == AttemptState.SUCCEEDED
 
 
 def test_a_failed_reimport_blocks_neither_the_network_nor_its_own_retry(lane, monkeypatch):
