@@ -9,8 +9,9 @@ import pytest
 
 from app.schemas.v1_envelope import Envelope
 from app.schemas.v1_imports import ImportSettings, RowError
+from app.schemas.v1_planning import ProductV3
 from app.services.imports.columns import COLUMNS, header
-from app.services.imports.validate import validate_files
+from app.services.imports.validate import MAX_HANDLING_UNITS, validate_files
 
 LOCATIONS = (
     "location_id,name,type,street,city,state,zip\n"
@@ -238,11 +239,11 @@ def test_huge_whole_number_is_over_envelope_not_a_crash():
 
 
 def test_huge_decimal_is_rejected_before_it_overflows_its_column():
-    products = ("product_id,name,unit,handling_units_per_unit\n"
+    products = ("product_id,name,unit,unit_value_usd\n"
                 "RICE,Rice,case,1e30\nBEANS,Beans,case,\n")
     error = _only_error(products=products)
     assert (error.file, error.line, error.column, error.code) == (
-        "products", 2, "handling_units_per_unit", "OVER_ENVELOPE")
+        "products", 2, "unit_value_usd", "OVER_ENVELOPE")
 
 
 def test_handling_units_that_round_to_zero_in_their_column_are_rejected():
@@ -264,14 +265,21 @@ def test_fractional_handling_units_are_a_row_error():
     assert "whole number of handling units" in error.fix
 
 
-def test_handling_units_above_the_freeze_maximum_are_a_row_error():
-    """W2-06 A5/F1: the freeze allows 1 to 1000 (ProductV3), so the import refuses 1001."""
+@pytest.mark.parametrize("raw", ["1001", "100000000", "1e9"])
+def test_handling_units_above_the_freeze_maximum_are_a_row_error(raw):
+    """W2-06 A5/F1: the freeze allows 1 to 1000 (ProductV3), so the import refuses more,
+    however large, with the same error (not the storage envelope's)."""
     products = ("product_id,name,unit,handling_units_per_unit\n"
-                "RICE,Rice,case,1001\nBEANS,Beans,case,\n")
+                f"RICE,Rice,case,{raw}\nBEANS,Beans,case,\n")
     error = _only_error(products=products)
     assert (error.file, error.line, error.column, error.code, error.value) == (
-        "products", 2, "handling_units_per_unit", "MALFORMED", "1001")
+        "products", 2, "handling_units_per_unit", "MALFORMED", raw)
     assert error.fix == "Enter a whole number from 1 to 1000, or leave it blank to assume 1"
+
+
+def test_the_import_handling_units_limit_is_the_freeze_limit():
+    field = ProductV3.model_fields["handling_units_per_unit"]
+    assert MAX_HANDLING_UNITS == next(m.le for m in field.metadata if hasattr(m, "le"))
 
 
 @pytest.mark.parametrize(("raw", "expected", "given"), [

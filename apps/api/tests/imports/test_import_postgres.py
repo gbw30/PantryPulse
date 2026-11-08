@@ -15,6 +15,7 @@ from alembic import command
 from app.repositories import imports as repo
 from app.repositories.jobs import create_queue_engine
 from app.schemas.v1_imports import NewNetwork
+from app.services.imports import api
 from app.services.imports.staging import (
     drop_staged,
     job_input,
@@ -130,6 +131,21 @@ def test_fractional_handling_units_fail_the_import_and_save_nothing(engine, tmp_
     assert [(e.file, e.line, e.column, e.code) for e in outcome.errors] == [
         ("products", 2, "handling_units_per_unit", "FRACTIONAL")]
     assert _counts(engine, NETWORK_TABLES) == before
+
+
+@pytest.mark.parametrize("raw", ["1001", "100000000", "1e9"])
+def test_handling_units_over_the_freeze_limit_are_row_errors(engine, tmp_path, raw):
+    """However large, it is the 1-1000 row error, so the summary is ROW_ERRORS, never the
+    envelope's "reduce the data" (W2-06 A5)."""
+    products = ("product_id,name,unit,handling_units_per_unit\n"
+                f"RICE,Rice,case,{raw}\nBEANS,Beans,case,\n")
+    outcome = _import(engine, tmp_path, {**FILES, "products": products})
+    assert not outcome.ok
+    assert [(e.line, e.column, e.code, e.fix) for e in outcome.errors] == [
+        (2, "handling_units_per_unit", "MALFORMED",
+         "Enter a whole number from 1 to 1000, or leave it blank to assume 1")]
+    status = api.import_status(SimpleNamespace(engine=engine), None, outcome.import_id)
+    assert (status.phase, status.failure.kind) == ("failed", "ROW_ERRORS")
 
 
 def test_any_error_saves_nothing(engine, tmp_path):
