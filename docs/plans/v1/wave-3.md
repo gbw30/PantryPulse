@@ -30,7 +30,10 @@ Agent role: `forecast-engineer`. Skill: `verify-forecast`. Rules: `.claude/rules
   - `test_no_future_leakage`: each origin fits only on data before it.
   - `test_zero_denominator_reports_none`.
   - `test_location_rollup_from_series`.
+  - `test_location_rollup_never_pools_units`: a location with products in two units gets two rows (W2-06 carry-in).
 - [ ] **Step 2:** run them (FAIL), implement, run them (PASS), commit.
+
+**W2-06 carry-in:** `BacktestResult.locations` is one `LocationBacktest{location_id, unit, series_count, score}` per location and unit, on the pooled scored set of that location's demand series in that unit. Different units are never pooled ([decisions/W2-06-change-requests.md](decisions/W2-06-change-requests.md) §2, CR-w1-web-4 b).
 
 ### W3-F03: Forecasts for imported networks, with donations · M · depends on: W3-F02 · V1-A12, A08, A23
 
@@ -44,7 +47,8 @@ Agent role: `forecast-engineer`. Skill: `verify-forecast`. Rules: `.claude/rules
   - keys its series by `net_locations.id` and `net_products.id`.
   Anything else is 409. Publish runs in exactly that shape, and add `test_create_scenario_accepts_a_published_network_run`.
 - Implement `list_forecast_runs(rt, scope, network_id) -> ForecastRunList` (CR-w1-web-2) next to `submit_network_forecast`.
-- `forecast.v1` is not in `V1_NETWORK_JOBS` (`app/routers/forecasts.py`), so `GET /jobs/{id}` 404s for a network forecast. The lead CR is decided at W2-06 and must land before this task.
+- `forecast.v1` is in `V1_NETWORK_JOBS` since W2-06 (`0730730`), so `GET /jobs/{id}` answers for a network forecast. `forecast.chronos.v1` is not; running Chronos for networks is a CR.
+- Implement `get_forecast_run(rt, scope, network_id, forecast_run_id) -> NetworkForecastRun` (CR-w1-web-4 a, W2-06) in `services/forecasting/network.py`. Map series back to CSV ids, list every series with its status and reason (never forecast from zeros), and drop the route from `STUBS` in `tests/test_v1_contract.py`. Example: `packages/contracts/examples/v1/NetworkForecastRun.json`.
 - A re-import publishes a new dataset version, and older runs are then refused with `STALE_DATASET_VERSION`.
 
 - [ ] **Step 1:** write the failing tests:
@@ -77,7 +81,7 @@ Agent role: `forecast-engineer`. Skill: `verify-forecast`. Rules: `.claude/rules
 
 **W1 carry-in:**
 - Also implement `get_projection(rt, scope, network_id, forecast_run_id, location_id) -> LocationProjection` (CR-w1-web-3). Its route is a 501 stub today (STUBS in `tests/test_v1_contract.py`), and the W1 site inspector reads it.
-- W2-06 decides whether danger and the projection reuse `services/optimization/projection.py::project_v3`, which already counts frozen inbound once. Reusing it would keep the danger ranking in step with the solver.
+- Decided at W2-06: danger and the projection reuse `services/optimization/projection.py::project_v3`, which already counts frozen inbound once, so the danger ranking stays in step with the solver. W3-F04's inbound tests apply to that kernel.
 
 - [ ] **Step 1:** write the failing tests:
   - `test_pantry_score_is_worst_product_unmet_share_of_7_day_demand`, computed independently in the test.
@@ -111,9 +115,12 @@ Agent role: `solver-engineer` ("solver/data"). Rules: `.claude/rules/data.md`. S
 - Short batch ids with no `/`, so frozen batch ids stay readable instead of hashed.
 - `unit_value_usd` on every Retail product.
 - Add `test_each_sample_freezes_cleanly`.
-- Open at W2-06:
-  - the importer never sets `networks.is_sample`, so it needs a CR;
-  - `run_import` queues no `enrichment.v1`, so a sample's enrichment shows `not_started`.
+- `run_import` queues no `enrichment.v1`, so a sample's enrichment shows `not_started`.
+- W2-06 carry-ins ([decisions/W2-06-change-requests.md](decisions/W2-06-change-requests.md)):
+  - The importer sets `networks.is_sample` (data fixer, W2-06). Use the interface recorded in the decisions file §2.
+  - A fractional `handling_units_per_unit` is now a row error at import.
+  - Lots already expired at `as_of_date` are left out of the frozen scenario and listed as an assumption.
+  - Sample rates are labeled "sample values", not "manual" (V1-SPEC §8).
 
 ### W3-P01: Pantry sample · M · depends on: none · V1-A05
 
@@ -179,6 +186,16 @@ Test `apps/api/tests/samples/test_examples.py`:
 Agent role: `frontend-engineer`. The wave-1 screens exist. This lane replaces mocks with the real API wherever the wave-1 backend is merged:
 - **real API:** import, enrichment, routes, scenario, comparison, actions, export;
 - **contract examples until W4:** the forecast backtest, danger and sample-example endpoints, which are built in parallel this wave. That also covers the W1-added `ForecastRunList`, `LocationProjection` and network-forecast POST mocks; drop W1's `?forecast_run_id=` / `?forecast_job_id=` URL stopgaps once runs can be listed.
+
+**W2-06 carry-ins** (live smoke and review; [decisions/W2-06-change-requests.md](decisions/W2-06-change-requests.md) §3). Each gets a failing test first:
+- The import page states that addresses without coordinates are sent to the Census geocoder. V1-SPEC line 48 requires an explicit, labeled lookup.
+- No "simulated network" wording on a real import (the Live chip, the Atlas subtitle, the session footer). Keep the pill only for samples, using `Network.is_sample`.
+- The header shows the snapshot's `as_of_date`, not today.
+- The product picker no longer stays on "Loading products…".
+- No legacy fixture atlas above an imported network's ranking.
+- Wire names in the trust panel and Decisions (`LocationList`).
+- The column guide says that a pantry given coordinates also needs both rates, or an exclusion.
+- CR-w1-web-4 is defined: the trust panel reads `NetworkForecastRun` (the method, fallback reason, missing days, quantile band and donation series) and `BacktestResult.locations` (one row per location and unit). Mocks come from the new examples until W4.
 
 ### W3-W01: Wire import, enrichment and settings · M · depends on: none · V1-A06, A07, A10, A11, A23
 
