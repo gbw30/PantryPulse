@@ -8,13 +8,13 @@ W2 is lead-only (no lanes run). At the save point, W2-05 is done and W2-06 is pa
 - Lead CRs A1 (`forecast.v1` job status), A3 (the CR-w1-web-4 contract) and A4 (solver provenance), each independently verified over three review rounds.
 - The W2-05/W2-06 plan docs and the decisions file.
 
-PR #115's CI passed (`full` 11m12s, `verify`). The full gate and e2e on merged `d07c94c` were **still running at the save point**. If no result is recorded, rerun them (§1).
+PR #115's CI passed (`full` 11m12s, `verify`). On merged `d07c94c`, the local full gate passed 8/8. e2e was **still running at the save point**: check `/home/gabri/.claude/jobs/48f6075b/tmp/gate-d07c94c.log` for `e2e exit=0`, or rerun it (§1).
 
 **Unpushed branches**, each in its own worktree:
 
 | Branch | Head | Worktree | State |
 |---|---|---|---|
-| `w2/fix-nul-header` | `b0ec518` | `.claude/worktrees/agent-a5cd0b33c60f80115` | NUL-header fix plus supervisor resilience. Full API suite 1981 passed, 0 skipped. The first review (at `55033e4`) passed N2–N5; its findings were fixed in `b0ec518`. **The verifier's re-check of `b0ec518` had no verdict yet.** |
+| `w2/fix-nul-header` | `b0ec518` | `.claude/worktrees/agent-a5cd0b33c60f80115` | NUL-header fix plus supervisor resilience. Full API suite 1981 passed, 0 skipped. The first review (at `55033e4`) passed N2–N5; its findings were fixed in `b0ec518`. **Re-check of `b0ec518`: F1 and F2 RESOLVED, mutants M4–M8 caught, 1981 passed and 0 skipped, focused set clean 3×.** Ready for a PR with Gabriel's OK. |
 | `w2/net-batches-partition` | `8258401` | `.claude/worktrees/agent-ade1db6e1f551b1fc` | `ppv1_0013`. Verified twice, with P1–P6 PASS and both findings RESOLVED; full suite 1960 passed, 0 skipped. Docker Desktop bench (6 CPU / 8 GiB): publish 1.49 s and 1.51 s, against 6.25 s and 4.91 s before. |
 | `w2/w2-05-docs` | `4f41b7a` | main tree | Superseded: its commit is in #115. Delete it once Gabriel says so. |
 | `w2/w2-06-resume` | (this file) | `.claude/worktrees/lead-resume` | This runbook. Push it with the next docs PR. |
@@ -45,13 +45,14 @@ PR #115's CI passed (`full` 11m12s, `verify`). The full gate and e2e on merged `
 
    Don't edit that tree while a gate runs: it fails with "source changed during checks".
 2. **NUL fix.**
-   - Get an independent `verifier` re-check of `b0ec518`, diff `55033e4..b0ec518`, on `pantrypulse_verify_test` in a detached worktree. Scope:
-     - F1, the UTF-16 no-BOM case with no as-of date;
-     - F2, any commit-call exception becoming `CommitUncertain`, and whether an exception *before* COMMIT still ends the attempt FAILED after reconciliation;
-     - the M4–M6 mutants;
-     - the full suite with `-rs`;
-     - three runs of the focused set (tests/imports, tests/integration/test_supervisor.py, test_worker_slice.py, test_job_queue.py, tests/workers). The fixer saw one unreproduced `run_until` "condition not reached".
-   - Then ask Gabriel to push and open a PR into v1-local, wait for CI, merge with `gh pr merge N --merge --match-head-commit <full sha>`, and run the full gate.
+   - The verifier re-check of `b0ec518` (diff `55033e4..b0ec518`) is done, and every item is RESOLVED or PASS:
+     - F1: UTF-16 with no BOM and no as-of date names every file.
+     - F2: every commit-call exception reconciles. An exception before COMMIT ends FAILED with `PUBLICATION_COMMIT_LOST` and discards once.
+     - The M4–M8 mutants are caught.
+     - Suite: 1981 passed, 0 skipped.
+     - The focused set ran clean three times; the `run_until` flake wasn't reproduced.
+   - Known behaviour, not a defect: if `demand_history` has no dates and `donation_history` can't be read, only the donation error shows until the next upload.
+   - Next: ask Gabriel to push and open a PR into v1-local, wait for CI, merge with `gh pr merge N --merge --match-head-commit <full sha>`, and run the full gate.
 3. **Partition, after the NUL fix merges.**
    - In its worktree, run `git merge origin/v1-local` (no rebase).
    - Add a test: corrupt one staged row before ATTACH (a batch's location, product or organization; a demand row's product). ATTACH must raise ForeignKeyViolation, and the attempt must end FAILED with `PUBLICATION_STORAGE_FAILED`. Expect: staged tables discarded, nothing attached, the import phase `failed`, and the supervisor serving the next job. Before the NUL fix, that error escaped `Supervisor.tick()` and stopped the worker.
@@ -96,4 +97,4 @@ cd ~/code/PantryPulse && claude --continue    # or claude --resume and pick the 
 
 If that conversation is gone, start `claude` in `~/code/PantryPulse` and paste:
 
-> You are the PantryPulse v1 orchestrator (lead). Read CLAUDE.md, docs/plans/v1/ORCHESTRATION.md, docs/plans/v1/wave-2.md, docs/plans/v1/decisions/W2-06-change-requests.md and this runbook (`git show w2/w2-06-resume:docs/plans/v1/prompts/w2-resume.md` until it is merged). Resume W2-06 from "Next steps": first confirm the gate result on v1-local `d07c94c`, then the verifier re-check of `w2/fix-nul-header` `b0ec518`. Bring me each PR for approval.
+> You are the PantryPulse v1 orchestrator (lead). Read CLAUDE.md, docs/plans/v1/ORCHESTRATION.md, docs/plans/v1/wave-2.md, docs/plans/v1/decisions/W2-06-change-requests.md and this runbook (`git show w2/w2-06-resume:docs/plans/v1/prompts/w2-resume.md` until it is merged). Resume W2-06 from "Next steps": first confirm the e2e result on v1-local `d07c94c`, then bring me the `w2/fix-nul-header` `b0ec518` PR (verified) for approval. Bring me each PR for approval.
