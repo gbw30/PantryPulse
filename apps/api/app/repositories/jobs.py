@@ -1435,7 +1435,7 @@ class QueueRepository:
                 raise
             try:
                 self._commit(transaction)
-            except DBAPIError as exc:
+            except Exception as exc:  # any error here may follow a landed COMMIT: reconcile
                 raise CommitUncertain("publication commit was not acknowledged") from exc
             return manifest
         except (OperationalError, InterfaceError) as exc:
