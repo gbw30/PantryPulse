@@ -1,5 +1,6 @@
 {
   "assumptions": [
+    "Handling units per unit: 1 assumed for BEANS (blank in products.csv)",
     "No available forecast, so no demand target (not zero): P3 \u00d7 BEANS (INSUFFICIENT_DATA)",
     "Expected donations (forecast, not confirmed) for 1 series are shown but never counted as supply",
     "Inbound outside the seven-day horizon, not counted: line 3 P1 \u00d7 BEANS 5 arriving 2026-11-20",

@@ -116,7 +116,7 @@ The orchestrator paused at Gabriel's request; PR #103 (lead CRs: prepare/discard
 - **File(s):** a migration on `net_products` (lead-owned), then `apps/api/app/services/imports/staging.py` and `apps/api/app/services/networks/scenario.py` (lane).
 - **Exact change:** add `handling_units_given boolean NOT NULL DEFAULT true` to `net_products` (existing rows: true, unknown history). The lane writes the parsed `ProductRow.handling_units_given` and the scenario lists "Handling units per unit: 1 assumed for RICE, BEANS (blank in products.csv)".
 - **Why:** V1-SPEC §6.1 says a blank `handling_units_per_unit` defaults to 1 "shown as an assumption". The validator knows (`validate.py` `handling_units_given`), but the column is `NOT NULL DEFAULT 1` and nothing records whether 1 was given, so no scenario can show it (found by the verifier re-check of ed5a188).
-- **Status:** approved by Gabriel 2026-11-07; lands after #108 merges (the lead adds `ppv1_0012`, then the lane stores the flag and lists the assumption). Until then the default of 1 is applied but not listed.
+- **Status:** approved by Gabriel 2026-11-07; migration `ppv1_0012` merged in #109; built in `421d3e9`. The import's COPY names `handling_units_given` (the only writer of `net_products`), so the column's DB default never decides it; the scenario lists "Handling units per unit: 1 assumed for … (blank in products.csv)" in code-point order. Tests: `test_products_record_whether_handling_units_were_given`, `test_assumed_handling_units_are_listed_in_code_point_order`, and the golden mini network (one assumption line added for BEANS, new hash).
 
 ## Escalations
 
