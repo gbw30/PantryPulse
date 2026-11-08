@@ -586,6 +586,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/networks/{network_id}/forecasts/{forecast_run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Forecast Run */
+        get: operations["get_forecast_run_api_v1_networks__network_id__forecasts__forecast_run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/networks/{network_id}/locations": {
         parameters: {
             query?: never;
@@ -1313,6 +1330,8 @@ export interface components {
             forecast_job_id: string;
             /** Ineligible */
             ineligible: components["schemas"]["IneligibleSeries"][];
+            /** Locations */
+            locations: components["schemas"]["LocationBacktest"][];
             /**
              * Network Id
              * Format: uuid
@@ -2769,6 +2788,20 @@ export interface components {
             snap_rate?: number | string | null;
         };
         /**
+         * LocationBacktest
+         * @description A location's roll-up (V1-SPEC §6.4) on the pooled scored set of its demand series in one
+         *     unit. Series in different units are never pooled, so a location has one row per unit.
+         */
+        LocationBacktest: {
+            /** Location Id */
+            location_id: string;
+            score: components["schemas"]["BacktestScore"];
+            /** Series Count */
+            series_count: number;
+            /** Unit */
+            unit: string;
+        };
+        /**
          * LocationEffect
          * @description Per location and product, in that product's unit; never summed across products.
          */
@@ -3127,10 +3160,90 @@ export interface components {
              */
             dataset_version_id: string;
         };
+        /**
+         * NetworkForecastRun
+         * @description GET /networks/{id}/forecasts/{forecast_run_id}: a published run's series (CR-w1-web-4).
+         */
+        NetworkForecastRun: {
+            /**
+             * Data Cutoff Date
+             * Format: date
+             */
+            data_cutoff_date: string;
+            /**
+             * Dataset Version Id
+             * Format: uuid
+             */
+            dataset_version_id: string;
+            /**
+             * Forecast Run Id
+             * Format: uuid
+             */
+            forecast_run_id: string;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /**
+             * Job Id
+             * Format: uuid
+             */
+            job_id: string;
+            /**
+             * Network Id
+             * Format: uuid
+             */
+            network_id: string;
+            /** Planning Ready */
+            planning_ready: boolean;
+            /** Series */
+            series: components["schemas"]["NetworkSeries"][];
+        };
         /** NetworkList */
         NetworkList: {
             /** Networks */
             networks: components["schemas"]["Network"][];
+        };
+        /**
+         * NetworkSeries
+         * @description One series of a network forecast run, keyed by the CSV ids (CR-w1-web-4 a).
+         *
+         *     The run stores series by `net_locations.id`/`net_products.id` (W1-D09); this read maps them
+         *     back. Quantiles appear only when the provider produced them (ForecastPoint enforces it).
+         */
+        NetworkSeries: {
+            actual_provider: components["schemas"]["ProviderIdentity"] | null;
+            /** Basis */
+            basis: ("demand" | "sales") | null;
+            /** Fallback Reason */
+            fallback_reason: string | null;
+            /** Fallback Used */
+            fallback_used: boolean;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "demand" | "donation";
+            /** Location Id */
+            location_id: string;
+            /** Missing Count */
+            missing_count: number;
+            /** Observed Count */
+            observed_count: number;
+            /** Points */
+            points: components["schemas"]["ForecastPoint"][];
+            /** Product Id */
+            product_id: string;
+            /** Reason */
+            reason: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "AVAILABLE" | "INSUFFICIENT_DATA" | "FAILED";
+            /** Unit */
+            unit: string;
         };
         /** NewNetwork */
         NewNetwork: {
@@ -7662,6 +7775,101 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ForecastAccepted"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_forecast_run_api_v1_networks__network_id__forecasts__forecast_run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                network_id: string;
+                forecast_run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NetworkForecastRun"];
                 };
             };
             /** @description Unauthorized */

@@ -9,6 +9,7 @@ from pydantic import Field, model_validator
 
 from app.schemas.or_inputs import Bool, ORContract
 from app.schemas.v1_planning import Basis, Id, NetworkMode
+from app.services.forecasting.schemas import ForecastPoint, ProviderIdentity
 from app.services.jobs.contracts import AttemptState
 
 TemplateName = Literal[
@@ -91,11 +92,29 @@ class IneligibleSeries(ORContract):
     reason: str
 
 
+class LocationBacktest(ORContract):
+    """A location's roll-up (V1-SPEC §6.4) on the pooled scored set of its demand series in one
+    unit. Series in different units are never pooled, so a location has one row per unit."""
+
+    location_id: Id
+    unit: str = Field(min_length=1, max_length=80)
+    series_count: int = Field(ge=1)
+    score: BacktestScore
+
+
 class BacktestResult(ORContract):
     forecast_job_id: UUID
     network_id: UUID
     series: tuple[SeriesBacktest, ...]
+    locations: tuple[LocationBacktest, ...]  # CR-w1-web-4 (b)
     ineligible: tuple[IneligibleSeries, ...]
+
+    @model_validator(mode="after")
+    def one_row_per_location_and_unit(self) -> Self:
+        keys = [(r.location_id, r.unit) for r in self.locations]
+        if len(set(keys)) != len(keys):
+            raise ValueError("DUPLICATE_LOCATION_UNIT")
+        return self
 
 
 class DangerRow(ORContract):
@@ -159,6 +178,53 @@ class ForecastRunList(ORContract):
 
     network_id: UUID
     runs: tuple[ForecastRunSummary, ...]
+
+
+class NetworkSeries(ORContract):
+    """One series of a network forecast run, keyed by the CSV ids (CR-w1-web-4 a).
+
+    The run stores series by `net_locations.id`/`net_products.id` (W1-D09); this read maps them
+    back. Quantiles appear only when the provider produced them (ForecastPoint enforces it)."""
+
+    location_id: Id
+    product_id: Id
+    kind: Literal["demand", "donation"]  # donation = expected donations, forecast, not confirmed
+    basis: Basis | None  # demand series only; None for donations
+    unit: str = Field(min_length=1, max_length=80)  # the product's own unit
+    status: Literal["AVAILABLE", "INSUFFICIENT_DATA", "FAILED"]
+    reason: str | None  # why there is no forecast; None when AVAILABLE
+    actual_provider: ProviderIdentity | None  # the method that actually ran
+    fallback_used: Bool
+    fallback_reason: str | None
+    observed_count: int = Field(ge=0)
+    missing_count: int = Field(ge=0)  # blank history days, never filled with zero
+    points: tuple[ForecastPoint, ...]
+
+    @model_validator(mode="after")
+    def honest(self) -> Self:
+        if (self.kind == "donation") != (self.basis is None):
+            raise ValueError("BASIS_ONLY_FOR_DEMAND")
+        if self.status == "AVAILABLE":
+            if self.actual_provider is None or len(self.points) != 7 or self.reason is not None:
+                raise ValueError("AVAILABLE_NEEDS_PROVIDER_AND_SEVEN_POINTS")
+        elif self.points or self.actual_provider is not None or not self.reason:
+            raise ValueError("NO_FORECAST_NEEDS_REASON_AND_NO_POINTS")
+        if self.fallback_used != (self.fallback_reason is not None):
+            raise ValueError("FALLBACK_NEEDS_REASON")
+        return self
+
+
+class NetworkForecastRun(ORContract):
+    """GET /networks/{id}/forecasts/{forecast_run_id}: a published run's series (CR-w1-web-4)."""
+
+    network_id: UUID
+    forecast_run_id: UUID
+    job_id: UUID
+    dataset_version_id: UUID  # the run's frozen_input.dataset_id (W1-D09)
+    data_cutoff_date: date  # equals the dataset version's as_of_date
+    planning_ready: Bool
+    generated_at: datetime
+    series: tuple[NetworkSeries, ...]  # ordered by location_id, product_id, kind
 
 
 Daily = tuple[Annotated[int, Field(ge=0)] | None, ...]  # one value per date; None = unknown
