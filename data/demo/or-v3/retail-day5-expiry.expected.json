@@ -1,0 +1,55 @@
+{
+  "fixture": "retail-day5-expiry",
+  "weights": {
+    "w_exp": 1,
+    "w_lost": 1
+  },
+  "UNITS": {
+    "objective": "7",
+    "transfers": [
+      {
+        "product_id": "P",
+        "from_location_id": "A",
+        "to_location_id": "B",
+        "quantity": 3,
+        "ship_date": "2026-11-02",
+        "arrival_date": "2026-11-04",
+        "batch_ids": [
+          "a1"
+        ]
+      }
+    ],
+    "starved_products": [],
+    "products": {
+      "P": {
+        "expired": 3,
+        "lost": 4,
+        "objective": "7"
+      }
+    }
+  },
+  "USD": {
+    "objective": "8.75",
+    "transfers": [
+      {
+        "product_id": "P",
+        "from_location_id": "A",
+        "to_location_id": "B",
+        "quantity": 3,
+        "ship_date": "2026-11-02",
+        "arrival_date": "2026-11-04",
+        "batch_ids": [
+          "a1"
+        ]
+      }
+    ],
+    "starved_products": [],
+    "products": {
+      "P": {
+        "expired": 3,
+        "lost": 4,
+        "objective": "8.75"
+      }
+    }
+  }
+}

@@ -3,8 +3,18 @@
 import re
 
 from app.schemas.or_outputs import ComparisonResult, MethodOutcome
+from app.schemas.v1_planning import ComparisonResultV3, require_methods_for_mode
 from app.services.optimization.canonical import operational_hash
+from app.services.optimization.methods import (
+    OPTIMIZING,
+    PER_PRODUCT_SEARCH_S,
+    failed_result,
+    run_method,
+)
+from app.services.optimization.methods import assemble as assemble_method
+from app.services.optimization.projection import project_v3
 from app.services.optimization.service import solve_one
+from app.services.optimization.v3 import quantities_of
 
 
 def assemble(scenario, outcomes, *, expected_settings=None):
@@ -118,11 +128,77 @@ def compare(scenario, settings=None):
     )
 
 
-def compare_methods(scenario, methods, measure):
-    """v1 N-method comparison on one or-input-v3 scenario (W0-08 stub; W1-S04 implements).
+def compare_methods(
+    scenario,
+    methods,
+    measure,
+    *,
+    scenario_id,
+    scenario_hash,
+    search_seconds=PER_PRODUCT_SEARCH_S,
+):
+    """or-comparison.v3: every requested method on one frozen or-input-v3 scenario.
 
-    Signature: (ORInputV3, Sequence[AllocationMethod], Measure) -> ComparisonResultV3.
+    Methods fail independently: a failed or erroring method is reported with its status and
+    no plan while the others still publish. Before publication each claimed-verified result is
+    rebuilt here from the raw scenario and its own plan (publishable); a result that doesn't
+    replay is published as unverified, with no plan.
     """
-    from app.services.v1_errors import NotImplementedV1
+    require_methods_for_mode(scenario.mode, methods)
+    if scenario.mode == "PANTRY" and measure != "UNITS":
+        raise ValueError("MEASURE_NOT_IN_MODE")
+    baseline = project_v3(scenario).days
+    results = []
+    for method in methods:
+        try:
+            result = run_method(scenario, method, measure, search_seconds=search_seconds)
+        except Exception as exc:  # report and keep the other methods (V1-A14 "honestly")
+            result = failed_result(
+                scenario, method, measure, None, f"METHOD_ERROR:{type(exc).__name__}", ()
+            )
+        results.append(publishable(scenario, baseline, result))
+    return ComparisonResultV3(
+        scenario_id=scenario_id,
+        scenario_hash=scenario_hash,
+        mode=scenario.mode,
+        measure=measure,
+        methods=tuple(results),
+    )
 
-    raise NotImplementedV1("W1-S04")
+
+def publishable(scenario, baseline, result):
+    """Rebuild a claimed-verified result from the raw scenario and its own plan and publish it only
+    if every field matches: plan and union check, effects, objective, labels, and the method
+    status implied by its products. Per-product native statuses are the solver's claims; only
+    their consistency with the rest can be checked here."""
+    if not result.verified:
+        return result
+    solved = [p.native_status for p in result.products if p.native_status]
+    status = None if not solved else "FEASIBLE" if "FEASIBLE" in solved else "OPTIMAL"
+    status = status if result.method in OPTIMIZING else None
+    rebuilt = assemble_method(
+        scenario,
+        result.method,
+        result.measure,
+        baseline,
+        quantities_of(result.transfers),
+        status,
+        result.products,
+        {},
+    )
+    if not rebuilt.verified:
+        problems = [rebuilt.failure_reason]
+    else:
+        problems = [
+            f for f in type(result).model_fields if getattr(rebuilt, f) != getattr(result, f)
+        ]
+    if not problems:
+        return result
+    return failed_result(
+        scenario,
+        result.method,
+        result.measure,
+        status,
+        f"PUBLICATION_VERIFICATION_FAILED:{','.join(problems)}",
+        result.products,
+    )

@@ -114,3 +114,24 @@ def prepare_problem(snapshot: ORScenarioPayload) -> PreparedProblem:
             )
         )
     return PreparedProblem(snapshot, baseline, tuple(candidates), tuple(exclusions))
+
+
+def k_nearest(routes, k):
+    """v1: keep each receiver's k nearest senders (travel days, road miles, then sender id)."""
+    from collections import defaultdict
+    from decimal import Decimal
+
+    by_receiver = defaultdict(list)
+    for r in routes:
+        by_receiver[r.to_location_id].append(r)
+    kept = []
+    for group in by_receiver.values():
+        group.sort(
+            key=lambda r: (
+                r.travel_days,
+                Decimal(r.road_miles) if r.road_miles is not None else Decimal("Infinity"),
+                r.from_location_id,
+            )
+        )
+        kept.extend(group[:k])
+    return kept

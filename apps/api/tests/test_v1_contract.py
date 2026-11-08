@@ -101,9 +101,6 @@ STUBS = [
     ("GET", f"/networks/{NET}/projection?forecast_run_id={JOB}&location_id=P-1", None, None,
      "W3-F05"),
     ("GET", f"/forecasts/{JOB}/backtest", None, None, "W3-F03"),
-    ("GET", f"/networks/{NET}/comparisons/{CMP}", None, None, "W1-S04"),
-    ("GET", f"{ACTIONS}/actions", None, None, "W1-S06"),
-    ("POST", f"{ACTIONS}/export", {"action_ids": ["t1"]}, None, "W1-S07"),
 ]
 
 
@@ -121,8 +118,6 @@ def test_unimplemented_routes_return_501_with_task_id(client, method, path, body
 def test_network_scoped_job_routes_return_501(client):
     for path, body, task in (
         (f"/networks/{NET}/forecasts", {"dataset_version_id": str(uuid4())}, "W3-F03"),
-        (f"/networks/{NET}/comparisons",
-         {"scenario_id": str(uuid4()), "methods": ["NO_TRANSFERS"], "measure": "UNITS"}, "W1-S04"),
     ):
         response = client.post("/api/v1" + path, json=body, headers=KEYED)
         assert response.status_code == 501, (path, response.text)

@@ -1,5 +1,5 @@
 # covers: V1-A22
-"""W0-08b: v1 job kinds are registered for admission, never advertised until a lane builds them."""
+"""W0-08b: v1 job kinds are registered for admission and advertised once a lane builds them."""
 
 from app.services.jobs.contracts import PRODUCTION_PROFILE, OperationKind
 from app.services.jobs.policies import operation_budget_s
@@ -19,11 +19,11 @@ def test_v1_job_kinds_registered():
     assert {"forecast.v1", "or-comparison.v2"} <= set(REGISTRY.contracts())
 
 
-def test_v1_stub_handlers_are_not_advertised_for_execution():
+def test_built_v1_job_kinds_are_advertised_for_execution():
     advertised, _ = REGISTRY.execution_advertisement()
-    built = {"enrichment.v1", "import.v1", "routes-google.v1"}  # CR-w1-data-3, CR-w1-data-4
-    assert built <= set(advertised)
-    assert not (set(V1_KINDS) - built) & set(advertised)
+    # All four are built: import/enrichment/routes-google (CR-w1-data-3, CR-w1-data-4) and
+    # or-comparison.v3 (CR-w1-solver-4).
+    assert set(V1_KINDS) <= set(advertised)
     assert "or-comparison.v2" in advertised
 
 
