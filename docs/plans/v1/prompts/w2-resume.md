@@ -8,7 +8,7 @@ W2 is lead-only (no lanes run). At the save point, W2-05 is done and W2-06 is pa
 - Lead CRs A1 (`forecast.v1` job status), A3 (the CR-w1-web-4 contract) and A4 (solver provenance), each independently verified over three review rounds.
 - The W2-05/W2-06 plan docs and the decisions file.
 
-PR #115's CI passed (`full` 11m12s, `verify`). On merged `d07c94c`, the local full gate passed 8/8. e2e was **still running at the save point**: check `/home/gabri/.claude/jobs/48f6075b/tmp/gate-d07c94c.log` for `e2e exit=0`, or rerun it (§1).
+PR #115's CI passed (`full` 11m12s, `verify`). On merged `d07c94c`, the local full gate passed 8/8 and e2e (judge journey) passed. Step 1 is done for `d07c94c`.
 
 **Unpushed branches**, each in its own worktree:
 
@@ -97,4 +97,4 @@ cd ~/code/PantryPulse && claude --continue    # or claude --resume and pick the 
 
 If that conversation is gone, start `claude` in `~/code/PantryPulse` and paste:
 
-> You are the PantryPulse v1 orchestrator (lead). Read CLAUDE.md, docs/plans/v1/ORCHESTRATION.md, docs/plans/v1/wave-2.md, docs/plans/v1/decisions/W2-06-change-requests.md and this runbook (`git show w2/w2-06-resume:docs/plans/v1/prompts/w2-resume.md` until it is merged). Resume W2-06 from "Next steps": first confirm the e2e result on v1-local `d07c94c`, then bring me the `w2/fix-nul-header` `b0ec518` PR (verified) for approval. Bring me each PR for approval.
+> You are the PantryPulse v1 orchestrator (lead). Read CLAUDE.md, docs/plans/v1/ORCHESTRATION.md, docs/plans/v1/wave-2.md, docs/plans/v1/decisions/W2-06-change-requests.md and this runbook (`git show w2/w2-06-resume:docs/plans/v1/prompts/w2-resume.md` until it is merged). Resume W2-06 from "Next steps" step 2: the gates on v1-local `d07c94c` passed. Start by bringing me the `w2/fix-nul-header` `b0ec518` PR for approval (it is verified). Bring me each PR for approval.
