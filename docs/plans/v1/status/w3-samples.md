@@ -17,11 +17,18 @@ Status values: `todo`, `in progress`, `done`, `blocked (<reason or CR id>)`.
 
 PR #121 (`lane/w3-samples → v1-local`): the verifier review's three Low findings are fixed and `origin/v1-local` (lead PR #122, CR-1/CR-2) is merged in. Wait for the verifier's re-check of `51b65aa..` the new head. CR-3 and CR-4 are with Gabriel.
 
+## Save point 2026-11-09
+
+- **Head:** the status commit on top of `a172430` (merge of `origin/v1-local` = lead PR #122 `5c5fbe7`, CR-1 and CR-2) and `8d1fe06` (review fixes).
+- **Verifier review of `51b65aa`: all 3 Low findings fixed** in `8d1fe06` (L1 serialized seed, L2 recorded outbound attempts, L3 mutant-killing tests; details under Decisions).
+- **Evidence on `a172430`:** `uv run --frozen pytest -q -rs tests/samples tests/enrichment tests/imports tests/test_v1_contract.py tests/test_local_bootstrap.py` (with `.env.lane`) → 332 passed, 0 skipped; `node scripts/quality/run.cjs quick` → PASS 4/4. The concurrency test ran green 3 times in a row on `8d1fe06`. Full gate not re-run since `c5dce80`.
+- **Exact next step:** wait for the verifier's re-check of `51b65aa..` this head on PR #121 and fix any findings test-first. Optionally run `node scripts/quality/run.cjs full` (with `.env.lane`, `PP19_TEST_SCHEMA_ISOLATION=1`) on this head. CR-3 and CR-4 are with Gabriel. No merge before Gabriel's next session.
+
 ## Gates
 
 | Gate | Commit | Result |
 |---|---|---|
-| `node scripts/quality/run.cjs quick` (standard env) | `55026c0`, rerun `f7d996e`, `c5dce80` | PASS (4/4) each time. Without a DB, pytest is 1669 passed, 383 skipped: every skip is a PostgreSQL suite reporting `NOT RUN: PP_TEST_DATABASE_URL is not set` (e.g. `test_supervisor` 63, `test_job_queue` 38, `test_build_scenario` 22, `test_import_postgres` 21, `test_seed` 7); not counted as validated, all run in `full` below |
+| `node scripts/quality/run.cjs quick` (standard env) | `55026c0`, rerun `f7d996e`, `c5dce80`, `a172430` | PASS (4/4) each time. Without a DB, pytest is 1669 passed, 383 skipped: every skip is a PostgreSQL suite reporting `NOT RUN: PP_TEST_DATABASE_URL is not set` (e.g. `test_supervisor` 63, `test_job_queue` 38, `test_build_scenario` 22, `test_import_postgres` 21, `test_seed` 7); not counted as validated, all run in `full` below |
 | `node scripts/quality/run.cjs full` (with `.env.lane`, `PP19_TEST_SCHEMA_ISOLATION=1`) | `55026c0`, rerun `f7d996e`, `c5dce80` | PASS (8/8) each time; same env `uv run --frozen pytest -q -rs` → 2052 passed, 0 skipped (`55026c0`); 2053 passed, 0 skipped in 291 s (`f7d996e`); 2054 passed, 0 skipped in 333 s (`c5dce80`). Focused (`tests/samples`, `test_templates`, `test_v1_contract`, `test_local_bootstrap`) on `c5dce80`: 107 passed, 0 skipped |
 | `/devkit:ship-check` | `0053567` → fixes in the next commit | step 1 quick+full PASS; step 2 project `verifier`: pass with findings (106 focused tests incl. PostgreSQL 0 skipped, generator `--check` clean, own W1-rule sweep over 1,100 Pantry and 134 Retail dates 0 failures, partial-failure and concurrent-seed runs held). F1 and F2 fixed; F3–F5 recorded below. Step 3: security-guidance not installed. Step 5 `/code-review medium` on PR #121: 10 findings, outcome under Decisions (R1–R10). Step 6 not needed (no auth, payments, migrations or permissions) |
 
@@ -68,14 +75,14 @@ PR #121 (`lane/w3-samples → v1-local`): the verifier review's three Low findin
 - **Exact change:** `_ATTRIBUTES` also selects `EXISTS (SELECT 1 FROM dataset_versions v JOIN networks n ON n.id = v.network_id WHERE v.id = net_locations.dataset_version_id AND n.is_sample) AS is_sample`; in `_attributes`, the all-manual branch sets `source = "sample values" if r.is_sample else "manual"` (state stays `manual`). `scenario.py:327`'s `a.source or "manual"` then freezes "sample values" too. Test: a network imported with `create_import(..., is_sample=True)` whose locations.csv gives both rates reports `source == "sample values"` from `location_attributes`, and a non-sample network still reports `"manual"`.
 - **Why:** W2-06 §3 carry-in and V1-SPEC §8 ("poverty/SNAP values pre-filled and labeled 'sample values'"). The label is hard-coded at `enrichment/service.py:170`. The samples and `data/samples/README.md` already say "sample values"; only the in-app label is missing.
 - **Unblocks:** the in-app half of the "sample values" carry-in (W3-P01 is otherwise done).
-- **Status:** approved (Gabriel, 2026-11-09); the lead builds it on a lead branch into `v1-local`. The lane merges `origin/v1-local` when told and re-runs its focused tests.
+- **Status:** merged (lead PR #122, `5c5fbe7`); merged into the lane at `a172430`.
 
 ### CR-w3-samples-2 — keep template CSVs LF on a Windows checkout
 - **File(s):** `.gitattributes` (lead-only).
 - **Exact change:** add `data/templates/**/*.csv text eol=lf`.
 - **Why:** `.gitattributes` covers `*.sh`, `*.py`, `*.yaml` but not CSV. With `core.autocrlf=true` (the Git for Windows default) the blank and example templates check out as CRLF. Correction (code review R8): the original justification said both drift tests fail on CRLF. They didn't, because both used `read_text`, which turns CRLF into LF, so the drift check missed it. Since R8, `test_example_files_equal_generator_output` and `generate_samples.py --check` compare bytes, so a CRLF checkout fails them (e.g. `npm run test:api:docker` on the Windows host). `test_blank_templates_are_header_only` (W1) still uses `read_text` and passes. The importer accepts CRLF, and the downloads are computed, not read from disk.
 - **Unblocks:** nothing on Linux/CI; Windows-host test runs.
-- **Status:** approved (Gabriel, 2026-11-09); the lead builds it.
+- **Status:** merged (lead PR #122, `5c5fbe7`); merged into the lane at `a172430`.
 
 ### CR-w3-samples-3 — Retail template examples (a `mode` on the example download)
 - **File(s):** `apps/api/app/routers/v1_networks.py:55` (lead), the frozen `template_csv(name, kind)` signature, `packages/contracts/**` (regenerated), the web's `templateUrl` (w3-web paths).
