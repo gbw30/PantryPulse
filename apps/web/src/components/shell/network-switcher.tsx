@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import Link from "next/link";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { usePresenter } from "@/components/shell/presenter-session";
 import { modeSummary } from "@/lib/mode-vocabulary";
 import { networkApi, type Network } from "@/lib/network-api";
 import { ApiError } from "@/lib/planning-api";
@@ -34,8 +35,11 @@ export function NetworkProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<NetworkState>({ status: "loading" });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [generation, setGeneration] = useState(0);
+  const { state: session } = usePresenter();
 
   useEffect(() => {
+    // Only a presenter session can list networks; a visitor is signed out (see `shown` below).
+    if (session !== "presenter") return;
     let active = true;
     networkApi.list().then(
       ({ networks }) => {
@@ -53,16 +57,21 @@ export function NetworkProvider({ children }: { children: React.ReactNode }) {
       },
     );
     return () => { active = false; };
-  }, [generation]);
+  }, [generation, session]);
 
   const select = useCallback((networkId: string) => { setSelectedId(networkId); writeStored(networkId); }, []);
   const reload = useCallback(() => setGeneration((n) => n + 1), []);
-  const value = useMemo<NetworkContextValue>(() => ({
-    state,
-    network: state.status === "ready" ? state.networks.find((n) => n.id === selectedId) ?? null : null,
-    select,
-    reload,
-  }), [state, selectedId, select, reload]);
+  // Derived in the same render as the session, so a visitor never sees "loading" turn into "signed out"
+  // later: that swap remounts the overview's shell and would close a sign-in dialog opened meanwhile.
+  const value = useMemo<NetworkContextValue>(() => {
+    const shown: NetworkState = session === "visitor" ? { status: "signed_out" } : state;
+    return {
+      state: shown,
+      network: shown.status === "ready" ? shown.networks.find((n) => n.id === selectedId) ?? null : null,
+      select,
+      reload,
+    };
+  }, [session, state, selectedId, select, reload]);
   return <NetworkContext.Provider value={value}>{children}</NetworkContext.Provider>;
 }
 

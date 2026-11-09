@@ -95,36 +95,33 @@ export function NetworkAtlas(props: AtlasProps) {
 
 function AtlasForNetwork(props: AtlasProps) {
   const { state, network } = useNetwork();
-  if (network) return <NetworkOverview network={network} forecastRunId={props.forecastRunId} />;
-  if (state.status === "loading") {
-    return (
-      <AppShell active="overview">
-        <p role="status" className="px-4 py-5 text-sm text-muted-foreground md:px-6">Loading networks…</p>
-      </AppShell>
-    );
-  }
-  return <LegacyAtlas {...props} />;
+  // Every state renders through LegacyAtlas's one shell: swapping shells when the network list settles
+  // would remount the navigation and close a drawer or sign-in dialog opened meanwhile.
+  const body = network ? <NetworkOverview network={network} forecastRunId={props.forecastRunId} />
+    : state.status === "loading" ? <p role="status" className="px-4 py-5 text-sm text-muted-foreground md:px-6">Loading networks…</p>
+    : undefined;
+  return <LegacyAtlas {...props} body={body} />;
 }
 
 function NetworkOverview({ network, forecastRunId }: { network: Network; forecastRunId?: string }) {
   return (
-    <AppShell active="overview">
-      <div className="flex flex-1 flex-col gap-3 px-4 pt-3 pb-4 md:gap-4 md:px-6 md:py-5 lg:gap-6">
-        <header data-atlas-header className="min-w-0">
-          <p className="font-condensed text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Network intelligence</p>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-[26px] leading-tight font-semibold tracking-tight md:text-[28px]">Network Atlas</h1>
-            {network.is_sample && <SampleBadge />}
-          </div>
-          <p className="text-sm text-muted-foreground">Which locations in {network.name} are projected to run short, ranked by danger.</p>
-        </header>
-        <DangerRankingSection forecastRunId={forecastRunId} />
-      </div>
-    </AppShell>
+    <div className="flex flex-1 flex-col gap-3 px-4 pt-3 pb-4 md:gap-4 md:px-6 md:py-5 lg:gap-6">
+      <header data-atlas-header className="min-w-0">
+        <p className="font-condensed text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Network intelligence</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="text-[26px] leading-tight font-semibold tracking-tight md:text-[28px]">Network Atlas</h1>
+          {network.is_sample && <SampleBadge />}
+        </div>
+        <p className="text-sm text-muted-foreground">Which locations in {network.name} are projected to run short, ranked by danger.</p>
+      </header>
+      <DangerRankingSection forecastRunId={forecastRunId} />
+    </div>
   );
 }
 
-function LegacyAtlas({ statePreview }: AtlasProps) {
+/** The legacy demo atlas, or `body` (the v1 overview, or "Loading networks…") in the same shell. */
+function LegacyAtlas({ statePreview, body }: AtlasProps & { body?: React.ReactNode }) {
+  const legacy = body === undefined;
   const { source, preview } = overviewSourceFor(statePreview);
   const [load, setLoad] = useState<LoadState>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
@@ -161,6 +158,7 @@ function LegacyAtlas({ statePreview }: AtlasProps) {
 
   // Load through the adapter. Aborting on change/unmount means a stale response never replaces newer intent.
   useEffect(() => {
+    if (!legacy) return;
     const controller = new AbortController();
     source.load(controller.signal).then(
       (snapshot) => {
@@ -175,7 +173,7 @@ function LegacyAtlas({ statePreview }: AtlasProps) {
       },
     );
     return () => controller.abort();
-  }, [source, attempt]);
+  }, [source, attempt, legacy]);
 
   // Markers start below the floating legend, whose height depends on width and wrapping.
   useEffect(() => {
@@ -364,6 +362,9 @@ function LegacyAtlas({ statePreview }: AtlasProps) {
     />
     </motion.div>
   ) : null;
+
+  // Same element types as the legacy return below, so React keeps the shell mounted across the switch.
+  if (!legacy) return <MotionConfig reducedMotion="user"><AppShell active="overview">{body}</AppShell></MotionConfig>;
 
   return (
     <MotionConfig reducedMotion="user">
