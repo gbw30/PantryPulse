@@ -14,7 +14,7 @@ function temporary(t) {
   t.after(()=>{const resolved=fs.realpathSync(dir); assert.equal(path.dirname(resolved),parent); assert.ok(path.basename(resolved).startsWith('pp kit hooks ')); fs.rmSync(resolved,{recursive:true});});
   return dir;
 }
-function repository(t,enabled,exit,timeoutSeconds=2) {
+function repository(t,enabled,exit,timeoutSeconds=2,extra={},code='process.exit('+exit+')') {
   const root=temporary(t);
   assert.equal(cp.spawnSync('git',['init','--quiet'],{cwd:root,windowsHide:true}).status,0);
   fs.mkdirSync(path.join(root,'.claude'),{recursive:true});
@@ -22,7 +22,7 @@ function repository(t,enabled,exit,timeoutSeconds=2) {
   fs.copyFileSync(path.join(overlay,'scripts','quality','run.cjs'),path.join(root,'scripts','quality','run.cjs'));
   fs.writeFileSync(path.join(root,'.gitignore'),'.claude/state/\n');
   fs.writeFileSync(path.join(root,'README.md'),'fixture\n');
-  const config={enabled,timeoutSeconds,gates:{quick:[{name:'fixture',command:process.execPath,args:['-e','process.exit('+exit+')']}]}};
+  const config={enabled,timeoutSeconds,gates:{quick:[{name:'fixture',command:process.execPath,args:['-e',code]}]},...extra};
   fs.writeFileSync(path.join(root,'.claude','quality-gate.json'),JSON.stringify(config));
   assert.equal(cp.spawnSync('git',['add','.'],{cwd:root,windowsHide:true}).status,0);
   assert.equal(cp.spawnSync('git',['-c','user.name=Toolkit Test','-c','user.email=toolkit@example.invalid','commit','--quiet','-m','fixture'],{cwd:root,windowsHide:true}).status,0);
@@ -60,6 +60,17 @@ test('enabled passing Stop gate succeeds in a path with spaces',t=>{
 test('enabled failing Stop gate blocks, repeat avoids loop without claiming pass',t=>{
   const root=repository(t,true,1); const fail=hook('stop-gate',{cwd:root,stop_hook_active:false}); assert.equal(fail.status,2); assert.match(fail.stderr,/FAIL fixture/);
   const repeat=hook('stop-gate',{cwd:root,stop_hook_active:true}); assert.equal(repeat.status,0); assert.match(repeat.stderr,/unresolved/);
+});
+test('Stop gate reports its own timeout as a timeout, not as a test failure',t=>{
+  const root=repository(t,true,0,30,{stopHookTimeoutSeconds:1},'setTimeout(()=>{},10000)');
+  const r=hook('stop-gate',{cwd:root,stop_hook_active:false}); assert.equal(r.status,2);
+  assert.match(r.stderr,/timed out after 1 s/); assert.doesNotMatch(r.stderr,/Fix the reported failure/);
+});
+test('Stop hook settings timeout exceeds the quick gate time the hook waits for',()=>{
+  const settings=JSON.parse(fs.readFileSync(path.join(overlay,'.claude','settings.json'),'utf8'));
+  const config=JSON.parse(fs.readFileSync(path.join(overlay,'.claude','quality-gate.json'),'utf8'));
+  const stop=settings.hooks.Stop.flatMap(entry=>entry.hooks).find(h=>(h.args||[]).some(a=>a.endsWith('stop-gate.cjs')));
+  assert.ok(config.stopHookTimeoutSeconds>0); assert.ok(stop.timeout>config.stopHookTimeoutSeconds,'Claude Code would kill the hook before it reports');
 });
 test('Stop gate falls back to the project directory when the given cwd no longer exists',t=>{
   // Generous budget: this test checks the cwd fallback, not gate timing on a loaded machine.

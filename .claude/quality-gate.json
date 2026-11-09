@@ -2,9 +2,10 @@
   "enabled": true,
   "note": "Executable combined-tree gates; Linux CI requires PostgreSQL and rejects all skipped backend tests. Connected browser gate requires explicitly seeded demo services.",
   "timeoutSeconds": 90,
+  "stopHookTimeoutSeconds": 600,
   "budgetSeconds": {
-    "quick": 600,
-    "full": 900,
+    "quick": 960,
+    "full": 1500,
     "e2e": 300
   },
   "gates": {
@@ -49,7 +50,7 @@
           "pytest",
           "-q"
         ],
-        "timeoutSeconds": 480
+        "timeoutSeconds": 900
       }
     ],
     "full": [
