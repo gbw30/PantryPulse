@@ -4,13 +4,13 @@ W3 started 2026-11-09 from base `0a49593`. The lanes run as separate CLI session
 
 ## State at the save point
 
-**v1-local:** `0a49593` (unchanged since the W3 start).
+**v1-local:** `5c5fbe7`. PR #122 merged after green CI (`verify` and `full`; the no-egress connected step passed on GitHub's runner). **The full gate hasn't run on `5c5fbe7` yet.**
 
 **Lead PRs and branches:**
 
 | Item | Head | State | Gabriel's approval |
 |---|---|---|---|
-| PR #122 `w3/lead-crs` (worktree `.claude/worktrees/w3-lead`) | `5cb3c761f40bf4e990aa1ee95088eafe0603d59f` | CI `verify` passed; `full` was running. Verifier: code PASS (full API suite 2032 passed, 0 skipped); follow-ups fixed in `5cb3c76` | Push + merge after CI |
+| PR #122 `w3/lead-crs` (worktree `.claude/worktrees/w3-lead`) | `5cb3c76` | **Merged** as `5c5fbe7`, CI green. The samples and web lanes were told to merge `origin/v1-local` | Done |
 | `w3/ppv1-0014-backtest` (worktree `.claude/worktrees/w3-mig`), local only | `a3c3b59` + this runbook | `ppv1_0014`: `forecast_runs.backtest` JSONB, NULL or an object. The tests failed first. Full API suite: 2038 passed, 0 skipped. Not yet independently verified | Option B approved; **push and PR not yet approved** |
 
 PR #122 holds:
@@ -43,10 +43,9 @@ PR #122 holds:
 
 ## Next steps, in order
 
-1. **PR #122:** `gh pr checks 122`. If green, run `gh pr merge 122 --merge --match-head-commit 5cb3c761f40bf4e990aa1ee95088eafe0603d59f`. Then run the full gate on the merged v1-local (main tree, detached at `origin/v1-local`):
+1. **Full gate on v1-local `5c5fbe7`.** Use the main tree, detached at `origin/v1-local`:
    `U=postgresql+psycopg://pantrypulse:isolated_test_only@127.0.0.1:55433/pantrypulse_test; PP_TEST_DATABASE_URL=$U PP19_TEST_DATABASE_URL=$U PP19_TEST_SCHEMA_ISOLATION=1 node scripts/quality/run.cjs full`.
-   If the connected step failed in CI, read `artifacts/bridge-*.log`, `api.log` and `worker.log` in the run's evidence upload. The `sysctl` on ubuntu-24.04 was the unverified part.
-   After the merge, tell samples to merge `origin/v1-local`, and tell web to merge and point `stack-up.sh` at `scripts/quality/netns-bridge.py`.
+   Then check that the web lane switched `stack-up.sh` to `scripts/quality/netns-bridge.py`.
 2. **PR #121:** when the lane pushes its fixes, get a verifier re-check of the fix diff `51b65aa..<new head>`, using worktree `verify-121` and DB `pantrypulse_verify_test`. Then ask Gabriel for the merge, after CI, and run the full gate.
 3. **`ppv1_0014`:** first, in `w3-mig`, run `git merge origin/v1-local` (after #122) and set decisions §5 to "approved B, landed in #N". Then dispatch a verifier, ask Gabriel for push + PR, merge after CI, run the gate, and tell forecast to merge `origin/v1-local`.
 4. Decide CR-w3-samples-3, CR-w3-samples-4 and the merge order with Gabriel.
