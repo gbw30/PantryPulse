@@ -32,7 +32,7 @@ PR #122 holds:
 
 | Lane | Session | Where it stood |
 |---|---|---|
-| forecast | `pantrypulse-forecast-*` | F01, F02 done; F05 green locally. F03's `get_backtest` waits for `ppv1_0014`; then F04/F06 |
+| forecast | `pantrypulse-forecast-*` | Pushed `2339048`. F01, F02, F04, F05 and F06 done. F05: danger and projection on `project_v3`, tests/danger 10 passed, 0 skipped, 7/7 mutants killed. F06: 50k series in 12.5 s of 300 s, 1.1 GB peak. Only F03's `get_backtest` is left; it waits for `ppv1_0014`. **Check at review:** `forecast.v1` `max_input_bytes` raised from 16 MB to 24 MB (worst case 20.6 MB); at 50k series the output is built in the queue lock (4.2 s plus the INSERT); `get_danger` recomputes about 4 s per request |
 | samples | `pantrypulse-samples-*` | 4/4 tasks done, PR #121 in review. Waits for #122 to merge, then `git merge origin/v1-local` |
 | web | `pantrypulse-web-*` | W01, W02 done, pushed `ee2ae4c`: connected e2e 192 passed, 0 skipped, no egress, fixture forecast run per E-1. Doing the approved follow-ups (hide the legacy Scenario builder when a v1 network is chosen; a shared sign-in helper that clears the password on failure), then W03 |
 
