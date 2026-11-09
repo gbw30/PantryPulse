@@ -24,6 +24,7 @@ from app.services.samples import pantry, retail
 from app.services.samples.network import SampleNetwork
 
 FRESH_DAYS = 7
+SEED_LOCK = "samples.seed"
 SAMPLES = ((pantry.NAME, pantry.pantry_sample), (retail.NAME, retail.retail_sample))
 
 
@@ -39,23 +40,31 @@ def ensure_samples(session, today: date) -> SeedReport:
     It commits the session's pending work (the bootstrap's login and organization inserts)
     first: publishing an import attaches a `net_batches` partition, whose foreign key needs
     SHARE ROW EXCLUSIVE on `organizations`, and the caller's open insert would block it forever
-    (a client-side deadlock PostgreSQL can't detect)."""
+    (a client-side deadlock PostgreSQL can't detect).
+
+    One seed runs at a time: the freshness check and the import aren't one transaction, so two
+    seeds at once would both import (a duplicate version, or a deadlock on the partition attach).
+    The advisory lock's transaction holds no table locks, so the imports can't block on it."""
     session.commit()
     engine = session.get_bind()
     loaded = []
-    for name, build in SAMPLES:
-        with engine.connect() as conn:
-            found = conn.execute(sa.text(
-                "SELECT n.id, max(v.as_of_date) FROM networks n "
-                "JOIN dataset_versions v ON v.network_id = n.id "
-                "WHERE n.is_sample AND n.name = :name GROUP BY n.id "
-                # Names aren't unique (two seeds racing): the freshest network decides.
-                "ORDER BY max(v.as_of_date) DESC, n.id LIMIT 1"),
-                {"name": name}).one_or_none()
-        if found is not None and (today - found[1]).days <= FRESH_DAYS:
-            continue
-        _import(engine, build(today), None if found is None else found[0])
-        loaded.append(name)
+    with engine.begin() as lock:
+        lock.execute(sa.text(
+            "SELECT pg_advisory_xact_lock(hashtextextended(current_schema() || :key, 0))"),
+            {"key": SEED_LOCK})
+        for name, build in SAMPLES:
+            with engine.connect() as conn:
+                found = conn.execute(sa.text(
+                    "SELECT n.id, max(v.as_of_date) FROM networks n "
+                    "JOIN dataset_versions v ON v.network_id = n.id "
+                    "WHERE n.is_sample AND n.name = :name GROUP BY n.id "
+                    # Names aren't unique (older racing seeds): the freshest network decides.
+                    "ORDER BY max(v.as_of_date) DESC, n.id LIMIT 1"),
+                    {"name": name}).one_or_none()
+            if found is not None and (today - found[1]).days <= FRESH_DAYS:
+                continue
+            _import(engine, build(today), None if found is None else found[0])
+            loaded.append(name)
     return SeedReport(loaded=tuple(loaded))
 
 

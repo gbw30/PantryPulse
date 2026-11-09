@@ -15,7 +15,7 @@ Status values: `todo`, `in progress`, `done`, `blocked (<reason or CR id>)`.
 
 ### Next step
 
-PR `lane/w3-samples → v1-local` is open; wait for the orchestrator's review. When the lead's CR-w3-samples-1/2 PR merges: `git merge origin/v1-local` (no rebase), re-run `tests/samples` and the quick gate, push.
+PR #121 (`lane/w3-samples → v1-local`): the verifier review's three Low findings are fixed and `origin/v1-local` (lead PR #122, CR-1/CR-2) is merged in. Wait for the verifier's re-check of `51b65aa..` the new head. CR-3 and CR-4 are with Gabriel.
 
 ## Gates
 
@@ -42,6 +42,10 @@ PR `lane/w3-samples → v1-local` is open; wait for the orchestrator's review. W
   - R2 and R6 (lead, CR-w3-samples-4): the bootstrap passes UTC `date.today()` while the samples are New York-dated; seeding outside the login transaction would make the `commit()` in `ensure_samples` unnecessary.
   - R3 (w3-web note): `exampleUnavailableReason` expected a 501; for a template with no example it now gets a 200 and shows the generic text. CR-w3-samples-3 removes the case.
   - R5 (accepted): a user can re-import into a sample network through the API; the web blocks it. R10 (not taken): `templates.py` importing the sample module loads the importer stack, which the router already loads.
+- PR #121 verifier review at `51b65aa` (no High/Medium; three Low), each fixed test-first:
+  - L1: two seeds at once on stale (or absent) samples both passed the freshness check and both imported: a duplicate version, or a `DeadlockDetected` on the partition attach. `ensure_samples` now holds a transaction-scoped advisory lock (`hashtextextended(current_schema() || 'samples.seed', 0)`, the codebase's key form) around check and import. The lock's transaction takes no table locks. `test_concurrent_seeds_load_each_sample_once[empty|stale]` holds each import at a barrier until both seeds have passed the check: red (DeadlockDetected) before, green 3 runs in a row after.
+  - L2: the no-outbound test raised inside the patched call, so a caught `urlopen` passed. It now records attempts and asserts none. Verified with the mutant (a swallowed `urlopen` to 192.0.2.1): the test fails.
+  - L3: two surviving mutants are now killed, each checked by applying it: dropping `n.is_sample` from the lookup (`test_user_network_named_like_a_sample_is_left_alone`) and an ASC tie-break (the duplicate test now has a stale and a fresh duplicate).
 - Demand follows real weekdays (busy Saturdays, quiet Sundays), so a sample generated on a later day has different quantities; determinism is per (seed, date) — W3-P01.
 
 ## Gotchas
@@ -55,7 +59,7 @@ PR `lane/w3-samples → v1-local` is open; wait for the orchestrator's review. W
 
 - F3: a failed sample import leaves its import run (`failed`) and, for a new network, its organization row; abandoned-import cleanup is deferred to W5 (W2-06 §5 D). A restart imports the missing sample once; nothing is duplicated (verified).
 - F4: a sample import error raises, so the `seed` service fails and compose doesn't start `api`/`worker`. Chosen deliberately: the samples are our own generated files, and the verifier's date sweep found no failing date. Lead call whether a sample failure should instead be logged and skipped.
-- F5: `ensure_samples` commits the caller's session (the deadlock fix), so the caller can't use that session's transaction afterwards; `local_bootstrap.run` doesn't. Two concurrent seeds on an empty DB: PostgreSQL aborts one with `DeadlockDetected`, the other loads both, no duplicates (compose runs one seed).
+- F5: `ensure_samples` commits the caller's session (the deadlock fix), so the caller can't use that session's transaction afterwards; `local_bootstrap.run` doesn't. Concurrent seeds are serialized by an advisory lock since the PR review (L1).
 
 ## Change requests
 

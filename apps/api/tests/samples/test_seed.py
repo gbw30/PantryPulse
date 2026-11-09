@@ -6,7 +6,9 @@ that has already inserted the local organization, then `ensure_samples`. Never s
 
 import dataclasses
 import socket
+import threading
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 from pathlib import Path
 from types import SimpleNamespace
@@ -17,6 +19,7 @@ from alembic import command
 from sqlalchemy.orm import Session
 
 from app.repositories.jobs import TrustedScope, create_queue_engine
+from app.schemas.v1_imports import NewNetwork
 from app.schemas.v1_planning import ScenarioOptions
 from app.services import samples
 from app.services.networks.api import create_scenario
@@ -163,22 +166,66 @@ def test_older_versions_and_results_untouched(db, sample_sized_forecasts, foreca
 
 
 def test_duplicate_sample_names_do_not_stop_the_seed(db):
-    # Two Pantry sample networks (e.g. left by two seeds racing on an empty database).
-    for _ in range(2):
-        samples._import(db, pantry.pantry_sample(TODAY), None)
+    # Two Pantry sample networks (e.g. left by an older racing seed): the freshest one decides.
+    samples._import(db, pantry.pantry_sample(TODAY - timedelta(days=10)), None)
+    samples._import(db, pantry.pantry_sample(TODAY), None)
+    before = sample_versions(db)[pantry.NAME]
     assert seed(db, TODAY).loaded == (retail.NAME,)
+    assert sample_versions(db)[pantry.NAME] == before  # the stale duplicate isn't re-imported
     assert seed(db, TODAY).loaded == ()
 
 
+def test_user_network_named_like_a_sample_is_left_alone(db, tmp_path):
+    named = NewNetwork(name=pantry.NAME, mode="PANTRY", timezone="America/New_York")
+    assert _import(db, tmp_path, FILES, network=named).ok
+    assert seed(db, TODAY).loaded == NAMES
+    with db.connect() as conn:
+        found = conn.execute(sa.text(
+            "SELECT n.is_sample, count(v.id) FROM networks n JOIN dataset_versions v "
+            "ON v.network_id = n.id WHERE n.name = :n GROUP BY n.id, n.is_sample "
+            "ORDER BY n.is_sample"), {"n": pantry.NAME}).all()
+    assert [tuple(r) for r in found] == [(False, 1), (True, 1)]
+
+
+@pytest.mark.parametrize("stale", [False, True], ids=["empty", "stale"])
+def test_concurrent_seeds_load_each_sample_once(db, monkeypatch, stale):
+    if stale:
+        seed(db, TODAY - timedelta(days=8))
+    # Hold each import until both seeds are past their freshness check (the race window). A seed
+    # that waits for the other one, as it must, never arrives, so the barrier times out.
+    barrier = threading.Barrier(2, timeout=3)
+    real_import = samples._import
+
+    def gated(*args):
+        try:
+            barrier.wait()
+        except threading.BrokenBarrierError:
+            pass
+        real_import(*args)
+
+    monkeypatch.setattr(samples, "_import", gated)
+    with ThreadPoolExecutor(2) as pool:
+        reports = [f.result() for f in [pool.submit(seed, db, TODAY) for _ in range(2)]]
+    assert sorted(r.loaded for r in reports) == [(), NAMES]
+    assert {name: len(v) for name, v in sample_versions(db).items()} == {
+        n: 1 + stale for n in NAMES}
+    with db.connect() as conn:
+        assert conn.scalar(sa.text("SELECT count(*) FROM networks")) == 2
+
+
 def test_no_outbound_network_calls(db, monkeypatch):
+    attempts = []
+
     def refuse(*args, **kwargs):
-        raise AssertionError(f"outbound network call attempted: {args[1:] or kwargs}")
+        attempts.append((args, kwargs))
+        raise OSError("outbound network call refused by the test")
 
     # The test database connects through libpq (C sockets), so only Python sockets stop.
     monkeypatch.setattr(socket.socket, "connect", refuse)
     monkeypatch.setattr(socket.socket, "connect_ex", refuse)
     monkeypatch.setattr(socket, "create_connection", refuse)
     assert seed(db, TODAY).loaded == NAMES
+    assert attempts == []  # recorded, so a call the seed catches and ignores still fails here
 
 
 def test_never_resets(db, tmp_path):
