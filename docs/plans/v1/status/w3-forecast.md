@@ -8,18 +8,17 @@
 |---|---|---|---|
 | W3-F02 | done | `94737e5` | `uv run --frozen pytest -q tests/forecasting/test_backtest.py` → 13 passed, 0 skipped |
 | W3-F01 | done | `70dc30e` | S7 verdict **fits with a compact network input** ([S7](../spikes/S7-forecast-volume.md)): `bench_forecast.py --part compact --series 50000` → 10.27 s compute, 1,714 MB peak; `--part db` → 50,001 rows, 8.7 + 8.5 MB; `--part existing --sample 500` → ~10,700 s extrapolated (does not fit) |
-| W3-F04 | done | this commit | `uv run --frozen pytest -q tests/test_inventory_projection.py` → 71 passed, 0 skipped (6 new cases on `project_v3`). They passed on the first run: they characterize the existing kernel (W2-06 §3). A throwaway mutation check, one process per mutant, killed all 5 mutants: inbound counted twice, on hand from day 1 and arriving after demand fail all 4 kernel cases; ignored delivery expiry and on-hand-before-deliveries fail the FEFO case |
-| W3-F03 | in progress: all but `get_backtest` (blocked, CR-w3-forecast-1) | this commit | `uv run --frozen pytest -q tests/forecasting/test_network_forecast.py` → 10 passed, 0 skipped (PostgreSQL, real import, production `forecast.v1` under a supervisor, real `create_scenario`); related suites `tests/forecasting tests/workers tests/networks tests/test_v1_contract.py tests/test_inventory_projection.py` → 411 passed, 0 skipped; `PP19_TEST_SCHEMA_ISOLATION=1 … tests/integration/{test_forecast_api_postgres,test_worker_slice,test_v1_backend_journey,test_v1_job_status}.py` → 23 passed, 0 skipped |
-| W3-F05 | todo | — | — |
+| W3-F04 | done | `db08dde` | `uv run --frozen pytest -q tests/test_inventory_projection.py` → 71 passed, 0 skipped (6 new cases on `project_v3`). They passed on the first run: they characterize the existing kernel (W2-06 §3). A throwaway mutation check, one process per mutant, killed all 5 mutants: inbound counted twice, on hand from day 1 and arriving after demand fail all 4 kernel cases; ignored delivery expiry and on-hand-before-deliveries fail the FEFO case |
+| W3-F03 | in progress: all but `get_backtest` (CR-w3-forecast-1 approved; waits for `ppv1_0014`) | `0f0decd` | `uv run --frozen pytest -q tests/forecasting/test_network_forecast.py` → 10 passed, 0 skipped (PostgreSQL, real import, production `forecast.v1` under a supervisor, real `create_scenario`); related suites `tests/forecasting tests/workers tests/networks tests/test_v1_contract.py tests/test_inventory_projection.py` → 411 passed, 0 skipped; `PP19_TEST_SCHEMA_ISOLATION=1 … tests/integration/{test_forecast_api_postgres,test_worker_slice,test_v1_backend_journey,test_v1_job_status}.py` → 23 passed, 0 skipped |
+| W3-F05 | done | this commit | `PP19_TEST_SCHEMA_ISOLATION=1 uv run --frozen pytest -q tests/danger/test_ranking.py` → 10 passed, 0 skipped (3 rule tests on hand-built projections; 7 on a Pantry and a Retail network through the real import and production `forecast.v1`, including both HTTP routes). A throwaway mutation check, one process per mutant, killed all 7 mutants: Pantry scoring expiry, no first-day tie-break, inbound ignored, HIGH moved to 0.60, wrong driving units, unknown demand treated as known, expiry winning ties. Related suites `tests/danger tests/forecasting tests/test_v1_contract.py tests/networks tests/test_inventory_projection.py tests/integration/test_v1_backend_journey.py` → 398 passed, 0 skipped |
 | W3-F06 | todo | — | — |
 
 Order: F02 → F01 → F04 → F03 → F05 → F06. F01 and F02 depend on nothing (wave-3.md), and S7 should time the real backtest code, not a stand-in. F04 depends on nothing; F03 needs F02; F05 needs F03 and F04.
 
 ## Next
 
-1. **W3-F05** (danger ranking + `get_projection`) on `project_v3`, using the network runs W3-F03 now publishes.
-2. **W3-F06** (scale) re-runs `bench_forecast.py` on the built path.
-3. **W3-F03 remainder**, once CR-w3-forecast-1 is decided: store the backtest in `publish_network`, build `get_backtest`, add `test_backtest_persisted_and_served_by_get_backtest`, and drop the backtest row from `STUBS`. The step already computes the per-series sums (`network.compute` → `backtest`); the publisher ignores them until then.
+1. **W3-F06** (scale) re-runs `bench_forecast.py` on the built path, and also times `get_danger` at 50,000 series.
+2. **W3-F03 remainder** (CR-w3-forecast-1 option B approved 2026-11-09): after the lead's `ppv1_0014` merges into `v1-local`, merge it here, write the BacktestResult body to `forecast_runs.backtest` in the `publish_network` INSERT, serve `get_backtest` from that row, add `test_backtest_persisted_and_served_by_get_backtest`, and drop the backtest row from `STUBS`. The step already computes the per-series sums (`network.compute` → `backtest`).
 
 ## Gates
 
@@ -40,6 +39,12 @@ Order: F02 → F01 → F04 → F03 → F05 → F06. F01 and F02 depend on nothin
 - **Envelope:** more than 50,000 series (demand + donation) is refused at submit with 422 `FORECAST_SERIES_OVER_ENVELOPE`, never truncated. — W3-F03.
 - **`forecast.v1` `max_output_bytes` 4 MB → 32 MB** (this lane's `workers/forecasting.py`). It caps both the step's stdout and the publish package, and the compact network output is about 11 MB at 50,000 series. The input stays at 16 MB. — W3-F03.
 - **Tenancy helper:** reuses `optimization.api_v3._tenant` rather than adding a third copy. W2-06 §4 defers "one tenancy helper" to W4. — W3-F03.
+
+- **Danger replays the run's own dataset version** (the version in its frozen input, not the network's latest) through `project_v3` with no transfers, the solver's rounded demand targets (`scenario._demand`), on-hand lots as `scenario._batches` keeps them and in-horizon inbound from `scenario._inbound`. Forecast, stock and deliveries then come from one snapshot. Published versions never change. — W3-F05.
+- **Bands:** `HIGH` ≥ 0.50, `MEDIUM` ≥ 0.20, below is low (`services/danger/ranking.py`). The score is quantized to 0.0001, and the ranking uses that shown value. — W3-F05.
+- **Shares:** unmet share = 7-day unmet / 7-day target, for a known target above 0. In Retail, expiry share = units expiring unsold in the horizon / (eligible on hand now + confirmed in-horizon inbound), for a product with dated stock. A hub or DC has no demand series, so in Retail its dated stock is scored by its expiry share (no local demand). — W3-F05.
+- **Ties:** between a product's two shares, between products and between locations, the earliest first day of that loss wins, then unmet before expiry, then the ID (byte order). For an expiry-driven row, `first_deficit_date` is the first day stock expires unsold. — W3-F05.
+- **Unknown is not zero:** a demand series that isn't AVAILABLE makes target, served and unmet unknown (`null` per day), and its expiry unknown too when it has dated stock. Its product is not scored. A location with no share gets no ranking row. `expiring_unsold` is `null` for a product with no dated lot; `donation_forecast` is `null` with no donation series, whole units otherwise (rounded as demand targets are). — W3-F05.
 
 - **W3-F04 is tests only.** Per W2-06 §3, the projection the danger ranking uses is the solver's `project_v3`, which already counts frozen inbound once. `services/inventory/projection.py` (the P1 projection) is unchanged. The out-of-horizon case is pinned where `ORInputV3` refuses the row (`INBOUND_OUTSIDE_HORIZON`), because that is the only way into `project_v3`. — W3-F04.
 
@@ -85,7 +90,7 @@ Order: F02 → F01 → F04 → F03 → F05 → F06. F01 and F02 depend on nothin
   - Only the `forecast.v1` network publisher writes it, in the same `INSERT` as the run row. Only `get_backtest` reads it: one row, validated with `BacktestResult`.
 - **Recommendation: B.** The backtest is a property of exactly one run: the same frozen input, policy and method chain, and like `output` it never changes after publish. Keeping it on the run row gives one write in the insert the publisher already does, no extra 50,000-row insert inside the queue lock, and one row read per `GET`. The pooled roll-ups are computed once at publish from the exact sums (`ScoredSet`, W3-F02), so no sums need storing and nothing overflows. A needs five column changes, a new key and a 50,000-row aggregate on every read to rebuild what the publisher already computed. B leaves `backtest_scores` unused: the lead can drop it in the same migration or keep it for a later queryable view.
 - **Unblocks:** W3-F03's `get_backtest` and `test_backtest_persisted_and_served_by_get_backtest`; the `GET /forecasts/{job_id}/backtest` row in `STUBS`.
-- **Status:** open (orchestrator and Gabriel decide; the lead lands any migration).
+- **Status:** decided 2026-11-09 (Gabriel, via the lead): **option B approved**. The lead lands `ppv1_0014` in its own PR into `v1-local`: `forecast_runs.backtest` JSONB NULL with a CHECK (NULL or a JSON object), and the ORM column `ForecastRun.backtest`. `backtest_scores` stays untouched. The lane asked for nothing else: no NOT NULL rule (v2 site runs stay NULL), no index (read by primary key).
 
 ## Escalations
 

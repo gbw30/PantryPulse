@@ -19,6 +19,7 @@ History, as of 2026-11-04:
 
 import time
 import uuid
+from contextlib import contextmanager
 from datetime import date, timedelta
 from types import SimpleNamespace
 
@@ -90,11 +91,12 @@ FILES = {
 }
 
 
-@pytest.fixture(scope="module")
-def stack(tmp_path_factory):
+@contextmanager
+def forecast_stack(schema: str, tmp):
+    """A migrated schema with the production forecast.v1 registration under a supervisor."""
     url = database_url()
-    reset_schema(url, SCHEMA)
-    engine = create_queue_engine(url, schema=SCHEMA)
+    reset_schema(url, schema)
+    engine = create_queue_engine(url, schema=schema)
     with engine.begin() as conn:
         command.upgrade(alembic_config(conn), "head")
     with pytest.MonkeyPatch.context() as patch:
@@ -106,11 +108,18 @@ def stack(tmp_path_factory):
                                 SupervisorConfig(registry_name="test", profile=PROFILE,
                                                  tick_s=0.02))
         assert supervisor.start()
-        yield SimpleNamespace(engine=engine, queue=queue, supervisor=supervisor,
-                              tmp=tmp_path_factory.mktemp("imports"))
-        supervisor.shutdown_drain(timeout_s=5)
+        try:
+            yield SimpleNamespace(engine=engine, queue=queue, supervisor=supervisor, tmp=tmp)
+        finally:
+            supervisor.shutdown_drain(timeout_s=5)
     engine.dispose()
-    reset_schema(url, SCHEMA)
+    reset_schema(url, schema)
+
+
+@pytest.fixture(scope="module")
+def stack(tmp_path_factory):
+    with forecast_stack(SCHEMA, tmp_path_factory.mktemp("imports")) as built:
+        yield built
 
 
 def import_network(stack, files=FILES, network=None):
