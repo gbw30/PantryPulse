@@ -15,14 +15,14 @@ Status values: `todo`, `in progress`, `done`, `blocked (<reason or CR id>)`.
 
 ### Next step
 
-`/devkit:ship-check` (local review by the project `verifier` agent), then the PR `lane/w3-samples → v1-local`. When the lead's CR-w3-samples-1/2 PR merges: `git merge origin/v1-local`, re-run `tests/samples` and the quick gate, push.
+PR `lane/w3-samples → v1-local` is open; wait for the orchestrator's review. When the lead's CR-w3-samples-1/2 PR merges: `git merge origin/v1-local` (no rebase), re-run `tests/samples` and the quick gate, push.
 
 ## Gates
 
 | Gate | Commit | Result |
 |---|---|---|
-| `node scripts/quality/run.cjs quick` (standard env) | `55026c0` | PASS (4/4). Without a DB, pytest is 1669 passed, 383 skipped: every skip is a PostgreSQL suite reporting `NOT RUN: PP_TEST_DATABASE_URL is not set` (e.g. `test_supervisor` 63, `test_job_queue` 38, `test_build_scenario` 22, `test_import_postgres` 21, `test_seed` 7); not counted as validated, all run in `full` below |
-| `node scripts/quality/run.cjs full` (with `.env.lane`, `PP19_TEST_SCHEMA_ISOLATION=1`) | `55026c0` | PASS (8/8); same env `uv run --frozen pytest -q -rs` → 2052 passed, 0 skipped in 314 s |
+| `node scripts/quality/run.cjs quick` (standard env) | `55026c0`, rerun `f7d996e` | PASS (4/4). Without a DB, pytest is 1669 passed, 383 skipped: every skip is a PostgreSQL suite reporting `NOT RUN: PP_TEST_DATABASE_URL is not set` (e.g. `test_supervisor` 63, `test_job_queue` 38, `test_build_scenario` 22, `test_import_postgres` 21, `test_seed` 7); not counted as validated, all run in `full` below |
+| `node scripts/quality/run.cjs full` (with `.env.lane`, `PP19_TEST_SCHEMA_ISOLATION=1`) | `55026c0`, rerun `f7d996e` | PASS (8/8) both times; same env `uv run --frozen pytest -q -rs` → 2052 passed, 0 skipped (`55026c0`); 2053 passed, 0 skipped in 291 s (`f7d996e`) |
 | `/devkit:ship-check` | `0053567` → fixes in the next commit | step 1 quick+full PASS; step 2 project `verifier`: pass with findings (106 focused tests incl. PostgreSQL 0 skipped, generator `--check` clean, own W1-rule sweep over 1,100 Pantry and 134 Retail dates 0 failures, partial-failure and concurrent-seed runs held). F1 and F2 fixed; F3–F5 recorded below. Step 3: security-guidance not installed. Steps 5–6 after the PR |
 
 ## Decisions made inside the lane
