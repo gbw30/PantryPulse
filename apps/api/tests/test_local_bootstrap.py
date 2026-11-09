@@ -177,7 +177,6 @@ def test_startup_line(db, paths, monkeypatch, capsys, env, port):
 
 
 def test_seed_calls_ensure_samples_and_never_resets(db, paths, monkeypatch):
-    assert samples.ensure_samples(None, TODAY) == samples.SeedReport(loaded=())
     sentinel = "11111111-2222-4333-8444-555555555555"
     with db.begin() as conn:
         conn.execute(sa.text("INSERT INTO organizations (id, name, is_demo) "

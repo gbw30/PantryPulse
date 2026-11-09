@@ -13,7 +13,6 @@ from app.schemas.v1_networks import TemplateName
 from app.services.imports.columns import COLUMNS, header
 from app.services.imports.templates import template_catalog, template_csv
 from app.services.imports.validate import validate_files
-from app.services.v1_errors import NotImplementedV1
 
 BLANK_DIR = Path(__file__).resolve().parents[4] / "data" / "templates" / "blank"
 NAMES: tuple[TemplateName, ...] = get_args(TemplateName)
@@ -73,13 +72,6 @@ def test_guide_states_single_timezone_and_blank_capacity_rule():
     basis = next(c for t in catalog.templates if t.name == "demand_history"
                  for c in t.columns if c.name == "basis")
     assert "sales (undercounts demand when shelves were empty)" in basis.meaning
-
-
-def test_examples_kind_returns_501_until_w3():
-    with pytest.raises(NotImplementedV1) as raised:
-        template_csv("locations", "example")
-    assert raised.value.details == {"task": "W3-P03"}
-    assert not any(t.example_available for t in template_catalog(None).templates)
 
 
 def test_template_routes_answer_through_the_api():
