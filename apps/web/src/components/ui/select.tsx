@@ -61,7 +61,7 @@ function SelectContent({
       <SelectPrimitive.Content
         data-slot="select-content"
         className={cn(
-          "relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border bg-popover text-popover-foreground shadow-md data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
+          "relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border bg-popover text-popover-foreground shadow-md data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 motion-reduce:animate-none!",
           position === "popper" &&
             "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
           className
@@ -70,6 +70,7 @@ function SelectContent({
         align={align}
         {...props}
       >
+        <InertOutside />
         <SelectScrollUpButton />
         <SelectPrimitive.Viewport
           className={cn(
@@ -84,6 +85,31 @@ function SelectContent({
       </SelectPrimitive.Content>
     </SelectPrimitive.Portal>
   )
+}
+
+/**
+ * Radix hides everything outside an open list with aria-hidden only, which leaves the page's controls
+ * focusable inside aria-hidden content (axe aria-hidden-focus). While the list is open, the same elements
+ * are also inert; Radix already blocks Tab and outside pointer events, so behavior doesn't change.
+ */
+function InertOutside() {
+  const marker = React.useRef<HTMLSpanElement>(null)
+  React.useEffect(() => {
+    if (!marker.current?.isConnected) return // a closed list renders into a detached fragment
+    let active = true
+    let marked: HTMLElement[] = []
+    // Radix's hideOthers runs in the list's own effect, which runs after this child's effect.
+    queueMicrotask(() => {
+      if (!active) return
+      marked = [...document.querySelectorAll<HTMLElement>("[data-aria-hidden='true']")].filter((el) => !el.inert)
+      for (const el of marked) el.inert = true
+    })
+    return () => {
+      active = false
+      for (const el of marked) el.inert = false
+    }
+  }, [])
+  return <span ref={marker} hidden />
 }
 
 function SelectLabel({

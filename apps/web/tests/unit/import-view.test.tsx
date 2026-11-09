@@ -81,8 +81,12 @@ it("losing the status check after the commit was accepted never claims nothing w
   const lost = await screen.findByRole("alert");
   expect(lost).toHaveTextContent("Lost contact with the import (network error). It may still finish; nothing is known yet about what was saved.");
   expect(lost).not.toHaveTextContent(/Nothing was saved/);
-  // The accepted import may still commit: a second submit could create a second copy.
-  expect(screen.getByRole("button", { name: "Check and import" })).toBeDisabled();
+  // The accepted import may still commit: a second submit could create a second copy. The button stays
+  // focusable (aria-disabled) so keyboard focus isn't dropped, but pressing it does nothing.
+  const again = screen.getByRole("button", { name: "Check and import" });
+  expect(again).toHaveAttribute("aria-disabled", "true");
+  fireEvent.click(again);
+  expect(networkApi.createImport).toHaveBeenCalledTimes(1);
   fireEvent.click(screen.getByRole("button", { name: "Check again" }));
   await screen.findByText(example("ImportStatus").failure!.message);
   expect(status).toHaveBeenCalledTimes(2);

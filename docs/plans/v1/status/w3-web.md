@@ -10,7 +10,7 @@ Connected runs only count as evidence when the lane's connected stack runs (belo
 |---|---|---|---|
 | W3-W01 | done | see `git log` (W3-W01) | Connected (schema `ppor_demo_w3web_1109014243`, API and worker with no egress): `RUN=/tmp/claude-1000/pw3 apps/web/tests/e2e/connected/run-e2e.sh tests/e2e/v1-connected-import.spec.ts --workers=1` → 4 passed (A06/A23, A07, A10, A11). Carry-in units RED first (6 failed for the expected reasons), then `npx vitest run` → 23 files, 126 passed; `node --test tests/*.test.mjs` → 12 passed; tsc and eslint exit 0; mocked e2e overview, design-lab, presenter-session, import-upload, import-templates, v1-shell, enrichment → 46 passed. |
 | W3-W02 | done | see `git log` (W3-W02); carry-in `55fbdc9` | Connected, whole suite as in CI's connected step (production build, API and worker with no egress, schema `ppor_demo_w3web_1109024125` already holding v1 networks): `PP_E2E_PRODUCTION=1 RUN=/tmp/claude-1000/pw4 apps/web/tests/e2e/connected/run-e2e.sh --workers=1` → 192 passed, 0 failed, 0 skipped, including A14, A15 and A16 (journey) and A06/A23, A07, A10, A11 (import). The forecast run in A14–A16 is a FIXTURE (E-1), not forecast evidence. Units RED first, then `npx vitest run` → 23 files, 134 passed; `node --test tests/*.test.mjs` → 12 passed; tsc and eslint exit 0; `node scripts/quality/run.cjs quick` → exit 0 (web typecheck, web lint, api lint, api tests PASS). |
-| W3-W03 | in progress | WIP `85e1561` (spec written, not yet run) | — (see Save point 2026-11-09) |
+| W3-W03 | done | see `git log` (W3-W03) | Connected, whole suite as in CI's connected step (production build, API and worker with no egress through `scripts/quality/netns-bridge.py`, schema `ppor_demo_w3web_1109170453`, which already held the first run's v1 networks): `PP_E2E_PRODUCTION=1 RUN=/tmp/claude-1000/pw5 apps/web/tests/e2e/connected/run-e2e.sh --workers=1` → 208 passed, 0 failed, 0 skipped, including the 13 `@V1-A20` tests in `v1-a11y.spec.ts` and the new `@V1-A10` sample-values test. `npx vitest run` → 24 files, 138 passed; `node scripts/quality/run.cjs quick` → exit 0 (web typecheck, web lint, api lint, api tests PASS). |
 
 ### W3-W01 RED run (2026-11-08, connected stack, schema `ppor_demo_w3web_1108182844`)
 
@@ -83,7 +83,7 @@ Mirrors the CI connected step (`.github/workflows/pantrypulse-ci.yml:86-108`), w
 - **Item 3, one sign-in helper:** `tests/e2e/sign-in.ts` `signInThroughForm(page)` is the only form sign-in in the connected specs (`data-explorer`, `operations-api`, `overview-live`, `recommendations`, `scenario-lab`, and `connected.ts`'s per-worker `signIn`). A rejected login fails in 30 s and empties the password field first, so no password reaches `error-context.md` or the uploaded `test-results/`. `presenter-session.spec.ts` keeps its own form steps: it is mocked and types the fixed strings "wrong" and "right" to test the form itself.
 - **Evidence:** `npx vitest run` → 24 files, 137 passed; tsc and eslint exit 0. Mocked e2e: v1-comparison, scenario-lab, recommendations, operations-api, overview-live, data-explorer, forecasting-integration, presenter-session → 89 passed, 0 failed (connected-only tests skip in mocked mode); one presenter-session 390×844 failure in the first parallel run did not recur in 15 of 15 repeats (the "Open navigation" click can land before hydration; `/overview` is unchanged by these items). Connected (production build, no egress, schema `ppor_demo_w3web_1109024125` already holding v1 networks): `PP_E2E_PRODUCTION=1 RUN=/tmp/claude-1000/pw4 apps/web/tests/e2e/connected/run-e2e.sh` with the specs above plus v1-connected-import and v1-connected-journey, `--workers=1` → 99 passed, 0 failed, 0 skipped.
 
-### Save point 2026-11-09
+### Save point 2026-11-09 (superseded by W3-W03 below; kept for the record)
 
 - **Head:** the commit that adds this section, on top of `85e1561` (pushed to `origin/lane/w3-web`, no PR yet). Merged `origin/v1-local` at `5c5fbe7` (lead PR #122) in `298b24a`, no rebase.
 - **Done:** W3-W01 and W3-W02 (evidence in the table above). Lead items 1 and 3 (`0932747`, evidence under "Lead items" above; connected 99 passed on the pre-merge stack). CR-w3-web-1 follow-up (`694d2d2`): `stack-up.sh` runs `scripts/quality/netns-bridge.py` and waits for the PG bridge socket like CI. `connected/bridge.py` was deleted.
@@ -98,6 +98,33 @@ Mirrors the CI connected step (`.github/workflows/pantrypulse-ci.yml:86-108`), w
   1. Run `RUN=/tmp/claude-1000/pw5 apps/web/tests/e2e/connected/stack-up.sh`, then `npm run build` in `apps/web`, then `PP_E2E_PRODUCTION=1 RUN=/tmp/claude-1000/pw5 apps/web/tests/e2e/connected/run-e2e.sh --workers=1`. This is the whole suite on the new bridge, including the new A10 sample-values test. Load `.env.lane` in every shell.
   2. W3-W03: `npx playwright test tests/e2e/v1-a11y.spec.ts tests/e2e/import-upload.spec.ts --workers=1` (mocked) → RED → fix in `apps/web/src/**` → GREEN. Then update this file, commit, push.
   3. Finish: quick and full gates (`PP19_TEST_SCHEMA_ISOLATION=1`), `/devkit:ship-check` with the verifier, then the PR into `v1-local`.
+
+### W3-W03 (2026-11-09)
+
+- **Spec (`tests/e2e/v1-a11y.spec.ts`, `@V1-A20`):** the import, decisions and atlas ranking screens, plus the shell controls on them (the network switcher, and the navigation drawer on a phone), at 1440×900, 1280×720 and 390×844.
+  - Each test drives its screen with the keyboard only, with no `click`, `fill`, `check` or `focus()`.
+  - axe must report zero violations of any impact: the shared helper's serious/critical gate, and no `a11y-advisory` annotation for the label.
+  - Motion: with `prefers-reduced-motion: reduce`, a recorder installed before the page's scripts sees no CSS animation, transition, `animate()` call or inline-transform sequence that moves, scales or resizes anything, and nothing infinite.
+  - A live check proves the recorder works: with motion allowed, it records the switcher opening.
+- **RED:** the first connected run had 194 passed and 8 failed. The import and decisions tests failed at every viewport. Probes showed the cause:
+  - focus dropped to `<body>` when the focused "Check and import" or "Export CSV" button became `disabled` while busy;
+  - focus also dropped when "Start a new import" removed itself.
+
+  The shell test then failed in two ways. axe reported `aria-hidden-focus` (serious) with the switcher open: Radix Select hides the app with `aria-hidden` only, and axe excuses that only under a modal dialog (`focusable-modal-open`), not a listbox. The Radix enter/exit animations (`zoom-in-95`, slides) also ran under reduced motion: no rule in `tw-animate-css` or `globals.css` covers them.
+- **Fixes:**
+  - Busy buttons keep focus: they get `aria-disabled` and ignore activation. The unit test now checks that a second press creates no second import.
+  - "Start a new import" moves focus to the "3. Upload your files" heading (`tabIndex={-1}`, the `location-inspector` convention).
+  - `ui/select.tsx` `InertOutside` marks the elements Radix hid as `inert` while a list is open, and focus still returns to the trigger.
+  - `motion-reduce:animate-none!` on dialog, popover, select, sheet and tooltip. It needs `!`, because the `data-[state=open]:animate-in` selector outranks it.
+- **Connected-run failures fixed on the way, each RED first:**
+  - **Sign-in dialog closed by itself.** This failed `data-explorer`'s connected sign-in, and caused the earlier "flaky" presenter-session 390×844 test. The W3-W02 overview returned a different shell for "loading networks", the v1 overview and the legacy atlas, so React remounted the whole shell when the network list settled. That closed an open sign-in dialog or phone drawer. Two fixes:
+    - `NetworkProvider` derives "signed out" from the presenter session in the same render, and no longer requests the list for a visitor, who would only get a 401.
+    - The overview renders every state through one shell: `LegacyAtlas` takes a `body`.
+    - New mocked tests: the dialog and its typed username survive the list settling, and a presenter's phone drawer stays open. Both went RED, then GREEN; presenter-session is 50/50 over 10 repeats.
+  - **`@V1-A10` offline enrichment stayed "running".** Settings followed a lookup job only after "Retry lookups". A status read during the import's own job, which ends about 1.5 s after the import, never refreshed; earlier runs passed only because the job usually ended first. Settings now follows any running job it reads, and a job is never followed twice. Unit test RED, then GREEN.
+- **CR-w3-samples-1 end to end:** the `@V1-A10` sample-values test (`8897020`) passed in both connected runs. A seeded sample network's P1–P3 read "Source: sample values"; a normal import's read "Source: entered by you".
+- **Quick gate during the first connected run:** the Stop hook's run failed `api tests` with 2 failures while the 14-minute connected e2e run shared the machine and `pantrypulse_web_test`. Run alone, the API suite gives 1955 passed, 77 skipped, exit 0, and the quick gate above is exit 0. Gates and the connected suite now run one at a time.
+- One `overview-layout` "grip handles" failure appeared once in a 13-file parallel mocked run; it passed 5 of 5 alone and 27 of 27 over 3 parallel repeats.
 
 ## Decisions made inside the lane
 

@@ -57,11 +57,14 @@ async function recordMotion(page: Page) {
   });
 }
 
+/** What the page has started so far that moves something on screen, or never ends. */
+const moving = async (page: Page) => (await page.evaluate(() => (window as unknown as { __started: Started[] }).__started))
+  .filter((s) => s.infinite || s.props.some((p) => MOTION.test(p)));
+
 /** prefers-reduced-motion is on, and nothing the page started so far moved anything on screen. */
 async function expectNoMotion(page: Page) {
   expect(await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches)).toBe(true);
-  const started = await page.evaluate(() => (window as unknown as { __started: Started[] }).__started);
-  expect(started.filter((s) => s.infinite || s.props.some((p) => MOTION.test(p)))).toEqual([]);
+  expect(await moving(page)).toEqual([]);
 }
 
 /** axe (WCAG 2.1 A/AA): no violation of any impact, not only serious and critical ones. */
@@ -103,6 +106,17 @@ const ranking = example("DangerRanking");
 const atlasNetwork = example("NetworkList").networks.find((n) => n.id === ranking.network_id)!;
 const P12 = example("LocationList").locations.find((l) => l.location_id === "P-12")!;
 
+test("@V1-A20 the motion check is live: with motion allowed, it records the network switcher opening", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await recordMotion(page);
+  await mockImport(page, failedStatus);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/import");
+  await page.getByRole("combobox", { name: "Network", exact: true }).click();
+  await expect(page.getByRole("listbox")).toBeVisible();
+  await expect.poll(() => moving(page)).not.toEqual([]);
+});
+
 for (const [width, height] of VIEWPORTS) {
   test.describe(`${width}x${height}`, () => {
     test.beforeEach(async ({ page }) => {
@@ -142,6 +156,26 @@ for (const [width, height] of VIEWPORTS) {
       await expectFocusKept(page);
       await expectNoMotion(page);
       await noHorizontalScroll(page);
+    });
+
+    test(`@V1-A20 shell on these screens: network switcher${width < 768 ? " and navigation drawer" : ""} by keyboard, no motion at ${width}x${height}`, async ({ page }, testInfo) => {
+      await mockImport(page, failedStatus);
+      await page.goto("/import");
+      await expect(page.getByRole("heading", { level: 1, name: "Import your network" })).toBeVisible();
+      if (width < 768) {
+        await tabTo(page, page.getByRole("button", { name: "Open navigation" }));
+        await page.keyboard.press("Enter");
+      }
+      const switcher = page.getByRole("combobox", { name: "Network", exact: true });
+      await tabTo(page, switcher);
+      await page.keyboard.press("Enter");
+      const listbox = page.getByRole("listbox");
+      await expect(listbox).toBeVisible();
+      await expectAxeClean(page, testInfo, `network switcher ${width}`);
+      await page.keyboard.press("Escape");
+      await expect(listbox).toHaveCount(0);
+      await expect(switcher).toBeFocused();
+      await expectNoMotion(page);
     });
 
     test(`@V1-A20 decisions: keyboard only, axe clean, no motion at ${width}x${height}`, async ({ page }, testInfo) => {

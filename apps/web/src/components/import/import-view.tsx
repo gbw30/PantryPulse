@@ -76,6 +76,7 @@ function ImportContent() {
   const [run, setRun] = useState<Run>({ step: "idle" });
   const alive = useRef(true);
   const scan = useRef(0); // only the latest demand_history scan may set the default date
+  const uploadHeading = useRef<HTMLHeadingElement>(null);
   // Set on mount too: Strict Mode runs the cleanup once before the real mount.
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
 
@@ -168,6 +169,8 @@ function ImportContent() {
     setLastHistory(null);
     setProblems([]);
     setFormKey((n) => n + 1);
+    // The button that called this goes away; keyboard focus continues at the files to choose again.
+    uploadHeading.current?.focus();
   }
 
   const status = run.step === "tracking" ? run.status : null;
@@ -220,7 +223,7 @@ function ImportContent() {
           </section>
 
           <section aria-labelledby="upload-heading" className="grid gap-3">
-            <h2 id="upload-heading" className="text-lg font-semibold">3. Upload your files</h2>
+            <h2 id="upload-heading" ref={uploadHeading} tabIndex={-1} className="text-lg font-semibold outline-none">3. Upload your files</h2>
             <UploadForm key={formKey} templates={templates} files={files} onChange={chooseFile} disabled={busy} />
             {problems.length > 0 && (
               <div role="alert" className="rounded-lg border border-pp-warning/50 bg-card px-4 py-3 text-sm">
@@ -228,7 +231,8 @@ function ImportContent() {
                 <ul className="ml-5 list-disc">{problems.map((p) => <li key={p}>{p}</li>)}</ul>
               </div>
             )}
-            <Button className="h-11 justify-self-start" onClick={submit} disabled={busy}>Check and import</Button>
+            {/* Busy stays focusable (aria-disabled): disabling the focused button would drop keyboard focus to the page. */}
+            <Button className="h-11 justify-self-start aria-disabled:opacity-50" onClick={busy ? undefined : submit} aria-disabled={busy || undefined}>Check and import</Button>
             {run.step === "uploading" && <p role="status" className="text-sm">Uploading files: {run.done} of {run.total}</p>}
             {run.step === "tracking" && !status && <p role="status" className="text-sm">Starting the checks…</p>}
             {run.step === "request_failed" && (
