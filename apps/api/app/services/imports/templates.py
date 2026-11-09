@@ -148,7 +148,8 @@ def template_catalog(mode: NetworkMode | None) -> TemplateCatalog:
         templates.append(Template(name=name, required=name in REQUIRED_TEMPLATES,
                                   description=DESCRIPTIONS[name], columns=tuple(entries),
                                   # shortcut: the examples are the Pantry sample, so only Pantry
-                                  # offers them until the route takes a mode (CR-w3-samples-3).
+                                  # offers them until the samples lane adds Retail ones
+                                  # (CR-w3-samples-3).
                                   example_available=mode == "PANTRY"))
     return TemplateCatalog(mode=mode, templates=tuple(templates), notes=NOTES)
 

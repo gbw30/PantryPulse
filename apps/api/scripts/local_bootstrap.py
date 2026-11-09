@@ -111,9 +111,11 @@ def seed_today(now: datetime | None = None) -> date:
 def run(engine, *, login_file: Path, token_file: Path, web_port: str, today: date) -> None:
     with Session(engine) as session, session.begin():
         login_created = ensure_login(session, login_file)
-    # The seed gets its own transaction once the login has committed (CR-w3-samples-4).
+        organization_created = seed_local.ensure_local_organization(session)
+    # The samples get their own transaction once the login and organization have committed: an
+    # open organizations write would block each import's partition attach (CR-w3-samples-4).
     with Session(engine) as session, session.begin():
-        summary = seed_local.seed(session, today)
+        summary = seed_local.seed(session, today, organization_created)
     token_created = ensure_proxy_token(token_file)
     print(f"Local login {'generated' if login_created else 'unchanged'}.")
     print(f"Proxy token {'generated' if token_created else 'unchanged'}.")
