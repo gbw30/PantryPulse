@@ -306,8 +306,10 @@ def built(n: int, days: int) -> dict:
     package, run_id = json.loads(step_json)["network_output"], uuid4()
     output = build_output(validated, package, run_id)
     output_json = output.model_dump_json()
-    backtest_json = json.dumps(build_backtest(validated, package, run_id))
     timings["publish_build_output_s"] = time.perf_counter() - t
+    t = time.perf_counter()
+    backtest_json = json.dumps(build_backtest(validated, package, run_id))
+    timings["publish_build_backtest_s"] = time.perf_counter() - t
     t = time.perf_counter()
     batches = [BatchV3(id=f"{locations[s.location][1]}/{products[s.product][1]}/B1",
                        location_id=locations[s.location][1], product_id=products[s.product][1],
@@ -319,9 +321,9 @@ def built(n: int, days: int) -> dict:
     timings = {k: round(v, 2) for k, v in timings.items()}
     # workers/forecasting.py validates the frozen input 4 times: admission, the step, the
     # publisher's validate and its publish; publish then builds the output in the lock.
-    job = 4 * timings["validate_input_s"] + timings["step_compute_s"] \
-        + timings["publish_build_output_s"]
-    lock = timings["validate_input_s"] + timings["publish_build_output_s"]
+    publish = timings["publish_build_output_s"] + timings["publish_build_backtest_s"]
+    job = 4 * timings["validate_input_s"] + timings["step_compute_s"] + publish
+    lock = timings["validate_input_s"] + publish
     statuses = [r["status"] for r in json.loads(step_json)["network_output"]["series"]]
     return {
         "series": n, "days": days, "timings": timings,
