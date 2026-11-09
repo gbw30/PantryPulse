@@ -112,6 +112,7 @@ jobs:
           mkdir "$NET/pg"
           "$PY" scripts/quality/netns-bridge.py "unix:$NET/pg/.s.PGSQL.5432" tcp:127.0.0.1:5432 > artifacts/bridge-pg.log 2>&1 &
           "$PY" scripts/quality/netns-bridge.py tcp:127.0.0.1:8000 "unix:$NET/api.sock" > artifacts/bridge-api.log 2>&1 &
+          for _ in $(seq 100); do [ -S "$NET/pg/.s.PGSQL.5432" ] && break; sleep 0.1; done
           NETNS_DB=$("$PY" -c 'import os, sys; from sqlalchemy.engine import make_url; u = make_url(os.environ["DATABASE_URL"]); print(u.set(host=None, port=None, query={**u.query, "host": sys.argv[1], "port": str(u.port or 5432)}).render_as_string(hide_password=False))' "$NET/pg")
           # Prove the namespace has no route out before trusting the offline journey.
           unshare -rn "$PY" -c 'import errno, socket

@@ -1,12 +1,13 @@
 # W3 decisions: change requests and escalations from the wave-3 lanes
 
-**Status:** decided by Gabriel, 2026-11-09. **Applies to:** the W3 lanes, W4 and W5. The lane status files (`docs/plans/v1/status/w3-*.md`) hold each request in full.
+**Status:** decided by Gabriel, 2026-11-09. **Applies to:** the W3 lanes, W4 and W5. The lane status files (`docs/plans/v1/status/w3-*.md` on each `lane/w3-*` branch) hold each request in full.
 
 ## 1. CR-w3-samples-1: sample rates read "sample values" (approved, lead)
 
-- **Change:** V1-SPEC §8 labels a sample network's pre-filled poverty and SNAP rates "sample values". `location_attributes` (`apps/api/app/services/enrichment/service.py`) now reports source "sample values" instead of "manual" when both rates are manual and the location's network has `is_sample`. The state stays `manual`. The scenario freeze copies the source, so a frozen sample scenario carries the same label.
+- **Change:** V1-SPEC §8 labels a sample network's pre-filled poverty and SNAP rates "sample values". `location_attributes` (`apps/api/app/services/enrichment/service.py`) now reports source "sample values" instead of "manual" when no rate comes from a lookup (each rate is manual or missing) and the location's network has `is_sample`. The state stays `manual`. The scenario freeze copies the source, so a frozen sample scenario carries the same label.
 - **Test:** `test_sample_network_template_rates_labeled_sample_values`. A sample import reads "sample values"; the same files imported as a normal network read "manual".
 - **Known limit:** no column tells a template rate apart from a user's own edit (`PUT .../attributes` writes the same `manual_*` columns). A user's edit on a sample location therefore also reads "sample values". Sample rates come pre-filled, so EGP never asks for one. If sample editing matters later, add a column that records who entered the rates.
+- **Screen (web lane):** `attribute-editor.tsx` `sourceLine` shows "Source: entered by you" for every `manual` state and never reads `source`, so the label doesn't reach the screen yet. The web lane shows "Source: sample values" when `source` says so (verifier, 2026-11-09).
 
 ## 2. CR-w3-samples-2: template CSVs keep LF on Windows (approved, lead)
 
