@@ -1,0 +1,10 @@
+location_id,name,type,street,city,state,zip,latitude,longitude,receiving_capacity_per_day,poverty_rate,snap_rate
+H01,Sample Hub — Gainesville,hub,No street address (sample),Gainesville,FL,32601,29.65,-82.32,,,
+P01,Sample Pantry — Ocala,pantry,No street address (sample),Ocala,FL,34471,29.19,-82.14,240,0.17,0.19
+P02,Sample Pantry — Lake City,pantry,No street address (sample),Lake City,FL,32055,30.19,-82.64,,0.24,0.27
+P03,Sample Pantry — Palatka,pantry,No street address (sample),Palatka,FL,32177,29.65,-81.64,160,0.31,0.33
+P04,Sample Pantry — Starke,pantry,No street address (sample),Starke,FL,32091,29.94,-82.11,,0.22,0.24
+P05,Sample Pantry — Live Oak,pantry,No street address (sample),Live Oak,FL,32064,30.29,-82.98,120,0.27,0.30
+P06,Sample Pantry — Chiefland,pantry,No street address (sample),Chiefland,FL,32626,29.47,-82.86,,0.25,0.26
+P07,Sample Pantry — Williston,pantry,No street address (sample),Williston,FL,32696,29.39,-82.45,100,0.20,0.22
+P08,Sample Pantry — High Springs,pantry,No street address (sample),High Springs,FL,32643,29.83,-82.60,,0.13,0.12

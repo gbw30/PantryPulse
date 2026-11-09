@@ -1,0 +1,7 @@
+product_id,name,unit,unit_value_usd,handling_units_per_unit
+RICE,"Rice, 2 lb bags",case,18.00,2
+BEANS,Canned beans,case,21.00,2
+MILK,Shelf-stable milk,case,24.00,2
+PNUTB,Peanut butter,case,30.00,1
+WATER,"Bottled water, 24-pack",case,5.00,2
+PRODUCE,Fresh produce box,box,15.00,1

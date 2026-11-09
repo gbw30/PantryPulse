@@ -95,7 +95,6 @@ KEYED = {"Idempotency-Key": "contract-test-1"}
 NEW_NETWORK = {"name": "N", "mode": "PANTRY", "timezone": "America/New_York"}
 ACTIONS = f"/networks/{NET}/comparisons/{CMP}/methods/EQUAL_SHARE"
 STUBS = [
-    ("GET", "/templates/locations.csv?kind=example", None, None, "W3-P03"),
     ("GET", f"/networks/{NET}/danger?forecast_run_id={JOB}", None, None, "W3-F05"),
     ("GET", f"/networks/{NET}/forecasts", None, None, "W3-F03"),
     ("GET", f"/networks/{NET}/projection?forecast_run_id={JOB}&location_id=P-1", None, None,
