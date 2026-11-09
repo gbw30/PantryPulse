@@ -89,6 +89,9 @@ jobs:
           export DATABASE_URL_UNPOOLED="$PP_TEST_DATABASE_URL"
           apps/api/.venv/bin/python apps/api/scripts/load_optimization_demo.py --schema ppor_demo_ci --output artifacts/demo.json
           apps/api/.venv/bin/python scripts/quality/demo-ci-env.py artifacts/demo.json >> "$GITHUB_ENV"
+      # GitHub's Ubuntu 24.04 image restricts unprivileged user namespaces through AppArmor.
+      - name: Allow unprivileged user namespaces for the no-egress backend
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Real browser, proxy, database and worker journey
         env:
           DATABASE_URL: ${{ env.PP_TEST_DATABASE_URL }}
@@ -98,10 +101,25 @@ jobs:
           PANTRYPULSE_API_ORIGIN: http://127.0.0.1:8000
           PP_RUN_CONNECTED: '1'
           PP_E2E_PRODUCTION: '1'
+          PP_E2E_NO_EGRESS: '1'
           PLAYWRIGHT_JUNIT_OUTPUT_FILE: ../../artifacts/browser.xml
         run: |
-          (cd apps/api && .venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000) > artifacts/api.log 2>&1 &
-          (cd apps/api && .venv/bin/python -m app.workers.supervisor --registry production --schema ppor_demo_ci) > artifacts/worker.log 2>&1 &
+          # V1-A10: the API and worker run with no outbound network, each in its own network
+          # namespace (unshare -rn). They reach PostgreSQL through a unix socket and the API serves
+          # on one; netns-bridge.py forwards both to TCP on the host.
+          PY=$PWD/apps/api/.venv/bin/python
+          NET=$(mktemp -d /tmp/ppnet.XXXXXX)
+          mkdir "$NET/pg"
+          "$PY" scripts/quality/netns-bridge.py "unix:$NET/pg/.s.PGSQL.5432" tcp:127.0.0.1:5432 > artifacts/bridge-pg.log 2>&1 &
+          "$PY" scripts/quality/netns-bridge.py tcp:127.0.0.1:8000 "unix:$NET/api.sock" > artifacts/bridge-api.log 2>&1 &
+          NETNS_DB=$("$PY" -c 'import os, sys; from sqlalchemy.engine import make_url; u = make_url(os.environ["DATABASE_URL"]); print(u.set(host=None, port=None, query={**u.query, "host": sys.argv[1], "port": str(u.port or 5432)}).render_as_string(hide_password=False))' "$NET/pg")
+          # Prove the namespace has no route out before trusting the offline journey.
+          unshare -rn "$PY" -c 'import errno, socket
+          try: socket.create_connection(("1.1.1.1", 443), timeout=3)
+          except OSError as e: raise SystemExit(0 if e.errno == errno.ENETUNREACH else f"unexpected {e!r}")
+          raise SystemExit("egress is open inside the namespace")'
+          (cd apps/api && DATABASE_URL="$NETNS_DB" exec unshare -rn "$PY" -m uvicorn app.main:app --uds "$NET/api.sock") > artifacts/api.log 2>&1 &
+          (cd apps/api && DATABASE_URL="$NETNS_DB" exec unshare -rn "$PY" -m app.workers.supervisor --registry production --schema ppor_demo_ci) > artifacts/worker.log 2>&1 &
           apps/api/.venv/bin/python scripts/quality/wait-demo.py
           npm run test:e2e --workspace @pantrypulse/web -- --workers=1 --reporter=list,junit
           python scripts/quality/require-test-evidence.py artifacts/browser.xml

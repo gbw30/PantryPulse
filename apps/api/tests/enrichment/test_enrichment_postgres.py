@@ -219,6 +219,16 @@ def test_manual_override_labeled_manual(engine, network, acs):
     assert _attributes(engine, network)["P4"].state == "manual"
 
 
+def test_sample_network_template_rates_labeled_sample_values(engine, network, tmp_path):
+    # V1-SPEC §8: a sample network's pre-filled rates read "sample values", not "manual".
+    sample = _import(engine, tmp_path / "sample", {**FILES, "locations": LOCATIONS},
+                     is_sample=True)
+    assert sample.ok, sample.errors
+    p4 = _attributes(engine, sample)["P4"]
+    assert (p4.state, p4.source, p4.poverty_rate) == ("manual", "sample values", Decimal("0.3"))
+    assert _attributes(engine, network)["P4"].source == "manual"
+
+
 def test_a_manual_rate_beside_a_looked_up_rate_names_both_sources(engine, network, acs):
     """P4's CSV gives poverty_rate only; its snap_rate comes from ACS and keeps that label."""
     _enrich(engine, network, acs, Census())
