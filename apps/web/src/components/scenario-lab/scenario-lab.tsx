@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { MotionConfig } from "motion/react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppShell } from "@/components/shell/app-shell";
 import { MethodComparisonSection } from "./v1-comparison";
+import { useNetwork } from "@/components/shell/network-switcher";
 import { usePresenter } from "@/components/shell/presenter-session";
 import { ProvenancePill } from "@/components/overview/provenance-pill";
 import { ApiError, TERMINAL_JOB_STATES, demoForecastRequest, isUuid, planningApi, type Methodology, type Schema } from "@/lib/planning-api";
@@ -46,13 +47,41 @@ export function ScenarioLab({ forecastRunId }: { forecastRunId?: string } = {}) 
   return (
     <MotionConfig reducedMotion="user">
       <AppShell active="scenarios" horizonLabel="7-day projection · 1–3 day window">
-        <ScenarioLabScreen forecastRunId={forecastRunId} />
+        <LabForNetwork forecastRunId={forecastRunId} />
       </AppShell>
     </MotionConfig>
   );
 }
 
-function ScenarioLabScreen({ forecastRunId }: { forecastRunId?: string }) {
+/** A chosen v1 network gets only its method comparison; the legacy builder is the view with no v1 network (as on the overview). */
+function LabForNetwork({ forecastRunId }: { forecastRunId?: string }) {
+  const { state, network } = useNetwork();
+  if (network) {
+    return (
+      <div className="flex flex-1 flex-col gap-4 px-4 pt-3 pb-6 md:px-6 md:py-5">
+        <LabHeader eyebrow="Scenario planning" />
+        <MethodComparisonSection forecastRunId={forecastRunId} />
+      </div>
+    );
+  }
+  if (state.status === "loading") return <p role="status" className="px-4 py-5 text-sm text-muted-foreground md:px-6">Loading networks…</p>;
+  return <ScenarioLabScreen />;
+}
+
+function LabHeader({ eyebrow, children }: { eyebrow: string; children?: ReactNode }) {
+  return (
+    <header className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+      <div className="min-w-0">
+        <p className="font-condensed text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">{eyebrow}</p>
+        <h1 className="text-[26px] leading-tight font-semibold tracking-tight md:text-[28px]">Scenario Lab</h1>
+        <p className="text-sm text-muted-foreground">Compare allocation methods on the same frozen network conditions.</p>
+      </div>
+      {children}
+    </header>
+  );
+}
+
+function ScenarioLabScreen() {
   const presenter = usePresenter();
   const pending = useRef(false);
   const view = useRef(0);
@@ -297,12 +326,7 @@ function ScenarioLabScreen({ forecastRunId }: { forecastRunId?: string }) {
     <div className="flex flex-1 flex-col gap-4 px-4 pt-3 pb-6 md:px-6 md:py-5">
       <HatchDefs />
       {/* R1 header */}
-      <header className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div className="min-w-0">
-          <p className="font-condensed text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Fairness-aware planning</p>
-          <h1 className="text-[26px] leading-tight font-semibold tracking-tight md:text-[28px]">Scenario Lab</h1>
-          <p className="text-sm text-muted-foreground">Compare allocation methods on the same frozen network conditions.</p>
-        </div>
+      <LabHeader eyebrow="Fairness-aware planning">
         <div className="flex flex-wrap items-end gap-2">
           <div className="grid gap-1">
             <span id="sl-saved-comparison" className="text-xs text-muted-foreground">Saved comparison</span>
@@ -320,8 +344,7 @@ function ScenarioLabScreen({ forecastRunId }: { forecastRunId?: string }) {
           </div>
           {catalog?.next_before && <Button variant="outline" size="sm" disabled={busy} onClick={() => void loadOlder()}>Load older saved work</Button>}
         </div>
-      </header>
-      <MethodComparisonSection forecastRunId={forecastRunId} />
+      </LabHeader>
 
       {/* R2 context strip + job status */}
       <div className="flex flex-col gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs">

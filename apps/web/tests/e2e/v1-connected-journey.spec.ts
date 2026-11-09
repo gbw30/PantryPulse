@@ -35,6 +35,8 @@ async function openComparison(page: Page, { base, mode, set, files }: { base: st
   await page.goto(`/scenarios?forecast_run_id=${run}`);
   const section = page.getByRole("region", { name: `Method comparison · ${name}` });
   await expect(section).toBeVisible();
+  // A chosen v1 network shows only its own comparison: the legacy builder is gone (W3 lead decision).
+  await expect(page.getByRole("form", { name: "Scenario builder" })).toHaveCount(0);
   return { id: id!, name, section };
 }
 

@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { expect, type BrowserContext, type Page } from "@playwright/test";
+import { signInThroughForm } from "./sign-in";
 
 // Helpers for the connected v1 specs (PP_RUN_CONNECTED=1): a real browser, the Next proxy, the API,
 // PostgreSQL and the production worker. Nothing here mocks a route. Run them as the CI connected
@@ -24,23 +25,11 @@ export const uniqueName = (base: string) => `${base} ${Date.now().toString(36)}`
 // in through the form once and later tests reuse that session's cookies.
 let session: Awaited<ReturnType<BrowserContext["storageState"]>> | null = null;
 
-/** Sign in from the sidebar footer with the run's generated presenter credentials (never hard-coded). */
+/** Sign in once per worker with the run's generated presenter credentials (PP_E2E_USERNAME, PP_E2E_PASSWORD). */
 export async function signIn(page: Page, at = "/import") {
   if (session) await page.context().addCookies(session.cookies);
   await page.goto(at);
-  if (!session) {
-    await page.getByRole("button", { name: "Presenter sign in" }).click();
-    await page.getByLabel("Username", { exact: true }).fill(process.env.PP_E2E_USERNAME ?? "presenter");
-    const password = page.getByLabel("Password", { exact: true });
-    await password.fill(process.env.PP_E2E_PASSWORD ?? "");
-    try {
-      // A rejected login (429, wrong password) never reloads: fail fast instead of at the test timeout.
-      await Promise.all([page.waitForEvent("load", { timeout: 30_000 }), page.getByRole("button", { name: "Sign in", exact: true }).click()]);
-    } catch (error) {
-      await password.fill("").catch(() => {}); // keep the password out of the failure snapshot
-      throw error;
-    }
-  }
+  if (!session) await signInThroughForm(page);
   await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
   session ??= await page.context().storageState();
 }

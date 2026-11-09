@@ -1,4 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
+import { signInThroughForm } from "./sign-in";
+import { withoutV1Networks } from "./v1-mocks";
 import { randomUUID } from "node:crypto";
 
 async function api(page: Page, path: string, body?: unknown, key = randomUUID()) {
@@ -15,11 +17,9 @@ async function api(page: Page, path: string, body?: unknown, key = randomUUID())
 test("operational history, audited stock and canonical plan review through the browser proxy", async ({ page }) => {
   test.skip(process.env.PP_RUN_CONNECTED !== "1", "Requires isolated seeded database and Linux worker");
   test.setTimeout(180_000);
+  await withoutV1Networks(page);
   await page.goto("/overview");
-  await page.getByRole("button", { name: "Presenter sign in" }).click();
-  await page.getByLabel("Username", { exact: true }).fill(process.env.PP_E2E_USERNAME ?? "presenter");
-  await page.getByLabel("Password", { exact: true }).fill(process.env.PP_E2E_PASSWORD ?? "pantry-local-demo");
-  await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Sign in", exact: true }).click()]);
+  await signInThroughForm(page);
   await expect(page.getByText("Presenter session", { exact: true })).toBeVisible();
   const catalog = await api(page, "operational-catalog");
   expect(catalog.status).toBe(200);
@@ -75,7 +75,7 @@ test("operational history, audited stock and canonical plan review through the b
   const frozen = await freezing;
   expect(frozen.status()).toBe(201);
   const scenarioId = (await frozen.json()).id;
-  await expect(page.getByRole("form", { name: "Scenario builder" }).getByRole("button", { name: "Compare methods", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Compare methods", exact: true })).toBeEnabled();
   const scenario = await api(page, `scenarios/${scenarioId}`);
   const accepted = await api(page, `scenarios/${scenarioId}/plans`, {
     expected_scenario_hash: scenario.body.payload.operational_hash, method: "CLASSICAL_GP", search_seconds: 1,

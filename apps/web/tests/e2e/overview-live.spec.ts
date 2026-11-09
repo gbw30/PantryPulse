@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page, type Route } from "@playwright/test";
+import { signInThroughForm } from "./sign-in";
 import type { components } from "../../../../packages/contracts/src/schema";
 import { expectNoSeriousA11yViolations } from "./a11y";
 
@@ -485,10 +486,7 @@ test("a quantity beyond Number.MAX_SAFE_INTEGER is shown as unavailable, never r
 test("connected: a signed-in presenter sees live data from the seeded backend", async ({ page }) => {
   test.skip(process.env.PP_RUN_CONNECTED !== "1", "Requires isolated seeded PostgreSQL, API and Linux worker");
   await page.goto("/overview");
-  await page.getByRole("button", { name: "Presenter sign in" }).click();
-  await page.getByLabel("Username", { exact: true }).fill(process.env.PP_E2E_USERNAME ?? "presenter");
-  await page.getByLabel("Password", { exact: true }).fill(process.env.PP_E2E_PASSWORD ?? "pantry-local-demo");
-  await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Sign in", exact: true }).click()]);
+  await signInThroughForm(page);
   await expect(page.getByText("Presenter session", { exact: true })).toBeVisible();
   // W2-06 carry-in: once the presenter has a v1 network (an import or a sample), the overview shows that
   // network's own ranking instead of the legacy atlas; the legacy live atlas remains while there is none.

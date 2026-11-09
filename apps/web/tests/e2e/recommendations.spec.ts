@@ -1,4 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
+import { signInThroughForm } from "./sign-in";
+import { withoutV1Networks } from "./v1-mocks";
 import { expectNoSeriousA11yViolations } from "./a11y";
 import {
   COMPARISON, COMPARISON_B, HASH_CLASSICAL, PLAN_CLASSICAL, SCENARIO_B, allocationResults, comparison, fail, method, mockApi, ok, scenario,
@@ -304,12 +306,9 @@ test("review 401 ends the presenter session", async ({ page }) => {
 test("connected: presenter reviews a real saved plan", async ({ page }) => {
   test.skip(process.env.PP_RUN_CONNECTED !== "1", "Set PP_RUN_CONNECTED=1 with a running backend");
   test.setTimeout(180_000);
+  await withoutV1Networks(page);
   await page.goto("/overview");
-  await page.getByRole("button", { name: "Presenter sign in" }).click();
-  const signIn = page.getByRole("dialog", { name: "Presenter sign in" });
-  await signIn.getByLabel("Username").fill(process.env.PP_E2E_USERNAME ?? "presenter");
-  await signIn.getByLabel("Password").fill(process.env.PP_E2E_PASSWORD ?? "pantry-local-demo");
-  await Promise.all([page.waitForEvent("load"), signIn.getByRole("button", { name: "Sign in", exact: true }).click()]);
+  await signInThroughForm(page);
   await page.goto("/scenarios");
   await page.getByRole("button", { name: "Generate forecast", exact: true }).click();
   await expect(page.locator("[data-job-state]")).toHaveAttribute("data-job-state", "SUCCEEDED", { timeout: 90_000 });
@@ -317,7 +316,7 @@ test("connected: presenter reviews a real saved plan", async ({ page }) => {
   await page.getByRole("button", { name: "Create frozen scenario" }).click();
   await page.getByLabel("Search seconds per method").fill("1");
   const submitting = page.waitForResponse((response) => /\/scenarios\/[^/]+\/compare-methods$/.test(new URL(response.url()).pathname) && response.request().method() === "POST");
-  await page.getByRole("form", { name: "Scenario builder" }).getByRole("button", { name: "Compare methods", exact: true }).click();
+  await page.getByRole("button", { name: "Compare methods", exact: true }).click();
   const accepted = await submitting;
   expect(accepted.status()).toBe(202);
   const comparisonId = (await accepted.json()).job_id as string;

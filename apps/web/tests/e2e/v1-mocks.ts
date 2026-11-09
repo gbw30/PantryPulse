@@ -48,3 +48,11 @@ export async function mockV1(page: Page, routes: Routes, { presenter = true } = 
   });
   return calls;
 }
+
+/**
+ * For the legacy connected specs: the browser sees no v1 network, so /scenarios keeps the legacy builder
+ * (W3 lead decision: a chosen v1 network shows only the v1 comparison). Only GET /api/v1/networks is
+ * answered here; every other request still reaches the real API.
+ */
+export const withoutV1Networks = (page: Page) => page.route("**/api/v1/networks", (route) =>
+  route.request().method() === "GET" ? route.fulfill({ json: { networks: [] } }) : route.fallback());
