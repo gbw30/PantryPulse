@@ -6,7 +6,9 @@ failures (T23). Real process containment is covered by the Linux-only tests.
 """
 
 import dataclasses
+import threading
 import time
+import types
 import uuid
 
 import pytest
@@ -770,8 +772,9 @@ class _PreparingPublisher(FixturePublisher):
 
     def prepare(self, engine, identity, package, *, remaining_s):
         with engine.connect() as conn:  # the queue control row must not be locked here
-            conn.execute(sa.text("SET LOCAL lock_timeout = '200ms'"))
-            conn.execute(sa.text("SELECT 1 FROM compute_control FOR UPDATE NOWAIT"))
+            # waits out a heartbeat's brief row lock; a queue lock held over prepare times out
+            conn.execute(sa.text("SET LOCAL lock_timeout = '500ms'"))
+            conn.execute(sa.text("SELECT 1 FROM compute_control FOR UPDATE"))
             conn.rollback()
         self.prepared.append((identity, remaining_s))
         if self.on_prepare:
@@ -913,6 +916,32 @@ def test_failed_discard_does_not_block_finalization(db, org, prep):
     _, attempt = _prep_run(db, org, prep, {"value": 3, "behavior": {}, "publish_fail": True})
     assert attempt.state is AttemptState.FAILED
     assert len(publisher.discarded) == 1
+
+
+def _hold_control_row(engine, seconds, held):
+    with engine.begin() as conn:  # like a heartbeat's UPDATE, or a queue lock held over prepare
+        conn.execute(sa.text("SELECT 1 FROM compute_control FOR UPDATE"))
+        held.set()
+        time.sleep(seconds)
+
+
+@pytest.mark.parametrize(("hold_s", "waits_out"), [(0.05, True), (1.0, False)])
+def test_prepare_probe_waits_out_a_heartbeat_but_not_a_held_queue_lock(db, prep, hold_s, waits_out):
+    # a 0.2 s heartbeat locks the control row for milliseconds; NOWAIT once failed on that
+    publisher, _ = prep
+    held = threading.Event()
+    holder = threading.Thread(target=_hold_control_row, args=(db, hold_s, held))
+    holder.start()
+    assert held.wait(5)
+    identity = types.SimpleNamespace(attempt_id=uuid.uuid4())
+    try:
+        if waits_out:
+            publisher.prepare(db, identity, {}, remaining_s=1)
+        else:
+            with pytest.raises(sa.exc.OperationalError):
+                publisher.prepare(db, identity, {}, remaining_s=1)
+    finally:
+        holder.join()
 
 
 def _store_nul(connection):  # psycopg refuses NUL in text: a real DataError
