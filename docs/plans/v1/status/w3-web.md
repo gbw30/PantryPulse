@@ -62,7 +62,7 @@ Mirrors the CI connected step (`.github/workflows/pantrypulse-ci.yml:86-108`), w
 
 - `apps/web/tests/e2e/connected/stack-up.sh` loads `.env.lane`, creates a NEW `ppor_demo_w3web_*` schema in `pantrypulse_web_test` with `load_optimization_demo.py`, writes presenter credentials with `scripts/quality/demo-ci-env.py` to a 0600 file (read line by line, never `eval`ed: the hash contains `$`), and starts:
   - the API (`uvicorn --uds`) and the production-registry worker, each under `unshare -rn` (own network namespace, loopback only, so no outbound network);
-  - `bridge.py` twice on the host: a unix socket `.s.PGSQL.<port>` → the shared `pp-ci-postgres`, and `127.0.0.1:8003` → the API socket.
+  - `scripts/quality/netns-bridge.py` (the lead's copy of the former lane `bridge.py`, CR-w3-web-1) twice on the host: a unix socket `.s.PGSQL.<port>` → the shared `pp-ci-postgres`, and `127.0.0.1:8003` → the API socket.
   - It waits with `scripts/quality/wait-demo.py`.
 - `run-e2e.sh` runs Playwright on 3003 with `PP_RUN_CONNECTED=1`, `PP_E2E_NO_EGRESS=1`, the presenter credentials and `DATABASE_URL`/`PP_DATABASE_SCHEMA` for the read-only probe (`connected/db_probe.py`).
 - `stack-down.sh` stops it. Each `stack-up.sh` makes a new schema; earlier ones stay in `pantrypulse_web_test` (`ppor_demo_w3web_1108182844`, `…_1109014243`, `…_1109024125` so far). The W3-W02 stack was restarted on a new schema after a failure snapshot recorded that run's generated password (Gotchas).

@@ -7,7 +7,6 @@
 # Usage: RUN=<short dir> stack-up.sh (AF_UNIX paths are capped at 107 bytes)   (stop with stack-down.sh)
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/../../../../.." && pwd)
-HERE=$(cd "$(dirname "$0")" && pwd)
 RUN=${RUN:?set RUN to a fresh run directory}
 PY=$ROOT/apps/api/.venv/bin/python
 cd "$ROOT"
@@ -29,11 +28,12 @@ print(u.set(host=None, port=None, query={**u.query, "host": sys.argv[1], "port":
 PY
 PG_HOST=$("$PY" -c 'import os; from sqlalchemy.engine import make_url; print(make_url(os.environ["PP_TEST_DATABASE_URL"]).host)')
 : > "$RUN/pids"
-"$PY" "$HERE/bridge.py" "unix:$RUN/pg/.s.PGSQL.$PG_PORT" "tcp:$PG_HOST:$PG_PORT" > "$RUN/bridge-pg.log" 2>&1 &
+"$PY" scripts/quality/netns-bridge.py "unix:$RUN/pg/.s.PGSQL.$PG_PORT" "tcp:$PG_HOST:$PG_PORT" > "$RUN/bridge-pg.log" 2>&1 &
 echo $! >> "$RUN/pids"
-"$PY" "$HERE/bridge.py" "tcp:127.0.0.1:8003" "unix:$RUN/api.sock" > "$RUN/bridge-api.log" 2>&1 &
+"$PY" scripts/quality/netns-bridge.py "tcp:127.0.0.1:8003" "unix:$RUN/api.sock" > "$RUN/bridge-api.log" 2>&1 &
 echo $! >> "$RUN/pids"
-sleep 0.5
+# Wait for the PG bridge socket, as the CI connected step does.
+for _ in $(seq 100); do [ -S "$RUN/pg/.s.PGSQL.$PG_PORT" ] && break; sleep 0.1; done
 
 backend_env() {
   while IFS='=' read -r k v; do export "$k=$v"; done < "$RUN/demo.env"
