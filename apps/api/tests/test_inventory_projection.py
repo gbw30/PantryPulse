@@ -1,4 +1,8 @@
-"""Hand-computed #23 examples; projection is separate from stock mutation."""
+# covers: V1-A23
+"""Hand-computed #23 examples; projection is separate from stock mutation.
+
+W3-F04 (end of file): confirmed inbound in the v1 kernel `project_v3`, which the danger ranking
+and the solver share (W2-06 §3)."""
 
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
@@ -14,7 +18,10 @@ from app.schemas.projection import (
     ProjectionInput,
     ProjectionLot,
 )
+from app.schemas.v1_planning import ORInputV3
 from app.services.inventory.projection import project_inventory
+from app.services.optimization.projection import project_v3
+from tests.optimization.test_retail_oracle import load
 
 D1 = date(2026, 10, 24)
 D2 = D1 + timedelta(days=1)
@@ -389,3 +396,99 @@ def test_no_reservation_or_unknown_fields_can_be_silently_applied():
     data["reserved"] = 5
     with pytest.raises(ValidationError):
         ProjectionLot(**data)
+
+
+# --- W3-F04: confirmed inbound in project_v3 ------------------------------------------------
+
+V3_DAYS = tuple(date(2026, 11, 2) + timedelta(days=i) for i in range(7))  # as-of 2026-11-01
+
+
+def v3(*, batches=(), targets=(0,) * 7, inbound=()) -> ORInputV3:
+    """Store A × product P (case) from the retail fixture with only these lots and demand.
+
+    batches: (quantity, expiry or None); inbound: (quantity, arrival, expiry or None)."""
+    base, _ = load("retail-nothing-to-move")
+    data = base.model_dump(mode="json")
+    data.update(
+        batches=[dict(id=f"b{i}", location_id="A", product_id="P", quantity=q,
+                      expiry_date=e and e.isoformat(), non_expiring=e is None)
+                 for i, (q, e) in enumerate(batches)],
+        demand=[dict(location_id="A", product_id="P", basis="demand",
+                     actual_provider="SEASONAL_NAIVE", fallback_reason=None,
+                     central_literals=[str(t) for t in targets], targets=list(targets))],
+        inbound=[dict(id=f"i{i}", location_id="A", product_id="P", quantity=q,
+                      arrival_date=a.isoformat(), expiry_date=e and e.isoformat(),
+                      non_expiring=e is None)
+                 for i, (q, a, e) in enumerate(inbound)],
+        inbound_file_provided=True,
+    )
+    return ORInputV3.model_validate(data)
+
+
+def a_days(scenario):
+    rows = [d for d in project_v3(scenario).days if (d.location_id, d.product_id) == ("A", "P")]
+    assert [d.day for d in rows] == list(V3_DAYS)
+    return rows
+
+
+def test_inbound_enters_once_on_arrival_date_arrivals_first():
+    """BD-48: on its arrival day the delivery is available before that day's demand.
+    No stock; 10 arrive on d3; demand 4 a day → d3 4, d4 4, d5 2, and the 10 are served once."""
+    rows = a_days(v3(targets=(4,) * 7, inbound=[(10, V3_DAYS[2], None)]))
+    assert [d.served for d in rows] == [0, 0, 4, 4, 2, 0, 0]
+    assert [d.unmet for d in rows] == [4, 4, 0, 0, 2, 4, 4]
+    assert [d.on_hand for d in rows] == [0, 0, 6, 2, 0, 0, 0]
+
+
+def test_inbound_not_also_counted_on_hand():
+    """5 on hand plus 10 arriving on d2, then 20 demanded on d7: 15 can be served, not 25."""
+    rows = a_days(v3(batches=[(5, None)], targets=(0,) * 6 + (20,),
+                     inbound=[(10, V3_DAYS[1], None)]))
+    assert [d.on_hand for d in rows] == [5, 15, 15, 15, 15, 15, 0]
+    assert (rows[-1].served, rows[-1].unmet) == (15, 5)
+
+
+@pytest.mark.parametrize("arrival", [date(2026, 11, 1), date(2026, 11, 9)])
+def test_outside_horizon_inbound_excluded(arrival):
+    """An arrival on the as-of day or after the seventh planning day can't enter the frozen
+    scenario (the scenario builder lists it as outside the horizon), so no projection counts
+    it."""
+    with pytest.raises(ValidationError, match="INBOUND_OUTSIDE_HORIZON"):
+        v3(inbound=[(10, arrival, None)])
+
+
+def test_inbound_expiry_applies_fefo():
+    """6 on hand expiring d5; 4 arrive on d2 expiring d3; demand 2 a day. FEFO sells the
+    delivery first (d2, d3), then the batch (d4, d5), so nothing is wasted. Batch-first would
+    leave all 4 delivered units to expire on d3. Alone, at 1 a day, the same delivery sells
+    one unit on d2 and d3, and the other 2 expire on d3."""
+    rows = a_days(v3(batches=[(6, V3_DAYS[4])], targets=(2,) * 7,
+                     inbound=[(4, V3_DAYS[1], V3_DAYS[2])]))
+    assert [d.served for d in rows] == [2, 2, 2, 2, 2, 0, 0]
+    assert [d.expired for d in rows] == [0] * 7
+    alone = a_days(v3(targets=(1,) * 7, inbound=[(4, V3_DAYS[1], V3_DAYS[2])]))
+    assert [d.served for d in alone] == [0, 1, 1, 0, 0, 0, 0]
+    assert [d.expired for d in alone] == [0, 0, 2, 0, 0, 0, 0]
+
+
+def test_golden_arithmetic_with_inbound():
+    """Batch 8 expiring d2; delivery 6 on d3 expiring d4; delivery 5 on d5, non-expiring;
+    demand 3 a day. Usable through the expiry day; arrivals first; FEFO.
+
+    | day | arrives | stock at start | served | unmet | expired (on its expiry day) | on hand |
+    |---|---|---|---|---|---|---|
+    | d1 | — | 8 | 3 | 0 | 0 | 5 |
+    | d2 | — | 5 | 3 | 0 | 2 (batch left over) | 2 |
+    | d3 | 6 | 6 (batch gone) | 3 | 0 | 0 | 3 |
+    | d4 | — | 3 | 3 | 0 | 0 | 0 |
+    | d5 | 5 | 5 | 3 | 0 | 0 | 2 |
+    | d6 | — | 2 | 2 | 1 | 0 | 0 |
+    | d7 | — | 0 | 0 | 3 | 0 | 0 |
+
+    Supply 8 + 6 + 5 = 19 = 17 served + 2 expired."""
+    rows = a_days(v3(batches=[(8, V3_DAYS[1])], targets=(3,) * 7,
+                     inbound=[(6, V3_DAYS[2], V3_DAYS[3]), (5, V3_DAYS[4], None)]))
+    assert [d.served for d in rows] == [3, 3, 3, 3, 3, 2, 0]
+    assert [d.unmet for d in rows] == [0, 0, 0, 0, 0, 1, 3]
+    assert [d.expired for d in rows] == [0, 2, 0, 0, 0, 0, 0]
+    assert [d.on_hand for d in rows] == [5, 2, 3, 0, 2, 0, 0]

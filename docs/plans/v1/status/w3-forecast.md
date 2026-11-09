@@ -1,6 +1,6 @@
 # Status — `w3-forecast`
 
-**Lane:** `w3-forecast` · **Branch:** `lane/w3-forecast` · **Base SHA:** `0a4959359a447233e8ca5eea87b1917d70bd7de8` · **Last update:** `2026-11-08` (save point, W3 paused by Gabriel) · **Head:** the commit that carries this file
+**Lane:** `w3-forecast` · **Branch:** `lane/w3-forecast` · **Base SHA:** `0a4959359a447233e8ca5eea87b1917d70bd7de8` · **Last update:** `2026-11-09` · **Head:** the commit that carries this file
 
 ## Tasks
 
@@ -8,25 +8,16 @@
 |---|---|---|---|
 | W3-F02 | done | `94737e5` | `uv run --frozen pytest -q tests/forecasting/test_backtest.py` → 13 passed, 0 skipped |
 | W3-F01 | done | `70dc30e` | S7 verdict **fits with a compact network input** ([S7](../spikes/S7-forecast-volume.md)): `bench_forecast.py --part compact --series 50000` → 10.27 s compute, 1,714 MB peak; `--part db` → 50,001 rows, 8.7 + 8.5 MB; `--part existing --sample 500` → ~10,700 s extrapolated (does not fit) |
-| W3-F04 | in progress (not started: no edits yet) | — | — |
+| W3-F04 | done | this commit | `uv run --frozen pytest -q tests/test_inventory_projection.py` → 71 passed, 0 skipped (6 new cases on `project_v3`). They passed on the first run: they characterize the existing kernel (W2-06 §3). A throwaway mutation check, one process per mutant, killed all 5 mutants: inbound counted twice, on hand from day 1 and arriving after demand fail all 4 kernel cases; ignored delivery expiry and on-hand-before-deliveries fail the FEFO case |
 | W3-F03 | todo | — | — |
 | W3-F05 | todo | — | — |
 | W3-F06 | todo | — | — |
 
 Order: F02 → F01 → F04 → F03 → F05 → F06. F01 and F02 depend on nothing (wave-3.md), and S7 should time the real backtest code, not a stand-in. F04 depends on nothing; F03 needs F02; F05 needs F03 and F04.
 
-## Resume here: W3-F04, exact next step
+## Next: W3-F03
 
-The save point fell between tasks. No W3-F04 file has been touched; the tree is clean at the head.
-
-1. **RED:** append five cases to `apps/api/tests/test_inventory_projection.py`, and add `# covers: V1-A23` as its first line. Per W2-06 §3, the cases test `app.services.optimization.projection.project_v3`, not `services/inventory/projection.py`. Build scenarios from `tests.optimization.test_retail_oracle.load("retail-nothing-to-move")`: store `A`, product `P` (case), planning days 2026-11-02 to 11-08. Replace `batches`, `demand` (A × P only) and `inbound`, set `inbound_file_provided=True`, and re-validate with `ORInputV3.model_validate`. The hand tables, days d1–d7:
-   - `test_inbound_enters_once_on_arrival_date_arrivals_first`: no stock, inbound 10 on d3, demand 4/day → served `[0,0,4,4,2,0,0]`, unmet `[4,4,0,0,2,4,4]`.
-   - `test_inbound_not_also_counted_on_hand`: batch 5 + inbound 10 on d2, demand 20 on d7 only → d7 served 15, unmet 5; on-hand d1 = 5, d2 = 15.
-   - `test_outside_horizon_inbound_excluded`: `ORInputV3` rejects an arrival on 11-09 or on 11-01 (as-of). `scenario._inbound` already drops `within_horizon = false` rows; the frozen schema is the boundary.
-   - `test_inbound_expiry_applies_fefo`: batch 6 (expiry d5), inbound 4 on d2 (expiry d3), demand 2/day → served `[2,2,2,2,2,0,0]` and expired all 0. Batch-first would waste 2 of the inbound.
-   - `test_golden_arithmetic_with_inbound`: put the table in the docstring. Batch 8 (expiry d2), inbound 6 on d3 (expiry d4), inbound 5 on d5 (non-expiring), demand 3/day → served `[3,3,3,3,3,2,0]`, unmet `[0,0,0,0,0,1,3]`, expired `[0,2,0,0,0,0,0]`, on-hand `[5,2,3,0,2,0,0]`. Check: 8 + 6 + 5 = 17 served + 2 expired.
-2. These characterize an existing kernel, so they may pass on the first run. If they do, run a throwaway mutation check (not committed) from the scratchpad: monkeypatch `project_v3`'s inbound so it counts twice, or so it arrives a day early, and show that each case fails. Record that in this file. If any case fails against `project_v3`, it is a solver-lane bug: stop and file a CR, because `services/optimization/**` is not this lane's path.
-3. Commit "W3-F04: …" with this file, then push.
+Build the compact network forecast path (design notes below), test-first, everything except `get_backtest`, which waits for CR-w3-forecast-1. Then W3-F05 and W3-F06.
 
 ## W3-F03 design notes (from the survey; not started)
 
@@ -43,6 +34,8 @@ The save point fell between tasks. No W3-F04 file has been touched; the tree is 
 | `/devkit:ship-check` | | |
 
 ## Decisions made inside the lane
+
+- **W3-F04 is tests only.** Per W2-06 §3, the projection the danger ranking uses is the solver's `project_v3`, which already counts frozen inbound once. `services/inventory/projection.py` (the P1 projection) is unchanged. The out-of-horizon case is pinned where `ORInputV3` refuses the row (`INBOUND_OUTSIDE_HORIZON`), because that is the only way into `project_v3`. — W3-F04.
 
 - **`bias_pct` = 100 × Σ(prediction − actual) / Σactual** — the frozen field is a percentage, and V5 §7's bias (Σerror / n) is in units. This uses V5's error sign (positive = over-forecast) on WAPE's denominator, so the two metrics read one scored set and are both unavailable when Σactual = 0 (`test_zero_denominator_reports_none`). Both are rounded to 0.01 (half-even). — W3-F02.
 - **Origins:** origin k (k = 1 nearest) is the weekly cutoff n − 7k. Its fit sees `history[:n − 7k]` and scores the next seven days. 4 × 7 + 7 prior days = the 35-day minimum, which is checked on the calendar length of the gap-explicit history. — W3-F02.
