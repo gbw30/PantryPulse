@@ -139,7 +139,9 @@ def run_enrichment(engine: sa.Engine, version_id: UUID, client: CensusClient,
 
 _ATTRIBUTES = (
     "SELECT external_id, role, poverty_rate, snap_rate, manual_poverty_rate, manual_snap_rate, "
-    "excluded, tract_geoid, acs_year, acs_fetched_at, acs_source FROM net_locations "
+    "excluded, tract_geoid, acs_year, acs_fetched_at, acs_source, EXISTS (SELECT 1 FROM "
+    "dataset_versions v JOIN networks n ON n.id = v.network_id WHERE v.id = "
+    "net_locations.dataset_version_id AND n.is_sample) AS is_sample FROM net_locations "
     "WHERE dataset_version_id = :v")
 
 
@@ -167,7 +169,9 @@ def _attributes(r: sa.Row) -> LocationAttributes:
             ("snap_rate", r.manual_snap_rate, r.snap_rate))
             if manual is None and value is not None), None)
         if acs_rate is None or looked_up is None:
-            source, fetched_at = "manual", None
+            # V1-SPEC §8. shortcut: a user's own edit on a sample location also reads "sample
+            # values" (no column tells it from the template value); add one if samples get edited.
+            source, fetched_at = "sample values" if r.is_sample else "manual", None
         else:
             manual_rate = "snap_rate" if acs_rate == "poverty_rate" else "poverty_rate"
             source = f"{manual_rate}: manual; {acs_rate}: {looked_up}"
