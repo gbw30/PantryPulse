@@ -27,7 +27,7 @@
 
 The connected Pantry and Retail journeys need a forecast run to freeze a scenario. The network forecast routes stay 501 until W3-F03 merges. The web lane therefore seeds a fixture forecast run, the way `tests/integration/test_v1_backend_journey.py` does, and keeps the `?forecast_run_id=` stopgap. Import, scenario, comparison, decisions and export stay real. The PR discloses the fixture, and it never counts as forecast evidence. **W4-02** switches these journeys to a real `forecast.v1` run.
 
-## 5. CR-w3-forecast-1: where backtest results are stored (open)
+## 5. CR-w3-forecast-1: where backtest results are stored (approved, option B, lead)
 
 Filed at `lane/w3-forecast` `448f8e3`. `backtest_scores` (`ppv1_0008`) has no `origins_evaluated`, no pooled sums and no run key, so `get_backtest(job_id)` can't serve the CR-w1-web-4 contract.
 
@@ -36,4 +36,4 @@ Filed at `lane/w3-forecast` `448f8e3`. `backtest_scores` (`ppv1_0008`) has no `o
 | A | Widen `backtest_scores` with a run FK, `origins_evaluated`, the pooled sums and wider `wape`/`bias`. Reads aggregate up to 50k rows per request. |
 | B (lane recommends) | A nullable `forecast_runs.backtest` JSONB column holding the `BacktestResult` body, written in the run's existing INSERT and read as one row. |
 
-The lead lands either option as a migration. Until then, W3-F03 builds everything except `get_backtest`.
+**Decision (Gabriel, 2026-11-09): option B.** Migration `ppv1_0014` adds `forecast_runs.backtest` JSONB, NULL or a JSON object (`ck_forecast_runs_backtest`), and the `ForecastRun.backtest` model column. Only the `forecast.v1` network publisher writes it, in the run's INSERT, so it stays immutable with the run. `get_backtest` reads that one row and returns 404 for a run without one. Older runs and v2 site runs keep NULL. Downgrade refuses while a backtest is stored. `backtest_scores` stays unused in v1.

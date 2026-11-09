@@ -9,7 +9,8 @@ from alembic.script import ScriptDirectory
 def test_merged_head_preserves_both_preexisting_histories():
     root = Path(__file__).resolve().parents[1]
     scripts = ScriptDirectory.from_config(Config(str(root / "alembic.ini")))
-    assert scripts.get_heads() == ["ppv1_0013"]
+    assert scripts.get_heads() == ["ppv1_0014"]
+    assert scripts.get_revision("ppv1_0014").down_revision == "ppv1_0013"
     assert scripts.get_revision("ppv1_0013").down_revision == "ppv1_0012"
     assert scripts.get_revision("ppv1_0012").down_revision == "ppv1_0011"
     assert scripts.get_revision("ppv1_0011").down_revision == "ppv1_0010"
