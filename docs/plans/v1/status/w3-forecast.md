@@ -9,21 +9,17 @@
 | W3-F02 | done | `94737e5` | `uv run --frozen pytest -q tests/forecasting/test_backtest.py` → 13 passed, 0 skipped |
 | W3-F01 | done | `70dc30e` | S7 verdict **fits with a compact network input** ([S7](../spikes/S7-forecast-volume.md)): `bench_forecast.py --part compact --series 50000` → 10.27 s compute, 1,714 MB peak; `--part db` → 50,001 rows, 8.7 + 8.5 MB; `--part existing --sample 500` → ~10,700 s extrapolated (does not fit) |
 | W3-F04 | done | this commit | `uv run --frozen pytest -q tests/test_inventory_projection.py` → 71 passed, 0 skipped (6 new cases on `project_v3`). They passed on the first run: they characterize the existing kernel (W2-06 §3). A throwaway mutation check, one process per mutant, killed all 5 mutants: inbound counted twice, on hand from day 1 and arriving after demand fail all 4 kernel cases; ignored delivery expiry and on-hand-before-deliveries fail the FEFO case |
-| W3-F03 | todo | — | — |
+| W3-F03 | in progress: all but `get_backtest` (blocked, CR-w3-forecast-1) | this commit | `uv run --frozen pytest -q tests/forecasting/test_network_forecast.py` → 10 passed, 0 skipped (PostgreSQL, real import, production `forecast.v1` under a supervisor, real `create_scenario`); related suites `tests/forecasting tests/workers tests/networks tests/test_v1_contract.py tests/test_inventory_projection.py` → 411 passed, 0 skipped; `PP19_TEST_SCHEMA_ISOLATION=1 … tests/integration/{test_forecast_api_postgres,test_worker_slice,test_v1_backend_journey,test_v1_job_status}.py` → 23 passed, 0 skipped |
 | W3-F05 | todo | — | — |
 | W3-F06 | todo | — | — |
 
 Order: F02 → F01 → F04 → F03 → F05 → F06. F01 and F02 depend on nothing (wave-3.md), and S7 should time the real backtest code, not a stand-in. F04 depends on nothing; F03 needs F02; F05 needs F03 and F04.
 
-## Next: W3-F03
+## Next
 
-Build the compact network forecast path (design notes below), test-first, everything except `get_backtest`, which waits for CR-w3-forecast-1. Then W3-F05 and W3-F06.
-
-## W3-F03 design notes (from the survey; not started)
-
-- **Compact `forecast.v1` network payload** (S7): `{"network_forecast": {...}}`, frozen at submit by `services/forecasting/network.py`. It holds the last 42 days per series plus observed/missing counts, keyed by `net_locations.id`/`net_products.id`. Its step output is compact; the publisher builds the stored `ForecastOutput`. Raise `forecast.v1` `max_output_bytes` (4 MB, this lane's `workers/forecasting.py`) to fit the compact step output, about 8 MB at 50k series.
-- **Ineligible series** (< 14 observed days, or all blank) are `required=False` and `INSUFFICIENT_DATA`, so the run stays `planning_ready`. `create_scenario` already lists them as "No available forecast, so no demand target (not zero)".
-- **Backtest persistence is CR-w3-forecast-1 (filed, open).** W3-F03 builds everything else first; `get_backtest` and `test_backtest_persisted_and_served_by_get_backtest` wait for the decision.
+1. **W3-F05** (danger ranking + `get_projection`) on `project_v3`, using the network runs W3-F03 now publishes.
+2. **W3-F06** (scale) re-runs `bench_forecast.py` on the built path.
+3. **W3-F03 remainder**, once CR-w3-forecast-1 is decided: store the backtest in `publish_network`, build `get_backtest`, add `test_backtest_persisted_and_served_by_get_backtest`, and drop the backtest row from `STUBS`. The step already computes the per-series sums (`network.compute` → `backtest`); the publisher ignores them until then.
 
 ## Gates
 
@@ -35,6 +31,16 @@ Build the compact network forecast path (design notes below), test-first, everyt
 
 ## Decisions made inside the lane
 
+- **Network runs freeze a compact input** (`services/forecasting/network.py`). Per series: the last 42 days to the as-of date (gap-explicit), plus observed, missing and sales-day counts, keyed by `net_locations.id`/`net_products.id`. The history is aggregated in PostgreSQL, so the 4.5 M history rows never enter Python. The policy is fixed (seasonal naive, then the moving average with a 14-day window and 3 samples, 14-day minimum), so a request can't choose Chronos. — W3-F03 (S7).
+- **`forecast_run_id` = `job_id`** for network runs, like the existing publisher's `id = run_id = job_id`. `result_url` is `/networks/{id}/forecasts/{job_id}`. — W3-F03.
+- **One step, per-series fallback:** each series tries seasonal naive, then the moving average. `fallback_reason` is seasonal naive's own `ProviderError` code, as in `service.forecast`. There is no whole-batch fallback step for networks. — W3-F03.
+- **`required` = the series is AVAILABLE**, so a run with some ineligible series stays `planning_ready`. `create_scenario` then lists those series as "No available forecast, so no demand target (not zero)". This is the shape the W1 fixture used. — W3-F03.
+- **Series basis:** `sales` if any of its rows is `sales` (the import's own `sales_basis_series` rule). A mixed series takes the conservative label. — W3-F03.
+- **New stores are listed:** a pantry or store with stock or deliveries but no demand rows gets an `INSUFFICIENT_DATA` demand series, "No demand history rows for this location and product". It is never forecast from zeros (plan Review Focus 5). Hubs and DCs are not listed. — W3-F03.
+- **Envelope:** more than 50,000 series (demand + donation) is refused at submit with 422 `FORECAST_SERIES_OVER_ENVELOPE`, never truncated. — W3-F03.
+- **`forecast.v1` `max_output_bytes` 4 MB → 32 MB** (this lane's `workers/forecasting.py`). It caps both the step's stdout and the publish package, and the compact network output is about 11 MB at 50,000 series. The input stays at 16 MB. — W3-F03.
+- **Tenancy helper:** reuses `optimization.api_v3._tenant` rather than adding a third copy. W2-06 §4 defers "one tenancy helper" to W4. — W3-F03.
+
 - **W3-F04 is tests only.** Per W2-06 §3, the projection the danger ranking uses is the solver's `project_v3`, which already counts frozen inbound once. `services/inventory/projection.py` (the P1 projection) is unchanged. The out-of-horizon case is pinned where `ORInputV3` refuses the row (`INBOUND_OUTSIDE_HORIZON`), because that is the only way into `project_v3`. — W3-F04.
 
 - **`bias_pct` = 100 × Σ(prediction − actual) / Σactual** — the frozen field is a percentage, and V5 §7's bias (Σerror / n) is in units. This uses V5's error sign (positive = over-forecast) on WAPE's denominator, so the two metrics read one scored set and are both unavailable when Σactual = 0 (`test_zero_denominator_reports_none`). Both are rounded to 0.01 (half-even). — W3-F02.
@@ -44,6 +50,8 @@ Build the compact network forecast path (design notes below), test-first, everyt
 - **No ceiling CR:** S7 measured 10.3 s of 300 s at 50,000 series on the compact path. W3-F06 re-measures on the built path. — W3-F01.
 
 ## Gotchas
+
+- **`queue.submit(..., deduplicate=True)` replays an identical frozen input to the existing job**, even after it succeeded, with `replayed=True`. Re-submitting a network forecast without a re-import returns the same run. Pinned in `test_list_forecast_runs_newest_first`.
 
 - **`forecast.v1` can't carry a network as it stands.** Its frozen input is one pydantic `DemandRevision` per history day, re-prepared by every `validate_input` (4× per job). That came to 53 s for 500 series, ~10,700 s extrapolated to 50k, and its worker bounds are 800 series, 60k observations, 16 MB in and 4 MB out. The verbose `ForecastOutput` passes 4 MB at about 2,000 series. (S7)
 - **Step children have no database connection** (`workers/child.py`): the job input must carry everything a step reads. Only the publisher (`validate`, the optional `prepare` and `publish`) runs in the supervisor with the engine.

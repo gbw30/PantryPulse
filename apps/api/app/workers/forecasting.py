@@ -9,6 +9,7 @@ from app.models.forecasts import ForecastPointRecord, ForecastRun, ForecastSerie
 from app.schemas.forecast_api import BaselinePolicy
 from app.services.forecasting.adapters.moving_average import MovingAverageAdapter
 from app.services.forecasting.adapters.seasonal_naive import SeasonalNaiveAdapter
+from app.services.forecasting.network import build_output, compute, validate_frozen
 from app.services.forecasting.postprocessing import validate_output
 from app.services.forecasting.preparation import validate_input
 from app.services.forecasting.schemas import ForecastInput, ForecastOutput
@@ -35,6 +36,14 @@ class ForecastHandler:
         )
 
     def validate_input(self, payload):
+        if isinstance(payload, Mapping) and set(payload) == {"network_forecast"}:  # W3-F03
+            try:
+                inputs = validate_frozen(payload["network_forecast"])
+            except (ValueError, TypeError) as exc:
+                raise InputRejected(
+                    "INVALID_FORECAST_INPUT", "Invalid frozen forecast input"
+                ) from exc
+            return {"network_forecast": inputs.model_dump(mode="json")}
         if not isinstance(payload, Mapping) or set(payload) != {"forecast_input"}:
             raise InputRejected("INVALID_INPUT", "Unknown forecast payload")
         try:
@@ -49,6 +58,8 @@ class ForecastHandler:
         }
 
     def steps(self, validated, profile):
+        if "network_forecast" in validated:  # per-series fallback inside the one step
+            return forecast_steps(profile, fallback_allowed=False)
         policy = validated["forecast_input"]["policy"]
         return forecast_steps(
             profile,
@@ -56,6 +67,10 @@ class ForecastHandler:
         )
 
     def execute_step(self, step, validated, prior, context):
+        if "network_forecast" in validated:
+            if step != "primary":
+                raise ValueError("Unknown forecast step")
+            return {"network_output": compute(validate_frozen(validated["network_forecast"]))}
         inputs = validate_input(ForecastInput.model_validate(validated["forecast_input"]))
         if step not in {"primary", "fallback"}:
             raise ValueError("Unknown forecast step")
@@ -133,16 +148,36 @@ class ForecastPublisher:
             ):
                 raise ValueError("Baseline outputs cannot claim model quantiles")
 
+    @staticmethod
+    def completed(outcomes):
+        completed = [o for o in outcomes if o.status == StepStatus.COMPLETED]
+        if not completed:
+            last = outcomes[-1] if outcomes else None
+            raise PublicationRejected(
+                last.error_code if last and last.error_code else "HANDLER_FAILED",
+                timed_out=bool(last and last.status == StepStatus.TIMED_OUT),
+            )
+        return completed
+
+    def validate_network(self, validated, outcomes):
+        final = self.completed(outcomes)[-1]
+        try:
+            inputs = validate_frozen(validated["network_forecast"])
+            output = final.output["network_output"]
+            if final.name != "primary" or not (
+                len(output["series"]) == len(output["backtest"]) == len(inputs.series)
+            ):
+                raise ValueError("Network output does not match its frozen series")
+        except (ValueError, TypeError, KeyError, AttributeError) as exc:
+            raise PublicationRejected("OUTPUT_INVALID") from exc
+        return {"network_output": output}  # rows are built and checked in publish
+
     def validate(self, validated, outcomes):
+        if "network_forecast" in validated:
+            return self.validate_network(validated, outcomes)
         try:
             inputs = validate_input(ForecastInput.model_validate(validated["forecast_input"]))
-            completed = [o for o in outcomes if o.status == StepStatus.COMPLETED]
-            if not completed:
-                last = outcomes[-1] if outcomes else None
-                raise PublicationRejected(
-                    last.error_code if last and last.error_code else "HANDLER_FAILED",
-                    timed_out=bool(last and last.status == StepStatus.TIMED_OUT),
-                )
+            completed = self.completed(outcomes)
             output = validate_output(
                 inputs, ForecastOutput.model_validate(completed[-1].output["forecast_output"])
             )
@@ -180,6 +215,8 @@ class ForecastPublisher:
             .mappings()
             .one()
         )
+        if "network_forecast" in job["input_package"]["input"]:
+            return self.publish_network(connection, identity, job, package)
         inputs = validate_input(
             ForecastInput.model_validate(job["input_package"]["input"]["forecast_input"])
         )
@@ -254,13 +291,44 @@ class ForecastPublisher:
             "input_hash": inputs.input_hash,
         }
 
+    def publish_network(self, connection, identity, job, package):
+        """One forecast_runs row; no forecast_series rows, whose keys point at the v2 sites and
+        products tables. create_scenario reads only the run's output (W1-D09)."""
+        try:
+            inputs = validate_frozen(job["input_package"]["input"]["network_forecast"])
+            if (
+                inputs.organization_id != identity.organization_id
+                or identity.handler_contract != self.contract
+            ):
+                raise ValueError("Publication ownership mismatch")
+            output = build_output(inputs, package["network_output"], identity.job_id)
+        except (ValueError, TypeError, KeyError) as exc:
+            raise PublicationRejected("OUTPUT_INVALID") from exc
+        connection.execute(
+            sa.insert(ForecastRun).values(
+                organization_id=identity.organization_id,
+                id=identity.job_id,
+                job_id=identity.job_id,
+                attempt_id=identity.attempt_id,
+                input_hash=inputs.input_hash,
+                planning_ready=output.ready_for_publication,
+                frozen_input=inputs.model_dump(mode="json"),
+                output=output.model_dump(mode="json"),
+            )
+        )
+        return {
+            "result_ref": str(identity.job_id),
+            "planning_ready": output.ready_for_publication,
+            "input_hash": inputs.input_hash,
+        }
+
 
 REGISTRATION = Registration(
     contract="forecast.v1",
     operation_kind=OperationKind.FORECAST,
     input_schema_version="1",
     max_input_bytes=16_000_000,
-    max_output_bytes=4_000_000,
+    max_output_bytes=32_000_000,  # the compact network step output (S7: ~11 MB at 50k series)
     handler=ForecastHandler(),
     publisher=ForecastPublisher(),
 )
