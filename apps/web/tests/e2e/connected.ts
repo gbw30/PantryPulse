@@ -63,6 +63,15 @@ export function probe(tables: readonly string[]): Record<string, string> {
 }
 
 /**
+ * CR-w3-samples-1: no route marks a network as a sample and the seeded samples arrive in W4, so this runs
+ * the importer with the internal seed's `is_sample` flag on a fixture set (connected/seed_sample.py).
+ * Returns the sample network's id.
+ */
+export function seedSample(name: string, mode: "PANTRY" | "RETAIL", set: string) {
+  return execFileSync(PYTHON, [path.join(__dirname, "connected", "seed_sample.py"), name, mode, path.join(FIXTURES, set)], { encoding: "utf8" }).trim();
+}
+
+/**
  * Escalation E-1 (approved): the v1 forecast routes are 501 until W3-F03 (W4), so the journeys seed a
  * FIXTURE forecast run from the set's forecast.json (connected/seed_forecast.py). It is never forecast
  * evidence; import, scenario, comparison, decisions and export stay real. Returns the run's id.

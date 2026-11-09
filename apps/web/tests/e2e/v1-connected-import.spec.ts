@@ -1,7 +1,7 @@
 // covers: V1-A06, V1-A07, V1-A10, V1-A11, V1-A23
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
-import { CONNECTED, NEEDS_BACKEND, REQUIRED, fixtureText, importNetwork, probe, signIn, startImport, uniqueName, type TemplateFile } from "./connected";
+import { CONNECTED, NEEDS_BACKEND, REQUIRED, fixtureText, importNetwork, probe, seedSample, signIn, startImport, uniqueName, type TemplateFile } from "./connected";
 
 // W3-W01, connected only: these import fictional CSV sets (fixtures/v1-connected) through the real
 // proxy, API, PostgreSQL and import.v1/enrichment.v1 worker. They count as evidence only in the
@@ -132,6 +132,28 @@ test("@V1-A10 offline enrichment marks unknown with retry", async ({ page }) => 
   await expect(locations).toContainText("Address and Census lookups: failed", { timeout: 60_000 });
   await expect(blockers).toContainText("P4: poverty rate, SNAP rate");
   await expect(locations.getByRole("button", { name: "Retry lookups" })).toBeEnabled();
+});
+
+test('@V1-A10 a sample network\'s pre-filled rates read "sample values"; an import\'s own rates read "entered by you"', async ({ page }) => {
+  await signIn(page);
+  // Both read fixtures/v1-connected/pantry/locations.csv, where P1–P3 carry poverty and SNAP rates.
+  const own = uniqueName("Own Rates Pantry");
+  await importNetwork(page, { name: own, mode: "Pantry", set: "pantry", files: REQUIRED });
+  await page.goto("/settings");
+  const ownLocations = page.getByRole("region", { name: `Locations in ${own}` });
+  for (const id of ["P1", "P2", "P3"]) await expect(ownLocations.getByRole("group", { name: `${id} attributes` })).toContainText("Source: entered by you");
+
+  const sample = uniqueName("Sample Pantry");
+  seedSample(sample, "PANTRY", "pantry");
+  await page.reload();
+  await page.getByRole("combobox", { name: "Network", exact: true }).click();
+  await page.getByRole("option", { name: new RegExp(sample) }).click();
+  const sampleLocations = page.getByRole("region", { name: `Locations in ${sample}` });
+  for (const id of ["P1", "P2", "P3"]) {
+    const rates = sampleLocations.getByRole("group", { name: `${id} attributes` });
+    await expect(rates).toContainText("Source: sample values");
+    await expect(rates).not.toContainText("entered by you");
+  }
 });
 
 test("@V1-A11 route labels", async ({ page }) => {
