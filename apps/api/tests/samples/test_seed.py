@@ -162,6 +162,14 @@ def test_older_versions_and_results_untouched(db, sample_sized_forecasts, foreca
                            {"v": version_id}) == as_of
 
 
+def test_duplicate_sample_names_do_not_stop_the_seed(db):
+    # Two Pantry sample networks (e.g. left by two seeds racing on an empty database).
+    for _ in range(2):
+        samples._import(db, pantry.pantry_sample(TODAY), None)
+    assert seed(db, TODAY).loaded == (retail.NAME,)
+    assert seed(db, TODAY).loaded == ()
+
+
 def test_no_outbound_network_calls(db, monkeypatch):
     def refuse(*args, **kwargs):
         raise AssertionError(f"outbound network call attempted: {args[1:] or kwargs}")

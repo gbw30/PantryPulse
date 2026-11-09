@@ -5,9 +5,12 @@ include genuine zero days."""
 
 import random
 from datetime import date, timedelta
+from functools import partial
 
-from app.services.samples.network import HISTORY_DAYS, NO_STREET, SampleNetwork, to_csv
+from app.services.samples.network import HISTORY_DAYS, NO_STREET, SampleNetwork, batch, to_csv
 
+# Batches: at least 2 days to expiry; received in the last 3 weeks.
+_batch = partial(batch, soonest=2, received_within=21)
 SEED = 20261104
 NAME = "Sample Pantry Network (North Central Florida)"
 HUB = ("H01", "Gainesville", "32601", "29.65", "-82.32")
@@ -115,13 +118,3 @@ def pantry_sample(today: date, seed: int = SEED) -> SampleNetwork:
         "inbound": to_csv("inbound", inbound),
         "donation_history": to_csv("donation_history", donations),
     })
-
-
-def _batch(location: str, product: str, batch_id: str, quantity: int, shelf: int | None,
-           share: float, rng: random.Random, on) -> dict[str, object]:
-    """A batch received in the last 3 weeks that expires `share` of a shelf life from today
-    (at least 2 days out, so no batch is expired on the as-of date)."""
-    expiry = {"non_expiring": "true"} if shelf is None else {
-        "expiry_date": on(max(2, round(shelf * share)))}
-    return dict(location_id=location, product_id=product, batch_id=batch_id, quantity=quantity,
-                received_date=on(-rng.randint(1, 21)), **expiry)

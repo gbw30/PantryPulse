@@ -4,8 +4,8 @@
 import re
 from datetime import date, timedelta
 
-from app.services.samples.pantry import pantry_sample
-from tests.samples.rules import README, assert_w1_rules, rows, validate
+from app.services.samples.pantry import PRODUCTS, pantry_sample
+from tests.samples.rules import README, assert_plausible_ages, assert_w1_rules, rows, validate
 
 TODAY = date(2026, 11, 8)
 
@@ -72,6 +72,7 @@ def test_validates_clean_through_validate_files():
     assert set(sample.files) == {"locations", "products", "inventory", "demand_history",
                                  "routes", "inbound", "donation_history"}
     assert_w1_rules(sample)
+    assert_plausible_ages(sample, {p[0]: p[-1] for p in PRODUCTS})
 
 
 def test_deterministic_for_seed_and_date():

@@ -5,8 +5,8 @@ import re
 from datetime import date, timedelta
 from decimal import Decimal
 
-from app.services.samples.retail import CHAIN, retail_sample
-from tests.samples.rules import assert_w1_rules, rows, validate
+from app.services.samples.retail import CHAIN, PRODUCTS, retail_sample
+from tests.samples.rules import assert_plausible_ages, assert_w1_rules, rows, validate
 
 TODAY = date(2026, 11, 8)
 # Real US grocery chains and CPG brands (anti-impersonation, V1-SPEC §8). Matched as whole words,
@@ -78,6 +78,7 @@ def test_validates_clean():
     assert report.ok, report.errors[:5]
     assert report.error_count == 0
     assert_w1_rules(sample)
+    assert_plausible_ages(sample, {p[0]: p[-1] for p in PRODUCTS})
     assert retail_sample(TODAY).files == sample.files  # deterministic for the seed and date
 
 

@@ -4,9 +4,12 @@ Central Florida, 50 generic priced products, 90 days of sales and batches with v
 
 import random
 from datetime import date, timedelta
+from functools import partial
 
-from app.services.samples.network import HISTORY_DAYS, NO_STREET, SampleNetwork, to_csv
+from app.services.samples.network import HISTORY_DAYS, NO_STREET, SampleNetwork, batch, to_csv
 
+# Batches: at least 1 day to expiry; received in the last 10 days.
+_batch = partial(batch, soonest=1, received_within=10)
 SEED = 20261105
 CHAIN = "Heronfield Market"
 NAME = f"{CHAIN} — sample retail network"
@@ -164,14 +167,6 @@ def retail_sample(today: date, seed: int = SEED) -> SampleNetwork:
         "donation_history": to_csv("donation_history", donations),
     })
 
-
-def _batch(location: str, product: str, batch_id: str, quantity: int, life: int | None,
-           share: float, rng: random.Random, on) -> dict[str, object]:
-    """A batch that expires `share` of its shelf life from today (at least 1 day out)."""
-    expiry = {"non_expiring": "true"} if life is None else {
-        "expiry_date": on(max(1, round(life * share)))}
-    return dict(location_id=location, product_id=product, batch_id=batch_id, quantity=quantity,
-                received_date=on(-rng.randint(1, 10)), **expiry)
 
 
 def _arrival(location: str, product: str, quantity: int, day: int, life: int | None, on,

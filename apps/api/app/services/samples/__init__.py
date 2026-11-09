@@ -48,7 +48,9 @@ def ensure_samples(session, today: date) -> SeedReport:
             found = conn.execute(sa.text(
                 "SELECT n.id, max(v.as_of_date) FROM networks n "
                 "JOIN dataset_versions v ON v.network_id = n.id "
-                "WHERE n.is_sample AND n.name = :name GROUP BY n.id"),
+                "WHERE n.is_sample AND n.name = :name GROUP BY n.id "
+                # Names aren't unique (two seeds racing): the freshest network decides.
+                "ORDER BY max(v.as_of_date) DESC, n.id LIMIT 1"),
                 {"name": name}).one_or_none()
         if found is not None and (today - found[1]).days <= FRESH_DAYS:
             continue

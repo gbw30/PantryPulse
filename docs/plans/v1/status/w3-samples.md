@@ -23,7 +23,7 @@ PR `lane/w3-samples → v1-local` is open; wait for the orchestrator's review. W
 |---|---|---|
 | `node scripts/quality/run.cjs quick` (standard env) | `55026c0`, rerun `f7d996e` | PASS (4/4). Without a DB, pytest is 1669 passed, 383 skipped: every skip is a PostgreSQL suite reporting `NOT RUN: PP_TEST_DATABASE_URL is not set` (e.g. `test_supervisor` 63, `test_job_queue` 38, `test_build_scenario` 22, `test_import_postgres` 21, `test_seed` 7); not counted as validated, all run in `full` below |
 | `node scripts/quality/run.cjs full` (with `.env.lane`, `PP19_TEST_SCHEMA_ISOLATION=1`) | `55026c0`, rerun `f7d996e` | PASS (8/8) both times; same env `uv run --frozen pytest -q -rs` → 2052 passed, 0 skipped (`55026c0`); 2053 passed, 0 skipped in 291 s (`f7d996e`) |
-| `/devkit:ship-check` | `0053567` → fixes in the next commit | step 1 quick+full PASS; step 2 project `verifier`: pass with findings (106 focused tests incl. PostgreSQL 0 skipped, generator `--check` clean, own W1-rule sweep over 1,100 Pantry and 134 Retail dates 0 failures, partial-failure and concurrent-seed runs held). F1 and F2 fixed; F3–F5 recorded below. Step 3: security-guidance not installed. Steps 5–6 after the PR |
+| `/devkit:ship-check` | `0053567` → fixes in the next commit | step 1 quick+full PASS; step 2 project `verifier`: pass with findings (106 focused tests incl. PostgreSQL 0 skipped, generator `--check` clean, own W1-rule sweep over 1,100 Pantry and 134 Retail dates 0 failures, partial-failure and concurrent-seed runs held). F1 and F2 fixed; F3–F5 recorded below. Step 3: security-guidance not installed. Step 5 `/code-review medium` on PR #121: 10 findings, outcome under Decisions (R1–R10). Step 6 not needed (no auth, payments, migrations or permissions) |
 
 ## Decisions made inside the lane
 
@@ -34,6 +34,14 @@ PR `lane/w3-samples → v1-local` is open; wait for the orchestrator's review. W
 - Examples are the Pantry sample on a fixed as-of date (`EXAMPLE_AS_OF = 2026-11-04` in `templates.py`), computed by the `example` branch like the blank branch computes its header; `scripts/generate_samples.py` writes `data/templates/examples/*.csv` from that branch, and `--check` is the drift test. `example_available` is now `True` in the catalog (part of the example feature) — W3-P03.
 - Approved by Gabriel 2026-11-08: the lane removed two stub pins in lead-owned tests, `tests/imports/test_templates.py::test_examples_kind_returns_501_until_w3` (W3-P03) and `tests/test_local_bootstrap.py:180` (W3-P04), plus the permitted STUBS row for `/templates/locations.csv?kind=example` in `tests/test_v1_contract.py` — W3-P03/P04.
 - Verifier F1 (fixed): the catalog advertised the Pantry example in Retail mode, where it fails validation (`type: hub`). `template_catalog("RETAIL")` now reports `example_available=False` (`test_catalog_offers_examples_only_where_they_validate`); the web shows "Example not available yet." Real Retail examples are CR-w3-samples-3. Verifier F2 (fixed): `SampleNetwork.label`/`rate_source` were constants no app code read; removed with their assertions — W3-P03/P01.
+- PR #121 `/code-review` (R1–R10), each checked against the code before acting:
+  - R1 (fixed): duplicate sample names (two seeds racing) made the freshness lookup raise `MultipleResultsFound` on every later start. The lookup now takes the freshest network (`test_duplicate_sample_names_do_not_stop_the_seed`).
+  - R4 (fixed): the mode-less catalog also offered the Pantry-only example. Only `template_catalog("PANTRY")` offers it now.
+  - R7 (fixed): a batch could be received longer before its expiry than its product keeps (a 6-day produce batch received 21 days ago). One shared `network.batch` helper bounds the receipt date by shelf life (`assert_plausible_ages`); it also replaces the two copies of `_batch` (R9). The examples were regenerated: 2 files changed.
+  - R8 (fixed): the drift check compared `read_text` output, which turns CRLF into LF, and `--check` created the folder. Both the script and the test now compare bytes; `--check` writes nothing.
+  - R2 and R6 (lead, CR-w3-samples-4): the bootstrap passes UTC `date.today()` while the samples are New York-dated; seeding outside the login transaction would make the `commit()` in `ensure_samples` unnecessary.
+  - R3 (w3-web note): `exampleUnavailableReason` expected a 501; for a template with no example it now gets a 200 and shows the generic text. CR-w3-samples-3 removes the case.
+  - R5 (accepted): a user can re-import into a sample network through the API; the web blocks it. R10 (not taken): `templates.py` importing the sample module loads the importer stack, which the router already loads.
 - Demand follows real weekdays (busy Saturdays, quiet Sundays), so a sample generated on a later day has different quantities; determinism is per (seed, date) — W3-P01.
 
 ## Gotchas
@@ -54,14 +62,14 @@ PR `lane/w3-samples → v1-local` is open; wait for the orchestrator's review. W
 ### CR-w3-samples-1 — sample rates read "sample values", not "manual"
 - **File(s):** `apps/api/app/services/enrichment/service.py` (merged W1 code; no W3 lane owns it), a test in `apps/api/tests/enrichment/`.
 - **Exact change:** `_ATTRIBUTES` also selects `EXISTS (SELECT 1 FROM dataset_versions v JOIN networks n ON n.id = v.network_id WHERE v.id = net_locations.dataset_version_id AND n.is_sample) AS is_sample`; in `_attributes`, the all-manual branch sets `source = "sample values" if r.is_sample else "manual"` (state stays `manual`). `scenario.py:327`'s `a.source or "manual"` then freezes "sample values" too. Test: a network imported with `create_import(..., is_sample=True)` whose locations.csv gives both rates reports `source == "sample values"` from `location_attributes`, and a non-sample network still reports `"manual"`.
-- **Why:** W2-06 §3 carry-in and V1-SPEC §8 ("poverty/SNAP values pre-filled and labeled 'sample values'"). The label is hard-coded at `enrichment/service.py:170`. The samples, `SampleNetwork.rate_source` and `data/samples/README.md` already say "sample values"; only the in-app label is missing.
+- **Why:** W2-06 §3 carry-in and V1-SPEC §8 ("poverty/SNAP values pre-filled and labeled 'sample values'"). The label is hard-coded at `enrichment/service.py:170`. The samples and `data/samples/README.md` already say "sample values"; only the in-app label is missing.
 - **Unblocks:** the in-app half of the "sample values" carry-in (W3-P01 is otherwise done).
 - **Status:** approved (Gabriel, 2026-11-09); the lead builds it on a lead branch into `v1-local`. The lane merges `origin/v1-local` when told and re-runs its focused tests.
 
 ### CR-w3-samples-2 — keep template CSVs LF on a Windows checkout
 - **File(s):** `.gitattributes` (lead-only).
 - **Exact change:** add `data/templates/**/*.csv text eol=lf`.
-- **Why:** `.gitattributes` covers `*.sh`, `*.py`, `*.yaml` but not CSV. With `core.autocrlf=true` (the Git for Windows default) the blank and example templates check out as CRLF, so `test_blank_templates_are_header_only` (W1) and `test_example_files_equal_generator_output` (W3-P03) fail when the tests run on that checkout (e.g. `npm run test:api:docker` on the Windows host). The importer itself accepts CRLF; only the byte-equality drift checks break.
+- **Why:** `.gitattributes` covers `*.sh`, `*.py`, `*.yaml` but not CSV. With `core.autocrlf=true` (the Git for Windows default) the blank and example templates check out as CRLF. Correction (code review R8): the original justification said both drift tests fail on CRLF. They didn't, because both used `read_text`, which turns CRLF into LF, so the drift check missed it. Since R8, `test_example_files_equal_generator_output` and `generate_samples.py --check` compare bytes, so a CRLF checkout fails them (e.g. `npm run test:api:docker` on the Windows host). `test_blank_templates_are_header_only` (W1) still uses `read_text` and passes. The importer accepts CRLF, and the downloads are computed, not read from disk.
 - **Unblocks:** nothing on Linux/CI; Windows-host test runs.
 - **Status:** approved (Gabriel, 2026-11-09); the lead builds it.
 
@@ -70,6 +78,13 @@ PR `lane/w3-samples → v1-local` is open; wait for the orchestrator's review. W
 - **Exact change:** `GET /templates/{name}.csv?kind=example&mode=PANTRY|RETAIL` (mode optional, default PANTRY); `template_csv(name, kind, mode=None)`. The lane then adds the Retail branch (the Retail sample on `EXAMPLE_AS_OF`), `data/templates/examples/retail/*.csv` with the same drift check, and `example_available=True` for Retail.
 - **Why:** V1-SPEC §6.1 gives every template a filled example; today Retail has none (verifier F1, mitigated by reporting `example_available=False` in Retail mode).
 - **Unblocks:** Retail example downloads. Non-blocking for this PR.
+- **Status:** open.
+
+### CR-w3-samples-4 — the bootstrap's seed date and transaction
+- **File(s):** `apps/api/scripts/local_bootstrap.py:104-125` (lead).
+- **Exact change:** (a) pass `today=datetime.now(ZoneInfo("America/New_York")).date()` (the samples' timezone, `samples.network.TIMEZONE`) instead of `date.today()`, which is the container's UTC date; (b) call `seed_local.seed` after the login transaction commits (its own `Session`), so `ensure_samples` no longer has to commit the caller's session.
+- **Why:** (a) between 20:00 and 24:00 New York time (UTC is already the next day), a seed dates the samples one day ahead of their own timezone: the as-of date is "tomorrow" for a New York user, and history ends "today". (b) code review R6 / verifier F5: the bootstrap is no longer atomic, and the commit in `ensure_samples` exists only because of the shared transaction (see the deadlock gotcha).
+- **Unblocks:** removing F5. Non-blocking for this PR.
 - **Status:** open.
 
 ## Escalations

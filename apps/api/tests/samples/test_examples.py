@@ -25,8 +25,10 @@ NAMES: tuple[TemplateName, ...] = get_args(TemplateName)
 def test_example_files_equal_generator_output():
     sample = pantry_sample(EXAMPLE_AS_OF)
     for name in NAMES:
-        text = (EXAMPLES / f"{name}.csv").read_text(encoding="utf-8")
-        assert text == template_csv(name, "example") == sample.files[name], name
+        # bytes, not read_text: universal newlines would hide a CRLF checkout
+        committed = (EXAMPLES / f"{name}.csv").read_bytes()
+        assert committed == template_csv(name, "example").encode() == sample.files[
+            name].encode(), name
     # The script regenerates exactly what is committed.
     result = subprocess.run([sys.executable, "scripts/generate_samples.py", "--check"],
                             cwd=API, capture_output=True, text=True, check=False)
@@ -35,12 +37,12 @@ def test_example_files_equal_generator_output():
 
 def test_every_template_has_example():
     assert sorted(p.stem for p in EXAMPLES.glob("*.csv")) == sorted(NAMES)
-    for mode in (None, "PANTRY"):
-        assert all(t.example_available for t in template_catalog(mode).templates)
+    assert all(t.example_available for t in template_catalog("PANTRY").templates)
 
 
 def test_catalog_offers_examples_only_where_they_validate():
-    """The one example set is the Pantry sample: a Retail import page must not offer it."""
+    """The one example set is the Pantry sample: only a Pantry import page may offer it."""
+    assert not any(t.example_available for t in template_catalog(None).templates)
     for mode in ("PANTRY", "RETAIL"):
         files = {name: io.BytesIO((EXAMPLES / f"{name}.csv").read_bytes()) for name in NAMES}
         report = validate_files(files, ImportSettings(mode=mode, timezone="America/New_York",

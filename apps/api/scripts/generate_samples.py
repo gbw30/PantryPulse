@@ -20,13 +20,15 @@ EXAMPLES = Path(__file__).resolve().parents[3] / "data" / "templates" / "example
 
 def main(check: bool) -> int:
     drift = []
-    EXAMPLES.mkdir(parents=True, exist_ok=True)
+    if not check:
+        EXAMPLES.mkdir(parents=True, exist_ok=True)
     for name in get_args(TemplateName):
-        path, text = EXAMPLES / f"{name}.csv", template_csv(name, "example")
-        if not path.exists() or path.read_text(encoding="utf-8") != text:
+        path, data = EXAMPLES / f"{name}.csv", template_csv(name, "example").encode()
+        # bytes, not read_text: universal newlines would hide a CRLF checkout
+        if not path.exists() or path.read_bytes() != data:
             drift.append(path.name)
             if not check:
-                path.write_text(text, encoding="utf-8", newline="")
+                path.write_bytes(data)
     if check and drift:
         print(f"examples differ from the generator: {', '.join(drift)}; "
               "run scripts/generate_samples.py")

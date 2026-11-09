@@ -5,7 +5,8 @@ through the same importer as a user's files, never written to the tables directl
 
 import csv
 import io
-from collections.abc import Iterable, Mapping
+import random
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date
 
@@ -25,6 +26,21 @@ class SampleNetwork:
     as_of_date: date
     files: dict[TemplateName, str]
     timezone: str = TIMEZONE
+
+
+def batch(location: str, product: str, batch_id: str, quantity: int, life: int | None,
+          share: float, rng: random.Random, on: Callable[[int], str], *, soonest: int,
+          received_within: int) -> dict[str, object]:
+    """An inventory row that expires `share` of its shelf life from today (at least `soonest`
+    days out), received in the last `received_within` days but never longer before expiry than
+    the product keeps (a 3-day product is not received 3 weeks ago)."""
+    if life is None:
+        oldest, expiry = received_within, {"non_expiring": "true"}
+    else:
+        expires = max(soonest, round(life * share))
+        oldest, expiry = max(0, min(received_within, life - expires)), {"expiry_date": on(expires)}
+    return dict(location_id=location, product_id=product, batch_id=batch_id, quantity=quantity,
+                received_date=on(-rng.randint(min(1, oldest), oldest)), **expiry)
 
 
 def to_csv(name: TemplateName, rows: Iterable[Mapping[str, object]]) -> str:

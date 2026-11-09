@@ -3,7 +3,7 @@
 
 import csv
 import io
-from datetime import timedelta
+from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -69,3 +69,14 @@ def assert_w1_rules(sample) -> None:
 
     for batch in rows(sample, "inventory"):  # short ids stay readable in frozen batch ids
         assert "/" not in batch["batch_id"] and len(batch["batch_id"]) <= 16, batch
+
+
+def assert_plausible_ages(sample, shelf_life: dict[str, int | None]) -> None:
+    """No batch was received longer before its expiry than its product keeps."""
+    for batch in rows(sample, "inventory"):
+        life = shelf_life[batch["product_id"]]
+        if life is not None and batch["received_date"]:
+            kept = date.fromisoformat(batch["expiry_date"]) - date.fromisoformat(
+                batch["received_date"])
+            assert kept.days <= life, (batch, life)
+        assert batch["received_date"] <= sample.as_of_date.isoformat(), batch
