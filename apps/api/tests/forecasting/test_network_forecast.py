@@ -319,8 +319,8 @@ def test_unknown_network_and_foreign_run_are_404(published, stack):
 
 
 def test_backtest_persisted_and_served_by_get_backtest(published, stack):
-    """WAITS ON ppv1_0014 (lead migration, CR-w3-forecast-1 option B): it needs the
-    forecast_runs.backtest column. Not skipped: it fails until that migration is merged in."""
+    """CR-w3-forecast-1 option B (ppv1_0014): the run's backtest is stored in
+    forecast_runs.backtest when it publishes and served from that one row."""
     from fastapi.testclient import TestClient
 
     from app.main import create_app
