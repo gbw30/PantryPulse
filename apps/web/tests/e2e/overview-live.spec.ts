@@ -489,7 +489,7 @@ test("connected: a signed-in presenter sees live data from the seeded backend", 
   await page.getByLabel("Username", { exact: true }).fill(process.env.PP_E2E_USERNAME ?? "presenter");
   await page.getByLabel("Password", { exact: true }).fill(process.env.PP_E2E_PASSWORD ?? "pantry-local-demo");
   await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Sign in", exact: true }).click()]);
-  await expect(page.getByText("Presenter session · simulated demo")).toBeVisible();
+  await expect(page.getByText("Presenter session", { exact: true })).toBeVisible();
   await page.goto("/overview");
   await expect(page.locator("[data-overview-source]")).toHaveAttribute("data-overview-source", "live");
   await expect(page.getByText(FIXTURE_LABEL)).toHaveCount(0);

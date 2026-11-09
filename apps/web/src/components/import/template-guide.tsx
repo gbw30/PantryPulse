@@ -4,6 +4,8 @@ import { templateUrl, type TemplateCatalog, type TemplateName } from "@/lib/netw
 import { cn } from "@/lib/utils";
 
 export const OPTIONAL_BLANK_NOTE = "Leave it blank if you don't know it; a blank never becomes zero.";
+// Given coordinates skip the Census lookup, so no tract rates are filled in (reverse geocoding is deferred, W2-06 §4).
+export const LOCATED_RATES_NOTE = "A pantry given latitude and longitude is never looked up, so it gets no Census rates: fill in both poverty_rate and snap_rate, or exclude it in Settings before a Pantry comparison.";
 
 type Props = {
   catalog: TemplateCatalog;
@@ -36,6 +38,7 @@ export function TemplateGuide({ catalog, exampleReasons }: Props) {
                   </span>
                 </h3>
                 <p className="text-sm text-muted-foreground">{template.description}</p>
+                {template.name === "locations" && catalog.mode !== "RETAIL" && <p className="text-sm">{LOCATED_RATES_NOTE}</p>}
               </div>
               <div className="flex flex-wrap items-start gap-2">
                 <a href={templateUrl(template.name, "blank")} download={file} className={buttonVariants({ variant: "outline", size: "sm" })}

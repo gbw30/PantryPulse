@@ -20,7 +20,7 @@ test("operational history, audited stock and canonical plan review through the b
   await page.getByLabel("Username", { exact: true }).fill(process.env.PP_E2E_USERNAME ?? "presenter");
   await page.getByLabel("Password", { exact: true }).fill(process.env.PP_E2E_PASSWORD ?? "pantry-local-demo");
   await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Sign in", exact: true }).click()]);
-  await expect(page.getByText("Presenter session · simulated demo")).toBeVisible();
+  await expect(page.getByText("Presenter session", { exact: true })).toBeVisible();
   const catalog = await api(page, "operational-catalog");
   expect(catalog.status).toBe(200);
   const site = catalog.body.sites.find((s: { role: string }) => s.role === "HUB");

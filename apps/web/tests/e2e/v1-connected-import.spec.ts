@@ -32,7 +32,7 @@ test("@V1-A06 @V1-A23 good template set with inbound and donation_history import
   // V1-SPEC §2 anti-goal: the page says which rows leave the machine, and where (W2-06 carry-in).
   await expect(page.getByText(/addresses? without latitude and longitude .* sent to the US Census Geocoder/i)).toBeVisible();
   // W2-06 carry-in: a pantry given coordinates is never looked up, so it needs both rates or an exclusion.
-  await expect(page.getByRole("region", { name: /^locations\.csv/ })).toContainText(/given latitude and longitude .* both poverty_rate and snap_rate, or .* exclude/i);
+  await expect(page.getByRole("region", { name: /^locations\.csv/ })).toContainText(/given latitude and longitude.*both poverty_rate and snap_rate.*exclude/i);
 
   // V1-A06: every template's blank download is exactly the columns its guide explains.
   const sections = page.getByRole("region", { name: /^\w+\.csv/ });
@@ -95,8 +95,10 @@ test("@V1-A07 bad file rejected: failure message and per-row fixes shown, and no
 
   // Nothing was saved: no network, dataset version or data row, and the switcher doesn't list it.
   expect(probe(tables)).toEqual(before);
-  await page.getByRole("combobox", { name: "Network", exact: true }).click();
-  await expect(page.getByRole("option", { name: new RegExp(name) })).toHaveCount(0);
+  const listed = await page.request.get("/api/v1/networks");
+  expect(listed.status()).toBe(200);
+  expect(((await listed.json()) as { networks: { name: string }[] }).networks.map((n) => n.name)).not.toContain(name);
+  await expect(page.getByRole("region", { name: "Current network" })).not.toContainText(name);
 });
 
 test("@V1-A10 offline enrichment marks unknown with retry", async ({ page }) => {

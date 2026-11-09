@@ -77,7 +77,7 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
     await again.getByLabel("Password").fill("right");
     await Promise.all([page.waitForEvent("load"), again.getByRole("button", { name: "Sign in", exact: true }).click()]);
     await openFooter(page);
-    await expect(page.getByText("Presenter session · simulated demo")).toBeVisible();
+    await expect(page.getByText("Presenter session", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
     await expect(page.getByText("No account · read-only demo")).toHaveCount(0);
     // Identity never appears in the top bar.

@@ -180,6 +180,11 @@ function ImportContent() {
           Fill in the CSV templates with your locations, products, stock and daily history, then upload them together.
           Nothing is saved unless every file passes.
         </p>
+        <p className="max-w-3xl text-sm text-muted-foreground">
+          Addresses without latitude and longitude are sent to the US Census Geocoder (a free public lookup, no key) after the import, to find their
+          coordinates and census tract. Locations with coordinates are never sent. If the lookup can&apos;t be reached, those values stay unknown and
+          Settings offers a retry.
+        </p>
       </header>
 
       <section aria-labelledby="templates-heading" className="grid gap-3">

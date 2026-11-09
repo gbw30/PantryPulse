@@ -439,7 +439,7 @@ test("connected: freeze → compare → verified results end to end", async ({ p
   await dialog.getByLabel("Username").fill(process.env.PP_E2E_USERNAME ?? "presenter");
   await dialog.getByLabel("Password").fill(process.env.PP_E2E_PASSWORD ?? "pantry-local-demo");
   await Promise.all([page.waitForEvent("load"), dialog.getByRole("button", { name: "Sign in", exact: true }).click()]);
-  await expect(page.getByText("Presenter session · simulated demo")).toBeVisible();
+  await expect(page.getByText("Presenter session", { exact: true })).toBeVisible();
   await page.goto("/scenarios");
   await page.getByRole("button", { name: "Generate forecast", exact: true }).click();
   await expect(page.locator("[data-job-state]")).toHaveAttribute("data-job-state", "SUCCEEDED", { timeout: 90_000 });

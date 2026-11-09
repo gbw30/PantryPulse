@@ -25,6 +25,21 @@ it("every column renders required/optional, unit, meaning and effect on plan", (
   }
 });
 
+it("the locations guide says a pantry given coordinates also needs both rates, or an exclusion (W2-06 carry-in)", () => {
+  // Given coordinates skip the Census lookup, so the tract's rates are never filled in (W2-06 §4).
+  render(<TemplateGuide catalog={catalog} exampleReasons={{}} />);
+  const locations = screen.getByRole("region", { name: /^locations\.csv/ });
+  expect(locations).toHaveTextContent(/pantry given latitude and longitude.*both poverty_rate and snap_rate.*exclude it in Settings/);
+  for (const other of catalog.templates.filter((t) => t.name !== "locations")) {
+    expect(screen.getByRole("region", { name: new RegExp(`^${other.name}\\.csv`) })).not.toHaveTextContent(/given latitude and longitude/);
+  }
+});
+
+it("a Retail locations guide (stores have no rates) has no rates note", () => {
+  render(<TemplateGuide catalog={{ ...example("TemplateCatalog"), mode: "RETAIL" }} exampleReasons={{}} />);
+  expect(screen.getByRole("region", { name: /^locations\.csv/ })).not.toHaveTextContent(/given latitude and longitude/);
+});
+
 it("optional blank columns say they never become zero", () => {
   // Strip the server's own wording so the guide itself must say it.
   const plain = example("TemplateCatalog");

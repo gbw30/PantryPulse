@@ -41,6 +41,14 @@ async function importAll() {
   fireEvent.click(screen.getByRole("button", { name: "Check and import" }));
 }
 
+it("says which addresses are sent to the US Census Geocoder before anything is uploaded (V1-SPEC §2, §6.3)", async () => {
+  render(<ImportView />);
+  const notice = await screen.findByText(/Addresses without latitude and longitude are sent to the US Census Geocoder/);
+  expect(notice).toHaveTextContent(/after the import/);
+  expect(notice).toHaveTextContent(/Locations with coordinates are never sent/);
+  expect(notice).toHaveTextContent(/stay unknown.*retry/);
+});
+
 it("a slower scan of an earlier demand_history.csv never overwrites the later file's date", async () => {
   let finishFirst!: (last: string | null) => void;
   vi.mocked(lastHistoryDate)
