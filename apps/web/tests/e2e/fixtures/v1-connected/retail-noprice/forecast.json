@@ -1,0 +1,10 @@
+{
+  "comment": "Fixture forecast run for the Retail twin of the mini network (W2-05): series by external id, mapped to net_locations/net_products ids like the mini network's. Providers are labeled fixture stand-ins.",
+  "data_cutoff_date": "2026-11-04",
+  "series": [
+    {"location": "S1", "product": "MILK", "target": "DEMAND", "status": "AVAILABLE", "basis": "FULFILLED_PROXY", "provider": "SEASONAL_NAIVE", "fallback_reason": null, "central": [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]},
+    {"location": "S2", "product": "MILK", "target": "DEMAND", "status": "AVAILABLE", "basis": "FULFILLED_PROXY", "provider": "MOVING_AVERAGE", "fallback_reason": "seasonal-naive history too short", "central": [8.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0]},
+    {"location": "S3", "product": "BREAD", "target": "DEMAND", "status": "AVAILABLE", "basis": "FULFILLED_PROXY", "provider": "SEASONAL_NAIVE", "fallback_reason": null, "central": [5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0]},
+    {"location": "S1", "product": "BREAD", "target": "DEMAND", "status": "INSUFFICIENT_DATA", "basis": "FULFILLED_PROXY", "provider": null, "fallback_reason": null, "central": null}
+  ]
+}

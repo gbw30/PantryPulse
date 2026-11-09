@@ -8,12 +8,12 @@ const backtest = example("BacktestResult");
 const evaluated = backtest.series.find((s) => s.score.status === "evaluated")!;
 const short = backtest.series.find((s) => s.score.status === "not_evaluated_insufficient_history")!;
 
-// No v1 forecast-result example exists yet (CR-w1-web-4); this is the subset of the contract's
-// ForecastSeriesResult the panel reads, typed against the generated schema.
+// The subset of a run's series (NetworkForecastRun.series, CR-w1-web-4) the panel reads, typed against the
+// generated schema; the section test reads the NetworkForecastRun example itself.
 const fallback: SeriesMethod = {
   status: "AVAILABLE", fallback_used: true, fallback_reason: "INSUFFICIENT_REFERENCE_WEEKDAYS",
   actual_provider: { name: "MOVING_AVERAGE", adapter_version: "core-v1", package_version: null, checkpoint: null, checkpoint_revision: null },
-  diagnostics: { observed_count: 60, missing_count: 3, proxy_fraction: 0, reference_weekday_count: 1, trailing_sample_count: 14 },
+  missing_count: 3,
   points: Array.from({ length: 7 }, (_, day) => ({ day: `2026-11-0${day + 6}`, central_estimate: 10, estimate_kind: "MEAN" as const, p10: null, p50: null, p90: null, interval_method: "NONE" as const, postprocessing_policy: "reject-invalid-v1" })),
 };
 const withQuantiles: SeriesMethod = {

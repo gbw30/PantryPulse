@@ -324,7 +324,7 @@ test("every v1 route is forwarded; neighbours and stray queries are not", async 
     "GET networks", `GET networks/${net}`, "GET templates", "GET templates?mode=RETAIL",
     "GET templates/locations.csv?kind=example", `GET networks/${net}/enrichment`,
     `GET networks/${net}/routes`, "GET settings", `GET networks/${net}/danger?forecast_run_id=${run}`,
-    `GET forecasts/${run}/backtest`, `GET networks/${net}/comparisons/${cmp}`,
+    `GET forecasts/${run}/backtest`, `GET networks/${net}/forecasts/${run}`, `GET networks/${net}/comparisons/${cmp}`,
     `GET networks/${net}/comparisons/${cmp}/methods/EQUAL_SHARE/actions`,
     `POST networks/${net}/enrichment/retry`, `POST networks/${net}/routes/google-preview`,
     `POST networks/${net}/routes/google-fetch`, `POST networks/${net}/scenarios`,
@@ -346,6 +346,7 @@ test("every v1 route is forwarded; neighbours and stray queries are not", async 
     "GET networks?organization_id=spoof", "GET templates/secrets.csv", `GET templates?mode=A&mode=B`,
     `GET networks/${net}/comparisons/${cmp}/methods/DROP_TABLES/actions`, "DELETE networks",
     `PUT networks/${net}`, "POST settings", `PUT networks/${net}/locations/a%2Fb/attributes`,
+    `GET networks/${net}/forecasts/not-a-run`, `GET networks/${net}/forecasts/${run}/series`,
   ]) assert.equal((await call(route)).status, 404, route);
   const evil = await PUT(new Request("http://localhost:3000/api/v1/settings/google-maps-key", {
     method: "PUT", body: "{}", headers: { Origin: "https://evil.example" },

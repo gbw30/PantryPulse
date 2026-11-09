@@ -490,7 +490,17 @@ test("connected: a signed-in presenter sees live data from the seeded backend", 
   await page.getByLabel("Password", { exact: true }).fill(process.env.PP_E2E_PASSWORD ?? "pantry-local-demo");
   await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Sign in", exact: true }).click()]);
   await expect(page.getByText("Presenter session", { exact: true })).toBeVisible();
+  // W2-06 carry-in: once the presenter has a v1 network (an import or a sample), the overview shows that
+  // network's own ranking instead of the legacy atlas; the legacy live atlas remains while there is none.
+  const listed = await page.request.get("/api/v1/networks");
+  expect(listed.status()).toBe(200);
+  const { networks } = (await listed.json()) as { networks: { name: string }[] };
   await page.goto("/overview");
+  if (networks.length > 0) {
+    await expect(page.getByRole("region", { name: /^Danger ranking · / })).toBeVisible();
+    await expect(page.locator("[data-overview-source]")).toHaveCount(0);
+    return;
+  }
   await expect(page.locator("[data-overview-source]")).toHaveAttribute("data-overview-source", "live");
   await expect(page.getByText(FIXTURE_LABEL)).toHaveCount(0);
   await expect(page.locator("[data-marker-role]")).not.toHaveCount(0);

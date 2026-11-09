@@ -36,6 +36,9 @@ export const networkApi = {
   danger: (networkId: string, forecastRunId: string) =>
     api<Schema["DangerRanking"]>(`networks/${seg(networkId)}/danger?forecast_run_id=${encodeURIComponent(forecastRunId)}`),
   backtest: (forecastJobId: string) => api<Schema["BacktestResult"]>(`forecasts/${encodeURIComponent(forecastJobId)}/backtest`),
+  /** A published run's series (CR-w1-web-4): method, fallback, missing days, points; demand and donation. */
+  forecastRun: (networkId: string, forecastRunId: string) =>
+    api<Schema["NetworkForecastRun"]>(`networks/${seg(networkId)}/forecasts/${encodeURIComponent(forecastRunId)}`),
   createScenario: (networkId: string, body: Schema["ScenarioOptions"]) => api<Schema["ScenarioV3"]>(`networks/${seg(networkId)}/scenarios`, body),
   submitComparison: (networkId: string, body: Schema["ComparisonRequestV3"]) => api<Schema["ForecastAccepted"]>(`networks/${seg(networkId)}/comparisons`, body),
   /** The finished comparison named by the job's `result_url`; anything else is refused rather than fetched. */

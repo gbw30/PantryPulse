@@ -15,7 +15,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[4] / "api"))
 
 import sqlalchemy as sa  # noqa: E402
-
 from app.database import database_engine  # noqa: E402
 
 NAME = re.compile(r"[a-z][a-z0-9_]{0,62}")
@@ -26,8 +25,18 @@ engine = database_engine(os.environ["DATABASE_URL"])
 try:
     with engine.connect() as conn:
         conn.execute(sa.text(f'SET search_path TO "{schema}"'))
-        print(json.dumps({t: conn.scalar(sa.text(
-            "SELECT md5(coalesce(string_agg(r::text, '|' ORDER BY r::text), '')) || ':' || count(*) "
-            f"FROM {t} r")) for t in tables}))
+        print(
+            json.dumps(
+                {
+                    t: conn.scalar(
+                        sa.text(
+                            "SELECT md5(coalesce(string_agg(r::text, '|' ORDER BY r::text), ''))"
+                            f" || ':' || count(*) FROM {t} r"
+                        )
+                    )
+                    for t in tables
+                }
+            )
+        )
 finally:
     engine.dispose()

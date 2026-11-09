@@ -62,6 +62,9 @@ export function PresenterProvider({ children }: { children: React.ReactNode }) {
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 
+/** The session when a provider is mounted above, else null (ShellProviders mounts one only when missing). */
+export const usePresenterOptional = () => useContext(Context);
+
 export function usePresenter(): PresenterContext {
   const value = useContext(Context);
   if (!value) throw new Error("usePresenter must be used inside AppShell");

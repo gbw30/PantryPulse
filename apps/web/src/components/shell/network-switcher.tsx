@@ -66,6 +66,9 @@ export function NetworkProvider({ children }: { children: React.ReactNode }) {
   return <NetworkContext.Provider value={value}>{children}</NetworkContext.Provider>;
 }
 
+/** The network context when a provider is mounted above, else null. */
+export const useNetworkOptional = () => useContext(NetworkContext);
+
 export function useNetwork() {
   const value = useContext(NetworkContext);
   if (!value) throw new Error("useNetwork must be used inside NetworkProvider");

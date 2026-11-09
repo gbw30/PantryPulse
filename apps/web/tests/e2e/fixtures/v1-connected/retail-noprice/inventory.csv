@@ -1,0 +1,5 @@
+location_id,product_id,batch_id,quantity,expiry_date,non_expiring,received_date
+DC1,MILK,B1,60,2026-11-08,,2026-11-01
+DC1,BREAD,B1,40,2026-11-12,,2026-11-02
+S1,MILK,B1,30,2026-11-07,,
+S2,MILK,B1,2,2026-11-10,,

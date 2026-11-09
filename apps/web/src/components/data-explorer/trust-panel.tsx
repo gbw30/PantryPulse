@@ -2,8 +2,8 @@ import { formatUnits } from "@/components/overview/danger-ranking";
 import { fallbackReasonLabel, providerLabel } from "@/components/overview/forecast-method";
 import type { Schema } from "@/lib/planning-api";
 
-/** The parts of a forecast series the panel explains (contract `ForecastSeriesResult`). */
-export type SeriesMethod = Pick<Schema["ForecastSeriesResult"], "status" | "actual_provider" | "fallback_used" | "fallback_reason" | "diagnostics" | "points">;
+/** The parts of a run's series the panel explains (contract `NetworkForecastRun.series`, CR-w1-web-4). */
+export type SeriesMethod = Pick<Schema["NetworkSeries"], "status" | "actual_provider" | "fallback_used" | "fallback_reason" | "missing_count" | "points">;
 
 export const SALES_LABEL = "sales (undercounts demand when shelves were empty)";
 export const NOT_EVALUATED = "accuracy not evaluated: needs 35+ days";
@@ -11,7 +11,7 @@ export const NOT_EVALUATED = "accuracy not evaluated: needs 35+ days";
 export const NOT_MEASURABLE = "accuracy not measurable: no recorded demand on the scored days";
 
 type Props = {
-  /** "P-12 · WATER-24" */
+  /** "Archer Road Pantry (P-12) · WATER-24" */
   label: string;
   basis: Schema["SeriesBacktest"]["basis"];
   score: Schema["BacktestScore"] | null;
@@ -50,9 +50,9 @@ export function TrustPanel({ label, basis, score, method, donationForecast }: Pr
               : <span className="text-muted-foreground"> · no fallback</span>}
           </p>
           <p className="text-muted-foreground">
-            {method.diagnostics.missing_count === 0
+            {method.missing_count === 0
               ? "No missing days in the history."
-              : `${method.diagnostics.missing_count} missing day${method.diagnostics.missing_count === 1 ? "" : "s"} in the history, kept as missing (never zero).`}
+              : `${method.missing_count} missing day${method.missing_count === 1 ? "" : "s"} in the history, kept as missing (never zero).`}
           </p>
           <p className="text-muted-foreground">
             {hasQuantiles(method)

@@ -1,0 +1,5 @@
+location_id,product_id,quantity,arrival_date,expiry_date,non_expiring,source,reference
+S3,BREAD,12,2026-11-07,2026-11-15,,dc_delivery,PO-R1
+S2,MILK,20,2026-11-25,2026-12-05,,supplier,PO-R2
+S1,BREAD,6,2026-11-11,2026-11-20,,dc_delivery,PO-R3
+S1,BREAD,6,2026-11-12,2026-11-20,,dc_delivery,PO-R4

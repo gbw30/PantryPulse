@@ -13,3 +13,11 @@ city-level points in Florida. `pantry` follows the backend `mini-network` fixtur
   expiry, non-ISO date).
 - `unlocated`: `pantry`'s required files plus P4 with no coordinates and no rates, so enrichment
   must look it up (V1-A10).
+- `retail`: the backend `retail-twin` fixture (a distribution center and three stores, all located,
+  every product priced), so a Retail comparison runs in units and in USD (V1-A15).
+- `retail-noprice`: `retail` with `unit_value_usd` blank for every product, so USD is unavailable
+  with its reason.
+- `forecast.json` (in `pantry`, `retail`, `retail-noprice`): a FIXTURE forecast run keyed by external
+  IDs, copied from the backend fixtures. `connected/seed_forecast.py` inserts it for an imported
+  network because the v1 forecast routes are 501 until W4 (Escalation E-1). It is never forecast
+  evidence; import, scenario, comparison, decisions and export stay real.

@@ -9,7 +9,7 @@ Connected runs only count as evidence when the lane's connected stack runs (belo
 | Task | Status | Commit | Evidence (command → result) |
 |---|---|---|---|
 | W3-W01 | done | see `git log` (W3-W01) | Connected (schema `ppor_demo_w3web_1109014243`, API and worker with no egress): `RUN=/tmp/claude-1000/pw3 apps/web/tests/e2e/connected/run-e2e.sh tests/e2e/v1-connected-import.spec.ts --workers=1` → 4 passed (A06/A23, A07, A10, A11). Carry-in units RED first (6 failed for the expected reasons), then `npx vitest run` → 23 files, 126 passed; `node --test tests/*.test.mjs` → 12 passed; tsc and eslint exit 0; mocked e2e overview, design-lab, presenter-session, import-upload, import-templates, v1-shell, enrichment → 46 passed. |
-| W3-W02 | todo | — | — |
+| W3-W02 | done | see `git log` (W3-W02); carry-in `55fbdc9` | Connected, whole suite as in CI's connected step (production build, API and worker with no egress, schema `ppor_demo_w3web_1109024125` already holding v1 networks): `PP_E2E_PRODUCTION=1 RUN=/tmp/claude-1000/pw4 apps/web/tests/e2e/connected/run-e2e.sh --workers=1` → 192 passed, 0 failed, 0 skipped, including A14, A15 and A16 (journey) and A06/A23, A07, A10, A11 (import). The forecast run in A14–A16 is a FIXTURE (E-1), not forecast evidence. Units RED first, then `npx vitest run` → 23 files, 134 passed; `node --test tests/*.test.mjs` → 12 passed; tsc and eslint exit 0; `node scripts/quality/run.cjs quick` → exit 0 (web typecheck, web lint, api lint, api tests PASS). |
 | W3-W03 | todo | — | — |
 
 ### W3-W01 RED run (2026-11-08, connected stack, schema `ppor_demo_w3web_1108182844`)
@@ -40,7 +40,21 @@ Connected runs only count as evidence when the lane's connected stack runs (belo
   - the locations guide (Pantry, or mode not chosen yet) says a pantry given coordinates needs both rates or an exclusion;
   - the top bar shows `Snapshot <as_of_date>` of the chosen network; its pill reads "Sample data — fictional" for a sample, nothing for a real import, "Simulated network" only when no v1 network is chosen (the legacy demo), and nothing while networks load;
   - the session footer reads "Presenter session" (four specs that pinned the old text updated).
-- Still open from the carry-ins, planned with W3-W02: the overview (Live chip, atlas subtitle, product picker, legacy atlas above the ranking), names in the trust panel and Decisions, and CR-w1-web-4 in the trust panel.
+- Still open from the carry-ins, planned with W3-W02: the overview (Live chip, atlas subtitle, product picker, legacy atlas above the ranking), names in the trust panel and Decisions, and CR-w1-web-4 in the trust panel. Done in W3-W02 (below).
+
+### W3-W02 (2026-11-09)
+
+- **Fixture forecast (E-1):** `connected/seed_forecast.py` runs the W2-05 journey's `FIXTURE_FORECAST` job on its own queue lane (`e2e_fixture`, a `compute_control` row it adds), so the production worker keeps the `default` lane, and prints the `forecast_run_id`. The series come from each set's `forecast.json` (copied from the backend fixtures). The journeys pass it as `?forecast_run_id=`. It is never forecast evidence; import, scenario, comparison, decisions and export are real.
+- **RED → GREEN, connected (`v1-connected-journey.spec.ts`):** A14 and A15 passed on the first run, since the W1/W2 wiring already held. A16 failed for a test-side reason: it expected the mocked decisions spec's illustrative CSV header, but the server writes the W1-S07 columns (`scenario_id,scenario_hash,method,network_mode,product,unit,quantity,from,to,ship_date,arrival_date,why,effect,note`). A16 now pins that header; the mocked spec's comment says its columns are illustrative.
+- **Carry-ins, each RED first:**
+  - overview: a chosen v1 network shows its own header and danger ranking. The legacy demo atlas (its fixture/live snapshot, "Live · simulated network" chip, "simulated network" subtitle and pickers) shows only when no v1 network is chosen. `ShellProviders` mounts the session/network providers once, so the overview can read the network above its `AppShell` (unit tests RED, then GREEN). The connected A06 test now checks `/overview` after a real import, and it fails on the previous atlas (`[data-overview-source]` count 1).
+  - the product and day pickers no longer say "Loading…" after a failed snapshot or with no products ("No products (snapshot unavailable)", "No products"); same for the data explorer's product picker.
+  - names: Decisions already names locations (the server writes names into the action and why texts, `apps/api/app/services/optimization/actions.py:155-185`); A14 now asserts every action names locations and the effects tables use names. The trust panel uses `LocationList` names.
+  - CR-w1-web-4: the data page takes `?forecast_run_id=`. The trust section reads `GET /networks/{id}/forecasts/{run}` (new client method, and a proxy GET route with its node test) for each series' method, fallback, missing days, band and the donation forecast. It reads the backtest by the run's `job_id`, and shows one "Accuracy by location and unit" row per `BacktestResult.locations` entry, never pooled across units. Mocked from the contract examples until W4.
+  - lead carry-in (CR-w3-samples-1): `sourceLine` shows "Source: sample values" for sample-valued manual rates (commit `55fbdc9`).
+- **Legacy connected overview test:** `overview-live.spec.ts` "connected: a signed-in presenter sees live data" now expects the network's ranking when the presenter has v1 networks and the legacy live atlas only when there are none; its old expectation depended on spec order and fails once samples are seeded.
+- **Layout test race (`overview-layout.spec.ts`, "drops are clamped"):** in the full connected run it failed once. Over repeats it failed on the third repeat each time (1 in 3, then 1 in 5). The old atlas passed 3 of 3 repeats. The snapshot showed Pine Ridge's card open instead of Willow Creek's. After Escape, Radix returns focus to the opening marker when the card unmounts (`onCloseAutoFocus`), which can land after the dialog role is gone, so the test's next `focus()` was taken back. A keyboard user can't act inside that window. The test now waits for focus to return to the marker that opened the card (the intended behavior) before moving on: 175 of 175 over 5 repeats. My change moved the legacy atlas's first mount after the network list loads (client-side), which shifted the timing.
+- **Legacy connected specs with v1 networks present:** a second full connected run on the same schema (v1 networks left by the first) failed `operations-api` (line 78), `recommendations` (line 320) and `scenario-lab` (line 450): strict-mode violations on "Compare methods". With a v1 network chosen, `/scenarios` shows both the legacy "Scenario builder" and the v1 "Comparison setup", and each has that button. This was already on the base, and CI's fresh schema avoids it only because those specs run before the v1 imports; seeded samples would trigger it there too. The locators are now scoped to the legacy "Scenario builder" form, and the three tests pass with v1 networks present. **For the lead:** `/scenarios` showing two builders for a v1 network is the same pattern as the overview carry-in, but it isn't in this lane's list, so the screen is unchanged.
 
 ## Connected run (how the evidence is produced)
 
@@ -51,14 +65,14 @@ Mirrors the CI connected step (`.github/workflows/pantrypulse-ci.yml:86-108`), w
   - `bridge.py` twice on the host: a unix socket `.s.PGSQL.<port>` → the shared `pp-ci-postgres`, and `127.0.0.1:8003` → the API socket.
   - It waits with `scripts/quality/wait-demo.py`.
 - `run-e2e.sh` runs Playwright on 3003 with `PP_RUN_CONNECTED=1`, `PP_E2E_NO_EGRESS=1`, the presenter credentials and `DATABASE_URL`/`PP_DATABASE_SCHEMA` for the read-only probe (`connected/db_probe.py`).
-- `stack-down.sh` stops it. Each `stack-up.sh` makes a new schema; earlier ones stay in `pantrypulse_web_test` (only `ppor_demo_w3web_1108182844` so far).
+- `stack-down.sh` stops it. Each `stack-up.sh` makes a new schema; earlier ones stay in `pantrypulse_web_test` (`ppor_demo_w3web_1108182844`, `…_1109014243`, `…_1109024125` so far). The W3-W02 stack was restarted on a new schema after a failure snapshot recorded that run's generated password (Gotchas).
 
 ## Gates
 
 | Gate | Commit | Result |
 |---|---|---|
 | `npx tsc --noEmit -p apps/web`, `eslint` on the new spec files | save point | exit 0 / exit 0 |
-| `node scripts/quality/run.cjs quick` | | not run yet |
+| `node scripts/quality/run.cjs quick` | W3-W02 | exit 0: web typecheck, web lint, api lint, api tests PASS |
 | `node scripts/quality/run.cjs full` (with `.env.lane`) | | not run yet |
 | `/devkit:ship-check` | | not run yet |
 
@@ -72,6 +86,8 @@ Mirrors the CI connected step (`.github/workflows/pantrypulse-ci.yml:86-108`), w
 
 - AF_UNIX socket paths are capped at 107 bytes; the session scratchpad path is too long, so `RUN` must be short (a symlink works). — W3-W01
 - The worker's step children get an allowlisted environment (`process_driver.py:26`), so proxy variables can't make enrichment offline; only a network namespace (or a firewall) does. — W3-W01
+- The API allows 5 presenter logins per minute per address (`apps/api/app/services/presenter_access.py:91-106`). A rejected login never reloads the page, so a helper waiting for "load" hangs until the test timeout (15 min here). The connected helper now signs in once per worker, reuses the cookies and fails in 30 s. CI's connected step runs every spec, so other specs' logins count toward the same limit. — W3-W02
+- A failed sign-in's Playwright `error-context.md` records the password textbox value, and CI uploads `apps/web/test-results/` as an artifact. The credentials are generated per run, but the connected helper clears the field on failure; the legacy specs that sign in through the form don't (lead: worth the same guard). — W3-W02
 - When demand_history.csv has no valid date and no `as_of_date` is sent, the import fails with that single error and lists no other row errors. A user with several bad rows sees only this one first. Not changed (server behavior, data lane/lead); worth a look in W4 hardening. — W3-W01
 
 ## Change requests

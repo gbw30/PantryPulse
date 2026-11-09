@@ -75,7 +75,7 @@ test("operational history, audited stock and canonical plan review through the b
   const frozen = await freezing;
   expect(frozen.status()).toBe(201);
   const scenarioId = (await frozen.json()).id;
-  await expect(page.getByRole("button", { name: "Compare methods", exact: true })).toBeEnabled();
+  await expect(page.getByRole("form", { name: "Scenario builder" }).getByRole("button", { name: "Compare methods", exact: true })).toBeEnabled();
   const scenario = await api(page, `scenarios/${scenarioId}`);
   const accepted = await api(page, `scenarios/${scenarioId}/plans`, {
     expected_scenario_hash: scenario.body.payload.operational_hash, method: "CLASSICAL_GP", search_seconds: 1,

@@ -67,6 +67,14 @@ test("@V1-A06 @V1-A23 good template set with inbound and donation_history import
   await expect(banner).toContainText("Snapshot Nov 4, 2026");
   await expect(banner).not.toContainText(/simulated/i);
   await expect(page.getByText(/simulated (network|demo)/i)).toHaveCount(0);
+
+  // W2-06 carry-ins: the overview shows this network's own ranking, not the legacy demo atlas above it
+  // (its "Live · simulated network" chip, subtitle and a product picker stuck on "Loading products…").
+  await page.goto("/overview");
+  await expect(page.getByRole("region", { name: `Danger ranking · ${name}` })).toBeVisible();
+  await expect(page.locator("[data-overview-source]")).toHaveCount(0);
+  await expect(page.getByText(/simulated/i)).toHaveCount(0);
+  await expect(page.getByText(/Loading (products|dates)…/)).toHaveCount(0);
 });
 
 test("@V1-A07 bad file rejected: failure message and per-row fixes shown, and no network or dataset version created", async ({ page }) => {

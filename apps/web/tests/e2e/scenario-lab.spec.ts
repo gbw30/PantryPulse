@@ -447,7 +447,7 @@ test("connected: freeze → compare → verified results end to end", async ({ p
   await page.getByRole("button", { name: "Create frozen scenario" }).click();
   await page.getByLabel("Search seconds per method").fill("1");
   const submitting = page.waitForResponse((response) => /\/scenarios\/[^/]+\/compare-methods$/.test(new URL(response.url()).pathname) && response.request().method() === "POST");
-  await page.getByRole("button", { name: "Compare methods" }).click();
+  await page.getByRole("form", { name: "Scenario builder" }).getByRole("button", { name: "Compare methods" }).click();
   const accepted = await submitting;
   expect(accepted.status()).toBe(202);
   const comparisonId = (await accepted.json()).job_id as string;
