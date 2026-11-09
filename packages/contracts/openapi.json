@@ -17012,6 +17012,20 @@
               "title": "Kind",
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "mode",
+            "required": false,
+            "schema": {
+              "default": "PANTRY",
+              "enum": [
+                "PANTRY",
+                "RETAIL"
+              ],
+              "title": "Mode",
+              "type": "string"
+            }
           }
         ],
         "responses": {

@@ -27,9 +27,9 @@ def ensure_local_organization(session) -> bool:
     return created == 1
 
 
-def seed(session, today: date) -> str:
-    """Add the local organization and the sample networks; return a summary line."""
-    created = ensure_local_organization(session)
+def seed(session, today: date, organization_created: bool) -> str:
+    """Add the sample networks; return a summary line. The bootstrap has already committed the
+    local organization, so this transaction writes nothing that an import's attach waits on."""
     report = samples.ensure_samples(session, today)
-    state = "created" if created else "already present"
+    state = "created" if organization_created else "already present"
     return f"Seed completed: local organization {state}; samples loaded: {len(report.loaded)}."

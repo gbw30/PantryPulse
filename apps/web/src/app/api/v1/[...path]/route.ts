@@ -57,7 +57,7 @@ async function proxy(request: Request) {
   // Query keys each GET route accepts, each at most once; any other query is refused.
   const queryKeys = request.method !== "GET" ? undefined : ([
     ["planning-catalog", ["before", "before_id"]], ["templates", ["mode"]],
-    [`templates/(${TEMPLATE_FILES})\\.csv`, ["kind"]], [`${net}/danger`, ["forecast_run_id"]],
+    [`templates/(${TEMPLATE_FILES})\\.csv`, ["kind", "mode"]], [`${net}/danger`, ["forecast_run_id"]],
     [`${net}/projection`, ["forecast_run_id", "location_id"]],
   ] as const).find(([route]) => new RegExp(`^${route}$`).test(path))?.[1] as readonly string[] | undefined;
   const keys = [...incoming.searchParams.keys()];

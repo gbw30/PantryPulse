@@ -322,7 +322,8 @@ test("every v1 route is forwarded; neighbours and stray queries are not", async 
   const run = "66666666-6666-4666-8666-666666666666";
   const forwarded = [
     "GET networks", `GET networks/${net}`, "GET templates", "GET templates?mode=RETAIL",
-    "GET templates/locations.csv?kind=example", `GET networks/${net}/enrichment`,
+    "GET templates/locations.csv?kind=example", "GET templates/locations.csv?kind=example&mode=RETAIL",
+    `GET networks/${net}/enrichment`,
     `GET networks/${net}/routes`, "GET settings", `GET networks/${net}/danger?forecast_run_id=${run}`,
     `GET forecasts/${run}/backtest`, `GET networks/${net}/forecasts/${run}`, `GET networks/${net}/comparisons/${cmp}`,
     `GET networks/${net}/comparisons/${cmp}/methods/EQUAL_SHARE/actions`,
