@@ -36,6 +36,11 @@ PR #122 holds:
 | samples | `pantrypulse-samples-*` | 4/4 tasks done, PR #121 in review. Waits for #122 to merge, then `git merge origin/v1-local` |
 | web | `pantrypulse-web-*` | W01, W02 done, pushed `ee2ae4c`: connected e2e 192 passed, 0 skipped, no egress, fixture forecast run per E-1. Doing the approved follow-ups (hide the legacy Scenario builder when a v1 network is chosen; a shared sign-in helper that clears the password on failure), then W03 |
 
+**Lane save points (all clean and pushed; each status file has a "Save point 2026-11-09" section with its exact next step):**
+- **forecast `41d0d1f`:** all of W3 except F03's `get_backtest`, which is WIP `eacf8b2`. Tests that publish a network run fail until `ppv1_0014` is merged in, because the column is missing; the non-DB suites pass (62).
+- **samples `8344830`** (PR #121): the 3 review findings are fixed test-first in `8d1fe06`, with an advisory lock on the seed. Merged v1-local `5c5fbe7` (`a172430`). Focused tests: 332 passed, 0 skipped; quick 4/4. Next: a verifier re-check of `51b65aa..8344830`.
+- **web `03e2bcb`:** W02 follow-ups done in `0932747`: on `/scenarios` the legacy builder is hidden when a v1 network is chosen, and a shared sign-in helper clears the password. Merged v1-local; `stack-up.sh` uses the shared bridge. Two specs are WIP and have never run: the `@V1-A10` sample-values check, and W03 accessibility. Likely W03 finding: Radix animations ignore reduced motion.
+
 **Open for Gabriel:**
 - **CR-w3-samples-3:** Retail examples need a mode on the example route.
 - **CR-w3-samples-4:** the seed uses the UTC `date.today()`, so from 20:00 to 24:00 New York time it dates samples a day ahead. Lead file `scripts/local_bootstrap.py`. Part (b): run the seed outside the login transaction.
