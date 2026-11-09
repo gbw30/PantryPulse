@@ -67,10 +67,12 @@ Order: F02 → F01 → F04 → F03 → F05 → F06. F01 and F02 depend on nothin
 
 ## Known limits for the PR (measured at 50,000 series, W3-F06)
 
-- The submit request runs the history aggregate itself: 3.1 s over 4.5 M rows, in the API request's REPEATABLE READ transaction.
-- Publishing builds the 106 MB `ForecastOutput` inside the publication lock: 4.2 s, plus the row INSERT (S7: 1.65 s).
+Commands, from `apps/api` with `.env.lane` loaded: `uv run --frozen python scripts/bench_forecast.py --part built --series 50000` (the job, the publish lock, the danger ranking, sizes) and `… --part freeze --series 50000` (the submit's history aggregate). Measured at `23c998d`, on the machine in the evidence file.
+
+- The submit request runs the history aggregate itself: 3.1 s over 4.5 M rows (`--part freeze`), in the API request's REPEATABLE READ transaction.
+- Publishing builds the 106 MB `ForecastOutput` inside the publication lock: 4.2 s (`--part built`, `publish_in_lock_s_before_insert`), plus the row INSERT (S7 `--part db`: 1.65 s). The W3-F03 remainder adds `build_backtest` to the lock (9.4 MB stored at 50k series). It gets re-timed on a quiet machine: the first run at `1278084` overlapped other sessions' test runs (load average 7) and doubled every phase, so its numbers aren't used.
 - `create_scenario` re-reads that 106 MB output (S7: about 4.5 s).
-- `get_danger` recomputes per request: about 4 s of projection and ranking, plus the run read and the batch SQL. Nothing is cached.
+- `get_danger` recomputes per request: about 4 s of projection and ranking (`--part built`, `danger_ranking_s`), plus the run read and the batch SQL. Nothing is cached.
 - `GET /networks/{id}/forecasts/{run}` returns every series (tens of MB). Pagination would be a contract change.
 
 ## Gotchas
@@ -114,3 +116,52 @@ Order: F02 → F01 → F04 → F03 → F05 → F06. F01 and F02 depend on nothin
 ## Escalations
 
 (none)
+
+## PR description draft
+
+Fill in the gate rows and the re-timed lock after `ppv1_0014` merges. Checked with `research-claims-check` on 2026-11-09: no forecast, accuracy or danger statement here claims calibration, probability or real-world outcomes.
+
+```markdown
+## w3-forecast: backtest, network forecasts, inbound, danger ranking, volume
+
+Wave 3 forecast lane (`lane/w3-forecast`, base `0a4959359a447233e8ca5eea87b1917d70bd7de8`, merged with `origin/v1-local` at <SHA>).
+
+### Tasks
+| Task | Commit | Acceptance | What |
+|---|---|---|---|
+| W3-F01 | `70dc30e` | V1-A17 | Spike S7: the per-day `forecast.v1` input can't reach 50,000 series; a compact per-series input can. |
+| W3-F02 | `94737e5` | V1-A12 | Rolling-origin backtest: 4 weekly origins, WAPE and bias % on one scored set, missing actuals excluded (never zero), 35-day minimum. |
+| W3-F03 | `0f0decd`, <final> | V1-A08, A12, A23 | Network forecasts through `forecast.v1`: seasonal naive, then a labeled moving-average fallback; series under 14 days are listed, not forecast; donation forecasts are labeled "not confirmed" and never supply. The backtest is stored in `forecast_runs.backtest` (CR-w3-forecast-1 B, migration `ppv1_0014`) and served by `GET /forecasts/{job_id}/backtest`. |
+| W3-F04 | `db08dde` | V1-A23 | Tests pinning `project_v3`: confirmed inbound enters once on its arrival day, outside-horizon rows are refused, FEFO applies to deliveries. |
+| W3-F05 | `86b5672` | V1-A13, A23 | `GET /networks/{id}/danger` and `/projection` on `project_v3`. The score is the worst product's share of 7-day demand projected unmet (Retail: or the share of stock projected to expire unsold, the higher with its reason). Bands: high ≥ 0.50, medium ≥ 0.20. Units are never summed across products; unknown demand is not scored. |
+| W3-F06 | `23c998d`, `2339048` | V1-A17 | 50,000 series: forecast job 12.5 s of the 300 s ceiling, 1.1 GB peak. Evidence: `docs/forecasting/evidence/v1-forecast-scale.json`. |
+
+Forecasts are projections. The backtest's WAPE and bias are the forecast's error on the network's own last four weeks: a measurement on past data, not a calibrated interval or a stockout probability. The danger score is a unitless share inside the projection, not a probability. The scale evidence is timings on synthetic history, never accuracy evidence.
+
+### For the lead's review
+- `forecast.v1` `max_output_bytes` 4 → 32 MB (W3-F03): the compact network step output is 13.4 MB at 50k series.
+- `forecast.v1` `max_input_bytes` 16 → 24 MB (W3-F06): the worst-case network input at the envelope encodes to 20.6 MB (`test_worst_case_frozen_input_fits_the_registered_bound`); 4-digit daily quantities already passed 16 MB.
+- The only lead-file edit: the W3-F03/F05 rows removed from `STUBS` in `tests/test_v1_contract.py`.
+
+### Commands and results
+| Command | Result |
+|---|---|
+| `PP19_TEST_SCHEMA_ISOLATION=1 uv run --frozen pytest -q tests/forecasting tests/danger tests/test_v1_contract.py tests/networks tests/workers tests/test_inventory_projection.py tests/integration/{test_v1_backend_journey,test_forecast_api_postgres,test_worker_slice,test_v1_job_status}.py` | <n> passed, 0 skipped |
+| `node scripts/quality/run.cjs quick` | <PASS> |
+| `node scripts/quality/run.cjs full` (with `.env.lane`) | <PASS, 0 skipped> |
+| `/devkit:ship-check` (verifier agent for the local review) | <result> |
+| `uv run --frozen python scripts/bench_forecast.py --part built --series 50000` | job 12.5 s of 300 s; publish in lock <re-timed> s before the INSERT |
+| `uv run --frozen python scripts/bench_forecast.py --part freeze --series 50000` | 3.1 s history aggregate over 4.5 M rows |
+
+### Known limits (measured at 50,000 series)
+- The submit request runs the history aggregate itself: 3.1 s.
+- Publishing builds the 106 MB output and the backtest inside the publication lock: <re-timed> s, plus the INSERT.
+- `create_scenario` re-reads the 106 MB output (about 4.5 s).
+- `GET /networks/{id}/danger` recomputes on every request (about 4 s); nothing is cached.
+- `GET /networks/{id}/forecasts/{run}` returns every series (tens of MB); pagination would be a contract change.
+
+### Change requests
+- CR-w3-forecast-1 (backtest persistence): decided, option B; the lead's `ppv1_0014` adds `forecast_runs.backtest`.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+```
