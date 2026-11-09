@@ -90,3 +90,11 @@ it("switching network never shows the previous network's locations or routes und
   expect(screen.getByText("Loading routes…")).toBeVisible();
   expect(screen.queryByText(new RegExp(firstLocation))).not.toBeInTheDocument();
 });
+
+it("a sample network's pre-filled rates say they are sample values; a real manual entry says entered by you (V1-SPEC §8)", async () => {
+  const { sourceLine } = await import("@/components/enrichment/attribute-editor");
+  const location = { ...example("LocationAttributes"), state: "manual" as const };
+  expect(sourceLine({ ...location, source: "sample values" })).toBe("Source: sample values");
+  expect(sourceLine({ ...location, source: null })).toBe("Source: entered by you");
+  expect(sourceLine({ ...location, source: "manual" })).toBe("Source: entered by you");
+});
