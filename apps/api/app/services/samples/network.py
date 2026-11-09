@@ -13,8 +13,6 @@ from app.schemas.v1_networks import TemplateName
 from app.schemas.v1_planning import NetworkMode
 from app.services.imports.columns import COLUMNS
 
-SAMPLE_LABEL = "Sample data — fictional"
-RATE_SOURCE = "sample values"  # poverty/SNAP rates are invented, never ACS lookups
 TIMEZONE = "America/New_York"
 HISTORY_DAYS = 90
 NO_STREET = "No street address (sample)"  # city-level coordinates only; no real buildings
@@ -27,8 +25,6 @@ class SampleNetwork:
     as_of_date: date
     files: dict[TemplateName, str]
     timezone: str = TIMEZONE
-    label: str = SAMPLE_LABEL
-    rate_source: str = RATE_SOURCE
 
 
 def to_csv(name: TemplateName, rows: Iterable[Mapping[str, object]]) -> str:

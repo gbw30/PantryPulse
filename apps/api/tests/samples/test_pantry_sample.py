@@ -56,8 +56,8 @@ def test_city_level_coordinates_no_street_addresses():
 
 
 def test_poverty_snap_prefilled_labeled_sample_values():
+    # The in-app "sample values" source label is the lead's CR-w3-samples-1 (enrichment).
     sample = pantry_sample(TODAY)
-    assert sample.rate_source == "sample values"
     for loc in rows(sample, "locations"):
         if loc["type"] == "pantry":
             assert 0 < float(loc["poverty_rate"]) < 1 and 0 < float(loc["snap_rate"]) < 1
@@ -85,8 +85,8 @@ def test_deterministic_for_seed_and_date():
 
 
 def test_labeled_sample_data_fictional():
+    # In the app the label comes from networks.is_sample (asserted in test_seed.py).
     sample = pantry_sample(TODAY)
-    assert sample.label == "Sample data — fictional"
     assert "sample" in sample.name.lower()
     assert all(loc["name"].startswith("Sample ") for loc in rows(sample, "locations"))
     assert "Sample data — fictional" in README.read_text(encoding="utf-8")

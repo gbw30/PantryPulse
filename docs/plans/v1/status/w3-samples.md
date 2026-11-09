@@ -23,7 +23,7 @@ Status values: `todo`, `in progress`, `done`, `blocked (<reason or CR id>)`.
 |---|---|---|
 | `node scripts/quality/run.cjs quick` (standard env) | `55026c0` | PASS (4/4). Without a DB, pytest is 1669 passed, 383 skipped: every skip is a PostgreSQL suite reporting `NOT RUN: PP_TEST_DATABASE_URL is not set` (e.g. `test_supervisor` 63, `test_job_queue` 38, `test_build_scenario` 22, `test_import_postgres` 21, `test_seed` 7); not counted as validated, all run in `full` below |
 | `node scripts/quality/run.cjs full` (with `.env.lane`, `PP19_TEST_SCHEMA_ISOLATION=1`) | `55026c0` | PASS (8/8); same env `uv run --frozen pytest -q -rs` → 2052 passed, 0 skipped in 314 s |
-| `/devkit:ship-check` | | |
+| `/devkit:ship-check` | `0053567` → fixes in the next commit | step 1 quick+full PASS; step 2 project `verifier`: pass with findings (106 focused tests incl. PostgreSQL 0 skipped, generator `--check` clean, own W1-rule sweep over 1,100 Pantry and 134 Retail dates 0 failures, partial-failure and concurrent-seed runs held). F1 and F2 fixed; F3–F5 recorded below. Step 3: security-guidance not installed. Steps 5–6 after the PR |
 
 ## Decisions made inside the lane
 
@@ -33,6 +33,7 @@ Status values: `todo`, `in progress`, `done`, `blocked (<reason or CR id>)`.
 - Retail history uses `basis=sales` (stores record sales), so the app shows the sales undercount label; Retail donation history is a weekly vendor promotion at the DC, only so both optional files are exercised — W3-P02.
 - Examples are the Pantry sample on a fixed as-of date (`EXAMPLE_AS_OF = 2026-11-04` in `templates.py`), computed by the `example` branch like the blank branch computes its header; `scripts/generate_samples.py` writes `data/templates/examples/*.csv` from that branch, and `--check` is the drift test. `example_available` is now `True` in the catalog (part of the example feature) — W3-P03.
 - Approved by Gabriel 2026-11-08: the lane removed two stub pins in lead-owned tests, `tests/imports/test_templates.py::test_examples_kind_returns_501_until_w3` (W3-P03) and `tests/test_local_bootstrap.py:180` (W3-P04), plus the permitted STUBS row for `/templates/locations.csv?kind=example` in `tests/test_v1_contract.py` — W3-P03/P04.
+- Verifier F1 (fixed): the catalog advertised the Pantry example in Retail mode, where it fails validation (`type: hub`). `template_catalog("RETAIL")` now reports `example_available=False` (`test_catalog_offers_examples_only_where_they_validate`); the web shows "Example not available yet." Real Retail examples are CR-w3-samples-3. Verifier F2 (fixed): `SampleNetwork.label`/`rate_source` were constants no app code read; removed with their assertions — W3-P03/P01.
 - Demand follows real weekdays (busy Saturdays, quiet Sundays), so a sample generated on a later day has different quantities; determinism is per (seed, date) — W3-P01.
 
 ## Gotchas
@@ -41,6 +42,12 @@ Status values: `todo`, `in progress`, `done`, `blocked (<reason or CR id>)`.
 - `tests/test_local_bootstrap.py`'s `db` fixture truncates `organizations` before each test, so once `ensure_samples` is real, each of its ~10 `run()` calls imports both samples (Retail is ~90k sales rows). Measured: about 1.1 s per `run()`, 14.5 s for the module (10 tests).
 - The fixture forecast job in `tests/networks/test_build_scenario.py` caps output at 10,000 bytes (`OUTPUT_TOO_LARGE` even for the 48-series Pantry sample). `test_seed.py`'s `sample_sized_forecasts` fixture swaps in the same registration with 50 MB caps; it must be requested before `forecasts`.
 - psycopg 3 connects through libpq (C sockets), so patching Python's `socket` in the no-outbound test can't break the test's own database connection.
+
+## Known limitations (verifier F3–F5, accepted for the PR)
+
+- F3: a failed sample import leaves its import run (`failed`) and, for a new network, its organization row; abandoned-import cleanup is deferred to W5 (W2-06 §5 D). A restart imports the missing sample once; nothing is duplicated (verified).
+- F4: a sample import error raises, so the `seed` service fails and compose doesn't start `api`/`worker`. Chosen deliberately: the samples are our own generated files, and the verifier's date sweep found no failing date. Lead call whether a sample failure should instead be logged and skipped.
+- F5: `ensure_samples` commits the caller's session (the deadlock fix), so the caller can't use that session's transaction afterwards; `local_bootstrap.run` doesn't. Two concurrent seeds on an empty DB: PostgreSQL aborts one with `DeadlockDetected`, the other loads both, no duplicates (compose runs one seed).
 
 ## Change requests
 
@@ -57,5 +64,12 @@ Status values: `todo`, `in progress`, `done`, `blocked (<reason or CR id>)`.
 - **Why:** `.gitattributes` covers `*.sh`, `*.py`, `*.yaml` but not CSV. With `core.autocrlf=true` (the Git for Windows default) the blank and example templates check out as CRLF, so `test_blank_templates_are_header_only` (W1) and `test_example_files_equal_generator_output` (W3-P03) fail when the tests run on that checkout (e.g. `npm run test:api:docker` on the Windows host). The importer itself accepts CRLF; only the byte-equality drift checks break.
 - **Unblocks:** nothing on Linux/CI; Windows-host test runs.
 - **Status:** approved (Gabriel, 2026-11-09); the lead builds it.
+
+### CR-w3-samples-3 — Retail template examples (a `mode` on the example download)
+- **File(s):** `apps/api/app/routers/v1_networks.py:55` (lead), the frozen `template_csv(name, kind)` signature, `packages/contracts/**` (regenerated), the web's `templateUrl` (w3-web paths).
+- **Exact change:** `GET /templates/{name}.csv?kind=example&mode=PANTRY|RETAIL` (mode optional, default PANTRY); `template_csv(name, kind, mode=None)`. The lane then adds the Retail branch (the Retail sample on `EXAMPLE_AS_OF`), `data/templates/examples/retail/*.csv` with the same drift check, and `example_available=True` for Retail.
+- **Why:** V1-SPEC §6.1 gives every template a filled example; today Retail has none (verifier F1, mitigated by reporting `example_available=False` in Retail mode).
+- **Unblocks:** Retail example downloads. Non-blocking for this PR.
+- **Status:** open.
 
 ## Escalations

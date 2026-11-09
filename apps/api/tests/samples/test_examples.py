@@ -35,8 +35,18 @@ def test_example_files_equal_generator_output():
 
 def test_every_template_has_example():
     assert sorted(p.stem for p in EXAMPLES.glob("*.csv")) == sorted(NAMES)
-    for mode in (None, "PANTRY", "RETAIL"):
+    for mode in (None, "PANTRY"):
         assert all(t.example_available for t in template_catalog(mode).templates)
+
+
+def test_catalog_offers_examples_only_where_they_validate():
+    """The one example set is the Pantry sample: a Retail import page must not offer it."""
+    for mode in ("PANTRY", "RETAIL"):
+        files = {name: io.BytesIO((EXAMPLES / f"{name}.csv").read_bytes()) for name in NAMES}
+        report = validate_files(files, ImportSettings(mode=mode, timezone="America/New_York",
+                                                      as_of_date=None))
+        offered = {t.example_available for t in template_catalog(mode).templates}
+        assert offered == {report.ok}, mode
 
 
 def test_examples_validate_clean():

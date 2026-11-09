@@ -60,7 +60,7 @@ def test_varied_expiry_including_within_7_days():
 
 def test_fictional_chain_name_no_real_brands():
     sample = retail_sample(TODAY)
-    assert CHAIN in sample.name and sample.label == "Sample data — fictional"
+    assert CHAIN in sample.name and "sample" in sample.name
     names = [sample.name, CHAIN] + [r["name"] for name in ("locations", "products")
                                     for r in rows(sample, name)]
     names += [r["donor"] for r in rows(sample, "donation_history")]

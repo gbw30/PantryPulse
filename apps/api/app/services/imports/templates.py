@@ -146,7 +146,9 @@ def template_catalog(mode: NetworkMode | None) -> TemplateCatalog:
                 effect_on_plan=effect, allowed_values=roles if column == "type" else ()))
         templates.append(Template(name=name, required=name in REQUIRED_TEMPLATES,
                                   description=DESCRIPTIONS[name], columns=tuple(entries),
-                                  example_available=True))
+                                  # shortcut: the examples are the Pantry sample, so Retail gets
+                                  # none until the route takes a mode (CR-w3-samples-3).
+                                  example_available=mode != "RETAIL"))
     return TemplateCatalog(mode=mode, templates=tuple(templates), notes=NOTES)
 
 
