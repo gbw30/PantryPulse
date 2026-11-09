@@ -23,7 +23,8 @@ class ForecastRun(OwnedIdentity, Base):
     planning_ready = mapped_column(sa.Boolean, nullable=False)
     frozen_input = mapped_column(JSONB, nullable=False)
     output = mapped_column(JSONB, nullable=False)
-    backtest = mapped_column(JSONB)  # BacktestResult body, forecast.v1 network runs only
+    # BacktestResult body, forecast.v1 network runs only; a Python None is SQL NULL, not JSON null
+    backtest = mapped_column(JSONB(none_as_null=True))
     __table_args__ = owned(
         sa.ForeignKeyConstraint(
             ["organization_id", "job_id"],

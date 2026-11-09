@@ -479,7 +479,7 @@ def test_ppv1_0013_moves_every_batch_into_its_version_partition_and_back():
 
 # CR-w3-forecast-1 option B (Gabriel, 2026-11-09): each run's backtest is stored on its run row
 # (ppv1_0014), as a JSON object or NULL.
-def _forecast_run(conn, backtest):
+def _job(conn):
     org, job, attempt = _org(conn), uuid.uuid4(), uuid.uuid4()
     conn.execute(sa.text(
         "INSERT INTO compute_attempts (attempt_id, job_id, attempt_number, lane_id, "
@@ -491,6 +491,11 @@ def _forecast_run(conn, backtest):
         "current_attempt_id, state, created_at, updated_at) VALUES (:j, 'default', :o, 'actor', "
         "'FORECAST', 'forecast.v1', '1', '{\"input\": {}}', repeat('a', 64), :a, 'QUEUED', "
         "now(), now())"), {"a": attempt, "j": job, "o": org})
+    return org, job, attempt
+
+
+def _forecast_run(conn, backtest):
+    org, job, attempt = _job(conn)
     conn.execute(sa.text(
         "INSERT INTO forecast_runs (id, organization_id, job_id, attempt_id, input_hash, "
         "planning_ready, frozen_input, output, backtest) VALUES (:id, :o, :j, :a, repeat('a', 64), "
@@ -509,6 +514,32 @@ def test_forecast_run_backtest_rejects_anything_but_an_object(engine, backtest):
     with pytest.raises(DBAPIError, match="ck_forecast_runs_backtest"):
         with engine.begin() as conn:
             _forecast_run(conn, backtest)
+
+
+def test_model_stores_a_python_none_backtest_as_sql_null(engine):
+    # A run without a backtest is SQL NULL; JSON null would fail ck_forecast_runs_backtest.
+    from app.models.forecasts import ForecastRun
+
+    with engine.begin() as conn:
+        org, job, attempt = _job(conn)
+        run_id = uuid.uuid4()
+        conn.execute(sa.insert(ForecastRun.__table__).values(
+            id=run_id, organization_id=org, job_id=job, attempt_id=attempt, input_hash="a" * 64,
+            planning_ready=False, frozen_input={}, output={}, backtest=None))
+        assert conn.scalar(sa.text("SELECT backtest IS NULL FROM forecast_runs WHERE id = :r"),
+                           {"r": run_id}) is True
+
+
+def test_model_declares_the_migration_backtest_check():
+    # compare_metadata ignores CHECK constraints, so pin the model's DDL to the migration's.
+    from sqlalchemy.dialects import postgresql
+    from sqlalchemy.schema import CreateTable
+
+    from app.models.forecasts import ForecastRun
+
+    ddl = str(CreateTable(ForecastRun.__table__).compile(dialect=postgresql.dialect()))
+    assert ("CONSTRAINT ck_forecast_runs_backtest CHECK (backtest IS NULL OR "
+            "jsonb_typeof(backtest) = 'object')") in ddl
 
 
 def test_ppv1_0014_downgrade_refuses_while_a_backtest_is_stored():

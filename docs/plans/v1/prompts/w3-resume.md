@@ -11,7 +11,7 @@ W3 started 2026-11-09 from base `0a49593`. The lanes run as separate CLI session
 | Item | Head | State | Gabriel's approval |
 |---|---|---|---|
 | PR #122 `w3/lead-crs` (worktree `.claude/worktrees/w3-lead`) | `5cb3c76` | **Merged** as `5c5fbe7`, CI green. The samples and web lanes were told to merge `origin/v1-local` | Done |
-| `w3/ppv1-0014-backtest` (worktree `.claude/worktrees/w3-mig`), local only | `a3c3b59` + this runbook | `ppv1_0014`: `forecast_runs.backtest` JSONB, NULL or an object. The tests failed first. Full API suite: 2038 passed, 0 skipped. Not yet independently verified | Option B approved; **push and PR not yet approved** |
+| `w3/ppv1-0014-backtest` (worktree `.claude/worktrees/w3-mig`), local only | `a3c3b59` + this runbook | `ppv1_0014`: `forecast_runs.backtest` JSONB, NULL or an object. The tests failed first. Full API suite: 2038 passed, 0 skipped. Verified 2026-11-09: all requirements PASS, 4 of 5 mutants killed at first; the 3 Low findings (None stored as JSON null, no test of the model's CHECK, stale head in README and INSTALLATION) were fixed test-first | Push + merge after CI (Gabriel) |
 
 PR #122 holds:
 - CR-w3-samples-1: sample rates read "sample values";
