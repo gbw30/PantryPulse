@@ -20,7 +20,13 @@ PR #122 holds:
 - the W3 decisions file, the BOARD W2/W3 rows, and the W4-02 E-1 carry-in.
 
 **Lane PRs:**
-- PR #121, `lane/w3-samples` at `51b65aa`: W3-P01…P04 done. CI `verify` passed; `full` was running. The independent verifier (W4-01 Step 1) was mid-review. The lane holds the head and pushes only review fixes.
+- PR #121, `lane/w3-samples` at `51b65aa`: W3-P01…P04 done. CI `verify` passed; `full` was running.
+  - The verifier (W4-01 Step 1) found no High or Medium issues. P01–P03 PASS; P04 PASS with 3 Low findings.
+  - Full API suite 2054 passed, 0 skipped. V1-A02 and V1-A06 are UNVERIFIED at service level; they need compose and e2e.
+  - The 3 Low findings went to the lane, which fixes them test-first and pushes a new head:
+    - concurrent stale seeds add a duplicate version (needs a lock);
+    - the egress test misses a call swallowed by `except Exception`;
+    - two mutants survived (`is_sample` dropped from the lookup; ASC tie-break).
 
 **Lanes:**
 
@@ -41,7 +47,7 @@ PR #122 holds:
    `U=postgresql+psycopg://pantrypulse:isolated_test_only@127.0.0.1:55433/pantrypulse_test; PP_TEST_DATABASE_URL=$U PP19_TEST_DATABASE_URL=$U PP19_TEST_SCHEMA_ISOLATION=1 node scripts/quality/run.cjs full`.
    If the connected step failed in CI, read `artifacts/bridge-*.log`, `api.log` and `worker.log` in the run's evidence upload. The `sysctl` on ubuntu-24.04 was the unverified part.
    After the merge, tell samples to merge `origin/v1-local`, and tell web to merge and point `stack-up.sh` at `scripts/quality/netns-bridge.py`.
-2. **PR #121:** get the verifier's report. If the session that ran it is gone, dispatch a new `verifier` with the same packet: head `51b65aa`, base `0a49593`, worktree `.claude/worktrees/verify-121`, DB `pantrypulse_verify_test`, V1-A02/A05/A06 and W3-P01…P04. Send findings to the lane. Merge only with Gabriel's OK and after CI, then run the full gate.
+2. **PR #121:** when the lane pushes its fixes, get a verifier re-check of the fix diff `51b65aa..<new head>`, using worktree `verify-121` and DB `pantrypulse_verify_test`. Then ask Gabriel for the merge, after CI, and run the full gate.
 3. **`ppv1_0014`:** first, in `w3-mig`, run `git merge origin/v1-local` (after #122) and set decisions §5 to "approved B, landed in #N". Then dispatch a verifier, ask Gabriel for push + PR, merge after CI, run the gate, and tell forecast to merge `origin/v1-local`.
 4. Decide CR-w3-samples-3, CR-w3-samples-4 and the merge order with Gabriel.
 5. Cleanup, with OK: worktrees `lead-resume` (merged), and `w3-lead` and `w3-mig` after merge; `verify-121` after review.
