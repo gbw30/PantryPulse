@@ -96,17 +96,23 @@ def _daily(series) -> tuple[int | None, ...]:
 
 def _lines(rt, scope, network_id: UUID, forecast_run_id: UUID, location_id: str | None = None):
     inputs, output, _ = read_run(rt, scope, network_id, forecast_run_id)  # tenancy + 404
-    locations = dict(inputs.locations)
-    products = {net: external for net, external, _ in inputs.products}
-    units = {external: unit for _, external, unit in inputs.products}
-    if location_id is not None and location_id not in locations.values():
+    if location_id is not None and location_id not in dict(inputs.locations).values():
         raise HistoryRejected("LOCATION_NOT_FOUND", 404)
     version, as_of = inputs.dataset_id, inputs.data_cutoff_date
+    units = {external: unit for _, external, unit in inputs.products}
     with rt.engine.connect() as conn:  # a published dataset version never changes
         mode = conn.scalar(sa.text("SELECT mode FROM networks WHERE id = :n"),
                            {"n": network_id}).upper()
         batches = _batches(conn, version, as_of, units, [])
         inbound, _ = _inbound(conn, version, [])
+    return mode, project_lines(inputs, output, batches, inbound, location_id)
+
+
+def project_lines(inputs, output, batches, inbound, location_id: str | None = None) -> list[Line]:
+    """A run's forecasts and its version's frozen lots → one Line per location × product."""
+    locations = dict(inputs.locations)
+    products = {net: external for net, external, _ in inputs.products}
+    units = {external: unit for _, external, unit in inputs.products}
     demand = _demand(output, locations, products, [])
     unknown, donations = set(), {}
     for s in output.series:
@@ -115,10 +121,11 @@ def _lines(rt, scope, network_id: UUID, forecast_run_id: UUID, location_id: str 
             donations[key] = _daily(s)
         elif s.status != "AVAILABLE":
             unknown.add(key)
+
     def keep(key) -> bool:
         return location_id is None or key[0] == location_id
 
-    first = as_of + timedelta(days=1)
+    first = inputs.data_cutoff_date + timedelta(days=1)
     # The parts of an or-input-v3 scenario that project_v3 reads.
     scenario = SimpleNamespace(
         first_planning_date=first,
@@ -151,7 +158,7 @@ def _lines(rt, scope, network_id: UUID, forecast_run_id: UUID, location_id: str 
             expiring_unsold=None if key not in dated else UNKNOWN if key in unknown
             else tuple(r.expired for r in rows),
             donation_forecast=donations.get(key)), arriving[key]))
-    return mode, lines
+    return lines
 
 
 def get_danger(rt, scope, network_id: UUID, forecast_run_id: UUID) -> DangerRanking:

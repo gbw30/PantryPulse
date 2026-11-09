@@ -9,11 +9,18 @@ Synthetic, seeded history: N series × D days, weekly pattern with noise and ~5 
             average) plus the 4-origin backtest, ForecastOutput built, serialized and re-read
   db        the compact run's output written to a scratch schema of a *_test database:
             one forecast_runs-shaped JSONB row plus one backtest row per series
+  built     the shipped W3-F03/F05 code (W3-F06): network.validate_frozen, compute and
+            build_output, sized against forecast.v1's byte bounds, then the danger ranking
+            (danger.ranking.project_lines + danger_ranking) over one dated lot per series
+  freeze    the freeze's real history aggregate (network._history) over N × D demand rows in
+            a scratch schema of a *_test database: the submit request's own SQL time
 
 Usage (from apps/api):
   uv run --frozen python scripts/bench_forecast.py --part compact --series 50000
   uv run --frozen python scripts/bench_forecast.py --part existing --series 50000 --sample 500
   uv run --frozen python scripts/bench_forecast.py --part db --series 50000   # PP_TEST_DATABASE_URL
+  uv run --frozen python scripts/bench_forecast.py --part built --series 50000
+  uv run --frozen python scripts/bench_forecast.py --part freeze --series 50000  # same URL
 Prints one JSON object. Synthetic data: timings only, never accuracy evidence.
 """
 
@@ -252,9 +259,125 @@ def db(n: int, days: int) -> dict:
     return result
 
 
+def built(n: int, days: int) -> dict:
+    from app.schemas.v1_planning import BatchV3
+    from app.services.danger.ranking import danger_ranking, project_lines
+    from app.services.forecasting.network import (
+        WINDOW_DAYS,
+        FrozenSeries,
+        NetworkForecastInput,
+        NetworkPolicy,
+        _hash,
+        build_output,
+        compute,
+        validate_frozen,
+    )
+    from app.workers.forecasting import REGISTRATION
+
+    timings, t = {}, time.perf_counter()
+    data = history(n, days)
+    timings["generate_s"] = time.perf_counter() - t
+    locations = tuple((uuid5(DATASET, f"L{i}"), f"L{i:03d}") for i in range(100))
+    products = tuple((uuid5(DATASET, f"P{i}"), f"P{i:04d}", "case")
+                     for i in range(max(1, -(-n // 100))))
+    t = time.perf_counter()  # the freeze's Python side; its SQL aggregate is not timed here
+    inputs = NetworkForecastInput(
+        organization_id=ORG, network_id=uuid5(DATASET, "network"), dataset_id=DATASET,
+        data_cutoff_date=CUTOFF, timezone="America/New_York", policy=NetworkPolicy(),
+        locations=locations, products=products, input_hash="",
+        series=tuple(FrozenSeries(location=i % 100, product=i // 100, kind="demand",
+                                  basis="demand", values=tuple(v[-WINDOW_DAYS:]),
+                                  observed=sum(x is not None for x in v),
+                                  missing=sum(x is None for x in v))
+                     for i, v in enumerate(data)))
+    inputs = inputs.model_copy(update={"input_hash": _hash(inputs)})
+    input_json = json.dumps({"network_forecast": inputs.model_dump(mode="json")},
+                            separators=(",", ":"))
+    timings["freeze_python_s"] = time.perf_counter() - t
+    t = time.perf_counter()  # admission, the step child and the publisher each pay this
+    validated = validate_frozen(json.loads(input_json)["network_forecast"])
+    timings["validate_input_s"] = time.perf_counter() - t
+    t = time.perf_counter()
+    step_json = json.dumps({"network_output": compute(validated)}, separators=(",", ":"))
+    timings["step_compute_s"] = time.perf_counter() - t
+    t = time.perf_counter()  # inside the publication lock
+    output = build_output(validated, json.loads(step_json)["network_output"], uuid4())
+    output_json = output.model_dump_json()
+    timings["publish_build_output_s"] = time.perf_counter() - t
+    t = time.perf_counter()
+    batches = [BatchV3(id=f"{locations[s.location][1]}/{products[s.product][1]}/B1",
+                       location_id=locations[s.location][1], product_id=products[s.product][1],
+                       quantity=20 + i % 40, expiry_date=CUTOFF + timedelta(days=1 + i % 10),
+                       non_expiring=False)
+               for i, s in enumerate(validated.series)]
+    rows = danger_ranking(project_lines(validated, output, batches, []), "RETAIL")
+    timings["danger_ranking_s"] = time.perf_counter() - t
+    timings = {k: round(v, 2) for k, v in timings.items()}
+    # workers/forecasting.py validates the frozen input 4 times: admission, the step, the
+    # publisher's validate and its publish; publish then builds the output in the lock.
+    job = 4 * timings["validate_input_s"] + timings["step_compute_s"] \
+        + timings["publish_build_output_s"]
+    lock = timings["validate_input_s"] + timings["publish_build_output_s"]
+    statuses = [r["status"] for r in json.loads(step_json)["network_output"]["series"]]
+    return {
+        "series": n, "days": days, "timings": timings,
+        "forecast_job_compute_s": round(job, 2), "ceiling_s": CEILING_S,
+        "within_ceiling": job < CEILING_S,
+        "publish_in_lock_s_before_insert": round(lock, 2),
+        "frozen_input_mb": round(len(input_json) / 1e6, 2),
+        "max_input_mb": REGISTRATION.max_input_bytes / 1e6,
+        "step_output_mb": round(len(step_json) / 1e6, 2),
+        "max_output_mb": REGISTRATION.max_output_bytes / 1e6,
+        "stored_output_json_mb": round(len(output_json) / 1e6, 2),
+        "series_available": statuses.count("AVAILABLE"),
+        "series_insufficient": statuses.count("INSUFFICIENT_DATA"),
+        "danger_rows": len(rows),
+    }
+
+
+def freeze(n: int, days: int) -> dict:
+    import sqlalchemy as sa
+
+    from app.services.forecasting.network import _history
+
+    url = os.environ.get("PP_TEST_DATABASE_URL", "")
+    if not url.rsplit("/", 1)[-1].split("?")[0].endswith("_test"):
+        raise SystemExit("PP_TEST_DATABASE_URL must name a *_test database")
+    engine, schema = sa.create_engine(url), "bench_w3f06_test"
+    try:
+        with engine.begin() as conn:
+            conn.execute(sa.text(f"DROP SCHEMA IF EXISTS {schema} CASCADE; CREATE SCHEMA {schema}"))
+            conn.execute(sa.text(
+                f"CREATE TABLE {schema}.net_demand_history (dataset_version_id uuid, "
+                "location_id uuid, product_id uuid, day date, quantity int, basis text)"))
+            t = time.perf_counter()
+            conn.execute(sa.text(
+                f"INSERT INTO {schema}.net_demand_history SELECT :v, "
+                "md5('l' || s % 100)::uuid, md5('p' || s / 100)::uuid, "
+                "CAST(:cutoff AS date) - d, CASE WHEN random() < 0.05 THEN NULL "
+                "ELSE (random() * 60)::int END, 'demand' "
+                "FROM generate_series(0, :n - 1) s, generate_series(0, :days - 1) d"),
+                {"v": DATASET, "cutoff": CUTOFF, "n": n, "days": days})
+            load_s = time.perf_counter() - t
+            conn.execute(sa.text(f"ANALYZE {schema}.net_demand_history"))
+        with engine.connect() as conn:
+            conn.execute(sa.text(f"SET search_path TO {schema}"))
+            t = time.perf_counter()
+            rows = _history(conn, "net_demand_history", DATASET, CUTOFF)
+            query_s = time.perf_counter() - t
+    finally:
+        with engine.begin() as conn:
+            conn.execute(sa.text(f"DROP SCHEMA IF EXISTS {schema} CASCADE"))
+        engine.dispose()
+    return {"series": n, "days": days, "history_rows": n * days, "series_rows": len(rows),
+            "scratch_load_s": round(load_s, 2), "history_aggregate_s": round(query_s, 2),
+            "note": "one unpartitioned scratch table holding only this version's rows"}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Spike S7: forecast and backtest volume")
-    parser.add_argument("--part", choices=("compact", "existing", "db"), default="compact")
+    parser.add_argument("--part", default="compact",
+                        choices=("compact", "existing", "db", "built", "freeze"))
     parser.add_argument("--series", type=int, default=50_000)
     parser.add_argument("--days", type=int, default=90)
     parser.add_argument("--sample", type=int, default=500)
@@ -264,6 +387,10 @@ def main() -> None:
         result = existing(args.series, args.days, args.sample)
     elif args.part == "db":
         result = db(args.series, args.days)
+    elif args.part == "built":
+        result = built(args.series, args.days)
+    elif args.part == "freeze":
+        result = freeze(args.series, args.days)
     else:
         result = compact(args.series, args.days)[0]
     commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True,
