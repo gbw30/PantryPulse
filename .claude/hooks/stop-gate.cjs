@@ -16,8 +16,14 @@ try {
     const config = JSON.parse(fs.readFileSync(path.join(root,'.claude','quality-gate.json'),'utf8'));
     if (!config.enabled) console.error('PantryPulse Stop gate disabled: application validation is UNVERIFIED.');
     else {
-      const runner = cp.spawnSync(process.execPath, [path.join(root,'scripts','quality','run.cjs'),'quick'], {cwd:root,encoding:'utf8',timeout:165000,windowsHide:true});
-      if (runner.status !== 0 || runner.error) {
+      const limit = config.stopHookTimeoutSeconds || 600;
+      const runner = cp.spawnSync(process.execPath, [path.join(root,'scripts','quality','run.cjs'),'quick'], {cwd:root,encoding:'utf8',timeout:limit*1000,windowsHide:true});
+      if (runner.error?.code === 'ETIMEDOUT') {
+        // Killed before run.cjs could report: say so, rather than as a check failure.
+        console.error(`PantryPulse quick gate timed out after ${limit} s (stopHookTimeoutSeconds) before it reported. Not a pass and not a test failure: rerun node scripts/quality/run.cjs quick when the machine is less busy and report its result.`);
+        console.error((runner.stdout || '').slice(-2000));
+        process.exitCode = 2;
+      } else if (runner.status !== 0 || runner.error) {
         console.error('PantryPulse quick gate failed. Fix the reported failure, rerun the gate and report evidence. A skipped second Stop is not a pass.');
         console.error((runner.stderr || runner.stdout || runner.error?.message || 'No diagnostic').slice(-6000));
         process.exitCode = 2;
