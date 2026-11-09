@@ -3,7 +3,7 @@
 
 import logging
 import stat
-from datetime import date
+from datetime import UTC, date, datetime
 from types import SimpleNamespace
 
 import pytest
@@ -227,3 +227,23 @@ def test_login_through_compose_proxy_on_loopback(db, paths, monkeypatch):
         refused = login("http://pantry.example")
         assert refused.status_code == 503
         assert refused.json()["error"]["code"] == "INSECURE_COOKIE_CONFIGURATION"
+
+
+def test_seed_date_is_the_samples_new_york_date():
+    # CR-w3-samples-4 (a): at 02:00 UTC on Nov 10 it is still Nov 9 in New York.
+    assert local_bootstrap.seed_today(datetime(2026, 11, 10, 2, tzinfo=UTC)) == date(2026, 11, 9)
+    assert local_bootstrap.seed_today(datetime(2026, 11, 10, 12, tzinfo=UTC)) == date(2026, 11, 10)
+
+
+def test_seed_runs_after_the_login_commits(db, paths, monkeypatch):
+    # CR-w3-samples-4 (b): the seed has its own transaction, started after the login committed.
+    seen = []
+
+    def fake(session, today):
+        with db.connect() as conn:
+            seen.append(conn.scalar(sa.text("SELECT count(*) FROM local_logins")))
+        return samples.SeedReport(loaded=())
+
+    monkeypatch.setattr(samples, "ensure_samples", fake)
+    run(db, paths)
+    assert seen == [1]

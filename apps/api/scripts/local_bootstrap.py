@@ -12,8 +12,9 @@
 import os
 import secrets
 import sys
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import insert
@@ -25,6 +26,7 @@ sys.path.insert(0, str(API_ROOT))
 from app.database import database_engine  # noqa: E402
 from app.models.networks import local_logins  # noqa: E402
 from app.services.presenter_access import hash_password, verify_password  # noqa: E402
+from app.services.samples.network import TIMEZONE  # noqa: E402
 from scripts import seed_local  # noqa: E402
 
 USERNAME = "local"
@@ -101,9 +103,16 @@ def ensure_proxy_token(token_file: Path) -> bool:
     return True
 
 
+def seed_today(now: datetime | None = None) -> date:
+    """The samples' date in their own timezone; the container clock is UTC (CR-w3-samples-4)."""
+    return (now or datetime.now(UTC)).astimezone(ZoneInfo(TIMEZONE)).date()
+
+
 def run(engine, *, login_file: Path, token_file: Path, web_port: str, today: date) -> None:
     with Session(engine) as session, session.begin():
         login_created = ensure_login(session, login_file)
+    # The seed gets its own transaction once the login has committed (CR-w3-samples-4).
+    with Session(engine) as session, session.begin():
         summary = seed_local.seed(session, today)
     token_created = ensure_proxy_token(token_file)
     print(f"Local login {'generated' if login_created else 'unchanged'}.")
@@ -122,7 +131,7 @@ def main() -> int:
     try:
         run(engine, login_file=Path(os.environ["PP_LOCAL_LOGIN_FILE"]),
             token_file=Path(os.environ["PP_TRUSTED_PROXY_TOKEN_FILE"]),
-            web_port=web_port(), today=date.today())
+            web_port=web_port(), today=seed_today())
     finally:
         engine.dispose()
     return 0

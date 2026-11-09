@@ -95,3 +95,32 @@ def test_template_routes_answer_through_the_api():
     assert blank.status_code == 200
     assert blank.headers["content-type"].startswith("text/csv")
     assert blank.text == header("inventory") + "\n"
+
+
+def test_example_route_takes_an_optional_mode():
+    # CR-w3-samples-3 (Gabriel, 2026-11-09): `mode` picks the example set, default PANTRY.
+    from types import SimpleNamespace
+    from uuid import UUID
+
+    from fastapi.testclient import TestClient
+
+    from app.main import create_app
+    from app.routers.forecasts import presenter, runtime
+
+    app = create_app()
+    app.dependency_overrides[runtime] = lambda: SimpleNamespace()
+    app.dependency_overrides[presenter] = lambda: SimpleNamespace(
+        organization_id=UUID(int=1), actor="local")
+    client = TestClient(app)
+    url = "/api/v1/templates/inventory.csv"
+    pantry = client.get(url, params={"kind": "example", "mode": "PANTRY"})
+    assert pantry.status_code == 200
+    assert pantry.text == client.get(url, params={"kind": "example"}).text
+    assert pantry.text == template_csv("inventory", "example", "PANTRY")
+    # Until the samples lane adds the Retail examples, RETAIL says so instead of serving Pantry.
+    retail = client.get(url, params={"kind": "example", "mode": "RETAIL"})
+    assert (retail.status_code, retail.json()["error"]["code"]) == (
+        404, "TEMPLATE_EXAMPLE_UNAVAILABLE")
+    assert client.get(url, params={"kind": "example", "mode": "OTHER"}).status_code == 422
+    # A blank template is the same header in either mode.
+    assert client.get(url, params={"mode": "RETAIL"}).text == header("inventory") + "\n"

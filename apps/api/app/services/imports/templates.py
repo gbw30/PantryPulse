@@ -13,6 +13,7 @@ from app.schemas.v1_networks import (
 )
 from app.schemas.v1_planning import ROLES_BY_MODE, NetworkMode
 from app.services.imports.columns import COLUMNS, header
+from app.services.presenter_access import AccessError
 from app.services.samples.pantry import pantry_sample
 
 EXAMPLE_AS_OF = date(2026, 11, 4)  # the examples' as-of date; their history ends the day before
@@ -152,8 +153,12 @@ def template_catalog(mode: NetworkMode | None) -> TemplateCatalog:
     return TemplateCatalog(mode=mode, templates=tuple(templates), notes=NOTES)
 
 
-def template_csv(name: TemplateName, kind: Literal["blank", "example"]) -> str:
+def template_csv(name: TemplateName, kind: Literal["blank", "example"],
+                 mode: NetworkMode | None = None) -> str:
     if kind == "example":
+        if mode == "RETAIL":
+            # shortcut: no Retail examples yet; the samples lane adds them (CR-w3-samples-3).
+            raise AccessError("TEMPLATE_EXAMPLE_UNAVAILABLE", 404)
         return _examples()[name]
     return header(name) + "\n"
 

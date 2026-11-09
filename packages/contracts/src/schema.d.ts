@@ -10864,6 +10864,7 @@ export interface operations {
         parameters: {
             query?: {
                 kind?: "blank" | "example";
+                mode?: "PANTRY" | "RETAIL";
             };
             header?: never;
             path: {
