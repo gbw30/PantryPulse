@@ -5,3 +5,5 @@ Dockerfile* text eol=lf
 *.sql text eol=lf
 *.yaml text eol=lf
 *.yml text eol=lf
+# Template drift tests compare bytes; keep LF on a Windows checkout too.
+data/templates/**/*.csv text eol=lf

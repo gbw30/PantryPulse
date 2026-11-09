@@ -23,6 +23,7 @@
   - `@V1-A13 atlas ranking equals GET /danger and the table alternative`, and selecting a row opens the live site inspector (`GET /networks/{id}/projection`, W0-08 §6).
   - `@V1-A14 @V1-A15 @V1-A16 compare → decisions → export on both samples`.
   - `@V1-A23 donation forecast shown "not confirmed", danger unchanged with and without it`.
+  - W3 carry-in (E-1, 2026-11-09): the web lane's connected Pantry and Retail journeys use a fixture forecast run through `?forecast_run_id=`. Switch them to a real `forecast.v1` run from W3-F03 and remove the stopgap ([decisions/W3-change-requests.md](decisions/W3-change-requests.md) §4).
 - [ ] **Step 2:** run with `PP_RUN_CONNECTED=1 PP_E2E_PRODUCTION=1 node scripts/quality/run.cjs e2e`. Send each failure to an `integration-fixer` packet.
 - [ ] **Step 3:** PASS, 0 skipped. Commit on `w4/integration`, open the PR, and merge with Gabriel's OK.
 

@@ -16,6 +16,7 @@ from pydantic import ValidationError
 
 from app.main import create_app
 from app.routers.forecasts import presenter, runtime
+from app.routers.v1_common import PRESENTER, RUNTIME
 from app.schemas.or_inputs import AttributeCoefficient
 from app.schemas.v1_envelope import UPLOAD_CAP_BYTES
 from app.schemas.v1_imports import ImportCreated, ImportStatus, RowError
@@ -32,6 +33,7 @@ from app.schemas.v1_planning import (
     resolve_window_and_policy,
 )
 from app.services.jobs.registry import InputRejected
+from app.services.v1_errors import NotImplementedV1
 
 ROOT = Path(__file__).resolve().parents[3]
 NET, IMP, CMP, LOC, JOB = (str(uuid4()) for _ in range(5))
@@ -94,28 +96,20 @@ CSV = {"Content-Type": "text/csv"}
 KEYED = {"Idempotency-Key": "contract-test-1"}
 NEW_NETWORK = {"name": "N", "mode": "PANTRY", "timezone": "America/New_York"}
 ACTIONS = f"/networks/{NET}/comparisons/{CMP}/methods/EQUAL_SHARE"
-STUBS = [
-    ("GET", "/templates/locations.csv?kind=example", None, None, "W3-P03"),
-]
 
 
-@pytest.mark.parametrize(("method", "path", "body", "headers", "task"), STUBS)
-def test_unimplemented_routes_return_501_with_task_id(client, method, path, body, headers, task):
-    kwargs = {"content": body} if isinstance(body, bytes) else {"json": body}
-    response = client.request(method, "/api/v1" + path, headers=headers, **kwargs)
+def test_not_implemented_v1_answers_501_with_task_id(client):
+    # Every v1 route is built; a throwaway route keeps the 501 handler covered (lead, 2026-11-09).
+    def stub(rt=RUNTIME, scope=PRESENTER):
+        raise NotImplementedV1("W3-TEST")
+
+    client.app.add_api_route("/api/v1/w3-test-not-implemented", stub)
+    response = client.get("/api/v1/w3-test-not-implemented")
     assert response.status_code == 501, response.text
     error = response.json()["error"]
     assert error["code"] == "NOT_IMPLEMENTED"
-    assert error["details"] == {"task": task}
+    assert error["details"] == {"task": "W3-TEST"}
     assert response.json()["request_id"] == response.headers["x-request-id"]
-
-
-def test_network_scoped_job_routes_return_501(client):
-    for path, body, task in (
-    ):
-        response = client.post("/api/v1" + path, json=body, headers=KEYED)
-        assert response.status_code == 501, (path, response.text)
-        assert response.json()["error"]["details"] == {"task": task}
 
 
 def test_json_routes_keep_the_64kb_boundary(client):

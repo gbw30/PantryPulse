@@ -74,10 +74,12 @@ def _counts(engine, tables) -> dict[str, int]:
         return {t: conn.scalar(sa.text(f"SELECT count(*) FROM {t}")) for t in tables}
 
 
-def _import(engine, tmp_path: Path, files: dict[str, str], network=NEW, as_of=AS_OF):
+def _import(engine, tmp_path: Path, files: dict[str, str], network=NEW, as_of=AS_OF, *,
+            is_sample=False):
     with engine.begin() as conn:
         run = repo.create_run(conn, network if isinstance(network, NewNetwork) else None,
-                              network if isinstance(network, uuid.UUID) else None)
+                              network if isinstance(network, uuid.UUID) else None,
+                              is_sample=is_sample)
     _write(engine, tmp_path, run.id, files)
     return run_import(engine, run.id, as_of, tmp_path, actor="local")
 
