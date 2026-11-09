@@ -1,7 +1,7 @@
 // covers: V1-A06
 import { render, screen, within } from "@testing-library/react";
 import { expect, it } from "vitest";
-import { TemplateGuide } from "@/components/import/template-guide";
+import { CHOOSE_MODE_NOTE, TemplateGuide } from "@/components/import/template-guide";
 import { example } from "./contract-examples";
 
 const catalog = example("TemplateCatalog");
@@ -61,5 +61,27 @@ it("shows the catalog notes and whether each file is required", () => {
     const section = screen.getByRole("region", { name: new RegExp(`^${template.name}\\.csv`) });
     expect(within(section).getByText(template.required ? "Required file" : "Optional file")).toBeVisible();
     expect(within(section).getByText(template.description)).toBeVisible();
+  }
+});
+
+const CHOOSE_MODE = CHOOSE_MODE_NOTE;
+
+it("an example downloads in the catalog's own mode, Retail included (CR-w3-samples-3)", () => {
+  for (const mode of ["PANTRY", "RETAIL"] as const) {
+    const available = { ...catalog, mode, templates: catalog.templates.map((t) => ({ ...t, example_available: true })) };
+    const { unmount } = render(<TemplateGuide catalog={available} exampleReasons={{}} />);
+    for (const t of catalog.templates) {
+      expect(screen.getByRole("link", { name: `Download example ${t.name}.csv` })).toHaveAttribute("href", `/api/v1/templates/${t.name}.csv?kind=example&mode=${mode}`);
+    }
+    unmount();
+  }
+});
+
+it("with no network type chosen, an example asks for one instead of offering a download", () => {
+  render(<TemplateGuide catalog={{ ...catalog, mode: null }} exampleReasons={{}} />);
+  for (const t of catalog.templates) {
+    const section = screen.getByRole("region", { name: new RegExp(`^${t.name}\\.csv`) });
+    expect(within(section).getByRole("button", { name: `Download example ${t.name}.csv` })).toBeDisabled();
+    expect(section).toHaveTextContent(CHOOSE_MODE);
   }
 });

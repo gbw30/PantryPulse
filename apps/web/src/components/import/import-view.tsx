@@ -38,8 +38,9 @@ function useTemplateCatalog(mode: NetworkSettingsValue["mode"]) {
       (catalog) => {
         if (!active) return;
         setState({ status: "ready", catalog });
-        for (const template of catalog.templates.filter((t) => !t.example_available)) {
-          networkApi.exampleUnavailableReason(template.name).then(
+        const catalogMode = catalog.mode;
+        if (catalogMode) for (const template of catalog.templates.filter((t) => !t.example_available)) {
+          networkApi.exampleUnavailableReason(template.name, catalogMode).then(
             (reason) => { if (active && reason) setReasons((current) => ({ ...current, [template.name]: reason })); },
             () => undefined, // The disabled button still says "not available yet" without a reason.
           );

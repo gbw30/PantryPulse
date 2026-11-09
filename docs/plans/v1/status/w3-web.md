@@ -73,7 +73,8 @@ Mirrors the CI connected step (`.github/workflows/pantrypulse-ci.yml:86-108`), w
 |---|---|---|
 | `npx tsc --noEmit -p apps/web`, `eslint` on the new spec files | save point | exit 0 / exit 0 |
 | `node scripts/quality/run.cjs quick` | W3-W02 | exit 0: web typecheck, web lint, api lint, api tests PASS |
-| `node scripts/quality/run.cjs full` (with `.env.lane`) | | not run yet |
+| `node scripts/quality/run.cjs full` (`.env.lane`, `PP19_TEST_SCHEMA_ISOLATION=1`) | `ed046c1` | exit 1. `api tests`: 1 failed, 2031 passed, 0 skipped. The failure was `test_supervisor.py::test_unexpected_publication_error_fails_the_attempt_and_the_loop_runs_on[_quote_user_data-ValueError]`, the known heartbeat race: the supervisor's 0.2 s heartbeat briefly locks `compute_control`, and the test's `FOR UPDATE NOWAIT` probe can land in that window. The lead logged it and owns the fix. That test alone passed 5 of 5, and its file passed 71 of 71. |
+| same | `717b208` (merge of v1-local `f82edac`) | exit 0: web typecheck, web lint, api lint, api tests, web unit tests, web build, contract drift, database migrations PASS |
 | `/devkit:ship-check` | | not run yet |
 
 ### Lead items (approved 2026-11-09)
@@ -123,8 +124,18 @@ Mirrors the CI connected step (`.github/workflows/pantrypulse-ci.yml:86-108`), w
     - New mocked tests: the dialog and its typed username survive the list settling, and a presenter's phone drawer stays open. Both went RED, then GREEN; presenter-session is 50/50 over 10 repeats.
   - **`@V1-A10` offline enrichment stayed "running".** Settings followed a lookup job only after "Retry lookups". A status read during the import's own job, which ends about 1.5 s after the import, never refreshed; earlier runs passed only because the job usually ended first. Settings now follows any running job it reads, and a job is never followed twice. Unit test RED, then GREEN.
 - **CR-w3-samples-1 end to end:** the `@V1-A10` sample-values test (`8897020`) passed in both connected runs. A seeded sample network's P1–P3 read "Source: sample values"; a normal import's read "Source: entered by you".
-- **Quick gate during the first connected run:** the Stop hook's run failed `api tests` with 2 failures while the 14-minute connected e2e run shared the machine and `pantrypulse_web_test`. Run alone, the API suite gives 1955 passed, 77 skipped, exit 0, and the quick gate above is exit 0. Gates and the connected suite now run one at a time.
+- **Quick gate during the first connected run:** the Stop hook's run failed `api tests` with 2 failures while the 14-minute connected e2e run shared the machine and `pantrypulse_web_test`. A rerun alone gave 1955 passed, 77 skipped, exit 0. That rerun had no DB env, so the 77 queue and Postgres tests skipped and it is not evidence (lead, 2026-11-09). The gates below ran with `.env.lane` loaded. Gates and the connected suite now run one at a time, and a turn never ends while a gate runs.
 - One `overview-layout` "grip handles" failure appeared once in a 13-file parallel mocked run; it passed 5 of 5 alone and 27 of 27 over 3 parallel repeats.
+
+### CR-w3-samples-3 follow-up (2026-11-09, lead-approved after #125)
+
+- **Example requests now always name the network's mode.** `exampleUrl(name, mode)` in `src/lib/network-api.ts` requires a mode; without one, the API serves the Pantry set. The guide's example link and the "why unavailable" request both use the catalog's mode. `templateUrl(name)` is now the blank download only.
+- **Before a network type is chosen,** no example is offered or requested. The guide says "Choose Pantry or Retail under 2. Network settings to get an example."
+- **Retail** asks with `mode=RETAIL` and shows the 404 `TEMPLATE_EXAMPLE_UNAVAILABLE` message ("template example unavailable"). A Retail catalog with examples available links to `mode=RETAIL`, ready for the samples follow-up.
+- **Tests:**
+  - Unit tests went RED first (4 failed), then GREEN: `network-api`, `template-guide` (Pantry and Retail links, the no-mode note) and `import-view` (no request before a mode is chosen; Retail requests carry `RETAIL`).
+  - Mocked e2e `import-templates.spec.ts` (`@V1-A06`) now covers no mode, Pantry downloads and Retail reasons, and asserts every example request the page made named its mode. It passed 3 of 3.
+  - `npx vitest run` → 24 files, 142 passed.
 
 ## Decisions made inside the lane
 

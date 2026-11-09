@@ -119,3 +119,14 @@ it("a commit the server refused still says nothing was saved", async () => {
   expect(await screen.findByRole("alert")).toHaveTextContent("Import request failed (as of date invalid). Nothing was saved.");
   expect(status).not.toHaveBeenCalled();
 });
+
+it("asks why an example is unavailable in the catalog's mode, and asks nothing before a mode is chosen (CR-w3-samples-3)", async () => {
+  vi.mocked(networkApi.templates).mockImplementation(async (mode) => ({ ...example("TemplateCatalog"), mode: mode ?? null }));
+  vi.mocked(networkApi.exampleUnavailableReason).mockResolvedValue("template example unavailable");
+  render(<ImportView />);
+  expect(await screen.findAllByText("Choose Pantry or Retail under 2. Network settings to get an example.")).toHaveLength(2);
+  expect(networkApi.exampleUnavailableReason).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("radio", { name: /^Retail network/ }));
+  expect(await screen.findAllByText("Example not available yet: template example unavailable")).toHaveLength(2);
+  expect(vi.mocked(networkApi.exampleUnavailableReason).mock.calls).toEqual([["locations", "RETAIL"], ["demand_history", "RETAIL"]]);
+});
