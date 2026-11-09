@@ -9,9 +9,10 @@ Synthetic, seeded history: N series × D days, weekly pattern with noise and ~5 
             average) plus the 4-origin backtest, ForecastOutput built, serialized and re-read
   db        the compact run's output written to a scratch schema of a *_test database:
             one forecast_runs-shaped JSONB row plus one backtest row per series
-  built     the shipped W3-F03/F05 code (W3-F06): network.validate_frozen, compute and
-            build_output, sized against forecast.v1's byte bounds, then the danger ranking
-            (danger.ranking.project_lines + danger_ranking) over one dated lot per series
+  built     the shipped W3-F03/F05 code (W3-F06): network.validate_frozen, compute,
+            build_output and build_backtest, sized against forecast.v1's byte bounds, then the
+            danger ranking (danger.ranking.project_lines + danger_ranking) over one dated lot
+            per series
   freeze    the freeze's real history aggregate (network._history) over N × D demand rows in
             a scratch schema of a *_test database: the submit request's own SQL time
 
@@ -268,6 +269,7 @@ def built(n: int, days: int) -> dict:
         NetworkForecastInput,
         NetworkPolicy,
         _hash,
+        build_backtest,
         build_output,
         compute,
         validate_frozen,
@@ -301,8 +303,10 @@ def built(n: int, days: int) -> dict:
     step_json = json.dumps({"network_output": compute(validated)}, separators=(",", ":"))
     timings["step_compute_s"] = time.perf_counter() - t
     t = time.perf_counter()  # inside the publication lock
-    output = build_output(validated, json.loads(step_json)["network_output"], uuid4())
+    package, run_id = json.loads(step_json)["network_output"], uuid4()
+    output = build_output(validated, package, run_id)
     output_json = output.model_dump_json()
+    backtest_json = json.dumps(build_backtest(validated, package, run_id))
     timings["publish_build_output_s"] = time.perf_counter() - t
     t = time.perf_counter()
     batches = [BatchV3(id=f"{locations[s.location][1]}/{products[s.product][1]}/B1",
@@ -329,6 +333,7 @@ def built(n: int, days: int) -> dict:
         "step_output_mb": round(len(step_json) / 1e6, 2),
         "max_output_mb": REGISTRATION.max_output_bytes / 1e6,
         "stored_output_json_mb": round(len(output_json) / 1e6, 2),
+        "stored_backtest_json_mb": round(len(backtest_json) / 1e6, 2),
         "series_available": statuses.count("AVAILABLE"),
         "series_insufficient": statuses.count("INSUFFICIENT_DATA"),
         "danger_rows": len(rows),
