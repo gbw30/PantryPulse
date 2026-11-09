@@ -10,15 +10,15 @@
 | W3-F01 | done | `70dc30e` | S7 verdict **fits with a compact network input** ([S7](../spikes/S7-forecast-volume.md)): `bench_forecast.py --part compact --series 50000` → 10.27 s compute, 1,714 MB peak; `--part db` → 50,001 rows, 8.7 + 8.5 MB; `--part existing --sample 500` → ~10,700 s extrapolated (does not fit) |
 | W3-F04 | done | `db08dde` | `uv run --frozen pytest -q tests/test_inventory_projection.py` → 71 passed, 0 skipped (6 new cases on `project_v3`). They passed on the first run: they characterize the existing kernel (W2-06 §3). A throwaway mutation check, one process per mutant, killed all 5 mutants: inbound counted twice, on hand from day 1 and arriving after demand fail all 4 kernel cases; ignored delivery expiry and on-hand-before-deliveries fail the FEFO case |
 | W3-F03 | in progress: all but `get_backtest` (CR-w3-forecast-1 approved; waits for `ppv1_0014`) | `0f0decd` | `uv run --frozen pytest -q tests/forecasting/test_network_forecast.py` → 10 passed, 0 skipped (PostgreSQL, real import, production `forecast.v1` under a supervisor, real `create_scenario`); related suites `tests/forecasting tests/workers tests/networks tests/test_v1_contract.py tests/test_inventory_projection.py` → 411 passed, 0 skipped; `PP19_TEST_SCHEMA_ISOLATION=1 … tests/integration/{test_forecast_api_postgres,test_worker_slice,test_v1_backend_journey,test_v1_job_status}.py` → 23 passed, 0 skipped |
-| W3-F05 | done | this commit | `PP19_TEST_SCHEMA_ISOLATION=1 uv run --frozen pytest -q tests/danger/test_ranking.py` → 10 passed, 0 skipped (3 rule tests on hand-built projections; 7 on a Pantry and a Retail network through the real import and production `forecast.v1`, including both HTTP routes). A throwaway mutation check, one process per mutant, killed all 7 mutants: Pantry scoring expiry, no first-day tie-break, inbound ignored, HIGH moved to 0.60, wrong driving units, unknown demand treated as known, expiry winning ties. Related suites `tests/danger tests/forecasting tests/test_v1_contract.py tests/networks tests/test_inventory_projection.py tests/integration/test_v1_backend_journey.py` → 398 passed, 0 skipped |
-| W3-F06 | todo | — | — |
+| W3-F05 | done | `86b5672` | `PP19_TEST_SCHEMA_ISOLATION=1 uv run --frozen pytest -q tests/danger/test_ranking.py` → 10 passed, 0 skipped (3 rule tests on hand-built projections; 7 on a Pantry and a Retail network through the real import and production `forecast.v1`, including both HTTP routes). A throwaway mutation check, one process per mutant, killed all 7 mutants: Pantry scoring expiry, no first-day tie-break, inbound ignored, HIGH moved to 0.60, wrong driving units, unknown demand treated as known, expiry winning ties. Related suites `tests/danger tests/forecasting tests/test_v1_contract.py tests/networks tests/test_inventory_projection.py tests/integration/test_v1_backend_journey.py` → 398 passed, 0 skipped |
+| W3-F06 | done | `23c998d` (code), this commit (evidence) | `uv run --frozen pytest -q tests/forecasting/test_forecast_scale.py` → 2 passed: splitting the series (sizes 1, 2, 4, reversed) never changes the output (passed on the first run, it characterizes `compute`; a mutant reading another series' values is killed), and the worst-case input fits (red at 20,602,900 > 16,000,000 bytes, green after `max_input_bytes` → 24 MB). `bench_forecast.py --part built --series 50000` at `23c998d` → forecast job 12.5 s of 300 s, 1,094 MB peak, step output 13.4 MB of 32 MB, publish 4.2 s in the lock before the INSERT; `--part freeze` → 3.1 s history aggregate over 4.5 M rows. [Evidence](../../../forecasting/evidence/v1-forecast-scale.json). Related suites (forecasting, workers, danger, networks, contract, projection, 4 integration files) → 444 passed, 0 skipped |
 
 Order: F02 → F01 → F04 → F03 → F05 → F06. F01 and F02 depend on nothing (wave-3.md), and S7 should time the real backtest code, not a stand-in. F04 depends on nothing; F03 needs F02; F05 needs F03 and F04.
 
 ## Next
 
-1. **W3-F06** (scale) re-runs `bench_forecast.py` on the built path, and also times `get_danger` at 50,000 series.
-2. **W3-F03 remainder** (CR-w3-forecast-1 option B approved 2026-11-09): after the lead's `ppv1_0014` merges into `v1-local`, merge it here, write the BacktestResult body to `forecast_runs.backtest` in the `publish_network` INSERT, serve `get_backtest` from that row, add `test_backtest_persisted_and_served_by_get_backtest`, and drop the backtest row from `STUBS`. The step already computes the per-series sums (`network.compute` → `backtest`).
+1. **W3-F03 remainder** (CR-w3-forecast-1 option B approved 2026-11-09): after the lead's `ppv1_0014` merges into `v1-local`, merge it here, write the BacktestResult body to `forecast_runs.backtest` in the `publish_network` INSERT, serve `get_backtest` from that row, add `test_backtest_persisted_and_served_by_get_backtest`, and drop the backtest row from `STUBS`. The step already computes the per-series sums (`network.compute` → `backtest`).
+2. **Finish:** `quick`, then `full` with `.env.lane` (0 skipped), `/devkit:ship-check` with the `verifier` agent, then the PR into `v1-local`.
 
 ## Gates
 
@@ -37,7 +37,8 @@ Order: F02 → F01 → F04 → F03 → F05 → F06. F01 and F02 depend on nothin
 - **Series basis:** `sales` if any of its rows is `sales` (the import's own `sales_basis_series` rule). A mixed series takes the conservative label. — W3-F03.
 - **New stores are listed:** a pantry or store with stock or deliveries but no demand rows gets an `INSUFFICIENT_DATA` demand series, "No demand history rows for this location and product". It is never forecast from zeros (plan Review Focus 5). Hubs and DCs are not listed. — W3-F03.
 - **Envelope:** more than 50,000 series (demand + donation) is refused at submit with 422 `FORECAST_SERIES_OVER_ENVELOPE`, never truncated. — W3-F03.
-- **`forecast.v1` `max_output_bytes` 4 MB → 32 MB** (this lane's `workers/forecasting.py`). It caps both the step's stdout and the publish package, and the compact network output is about 11 MB at 50,000 series. The input stays at 16 MB. — W3-F03.
+- **`forecast.v1` `max_output_bytes` 4 MB → 32 MB** (this lane's `workers/forecasting.py`). It caps both the step's stdout and the publish package, and the compact network output is about 11 MB at 50,000 series. The input stayed at 16 MB until W3-F06 (next entry). — W3-F03.
+- **`forecast.v1` `max_input_bytes` 16 MB → 24 MB** (this lane's `workers/forecasting.py`). The network input at the envelope's worst case (50,000 series, 64-character IDs, every day 100,000 units) encodes to 20.6 MB; 4-digit daily quantities already passed 16 MB and submit refused them with `INPUT_TOO_LARGE`. S7's 8.5 MB used short keys and small quantities. `forecast.chronos.v1` keeps its own 16 MB (network runs never use Chronos). Precedent: `or-comparison.v3` is 64 MB. — W3-F06.
 - **Tenancy helper:** reuses `optimization.api_v3._tenant` rather than adding a third copy. W2-06 §4 defers "one tenancy helper" to W4. — W3-F03.
 
 - **Danger replays the run's own dataset version** (the version in its frozen input, not the network's latest) through `project_v3` with no transfers, the solver's rounded demand targets (`scenario._demand`), on-hand lots as `scenario._batches` keeps them and in-horizon inbound from `scenario._inbound`. Forecast, stock and deliveries then come from one snapshot. Published versions never change. — W3-F05.
@@ -53,6 +54,14 @@ Order: F02 → F01 → F04 → F03 → F05 → F06. F01 and F02 depend on nothin
 - **The backtest fit is the network forecast's own chain:** seasonal naive, then the labeled moving average (14-day window, 3 samples) when a prior weekday is missing. When neither can forecast at an origin, that origin is left out of the scored set (it adds nothing to `origins_evaluated`). — W3-F02.
 - **`origins_evaluated`** counts the origins that contributed at least one scored pair. For a location roll-up it is the number of distinct origins pooled. A roll-up whose series are all under 35 days is `not_evaluated_insufficient_history`. — W3-F02.
 - **No ceiling CR:** S7 measured 10.3 s of 300 s at 50,000 series on the compact path. W3-F06 re-measures on the built path. — W3-F01.
+
+## Known limits for the PR (measured at 50,000 series, W3-F06)
+
+- The submit request runs the history aggregate itself: 3.1 s over 4.5 M rows, in the API request's REPEATABLE READ transaction.
+- Publishing builds the 106 MB `ForecastOutput` inside the publication lock: 4.2 s, plus the row INSERT (S7: 1.65 s).
+- `create_scenario` re-reads that 106 MB output (S7: about 4.5 s).
+- `get_danger` recomputes per request: about 4 s of projection and ranking, plus the run read and the batch SQL. Nothing is cached.
+- `GET /networks/{id}/forecasts/{run}` returns every series (tens of MB). Pagination would be a contract change.
 
 ## Gotchas
 

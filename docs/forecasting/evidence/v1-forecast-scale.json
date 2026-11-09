@@ -1,0 +1,62 @@
+{
+  "schema_version": "v1-forecast-scale-v1",
+  "task": "W3-F06 (V1-A17)",
+  "generated_at": "2026-11-09T09:37:33+00:00",
+  "scope": "timings and sizes on SYNTHETIC seeded history; never accuracy evidence",
+  "commit": "23c998d",
+  "machine": {
+    "cpu": "Intel(R) Core(TM) Ultra 9 285H",
+    "cpus": 16,
+    "os": "WSL2 Linux",
+    "python": "3.12.13",
+    "postgres": "pp-ci-postgres container, *_test database"
+  },
+  "commands": [
+    "uv run --frozen python scripts/bench_forecast.py --part built --series 50000",
+    "uv run --frozen python scripts/bench_forecast.py --part freeze --series 50000",
+    "uv run --frozen pytest tests/forecasting/test_forecast_scale.py"
+  ],
+  "series": 50000,
+  "history_days": 90,
+  "wall_s": 16.99,
+  "peak_rss_mb": 1094.5,
+  "forecast_job": {
+    "compute_s": 12.54,
+    "ceiling_s": 300,
+    "within_ceiling": true,
+    "how": "4 x validate_frozen (admission, step, publisher validate, publish) + compute + build_output",
+    "timings_s": {
+      "generate_s": 1.28,
+      "freeze_python_s": 1.04,
+      "validate_input_s": 0.84,
+      "step_compute_s": 5.79,
+      "publish_build_output_s": 3.39,
+      "danger_ranking_s": 4.04
+    },
+    "publish_in_lock_s_before_insert": 4.23,
+    "series_available": 50000,
+    "series_insufficient": 0
+  },
+  "sizes_mb": {
+    "frozen_input_synthetic": 11.93,
+    "frozen_input_worst_case": 20.6,
+    "worst_case_note": "test_worst_case_frozen_input_fits_the_registered_bound: 50,000 series, 64-character IDs, every day 100,000 units (20,602,900 bytes)",
+    "max_input": 24.0,
+    "step_output": 13.41,
+    "max_output": 32.0,
+    "stored_output_json": 106.42
+  },
+  "freeze_sql": {
+    "history_rows": 4500000,
+    "series_rows": 50000,
+    "history_aggregate_s": 3.13,
+    "note": "one unpartitioned scratch table holding only this version's rows"
+  },
+  "danger_ranking": {
+    "pure_s": 4.04,
+    "rows": 100,
+    "note": "project_lines + danger_ranking over one dated lot per series; the run read and the batch/inbound SQL are not timed"
+  },
+  "batching": "not needed: one step fits; test_batched_series_equal_unbatched_on_small_set pins series independence",
+  "verdict": "fits: 50,000 series in 12.5 s of the 300 s forecast ceiling at 1.1 GB peak (8 GiB worker), after raising forecast.v1 max_input_bytes 16 MB -> 24 MB for the worst-case input"
+}
