@@ -39,6 +39,7 @@ Order: F02 → F01 → F04 → F03 → F05 → F06. F01 and F02 depend on nothin
 
 ## Decisions made inside the lane
 
+- **A backtest with nothing scored is not evaluated:** 35+ calendar days where no origin can be scored (every fit window blank, or every scored actual blank) reports `not_evaluated_insufficient_history` with 0 origins, never `evaluated` without metrics (verifier finding, 2026-11-09). — W3-F02.
 - **Lead-authorized edit of `apps/api/tests/test_v1_contract.py` (lead, 2026-11-09), in the merge of `origin/v1-local` only.** The merge conflicted on `STUBS`: #121 removed W3-P03 and this lane removed W3-F03/F05, so no route raises `NotImplementedV1` any more. As the lead decided: `STUBS`, `test_unimplemented_routes_return_501_with_task_id` (now an empty parameter set, so it would skip) and `test_network_scoped_job_routes_return_501` (it asserted nothing) are deleted. `test_not_implemented_v1_answers_501_with_task_id` keeps the 501 handler (`app/main.py:145`) covered through a throwaway route raising `NotImplementedV1("W3-TEST")`, with the same assertions. `tests/test_v1_contract.py` → 46 passed, 0 skipped. No other change to that file.
 - **Network runs freeze a compact input** (`services/forecasting/network.py`). Per series: the last 42 days to the as-of date (gap-explicit), plus observed, missing and sales-day counts, keyed by `net_locations.id`/`net_products.id`. The history is aggregated in PostgreSQL, so the 4.5 M history rows never enter Python. The policy is fixed (seasonal naive, then the moving average with a 14-day window and 3 samples, 14-day minimum), so a request can't choose Chronos. — W3-F03 (S7).
 - **`forecast_run_id` = `job_id`** for network runs, like the existing publisher's `id = run_id = job_id`. `result_url` is `/networks/{id}/forecasts/{job_id}`. — W3-F03.
@@ -72,7 +73,7 @@ Commands, from `apps/api` with `.env.lane` loaded: `uv run --frozen python scrip
 - The submit request runs the history aggregate itself: 3.1 s over 4.5 M rows (`--part freeze`), in the API request's REPEATABLE READ transaction.
 - Publishing builds the 106 MB `ForecastOutput` and the 9.4 MB backtest inside the publication lock: 4.2 s for the output at `23c998d` on a quiet machine. At `3d03fd1` (load average about 2.5) `build_backtest` adds 1.55–1.58 s, for 7.3–7.9 s in the lock before the INSERT (`--part built`, `publish_in_lock_s_before_insert`, `publish_build_backtest_s`; evidence key `publish_lock_with_backtest`). The INSERT comes on top (S7 `--part db`: 1.65 s for the output alone).
 - `create_scenario` re-reads that 106 MB output (S7: about 4.5 s).
-- `get_danger` recomputes per request: about 4 s of projection and ranking (`--part built`, `danger_ranking_s`), plus the run read and the batch SQL. Nothing is cached.
+- `get_danger` and `get_projection` recompute per request: about 4 s of projection and ranking (`--part built`, `danger_ranking_s`), plus the run read, which re-validates the whole 106 MB output (S7: about 4.5 s), plus the batch SQL. `get_projection` for one location still reads and converts every series. Nothing is cached, and the read paths are not timed end to end (verifier, 2026-11-09).
 - `GET /networks/{id}/forecasts/{run}` returns every series (tens of MB). Pagination would be a contract change.
 
 ## Gotchas
@@ -141,7 +142,10 @@ Forecasts are projections. The backtest's WAPE and bias are the forecast's error
 ### For the lead's review
 - `forecast.v1` `max_output_bytes` 4 → 32 MB (W3-F03): the compact network step output is 13.4 MB at 50k series.
 - `forecast.v1` `max_input_bytes` 16 → 24 MB (W3-F06): the worst-case network input at the envelope encodes to 20.6 MB (`test_worst_case_frozen_input_fits_the_registered_bound`); 4-digit daily quantities already passed 16 MB.
-- The only lead-file edit: the W3-F03/F05 rows removed from `STUBS` in `tests/test_v1_contract.py`.
+- The only lead-file edit, in the merge of `origin/v1-local` and authorized by the lead (2026-11-09): `STUBS` and the two 501 tests deleted, replaced by `test_not_implemented_v1_answers_501_with_task_id`.
+- `bias_pct` = 100 × Σ(prediction − actual) / Σactual: the frozen field is a percentage, while V5 §7's bias (Σerror / n) is in units. Please accept or redirect.
+- Retail: a DC has no demand, so any dated stock there is scored by its expiry share, which is 1.0 when nothing moves. That fits V1-SPEC §6.6 as written; the atlas copy may want a UX decision.
+- Outside this lane: an import within the envelope can still yield more than 50,000 demand + donation series, so the forecast is refused at submit (422 `FORECAST_SERIES_OVER_ENVELOPE`), not at import as V1-SPEC §5.1 asks.
 
 ### Commands and results
 | Command | Result |
@@ -157,7 +161,7 @@ Forecasts are projections. The backtest's WAPE and bias are the forecast's error
 - The submit request runs the history aggregate itself: 3.1 s.
 - Publishing builds the 106 MB output and the 9.4 MB backtest inside the publication lock: about 7.3 s at 50k series (load about 2.5), plus the INSERT.
 - `create_scenario` re-reads the 106 MB output (about 4.5 s).
-- `GET /networks/{id}/danger` recomputes on every request (about 4 s); nothing is cached.
+- `GET /networks/{id}/danger` and `/projection` recompute on every request: about 4 s of ranking plus re-reading the 106 MB output (about 4.5 s); nothing is cached.
 - `GET /networks/{id}/forecasts/{run}` returns every series (tens of MB); pagination would be a contract change.
 
 ### Change requests

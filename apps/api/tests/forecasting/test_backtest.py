@@ -118,6 +118,7 @@ def test_no_future_leakage():
         return baseline_fit()(context)
 
     backtest_series(history, fit)
+    assert [len(c) for c in seen] == [len(history) - 7 * k for k in (4, 3, 2, 1)]
     for context in seen:
         assert context == history[: len(context)]
     perturbed = history[:35] + [D(999)] * 7  # only origin 1's scored week changes
@@ -182,3 +183,14 @@ def test_rollup_of_only_short_series_is_not_evaluated():
 def test_invalid_history_rejected(bad):
     with pytest.raises(ValueError):
         backtest_series(bad, baseline_fit())
+
+
+def test_long_history_with_nothing_scored_is_not_evaluated():
+    """35+ calendar days but no origin can be scored (every fit window blank, or every scored
+    actual blank): "not evaluated", never "evaluated" with no metrics."""
+    no_fit = backtest_series([None] * 35 + [D(5)] * 7, baseline_fit())
+    no_actuals = backtest_series([D(5)] * 14 + [None] * 28, baseline_fit())
+    for result in (no_fit, no_actuals):
+        assert (result.status, result.origins_evaluated, result.scored_points,
+                result.wape_pct, result.bias_pct) == (
+            "not_evaluated_insufficient_history", 0, 0, None, None)

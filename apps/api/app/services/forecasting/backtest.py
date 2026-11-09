@@ -99,7 +99,7 @@ def scored_set(history: Sequence[Decimal | None], fit: Fit, origins: int = 4,
 
 
 def score(scored: ScoredSet) -> BacktestScore:
-    if not scored.evaluated:
+    if not scored.evaluated or not scored.points:  # 35+ days but nothing could be scored
         return BacktestScore(origins_evaluated=0, wape_pct=None, bias_pct=None,
                              status="not_evaluated_insufficient_history", scored_points=0)
 

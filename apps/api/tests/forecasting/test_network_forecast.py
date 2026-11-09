@@ -35,7 +35,7 @@ from app.repositories.jobs import QueueRepository, TrustedScope, create_queue_en
 from app.schemas.v1_imports import NewNetwork
 from app.schemas.v1_networks import BacktestScore, NetworkForecastRequest
 from app.schemas.v1_planning import ScenarioOptions
-from app.services.forecasting.backtest import backtest_series, baseline_fit, get_backtest
+from app.services.forecasting.backtest import get_backtest
 from app.services.forecasting.network import (
     get_forecast_run,
     list_forecast_runs,
@@ -331,9 +331,16 @@ def test_backtest_persisted_and_served_by_get_backtest(published, stack):
         published.job_id, published.network.network_id)
     perfect = BacktestScore(origins_evaluated=4, wape_pct=Decimal("0.00"),
                             bias_pct=Decimal("0.00"), status="evaluated", scored_points=28)
-    milk = backtest_series([Decimal(20 + i % 3) for i in range(42)], baseline_fit())
-    short = backtest_series([Decimal(4)] * 20, baseline_fit())  # 20 days: under 35
-    assert (milk.status, short.status) == ("evaluated", "not_evaluated_insufficient_history")
+    # MILK is 20 + i % 3 over 42 days. Seasonal naive repeats the week before each origin, so
+    # day t is predicted as day t − 7; the four origins score days 14..41 (error = p − a).
+    x = [20 + i % 3 for i in range(42)]
+    errors, actual = [x[t - 7] - x[t] for t in range(14, 42)], sum(x[14:])
+    milk = BacktestScore(
+        origins_evaluated=4, scored_points=28, status="evaluated",
+        wape_pct=(Decimal(100 * sum(map(abs, errors))) / actual).quantize(Decimal("0.01")),
+        bias_pct=(Decimal(100 * sum(errors)) / actual).quantize(Decimal("0.01")))
+    short = BacktestScore(origins_evaluated=0, wape_pct=None, bias_pct=None, scored_points=0,
+                          status="not_evaluated_insufficient_history")  # 20 days: under 35
     assert [(s.location_id, s.product_id, s.basis, s.score) for s in result.series] == [
         ("P1", "MILK", "sales", milk), ("P1", "RICE", "demand", perfect),
         ("P2", "BEANS", "demand", short)]
