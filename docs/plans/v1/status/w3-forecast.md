@@ -27,15 +27,16 @@ Order: F02 → F01 → F04 → F03 → F05 → F06. F01 and F02 depend on nothin
 
 ## Next
 
-1. **Finish:** `quick`, then `full` with `.env.lane` (0 skipped), `/devkit:ship-check` with the `verifier` agent, then the PR into `v1-local`.
+1. **PR** into `v1-local`, then `/code-review` on it; report the URL and wait for the orchestrator's review.
 
 ## Gates
 
 | Gate | Commit | Result |
 |---|---|---|
-| `node scripts/quality/run.cjs quick` | | |
-| `node scripts/quality/run.cjs full` (with `.env.lane`) | | |
-| `/devkit:ship-check` | | |
+| `node scripts/quality/run.cjs quick` | `e532b2b` | PASS (web typecheck, web lint, api lint, api tests) |
+| `node scripts/quality/run.cjs full` (with `.env.lane`) | `e532b2b` | PASS, all 8 steps (adds web unit tests, web build, contract drift, database migrations) |
+| Backend as CI runs it: `PP19_TEST_SCHEMA_ISOLATION=1 uv run --frozen pytest -q --junitxml=…` then `python scripts/quality/require-test-evidence.py …` | `e532b2b` | 2105 passed, 0 failed, 0 skipped; "2105 backend tests completed without skips or failures". Neither gate prints skip counts, and its plain `pytest -q` skips the PP19 opt-in suites, so this run is the 0-skipped evidence |
+| `/devkit:ship-check` | `15eb5f8` → `7d6718a` | Step 1 green. Step 2 was the project `verifier` (independent, read-only): no blocking defect, 373 passed / 0 skipped in its focused run, 0 of 3,000 mismatches against its own rolling-origin oracle, 4 Low findings. Three were fixed in `7d6718a` (an unscored backtest now reports not evaluated; two test oracles made independent); the fourth (`bias_pct` interpretation) goes to the lead. Step 3: security-guidance isn't installed. Steps 4–5: the PR, then `/code-review` |
 
 ## Decisions made inside the lane
 
