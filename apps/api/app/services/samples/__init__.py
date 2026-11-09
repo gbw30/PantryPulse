@@ -37,15 +37,14 @@ def ensure_samples(session, today: date) -> SeedReport:
     """`session` is the seed's ORM session; each import commits on its own connections, as the
     import job does (the seed runs before the worker starts, so the API commit path can't).
 
-    It commits the session's pending work (the bootstrap's login and organization inserts)
-    first: publishing an import attaches a `net_batches` partition, whose foreign key needs
-    SHARE ROW EXCLUSIVE on `organizations`, and the caller's open insert would block it forever
-    (a client-side deadlock PostgreSQL can't detect).
+    The caller's transaction must hold no write that an import waits on: publishing attaches a
+    `net_batches` partition, whose foreign key needs SHARE ROW EXCLUSIVE on `organizations`, so
+    an open organizations insert would block it forever (a client-side deadlock PostgreSQL can't
+    detect). `local_bootstrap.run` commits the organization first (CR-w3-samples-4).
 
     One seed runs at a time: the freshness check and the import aren't one transaction, so two
     seeds at once would both import (a duplicate version, or a deadlock on the partition attach).
     The advisory lock's transaction holds no table locks, so the imports can't block on it."""
-    session.commit()
     engine = session.get_bind()
     loaded = []
     with engine.begin() as lock:

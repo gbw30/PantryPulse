@@ -117,10 +117,10 @@ def test_example_route_takes_an_optional_mode():
     assert pantry.status_code == 200
     assert pantry.text == client.get(url, params={"kind": "example"}).text
     assert pantry.text == template_csv("inventory", "example", "PANTRY")
-    # Until the samples lane adds the Retail examples, RETAIL says so instead of serving Pantry.
+    # RETAIL serves the Retail sample's examples (samples lane, CR-w3-samples-3).
     retail = client.get(url, params={"kind": "example", "mode": "RETAIL"})
-    assert (retail.status_code, retail.json()["error"]["code"]) == (
-        404, "TEMPLATE_EXAMPLE_UNAVAILABLE")
+    assert retail.status_code == 200
+    assert retail.text == template_csv("inventory", "example", "RETAIL") != pantry.text
     assert client.get(url, params={"kind": "example", "mode": "OTHER"}).status_code == 422
     # A blank template is the same header in either mode.
     assert client.get(url, params={"mode": "RETAIL"}).text == header("inventory") + "\n"

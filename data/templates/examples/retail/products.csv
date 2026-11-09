@@ -1,0 +1,51 @@
+product_id,name,unit,unit_value_usd,handling_units_per_unit
+MILK-WH,"Whole milk, 1 gal",each,4.29,1
+MILK-2P,"Reduced-fat milk, 1 gal",each,4.19,1
+EGGS-12,"Large eggs, dozen",each,3.49,1
+YOG-GRK,"Plain Greek yogurt, 32 oz",each,5.99,1
+YOG-CUP,"Fruit yogurt cup, 6 oz",each,0.99,1
+CHS-CHD,"Cheddar cheese, 8 oz",each,3.79,1
+BUTTER,"Salted butter, 1 lb",each,4.99,1
+SOURCRM,"Sour cream, 16 oz",each,2.49,1
+OJ-52,"Orange juice, 52 oz",each,4.49,1
+BRD-WHT,Sliced white bread,each,2.79,1
+BRD-WW,Whole wheat bread,each,3.29,1
+BAGEL-6,"Plain bagels, 6 count",each,3.99,1
+TORT-10,"Flour tortillas, 10 count",each,2.99,1
+MUFFIN-4,"Blueberry muffins, 4 count",each,4.49,1
+BANANA,Bananas,lb,0.59,1
+APPLE,Gala apples,lb,1.49,1
+STRAWB,"Strawberries, 1 lb",each,3.99,1
+ROMAINE,"Romaine hearts, 3 count",each,3.49,1
+SPINACH,"Baby spinach, 5 oz",each,3.29,1
+TOMATO,Roma tomatoes,lb,1.29,1
+AVOCADO,Avocados,each,1.25,1
+ONION-3,"Yellow onions, 3 lb bag",each,2.99,1
+POTATO-5,"Russet potatoes, 5 lb bag",each,4.49,1
+CARROT-2,"Carrots, 2 lb bag",each,1.99,1
+GRAPES,Red grapes,lb,2.49,1
+ORANGE-4,"Oranges, 4 lb bag",each,5.49,1
+CHKN-BR,Chicken breast,lb,3.99,1
+BEEF-GR,Ground beef 80/20,lb,5.49,1
+PORK-CH,Pork chops,lb,4.29,1
+SALMON,Salmon fillet,lb,9.99,1
+TURKEY,"Sliced deli turkey, 1 lb",each,7.99,1
+SAUSAGE,"Breakfast sausage, 12 oz",each,4.29,1
+HUMMUS,"Hummus, 10 oz",each,3.99,1
+SALSA,"Fresh salsa, 16 oz",each,4.29,1
+SALADKIT,Chopped salad kit,each,3.99,1
+FRZ-PIZ,Frozen cheese pizza,each,5.99,1
+FRZ-VEG,"Frozen mixed vegetables, 16 oz",each,1.99,1
+ICECRM,"Vanilla ice cream, 48 oz",each,4.99,1
+RICE-5,"Long-grain rice, 5 lb",each,4.99,1
+PASTA,"Spaghetti, 1 lb",each,1.49,1
+BEANS,"Black beans, 15 oz can",each,1.09,1
+SOUP,"Chicken noodle soup, can",each,1.79,1
+CEREAL,"Toasted oat cereal, 12 oz",each,3.99,1
+PNUTB,"Peanut butter, 16 oz",each,2.99,1
+COFFEE,"Ground coffee, 12 oz",each,7.99,1
+WATER-24,"Bottled water, 24-pack",case,4.99,2
+COLA-12,"Cola, 12-pack cans",case,6.49,2
+JUICE-AP,"Apple juice, 64 oz",each,3.29,1
+TOWEL-6,"Paper towels, 6 rolls",case,8.99,3
+TISSUE-12,"Bath tissue, 12 rolls",case,9.99,3

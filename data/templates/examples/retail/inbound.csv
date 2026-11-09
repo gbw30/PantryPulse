@@ -1,0 +1,13 @@
+location_id,product_id,quantity,arrival_date,expiry_date,non_expiring,source,reference
+DC1,MILK-WH,400,2026-11-05,2026-11-19,,supplier,Sample PO 100
+DC1,EGGS-12,450,2026-11-06,2026-12-04,,supplier,Sample PO 101
+DC1,BRD-WHT,500,2026-11-07,2026-11-13,,supplier,Sample PO 102
+DC1,BANANA,550,2026-11-08,2026-11-14,,supplier,Sample PO 103
+DC1,CHKN-BR,600,2026-11-09,2026-11-13,,supplier,Sample PO 104
+DC1,PASTA,650,2026-11-10,2028-05-03,,supplier,Sample PO 105
+DC1,WATER-24,700,2026-11-11,,true,supplier,Sample PO 106
+DC1,TOWEL-6,750,2026-11-05,,true,supplier,Sample PO 107
+S19,MILK-WH,40,2026-11-05,2026-11-19,,dc_delivery,Sample transfer 200
+S08,STRAWB,50,2026-11-06,2026-11-10,,dc_delivery,Sample transfer 201
+S11,SALMON,60,2026-11-07,2026-11-10,,dc_delivery,Sample transfer 202
+S01,AVOCADO,70,2026-11-08,2026-11-13,,dc_delivery,Sample transfer 203

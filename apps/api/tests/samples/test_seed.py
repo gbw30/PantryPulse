@@ -1,8 +1,9 @@
 # covers: V1-A02, V1-A05
 """The local seed loads both sample networks through the importer, on PostgreSQL (W3-P04).
 
-Each test drives the seed exactly as `scripts/local_bootstrap.py` does: one ORM transaction
-that has already inserted the local organization, then `ensure_samples`. Never skipped in CI."""
+Each test drives the seed as `scripts/local_bootstrap.py` does since CR-w3-samples-4: the local
+organization commits first, then `ensure_samples` runs in its own transaction. Never skipped
+in CI."""
 
 import dataclasses
 import socket
@@ -75,10 +76,23 @@ def db(engine):
 
 
 def seed(engine, today: date) -> samples.SeedReport:
-    """As `local_bootstrap.run`: the seed's own transaction holds the organization insert."""
+    """As `local_bootstrap.run`: the organization commits, then the seed gets its own transaction
+    (an open organizations write would block each import's partition attach)."""
     with Session(engine) as session, session.begin():
         seed_local.ensure_local_organization(session)
+    with Session(engine) as session, session.begin():
         return samples.ensure_samples(session, today)
+
+
+def test_leaves_the_callers_transaction_to_the_caller(db):
+    # The bootstrap no longer seeds inside its login transaction, so the seed commits nothing
+    # for its caller (CR-w3-samples-4).
+    seed(db, TODAY - timedelta(days=8))
+    with Session(db) as session:
+        session.begin()
+        assert samples.ensure_samples(session, TODAY).loaded == NAMES
+        assert session.in_transaction()
+        session.rollback()
 
 
 def sample_versions(engine) -> dict[str, list[tuple]]:
