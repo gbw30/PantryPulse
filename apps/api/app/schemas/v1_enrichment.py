@@ -18,7 +18,8 @@ class LocationAttributes(ORContract):
     state: AttributeState
     poverty_rate: Decimal | None
     snap_rate: Decimal | None
-    # "ACS 5-year YYYY, tract NNNN", "manual", or one manual rate beside a looked-up one:
+    # "ACS 5-year YYYY, tract NNNN", "manual" (on a sample network: "sample values"), or one
+    # manual rate beside a looked-up one:
     # "poverty_rate: manual; snap_rate: ACS 5-year YYYY, tract NNNN" (either order)
     # A Census Non_Exact match ends the ACS part with " (unconfirmed address match)".
     source: str | None
