@@ -13,12 +13,15 @@ from datetime import date
 from decimal import Decimal
 from uuid import UUID
 
+import sqlalchemy as sa
+
+from app.repositories.forecast_history import HistoryRejected
 from app.schemas.v1_envelope import MIN_BACKTEST_HISTORY_DAYS
 from app.schemas.v1_networks import BacktestResult, BacktestScore, LocationBacktest
 from app.services.forecasting.adapters.base import ProviderError
 from app.services.forecasting.adapters.moving_average import MovingAverageAdapter
 from app.services.forecasting.adapters.seasonal_naive import SeasonalNaiveAdapter
-from app.services.v1_errors import NotImplementedV1
+from app.services.optimization.api_v3 import _tenant
 
 Fit = Callable[[Sequence[Decimal | None]], Sequence[Decimal]]
 SPARSE_WINDOW_DAYS = 14  # the network forecast's moving-average fallback policy
@@ -128,4 +131,14 @@ def location_rollups(rows: Iterable[tuple[str, str, ScoredSet]]) -> tuple[Locati
 
 
 def get_backtest(rt, scope, job_id: UUID) -> BacktestResult:
-    raise NotImplementedV1("W3-F03")
+    """A network forecast run's stored backtest (CR-w3-forecast-1 B); 404 for any other job.
+    The run's network decides the organization, as for every network route."""
+    with rt.engine.connect() as conn:
+        row = conn.execute(sa.text(
+            "SELECT organization_id, frozen_input ->> 'network_id' AS network_id, backtest "
+            "FROM forecast_runs WHERE id = :j AND backtest IS NOT NULL"), {"j": job_id}
+        ).one_or_none()
+        if row is None or _tenant(conn, scope, UUID(row.network_id)).organization_id \
+                != row.organization_id:
+            raise HistoryRejected("FORECAST_RUN_NOT_FOUND", 404)
+    return BacktestResult(forecast_job_id=job_id, network_id=row.network_id, **row.backtest)

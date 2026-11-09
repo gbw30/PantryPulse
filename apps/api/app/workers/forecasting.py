@@ -9,7 +9,12 @@ from app.models.forecasts import ForecastPointRecord, ForecastRun, ForecastSerie
 from app.schemas.forecast_api import BaselinePolicy
 from app.services.forecasting.adapters.moving_average import MovingAverageAdapter
 from app.services.forecasting.adapters.seasonal_naive import SeasonalNaiveAdapter
-from app.services.forecasting.network import build_output, compute, validate_frozen
+from app.services.forecasting.network import (
+    build_backtest,
+    build_output,
+    compute,
+    validate_frozen,
+)
 from app.services.forecasting.postprocessing import validate_output
 from app.services.forecasting.preparation import validate_input
 from app.services.forecasting.schemas import ForecastInput, ForecastOutput
@@ -302,6 +307,7 @@ class ForecastPublisher:
             ):
                 raise ValueError("Publication ownership mismatch")
             output = build_output(inputs, package["network_output"], identity.job_id)
+            backtest = build_backtest(inputs, package["network_output"], identity.job_id)
         except (ValueError, TypeError, KeyError) as exc:
             raise PublicationRejected("OUTPUT_INVALID") from exc
         connection.execute(
@@ -314,6 +320,7 @@ class ForecastPublisher:
                 planning_ready=output.ready_for_publication,
                 frozen_input=inputs.model_dump(mode="json"),
                 output=output.model_dump(mode="json"),
+                backtest=backtest,
             )
         )
         return {

@@ -96,7 +96,6 @@ NEW_NETWORK = {"name": "N", "mode": "PANTRY", "timezone": "America/New_York"}
 ACTIONS = f"/networks/{NET}/comparisons/{CMP}/methods/EQUAL_SHARE"
 STUBS = [
     ("GET", "/templates/locations.csv?kind=example", None, None, "W3-P03"),
-    ("GET", f"/forecasts/{JOB}/backtest", None, None, "W3-F03"),
 ]
 
 

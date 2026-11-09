@@ -12,6 +12,7 @@ A series with under 14 observed days, or none, is listed with its reason and nev
 
 import hashlib
 from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
 from typing import Annotated, Any, Literal
 from uuid import UUID, uuid5
 
@@ -23,16 +24,25 @@ from app.repositories.forecast_history import HistoryRejected
 from app.schemas.forecast_api import ForecastAccepted
 from app.schemas.v1_envelope import MAX_FORECAST_SERIES, MIN_FORECAST_HISTORY_DAYS
 from app.schemas.v1_networks import (
+    BacktestResult,
     ForecastRunList,
     ForecastRunSummary,
+    IneligibleSeries,
     NetworkForecastRequest,
     NetworkForecastRun,
     NetworkSeries,
+    SeriesBacktest,
 )
 from app.services.forecasting.adapters.base import ProviderError
 from app.services.forecasting.adapters.moving_average import MovingAverageAdapter
 from app.services.forecasting.adapters.seasonal_naive import SeasonalNaiveAdapter
-from app.services.forecasting.backtest import ScoredSet, baseline_fit, scored_set
+from app.services.forecasting.backtest import (
+    ScoredSet,
+    baseline_fit,
+    location_rollups,
+    score,
+    scored_set,
+)
 from app.services.forecasting.schemas import (
     Contract,
     Diagnostics,
@@ -280,6 +290,36 @@ def build_output(inputs: NetworkForecastInput, compact: dict, run_id: UUID) -> F
         actual_providers=tuple(sorted({r.actual_provider.name for r in rows
                                        if r.actual_provider is not None})),
         warnings=tuple(sorted({w for r in rows for w in r.warnings})), series=tuple(rows))
+
+
+def build_backtest(inputs: NetworkForecastInput, compact: dict, run_id: UUID) -> dict:
+    """The stored `forecast_runs.backtest` (CR-w3-forecast-1 B): the BacktestResult body by CSV
+    ids, without its two ids. One row per forecast demand series, the per-location roll-ups by
+    unit (never pooled across units), and the demand series that were never forecast."""
+    series, pooled, ineligible = [], [], []
+    for s, row, sums in zip(inputs.series, compact["series"], compact["backtest"], strict=True):
+        if s.kind != "demand":
+            continue
+        location, (_, product, unit) = inputs.locations[s.location][1], inputs.products[s.product]
+        if row["status"] != "AVAILABLE":
+            ineligible.append(IneligibleSeries(location_id=location, product_id=product,
+                                               reason=row["error_message"]))
+            continue
+        scored = ScoredSet(sums["evaluated"], sums["points"], Decimal(sums["abs_error"]),
+                           Decimal(sums["error"]), Decimal(sums["actual"]),
+                           frozenset(sums["origins"]))
+        series.append(SeriesBacktest(location_id=location, product_id=product, basis=s.basis,
+                                     score=score(scored)))
+        pooled.append((location, unit, scored))
+
+    def by_ids(r):
+        return r.location_id.encode(), r.product_id.encode()
+
+    return BacktestResult(
+        forecast_job_id=run_id, network_id=inputs.network_id,
+        series=tuple(sorted(series, key=by_ids)), locations=location_rollups(pooled),
+        ineligible=tuple(sorted(ineligible, key=by_ids)),
+    ).model_dump(mode="json", exclude={"forecast_job_id", "network_id"})
 
 
 # --- router-facing services -----------------------------------------------------------------

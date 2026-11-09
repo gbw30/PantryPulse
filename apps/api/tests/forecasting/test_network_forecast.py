@@ -21,6 +21,7 @@ import time
 import uuid
 from contextlib import contextmanager
 from datetime import date, timedelta
+from decimal import Decimal
 from types import SimpleNamespace
 
 import pytest
@@ -32,8 +33,9 @@ import tests.integration.fake_driver as fake_driver
 from app.repositories.forecast_history import HistoryRejected
 from app.repositories.jobs import QueueRepository, TrustedScope, create_queue_engine
 from app.schemas.v1_imports import NewNetwork
-from app.schemas.v1_networks import NetworkForecastRequest
+from app.schemas.v1_networks import BacktestScore, NetworkForecastRequest
 from app.schemas.v1_planning import ScenarioOptions
+from app.services.forecasting.backtest import backtest_series, baseline_fit, get_backtest
 from app.services.forecasting.network import (
     get_forecast_run,
     list_forecast_runs,
@@ -314,3 +316,41 @@ def test_unknown_network_and_foreign_run_are_404(published, stack):
     with pytest.raises(HistoryRejected) as foreign:
         get_forecast_run(stack, SESSION, other.network_id, published.job_id)
     assert (foreign.value.code, foreign.value.status) == ("FORECAST_RUN_NOT_FOUND", 404)
+
+
+def test_backtest_persisted_and_served_by_get_backtest(published, stack):
+    """WAITS ON ppv1_0014 (lead migration, CR-w3-forecast-1 option B): it needs the
+    forecast_runs.backtest column. Not skipped: it fails until that migration is merged in."""
+    from fastapi.testclient import TestClient
+
+    from app.main import create_app
+    from app.routers.forecasts import presenter, runtime
+
+    result = get_backtest(stack, SESSION, published.job_id)
+    assert (result.forecast_job_id, result.network_id) == (
+        published.job_id, published.network.network_id)
+    perfect = BacktestScore(origins_evaluated=4, wape_pct=Decimal("0.00"),
+                            bias_pct=Decimal("0.00"), status="evaluated", scored_points=28)
+    milk = backtest_series([Decimal(20 + i % 3) for i in range(42)], baseline_fit())
+    short = backtest_series([Decimal(4)] * 20, baseline_fit())  # 20 days: under 35
+    assert (milk.status, short.status) == ("evaluated", "not_evaluated_insufficient_history")
+    assert [(s.location_id, s.product_id, s.basis, s.score) for s in result.series] == [
+        ("P1", "MILK", "sales", milk), ("P1", "RICE", "demand", perfect),
+        ("P2", "BEANS", "demand", short)]
+    assert [(r.location_id, r.unit, r.series_count, r.score) for r in result.locations] == [
+        ("P1", "case", 1, perfect), ("P1", "lb", 1, milk), ("P2", "case", 1, short)]
+    assert [(r.location_id, r.product_id) for r in result.ineligible] == [
+        ("P2", "RICE"), ("P3", "RICE")]
+    assert "has 10" in result.ineligible[0].reason
+    with stack.engine.connect() as conn:
+        stored = conn.scalar(sa.text("SELECT backtest FROM forecast_runs WHERE id = :j"),
+                             {"j": published.job_id})
+    assert stored == result.model_dump(mode="json", exclude={"forecast_job_id", "network_id"})
+    app = create_app()
+    app.dependency_overrides[runtime] = lambda: stack
+    app.dependency_overrides[presenter] = lambda: SESSION
+    client = TestClient(app)
+    response = client.get(f"/api/v1/forecasts/{published.job_id}/backtest")
+    assert (response.status_code, response.json()) == (200, result.model_dump(mode="json"))
+    response = client.get(f"/api/v1/forecasts/{uuid.uuid4()}/backtest")
+    assert response.status_code == 404 and "FORECAST_RUN_NOT_FOUND" in response.text
