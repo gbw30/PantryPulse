@@ -64,6 +64,17 @@ it("a queued lookup or route job re-reads its list when the job ends (GET /jobs/
   await waitFor(() => expect(networkApi.routes).toHaveBeenCalledTimes(3));
 });
 
+it("a status read while the import's lookups still run follows that job and re-reads when it ends", async () => {
+  const done = { ...example("EnrichmentStatus"), network_id: first.id };
+  const running = { ...done, state: "running" as const };
+  vi.spyOn(networkApi, "enrichment").mockResolvedValueOnce(running).mockResolvedValue(done);
+  const job = vi.spyOn(networkApi, "job").mockResolvedValue({ job_id: running.job_id, state: "SUCCEEDED", attempts: [] } as unknown as Schema["ForecastJob"]);
+  render(<SettingsView />);
+  await waitFor(() => expect(job).toHaveBeenCalledWith(running.job_id));
+  await waitFor(() => expect(screen.getByText(/Address and Census lookups:/)).toHaveTextContent("done"));
+  expect(networkApi.enrichment).toHaveBeenCalledTimes(2);
+});
+
 it("a job state outside the contract stops the polling and re-reads the list once", async () => {
   vi.spyOn(networkApi, "retryEnrichment").mockResolvedValue(example("ForecastAccepted"));
   let answer!: (job: Schema["ForecastJob"]) => void;
