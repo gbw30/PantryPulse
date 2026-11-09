@@ -214,7 +214,8 @@ class VulnerabilityV3(ORContract):
     location_id: Id
     poverty_rate: str
     snap_rate: str
-    # "ACS 5-year YYYY, tract NNNN", "manual", or one manual rate beside a looked-up one:
+    # "ACS 5-year YYYY, tract NNNN", "manual" (on a sample network: "sample values"), or one
+    # manual rate beside a looked-up one:
     # "poverty_rate: manual; snap_rate: ACS 5-year YYYY, tract NNNN" (either order)
     source: str = Field(min_length=1)
 
