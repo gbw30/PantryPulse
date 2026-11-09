@@ -9,20 +9,20 @@
 | W3-P01 | done | `def31ca` | `uv run --frozen pytest -q tests/samples/test_pantry_sample.py` → 7 passed, 0 skipped |
 | W3-P02 | done | `6bea81c` | `uv run --frozen pytest -q tests/samples/test_retail_sample.py` → 5 passed, 0 skipped (`tests/samples/` → 12 passed) |
 | W3-P03 | done | `be0f8e0` | `uv run --frozen pytest -q tests/samples tests/imports/test_templates.py tests/test_v1_contract.py` → 88 passed, 0 skipped |
-| W3-P04 | in progress (code done; compose check, gates, PR next) | see `git log` (W3-P04) | `uv run --frozen pytest -q tests/samples` → 23 passed, 0 skipped; `tests/test_local_bootstrap.py` → 10 passed, 0 skipped (with `.env.lane`) |
+| W3-P04 | done | `55026c0` | `uv run --frozen pytest -q tests/samples` → 23 passed, 0 skipped; `tests/test_local_bootstrap.py` → 10 passed, 0 skipped (with `.env.lane`); compose: seed log "samples loaded: 2", both networks `is_sample`, as-of 2026-11-09, 0 jobs queued; offline seed on an `--internal` network (outbound probe blocked) loaded both on a fresh DB |
 
 Status values: `todo`, `in progress`, `done`, `blocked (<reason or CR id>)`.
 
-### Next step (W3-P04)
+### Next step
 
-wave-3 Step 3 compose check (`COMPOSE_PROJECT_NAME=pp-samples PP_WEB_PORT=3102 docker compose up --build -d --wait`, both samples listed, then `down -v`), then `quick`, `full`, `/devkit:ship-check`, PR into `v1-local`.
+`/devkit:ship-check` (local review by the project `verifier` agent), then the PR `lane/w3-samples → v1-local`. When the lead's CR-w3-samples-1/2 PR merges: `git merge origin/v1-local`, re-run `tests/samples` and the quick gate, push.
 
 ## Gates
 
 | Gate | Commit | Result |
 |---|---|---|
-| `node scripts/quality/run.cjs quick` | | |
-| `node scripts/quality/run.cjs full` (with `.env.lane`) | | |
+| `node scripts/quality/run.cjs quick` (standard env) | `55026c0` | PASS (4/4). Without a DB, pytest is 1669 passed, 383 skipped: every skip is a PostgreSQL suite reporting `NOT RUN: PP_TEST_DATABASE_URL is not set` (e.g. `test_supervisor` 63, `test_job_queue` 38, `test_build_scenario` 22, `test_import_postgres` 21, `test_seed` 7); not counted as validated, all run in `full` below |
+| `node scripts/quality/run.cjs full` (with `.env.lane`, `PP19_TEST_SCHEMA_ISOLATION=1`) | `55026c0` | PASS (8/8); same env `uv run --frozen pytest -q -rs` → 2052 passed, 0 skipped in 314 s |
 | `/devkit:ship-check` | | |
 
 ## Decisions made inside the lane
