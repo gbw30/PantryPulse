@@ -58,5 +58,58 @@
     "note": "project_lines + danger_ranking over one dated lot per series; the run read and the batch/inbound SQL are not timed"
   },
   "batching": "not needed: one step fits; test_batched_series_equal_unbatched_on_small_set pins series independence",
-  "verdict": "fits: 50,000 series in 12.5 s of the 300 s forecast ceiling at 1.1 GB peak (8 GiB worker), after raising forecast.v1 max_input_bytes 16 MB -> 24 MB for the worst-case input"
+  "verdict": "fits: 50,000 series in 12.5 s of the 300 s forecast ceiling at 1.1 GB peak (8 GiB worker), after raising forecast.v1 max_input_bytes 16 MB -> 24 MB for the worst-case input",
+  "publish_lock_with_backtest": {
+    "task": "W3-F03 remainder (forecast_runs.backtest, ppv1_0014)",
+    "commit": "3d03fd1",
+    "command": "uv run --frozen python scripts/bench_forecast.py --part built --series 50000 (run twice)",
+    "load_average_1min_before_runs": [
+      2.91,
+      2.45
+    ],
+    "note": "Other sessions' tests were running, so phases unchanged since 23c998d ran 20-50 % slower than the baseline above; build_backtest's own time is the new number.",
+    "runs": [
+      {
+        "timings": {
+          "generate_s": 1.54,
+          "freeze_python_s": 1.36,
+          "validate_input_s": 1.04,
+          "step_compute_s": 7.93,
+          "publish_build_output_s": 5.26,
+          "publish_build_backtest_s": 1.58,
+          "danger_ranking_s": 6.68
+        },
+        "forecast_job_compute_s": 18.93,
+        "publish_in_lock_s_before_insert": 7.88,
+        "stored_backtest_json_mb": 9.39,
+        "wall_s": 26.22,
+        "peak_rss_mb": 1147.9
+      },
+      {
+        "timings": {
+          "generate_s": 1.51,
+          "freeze_python_s": 1.33,
+          "validate_input_s": 1.02,
+          "step_compute_s": 7.65,
+          "publish_build_output_s": 4.73,
+          "publish_build_backtest_s": 1.55,
+          "danger_ranking_s": 6.07
+        },
+        "forecast_job_compute_s": 18.01,
+        "publish_in_lock_s_before_insert": 7.3,
+        "stored_backtest_json_mb": 9.39,
+        "wall_s": 24.66,
+        "peak_rss_mb": 1147.9
+      }
+    ],
+    "publish_build_backtest_s": [
+      1.58,
+      1.55
+    ],
+    "publish_in_lock_s_before_insert": [
+      7.88,
+      7.3
+    ],
+    "within_ceiling": true
+  }
 }

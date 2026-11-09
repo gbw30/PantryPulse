@@ -27,8 +27,7 @@ Order: F02 → F01 → F04 → F03 → F05 → F06. F01 and F02 depend on nothin
 
 ## Next
 
-1. **Re-time the 50k publish lock** with `build_backtest` on a quiet machine (`--part built`), and update the evidence and known limits.
-2. **Finish:** `quick`, then `full` with `.env.lane` (0 skipped), `/devkit:ship-check` with the `verifier` agent, then the PR into `v1-local`.
+1. **Finish:** `quick`, then `full` with `.env.lane` (0 skipped), `/devkit:ship-check` with the `verifier` agent, then the PR into `v1-local`.
 
 ## Gates
 
@@ -71,7 +70,7 @@ Order: F02 → F01 → F04 → F03 → F05 → F06. F01 and F02 depend on nothin
 Commands, from `apps/api` with `.env.lane` loaded: `uv run --frozen python scripts/bench_forecast.py --part built --series 50000` (the job, the publish lock, the danger ranking, sizes) and `… --part freeze --series 50000` (the submit's history aggregate). Measured at `23c998d`, on the machine in the evidence file.
 
 - The submit request runs the history aggregate itself: 3.1 s over 4.5 M rows (`--part freeze`), in the API request's REPEATABLE READ transaction.
-- Publishing builds the 106 MB `ForecastOutput` inside the publication lock: 4.2 s (`--part built`, `publish_in_lock_s_before_insert`), plus the row INSERT (S7 `--part db`: 1.65 s). The W3-F03 remainder adds `build_backtest` to the lock (9.4 MB stored at 50k series). It gets re-timed on a quiet machine: the first run at `1278084` overlapped other sessions' test runs (load average 7) and doubled every phase, so its numbers aren't used.
+- Publishing builds the 106 MB `ForecastOutput` and the 9.4 MB backtest inside the publication lock: 4.2 s for the output at `23c998d` on a quiet machine. At `3d03fd1` (load average about 2.5) `build_backtest` adds 1.55–1.58 s, for 7.3–7.9 s in the lock before the INSERT (`--part built`, `publish_in_lock_s_before_insert`, `publish_build_backtest_s`; evidence key `publish_lock_with_backtest`). The INSERT comes on top (S7 `--part db`: 1.65 s for the output alone).
 - `create_scenario` re-reads that 106 MB output (S7: about 4.5 s).
 - `get_danger` recomputes per request: about 4 s of projection and ranking (`--part built`, `danger_ranking_s`), plus the run read and the batch SQL. Nothing is cached.
 - `GET /networks/{id}/forecasts/{run}` returns every series (tens of MB). Pagination would be a contract change.
@@ -151,12 +150,12 @@ Forecasts are projections. The backtest's WAPE and bias are the forecast's error
 | `node scripts/quality/run.cjs quick` | <PASS> |
 | `node scripts/quality/run.cjs full` (with `.env.lane`) | <PASS, 0 skipped> |
 | `/devkit:ship-check` (verifier agent for the local review) | <result> |
-| `uv run --frozen python scripts/bench_forecast.py --part built --series 50000` | job 12.5 s of 300 s; publish in lock <re-timed> s before the INSERT |
+| `uv run --frozen python scripts/bench_forecast.py --part built --series 50000` | job 12.5 s of 300 s at `23c998d`; at `3d03fd1` (load about 2.5) 18.0–18.9 s, with 7.3–7.9 s in the publish lock before the INSERT, of which `build_backtest` is 1.6 s |
 | `uv run --frozen python scripts/bench_forecast.py --part freeze --series 50000` | 3.1 s history aggregate over 4.5 M rows |
 
 ### Known limits (measured at 50,000 series)
 - The submit request runs the history aggregate itself: 3.1 s.
-- Publishing builds the 106 MB output and the backtest inside the publication lock: <re-timed> s, plus the INSERT.
+- Publishing builds the 106 MB output and the 9.4 MB backtest inside the publication lock: about 7.3 s at 50k series (load about 2.5), plus the INSERT.
 - `create_scenario` re-reads the 106 MB output (about 4.5 s).
 - `GET /networks/{id}/danger` recomputes on every request (about 4 s); nothing is cached.
 - `GET /networks/{id}/forecasts/{run}` returns every series (tens of MB); pagination would be a contract change.
