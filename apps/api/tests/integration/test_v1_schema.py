@@ -76,7 +76,7 @@ def _fails(engine, sql, **params):
 def test_upgrade_head_on_fresh_database(engine):
     with engine.connect() as conn:
         assert V1_TABLES <= _tables(conn)
-        assert conn.scalar(sa.text("SELECT version_num FROM alembic_version")) == "ppv1_0013"
+        assert conn.scalar(sa.text("SELECT version_num FROM alembic_version")) == "ppv1_0014"
 
 
 def test_downgrade_to_ppvp_0007_and_up_again():
@@ -472,6 +472,65 @@ def test_ppv1_0013_moves_every_batch_into_its_version_partition_and_back():
             assert _batch_rows(conn) == before
             assert not {t for t in _tables_in(conn, schema) if t.startswith("net_batches_")}
             assert _batches_catalog(conn) == fresh  # what ppv1_0012 built, nothing lost
+    finally:
+        eng.dispose()
+        reset_schema(url, schema)
+
+
+# CR-w3-forecast-1 option B (Gabriel, 2026-11-09): each run's backtest is stored on its run row
+# (ppv1_0014), as a JSON object or NULL.
+def _forecast_run(conn, backtest):
+    org, job, attempt = _org(conn), uuid.uuid4(), uuid.uuid4()
+    conn.execute(sa.text(
+        "INSERT INTO compute_attempts (attempt_id, job_id, attempt_number, lane_id, "
+        "organization_id, state, enqueued_at, queue_deadline_at) VALUES (:a, :j, 1, 'default', "
+        ":o, 'QUEUED', now(), now() + interval '15 minutes')"), {"a": attempt, "j": job, "o": org})
+    conn.execute(sa.text(
+        "INSERT INTO compute_jobs (job_id, lane_id, organization_id, requested_by_ref, "
+        "operation_kind, handler_contract, input_schema_version, input_package, input_sha256, "
+        "current_attempt_id, state, created_at, updated_at) VALUES (:j, 'default', :o, 'actor', "
+        "'FORECAST', 'forecast.v1', '1', '{\"input\": {}}', repeat('a', 64), :a, 'QUEUED', "
+        "now(), now())"), {"a": attempt, "j": job, "o": org})
+    conn.execute(sa.text(
+        "INSERT INTO forecast_runs (id, organization_id, job_id, attempt_id, input_hash, "
+        "planning_ready, frozen_input, output, backtest) VALUES (:id, :o, :j, :a, repeat('a', 64), "
+        "false, '{}', '{}', CAST(:b AS jsonb))"),
+        {"id": uuid.uuid4(), "o": org, "j": job, "a": attempt, "b": backtest})
+
+
+@pytest.mark.parametrize("backtest", [None, '{"series": [], "locations": [], "ineligible": []}'])
+def test_forecast_run_backtest_is_null_or_an_object(engine, backtest):
+    with engine.begin() as conn:
+        _forecast_run(conn, backtest)
+
+
+@pytest.mark.parametrize("backtest", ["[]", '"series"', "1", "null"])
+def test_forecast_run_backtest_rejects_anything_but_an_object(engine, backtest):
+    with pytest.raises(DBAPIError, match="ck_forecast_runs_backtest"):
+        with engine.begin() as conn:
+            _forecast_run(conn, backtest)
+
+
+def test_ppv1_0014_downgrade_refuses_while_a_backtest_is_stored():
+    url = database_url()
+    schema = "v1_schema_backtest_test"
+    reset_schema(url, schema)
+    eng = create_queue_engine(url, schema=schema)
+    try:
+        with eng.begin() as conn:
+            command.upgrade(alembic_config(conn), "head")
+            _forecast_run(conn, None)
+        with eng.begin() as conn:
+            command.downgrade(alembic_config(conn), "ppv1_0013")
+        with eng.connect() as conn:
+            assert "backtest" not in {c["name"] for c in sa.inspect(conn).get_columns(
+                "forecast_runs", schema=schema)}
+        with eng.begin() as conn:
+            command.upgrade(alembic_config(conn), "head")
+            _forecast_run(conn, '{"series": []}')
+        with pytest.raises(RuntimeError, match="V1_DATA_PRESENT"):
+            with eng.begin() as conn:
+                command.downgrade(alembic_config(conn), "ppv1_0013")
     finally:
         eng.dispose()
         reset_schema(url, schema)

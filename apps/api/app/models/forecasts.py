@@ -23,6 +23,7 @@ class ForecastRun(OwnedIdentity, Base):
     planning_ready = mapped_column(sa.Boolean, nullable=False)
     frozen_input = mapped_column(JSONB, nullable=False)
     output = mapped_column(JSONB, nullable=False)
+    backtest = mapped_column(JSONB)  # BacktestResult body, forecast.v1 network runs only
     __table_args__ = owned(
         sa.ForeignKeyConstraint(
             ["organization_id", "job_id"],
@@ -35,6 +36,7 @@ class ForecastRun(OwnedIdentity, Base):
             ondelete="RESTRICT",
         ),
         check("input_hash ~ '^[0-9a-f]{64}$'", "input_hash"),
+        check("backtest IS NULL OR jsonb_typeof(backtest) = 'object'", "backtest"),
         sa.Index("ix_forecast_reuse", "organization_id", "input_hash", "planning_ready"),
     )
 
