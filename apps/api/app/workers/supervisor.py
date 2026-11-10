@@ -649,7 +649,17 @@ class Supervisor:
             return
         if ex.package is None:
             try:
-                package = ex.registration.publisher.validate(ex.validated, ex.outcomes)
+                try:
+                    package = ex.registration.publisher.validate(ex.validated, ex.outcomes)
+                except PublicationRejected:
+                    raise
+                except Exception as exc:  # bad child output fails its job, never this loop
+                    log_event(
+                        "PUBLICATION_VALIDATE_FAILED",
+                        attempt_id=ex.claim.attempt_id,
+                        error_type=type(exc).__name__,
+                    )
+                    raise PublicationRejected("OUTPUT_INVALID") from None
                 prepare = getattr(ex.registration.publisher, "prepare", None)
                 if prepare:
                     reserve = self.profile.publication_reserve_s

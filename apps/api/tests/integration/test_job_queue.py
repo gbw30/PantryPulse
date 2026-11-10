@@ -656,3 +656,39 @@ def test_running_cancel_and_publication_race_has_one_winner(repo, scope):  # WQ-
             )
         assert rows == (1 if isinstance(published, dict) else 0)
         assert repo.control().active_attempt_id is None
+
+
+@pytest.mark.parametrize("operation", ["submit", "retry", "cancel"])
+def test_admission_waits_out_a_queue_lock_longer_than_the_general_timeout(db, scope, operation):
+    """W4 (Gabriel, 2026-11-10): a 50k-series forecast holds the queue lock about 4-5 s to
+    publish, so submit, retry and cancel wait longer than the general lock timeout."""
+    import inspect
+
+    repo = QueueRepository(db, registry=REGISTRY, profile=TEST_PROFILE, lock_timeout_ms=100,
+                           statement_timeout_ms=200, admission_lock_timeout_ms=2_000)
+    own = make_ready(repo)
+    job = submit(repo, scope)
+    if operation == "retry":
+        repo.finalize(own, repo.claim_next(own), failure_reason=ReasonCode.HANDLER_FAILED)
+    held = threading.Event()
+
+    def hold():  # longer than both the general lock and statement timeouts
+        with db.connect() as conn, conn.begin():
+            conn.execute(sa.text("SELECT 1 FROM compute_control FOR UPDATE"))
+            held.set()
+            time.sleep(0.5)
+
+    holder = threading.Thread(target=hold)
+    holder.start()
+    assert held.wait(5)
+    try:
+        if operation == "submit":
+            submit(repo, scope)
+        elif operation == "retry":
+            repo.retry(scope, job.job_id, "retry-w4")
+        else:
+            repo.cancel(scope, job.job_id, "cancel-w4")
+    finally:
+        holder.join()
+    default = inspect.signature(QueueRepository).parameters["admission_lock_timeout_ms"].default
+    assert default == 15_000

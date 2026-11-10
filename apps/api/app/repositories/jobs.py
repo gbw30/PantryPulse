@@ -276,6 +276,7 @@ class QueueRepository:
         lane_id: str = "default",
         lock_timeout_ms: int = 5_000,
         statement_timeout_ms: int = 10_000,
+        admission_lock_timeout_ms: int = 15_000,
     ):
         self.engine = engine
         self.registry = registry
@@ -283,17 +284,24 @@ class QueueRepository:
         self.lane_id = lane_id
         self._lock_timeout_ms = int(lock_timeout_ms)
         self._statement_timeout_ms = int(statement_timeout_ms)
+        # submit, retry and cancel outwait a large publication's hold on the queue lock (W4)
+        self._admission_lock_timeout_ms = int(admission_lock_timeout_ms)
 
     # --- transaction plumbing ------------------------------------------------------------
 
     @contextmanager
-    def _tx(self, *, lock_timeout_ms: int | None = None) -> Iterator[sa.Connection]:
+    def _tx(
+        self, *, lock_timeout_ms: int | None = None, admission: bool = False
+    ) -> Iterator[sa.Connection]:
+        lock_ms = lock_timeout_ms or self._lock_timeout_ms
+        statement_ms = self._statement_timeout_ms
+        if admission:  # a lock wait counts toward statement_timeout, so add the wait to it
+            lock_ms = self._admission_lock_timeout_ms
+            statement_ms += lock_ms
         try:
             with self.engine.connect() as conn:
                 with conn.begin():
-                    self._set_timeouts(
-                        conn, lock_timeout_ms or self._lock_timeout_ms, self._statement_timeout_ms
-                    )
+                    self._set_timeouts(conn, lock_ms, statement_ms)
                     yield conn
         except (OperationalError, InterfaceError) as exc:
             raise QueueStorageUnavailable("queue storage unavailable") from exc
@@ -576,7 +584,7 @@ class QueueRepository:
     ) -> Accepted:
         """Validate, then durably admit. Returns only after COMMIT (202 semantics)."""
         submission = self._submission(contract, payload, idempotency_key, deduplicate)
-        with self._tx() as conn:
+        with self._tx(admission=True) as conn:
             result = self._admit(conn, scope, submission, idempotency_key, deduplicate)
         if isinstance(result, AdmissionOutcome):
             raise AdmissionRejected("new computation rejected", code=result.value)
@@ -751,7 +759,7 @@ class QueueRepository:
         self._check_key(idempotency_key)
         request_sha = sha256_hex({"action": "RETRY", "job_id": str(job_id)})
         rejection: AdmissionOutcome | None = None
-        with self._tx() as conn:
+        with self._tx(admission=True) as conn:
             ctl, now = self._lock_control(conn)
             existing = self._find_command(conn, scope, CommandAction.RETRY, idempotency_key)
             if existing is not None:
@@ -820,7 +828,7 @@ class QueueRepository:
         """Queued work is cancelled at once; running work is asked to stop (completed=False)."""
         self._check_key(idempotency_key)
         request_sha = sha256_hex({"action": "CANCEL", "job_id": str(job_id)})
-        with self._tx() as conn:
+        with self._tx(admission=True) as conn:
             _, now = self._lock_control(conn)
             existing = self._find_command(conn, scope, CommandAction.CANCEL, idempotency_key)
             if existing is not None:

@@ -379,3 +379,23 @@ def test_an_http_body_cannot_set_is_sample(rt, nested):
     assert response.json()["error"]["code"] == "INVALID_REQUEST"
     with rt.engine.connect() as conn:
         assert conn.scalar(sa.text("SELECT count(*) FROM import_runs")) == before
+
+
+def test_reimport_commit_does_not_block_writers_that_reference_the_network(rt, monkeypatch):
+    """Code-review #2 (W4): a comparison publisher holds the queue lock and inserts a row with an
+    FK to networks (FOR KEY SHARE). A re-import commit holding the network row lock while it
+    waits to submit must not block that insert, or the two wait on each other."""
+    first = _imported(rt)
+    again = api.create_import(rt, SCOPE, ImportCreate(network_id=first.network_id))
+    _upload(rt, again.import_id, FILES)
+    submit = rt.queue.submit
+
+    def submit_while_a_writer_references_the_network(*args, **kwargs):
+        with rt.engine.connect() as writer, writer.begin():
+            writer.execute(sa.text("SET LOCAL lock_timeout = '200ms'"))
+            writer.execute(sa.text("SELECT 1 FROM networks WHERE id = :n FOR KEY SHARE"),
+                           {"n": first.network_id})
+        return submit(*args, **kwargs)
+
+    monkeypatch.setattr(rt.queue, "submit", submit_while_a_writer_references_the_network)
+    assert _commit(rt, again.import_id).job_id is not None
