@@ -75,7 +75,10 @@ Mirrors the CI connected step (`.github/workflows/pantrypulse-ci.yml:86-108`), w
 | `node scripts/quality/run.cjs quick` | W3-W02 | exit 0: web typecheck, web lint, api lint, api tests PASS |
 | `node scripts/quality/run.cjs full` (`.env.lane`, `PP19_TEST_SCHEMA_ISOLATION=1`) | `ed046c1` | exit 1. `api tests`: 1 failed, 2031 passed, 0 skipped. The failure was `test_supervisor.py::test_unexpected_publication_error_fails_the_attempt_and_the_loop_runs_on[_quote_user_data-ValueError]`, the known heartbeat race: the supervisor's 0.2 s heartbeat briefly locks `compute_control`, and the test's `FOR UPDATE NOWAIT` probe can land in that window. The lead logged it and owns the fix. That test alone passed 5 of 5, and its file passed 71 of 71. |
 | same | `717b208` (merge of v1-local `f82edac`) | exit 0: web typecheck, web lint, api lint, api tests, web unit tests, web build, contract drift, database migrations PASS |
-| `/devkit:ship-check` | | not run yet |
+| same, then `uv run --frozen pytest -q` for counts | `f33132f` | exit 0, all 8 PASS; API 2071 passed, 0 skipped |
+| `pytest tests/integration/test_supervisor.py` (after merging #126) | `15a3456` | 73 passed |
+| full gate, then API counts | `a555cb0` | exit 0, all 8 PASS; API 2073 passed, 0 skipped |
+| `/devkit:ship-check` | `15a3456` | step 1: the gates above. Step 2: verifier, findings and dispositions in "Ship-check step 2". Step 3: no security-guidance plugin. Steps 4-5: the PR. |
 
 ### Lead items (approved 2026-11-09)
 
@@ -149,18 +152,36 @@ What was done about each finding:
    - The spec now also reads computed styles. Every A20 test fails on any element whose transition covers a layout property, or `all`, with a non-zero duration. The live control test proves the check finds them when motion is allowed.
    - RED: 12 of 13 failed, listing `button[button]: all`, `a[sidebar-menu-button]: padding`, sidebar `left/right/width`, and the drawer's `transform`.
    - Fix: `motion-reduce:transition-none` on all 11 class strings. GREEN: 26 of 26 (13 tests, 2 repeats).
-2. **Parallel-load timeouts (minor), environmental, not changed.**
+2. **Parallel-load timeouts (minor), environmental, not changed. Clean rerun at normal load:** at `a555cb0` with load average 5 on 16 cores, `design-lab.spec.ts` and `overview-layout.spec.ts` with `--repeat-each=3` gave 42 passed, 0 failed. That covers both design-lab axe scans and the grip-handle test, 3 times each.
    - Whole mocked suite after the fix: 191 passed, 3 failed, 14 skipped (connected-only tests).
    - The failures were two `design-lab` axe scans that hit the 30 s test timeout, plus `overview-layout` "grip handles" waiting for map markers just after "Error creating WebGL context".
    - Machine load average was 28 on 16 cores, from other lanes' suites. `design-lab` passed when rerun with overview-layout. The grip-handle test fails only under load; its rerun is in the gates table.
 3. **Full gate not run on `15a3456` (process).** The final gate is run on the PR head; see the gates table.
 4. **Password in uploaded traces (minor security), reproduced.** It can't be fixed in lane paths; raised as CR-w3-web-2. The `sign-in.ts` comment no longer overclaims.
 5. **Recorder could miss a short CSS animation (minor), FIXED.** An animation that ended before it could be read now counts as motion ("unknown"), so the check fails closed.
-6. **"Simulated network" pill (minor), raised to the lead, not changed.**
+6. **"Simulated network" pill (minor): narrowed per the lead's decision (Gabriel, 2026-11-09), in `9d373cb`.**
+   - /import and /settings no longer show it. A failed network list shows "Network list unavailable", and the legacy screens keep "Simulated network" beside it, because they still render the fictional demo.
+   - Tests: `tests/e2e/data-label.spec.ts` enumerates the eight legacy-data routes (/overview, /data, /data/pulse, /data/inputs, /data/inventory, /data/operations, /recommendations, /scenarios) and the two without network data. `shell-labels.test.tsx` covers the error state. Unit 2 and e2e 2 went RED first.
+   - Not in the legacy list: /decisions renders nothing without a network (`decisions-view.tsx:46`), and /methodology is static text. Both keep the pill, which over-labels and is the safe direction.
+   - The original finding:
    - `top-bar.tsx:17-20` (W3-W01, the W2-06 carry-in) labels every screen "Simulated network" when no v1 network is chosen, including /import and /settings for a presenter with no networks or whose list failed.
    - It over-labels and never under-labels. Narrowing it is a labeling decision for the lead.
 7. **Confirmed safe:** InertOutside cleanup (no leak; fails open), aria-disabled busy buttons (no second request), every example URL names a mode, and Settings follows each job once.
-8. **Stale reasons on a mode change (minor), not changed.** Only Retail lacks examples today, so a stale reason can't show; it becomes moot once the samples lane adds Retail examples.
+8. **Stale reasons on a mode change (minor): gone.** The lead had the "why unavailable" fetch removed, in `6c703f6`, so nothing is left to go stale.
+
+### Lead follow-ups after ship-check (2026-11-09; PR held until these landed)
+
+- `60aa4e6` CR-w3-web-2: traces off for connected runs (see CR-w3-web-2).
+- `9d373cb` data label narrowed (see ship-check item 6).
+- `6c703f6` no "why unavailable" example probe. The catalog's `example_available` decides, and an unavailable example reads "Example not available yet."
+  - With no mode, the probe had downloaded all seven Pantry examples to get null.
+  - Every example URL is built by `exampleUrl(name, mode)` with a required mode.
+  - The A06 e2e models PR #128 (Retail examples served) and checks each download's actual URL names its mode, `PANTRY` or `RETAIL`. It also checks that the page requests no example itself.
+  - The connected Retail download check waits for #128 to merge into v1-local.
+- **Evidence at `6c703f6`:**
+  - `node --test tests/*.test.mjs` → 13 passed, 0 skipped.
+  - `npx vitest run` → 24 files, 144 passed.
+  - Mocked e2e, whole suite → 196 passed, 0 failed, 14 skipped (connected-only, not evidence); exit 0.
 
 ## Decisions made inside the lane
 
@@ -194,7 +215,12 @@ What was done about each finding:
 - **Exact change, one of:**
   - (a) for connected runs (`PP_E2E_PRODUCTION=1`), set `trace: "off"` in `playwright.config.ts`. Recommended: smallest, and screenshots and error-context.md stay.
   - (b) upload `test-results/` without `**/trace.zip`.
-- **Status:** proposed, sent to the lead 2026-11-09. The lane corrected `sign-in.ts`'s comment, which had claimed the password never reaches uploaded test-results.
+- **Status:** approved, option (a) (Gabriel via the lead, 2026-11-09). **Landed in `60aa4e6`.**
+  - **Authorization:** the lead authorized one bounded edit to the lead-owned `apps/web/playwright.config.ts`, the `trace` line only.
+  - **Change:** trace is "off" when `PP_E2E_PRODUCTION=1`; mocked runs keep "retain-on-failure".
+  - **CI:** the connected step sets it (`.github/workflows/pantrypulse-ci.yml:103`, "Real browser, proxy, database and worker journey"), and no other step does. The workflow is unchanged.
+  - **Test:** `tests/playwright-config.test.mjs` loads the config under `1`, `0` and empty. RED (`retain-on-failure` for `1`), then GREEN.
+  - The lane also corrected `sign-in.ts`'s comment, which had claimed the password never reaches uploaded test-results.
 
 
 ## Escalations
