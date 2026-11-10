@@ -3,7 +3,7 @@
 
 import logging
 import stat
-from datetime import date
+from datetime import UTC, date, datetime
 from types import SimpleNamespace
 
 import pytest
@@ -227,3 +227,43 @@ def test_login_through_compose_proxy_on_loopback(db, paths, monkeypatch):
         refused = login("http://pantry.example")
         assert refused.status_code == 503
         assert refused.json()["error"]["code"] == "INSECURE_COOKIE_CONFIGURATION"
+
+
+def test_seed_date_is_the_samples_new_york_date():
+    # CR-w3-samples-4 (a): at 02:00 UTC on Nov 10 it is still Nov 9 in New York.
+    assert local_bootstrap.seed_today(datetime(2026, 11, 10, 2, tzinfo=UTC)) == date(2026, 11, 9)
+    assert local_bootstrap.seed_today(datetime(2026, 11, 10, 12, tzinfo=UTC)) == date(2026, 11, 10)
+    # Daylight saving time: UTC-4 in July, UTC-5 after the November change (2026-11-01).
+    assert local_bootstrap.seed_today(datetime(2026, 7, 1, 4, 30, tzinfo=UTC)) == date(2026, 7, 1)
+    assert local_bootstrap.seed_today(datetime(2026, 7, 1, 3, 59, tzinfo=UTC)) == date(2026, 6, 30)
+    assert local_bootstrap.seed_today(datetime(2026, 11, 2, 4, 59, tzinfo=UTC)) == date(2026, 11, 1)
+
+
+def test_main_seeds_with_the_new_york_date(monkeypatch, tmp_path):
+    seen = {}
+    monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://unused/x")
+    monkeypatch.setenv("PP_LOCAL_LOGIN_FILE", str(tmp_path / "login"))
+    monkeypatch.setenv("PP_TRUSTED_PROXY_TOKEN_FILE", str(tmp_path / "token"))
+    monkeypatch.setattr(local_bootstrap, "database_engine",
+                        lambda url: SimpleNamespace(dispose=lambda: None))
+    monkeypatch.setattr(local_bootstrap, "seed_today", lambda: date(2031, 1, 2))
+    monkeypatch.setattr(local_bootstrap, "run", lambda engine, **kwargs: seen.update(kwargs))
+    assert local_bootstrap.main() == 0
+    assert seen["today"] == date(2031, 1, 2)
+
+
+def test_seed_runs_after_the_login_commits(db, paths, monkeypatch):
+    # CR-w3-samples-4 (b): the seed has its own transaction, started after the login committed.
+    seen = []
+
+    def fake(session, today):
+        # The organization is committed too: an open organizations write in the seed's
+        # transaction blocks the import's partition attach (deadlock, samples gotcha).
+        with db.connect() as conn:
+            seen.append((conn.scalar(sa.text("SELECT count(*) FROM local_logins")),
+                         conn.scalar(sa.text("SELECT count(*) FROM organizations"))))
+        return samples.SeedReport(loaded=())
+
+    monkeypatch.setattr(samples, "ensure_samples", fake)
+    run(db, paths)
+    assert seen == [(1, 1)]

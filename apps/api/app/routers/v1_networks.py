@@ -52,8 +52,9 @@ def template_catalog(mode: NetworkMode | None = None, scope=PRESENTER):
 
 
 @router.get("/templates/{name}.csv", response_class=PlainTextResponse, responses=CSV)
-def template_csv(name: TemplateName, kind: Literal["blank", "example"] = "blank", scope=PRESENTER):
-    return PlainTextResponse(templates.template_csv(name, kind), media_type="text/csv")
+def template_csv(name: TemplateName, kind: Literal["blank", "example"] = "blank",
+                 mode: NetworkMode = "PANTRY", scope=PRESENTER):
+    return PlainTextResponse(templates.template_csv(name, kind, mode), media_type="text/csv")
 
 
 @router.post("/networks/{network_id}/scenarios", response_model=ScenarioV3, status_code=201)
