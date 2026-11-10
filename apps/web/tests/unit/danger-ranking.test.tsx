@@ -1,12 +1,18 @@
 // covers: V1-A13
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { DangerRanking, DangerRankingSection } from "@/components/overview/danger-ranking";
 import { networkApi } from "@/lib/network-api";
 import { example } from "./contract-examples";
 
 const pantry = example("DangerRanking");
-const retailNetwork = example("NetworkList").networks.find((n) => n.mode === "RETAIL")!;
+const runs = example("ForecastRunList");
+const published = { ...runs.runs[1], forecast_run_id: pantry.forecast_run_id };
+const retailNetwork = { ...example("NetworkList").networks.find((n) => n.mode === "RETAIL")!, dataset_version_id: published.dataset_version_id };
+vi.mock("@/components/shell/presenter-session", async (load) => ({
+  ...(await load<typeof import("@/components/shell/presenter-session")>()),
+  usePresenterOptional: () => ({ state: "presenter" }),
+}));
 vi.mock("@/components/shell/network-switcher", async (load) => ({
   ...(await load<typeof import("@/components/shell/network-switcher")>()),
   useNetwork: () => ({ state: { status: "ready", networks: [retailNetwork] }, network: retailNetwork, reload: vi.fn(), select: vi.fn() }),
@@ -71,7 +77,26 @@ it("the table alternative lists the same rows in the same order", () => {
 it("a Retail forecast with nothing at risk names both risks: lost sales and stock expiring unsold", async () => {
   vi.spyOn(networkApi, "danger").mockResolvedValue({ ...retail(), rows: [] });
   vi.spyOn(networkApi, "locations").mockResolvedValue(example("LocationList"));
-  render(<DangerRankingSection forecastRunId={pantry.forecast_run_id} />);
+  vi.spyOn(networkApi, "forecastRuns").mockResolvedValue({ ...runs, runs: [published] });
+  render(<DangerRankingSection />);
   expect(await screen.findByText("No location is projected to lose sales or to have stock expire unsold in this forecast.")).toBeVisible();
+  expect(networkApi.danger).toHaveBeenCalledWith(retailNetwork.id, pantry.forecast_run_id);
+  vi.restoreAllMocks();
+});
+
+it("with no forecast yet, the presenter runs one from the ranking and the ranking then uses it (W4-02)", async () => {
+  vi.spyOn(networkApi, "forecastRuns").mockResolvedValueOnce({ ...runs, runs: [] }).mockResolvedValue({ ...runs, runs: [published] });
+  vi.spyOn(networkApi, "submitForecast").mockResolvedValue({ ...example("ForecastAccepted"), job_id: published.job_id });
+  vi.spyOn(networkApi, "job").mockResolvedValue({ job_id: published.job_id, state: "SUCCEEDED", current_attempt_id: "a", attempts: [] } as never);
+  vi.spyOn(networkApi, "danger").mockResolvedValue(retail());
+  vi.spyOn(networkApi, "locations").mockResolvedValue(example("LocationList"));
+  render(<DangerRankingSection />);
+  expect(await screen.findByText("Run a forecast for this network to rank its locations by danger.")).toBeVisible();
+  expect(networkApi.danger).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Run forecast" }));
+  expect(await screen.findByRole("list", { name: "Locations by danger" })).toBeVisible();
+  expect(networkApi.submitForecast).toHaveBeenCalledWith(retailNetwork.id, { dataset_version_id: published.dataset_version_id });
+  expect(networkApi.danger).toHaveBeenCalledWith(retailNetwork.id, pantry.forecast_run_id);
+  expect(screen.getByText("Forecast finished. The views below use the new run.")).toBeVisible();
   vi.restoreAllMocks();
 });

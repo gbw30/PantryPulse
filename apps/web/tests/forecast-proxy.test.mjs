@@ -325,7 +325,7 @@ test("every v1 route is forwarded; neighbours and stray queries are not", async 
     "GET templates/locations.csv?kind=example", "GET templates/locations.csv?kind=example&mode=RETAIL",
     `GET networks/${net}/enrichment`,
     `GET networks/${net}/routes`, "GET settings", `GET networks/${net}/danger?forecast_run_id=${run}`,
-    `GET forecasts/${run}/backtest`, `GET networks/${net}/forecasts/${run}`, `GET networks/${net}/comparisons/${cmp}`,
+    `GET forecasts/${run}/backtest`, `GET networks/${net}/forecasts`, `GET networks/${net}/forecasts/${run}`, `GET networks/${net}/comparisons/${cmp}`,
     `GET networks/${net}/comparisons/${cmp}/methods/EQUAL_SHARE/actions`,
     `POST networks/${net}/enrichment/retry`, `POST networks/${net}/routes/google-preview`,
     `POST networks/${net}/routes/google-fetch`, `POST networks/${net}/scenarios`,

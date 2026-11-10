@@ -6,6 +6,8 @@ const baseURL = `http://127.0.0.1:${port}`;
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: true,
+  // Connected runs share one API: it queues at most 2 jobs per kind and allows 5 sign-ins a minute (W4-02).
+  workers: process.env.PP_RUN_CONNECTED === "1" ? 2 : undefined,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: "list",

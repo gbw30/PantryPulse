@@ -13,7 +13,13 @@ vi.mock("@/components/shell/network-switcher", async (load) => ({
   useNetwork: () => ({ state: { status: "ready", networks: [network] }, network, reload: vi.fn(), select: vi.fn() }),
 }));
 
-beforeEach(() => vi.restoreAllMocks());
+// The comparison freezes the network's newest published forecast run for its current data (W4-02).
+const runs = example("ForecastRunList");
+const published = { ...runs.runs[1], forecast_run_id: example("ScenarioV3").payload.forecast_run_id, dataset_version_id: network.dataset_version_id! };
+beforeEach(() => {
+  vi.restoreAllMocks();
+  vi.spyOn(networkApi, "forecastRuns").mockResolvedValue({ ...runs, network_id: network.id, runs: [published] });
+});
 
 it("losing the job status mid-comparison keeps the job: no new job is queued, and checking again shows its result", async () => {
   const accepted = { ...example("ForecastAccepted"), result_url: `/api/v1/networks/${network.id}/comparisons/${example("ForecastAccepted").job_id}` };
@@ -23,9 +29,10 @@ it("losing the job status mid-comparison keeps the job: no new job is queued, an
     .mockRejectedValueOnce(new ApiError("NETWORK_ERROR", 0))
     .mockResolvedValueOnce({ job_id: accepted.job_id, state: "SUCCEEDED", current_attempt_id: accepted.attempt_id, attempts: [] } as unknown as Schema["ForecastJob"]);
   const at = vi.spyOn(networkApi, "comparisonAt").mockResolvedValue(example("SavedComparisonV3"));
-  render(<MethodComparisonSection forecastRunId={example("ScenarioV3").payload.forecast_run_id} />);
+  render(<MethodComparisonSection />);
   fireEvent.click(screen.getByRole("radio", { name: "Hub and pantries → pantries" }));
   fireEvent.click(screen.getByRole("radio", { name: "3 days" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Freeze scenario" })).toBeEnabled());
   fireEvent.click(screen.getByRole("button", { name: "Freeze scenario" }));
   fireEvent.click(await screen.findByRole("button", { name: "Compare methods" }));
 
@@ -43,9 +50,10 @@ it("a job state outside the contract stops the polling and says the status is un
   vi.spyOn(networkApi, "createScenario").mockResolvedValue(example("ScenarioV3"));
   vi.spyOn(networkApi, "submitComparison").mockResolvedValue(accepted);
   const job = vi.spyOn(networkApi, "job").mockResolvedValue({ job_id: accepted.job_id, state: "PAUSED" } as unknown as Schema["ForecastJob"]);
-  render(<MethodComparisonSection forecastRunId={example("ScenarioV3").payload.forecast_run_id} />);
+  render(<MethodComparisonSection />);
   fireEvent.click(screen.getByRole("radio", { name: "Hub and pantries → pantries" }));
   fireEvent.click(screen.getByRole("radio", { name: "3 days" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Freeze scenario" })).toBeEnabled());
   fireEvent.click(screen.getByRole("button", { name: "Freeze scenario" }));
   fireEvent.click(await screen.findByRole("button", { name: "Compare methods" }));
 
@@ -53,4 +61,23 @@ it("a job state outside the contract stops the polling and says the status is un
   expect(alert).toHaveTextContent("The comparison job reported a status this page doesn't know (paused). It may still finish; check again before comparing again.");
   expect(screen.getByRole("button", { name: "Compare methods" })).toBeDisabled();
   expect(job).toHaveBeenCalledTimes(1);
+});
+
+it("freezes the network's newest published forecast run for its current data (W4-02)", async () => {
+  const create = vi.spyOn(networkApi, "createScenario").mockResolvedValue(example("ScenarioV3"));
+  render(<MethodComparisonSection />);
+  fireEvent.click(screen.getByRole("radio", { name: "Hub and pantries → pantries" }));
+  fireEvent.click(screen.getByRole("radio", { name: "3 days" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Freeze scenario" })).toBeEnabled());
+  fireEvent.click(screen.getByRole("button", { name: "Freeze scenario" }));
+  await waitFor(() => expect(create).toHaveBeenCalledWith(network.id, expect.objectContaining({ dataset_version_id: network.dataset_version_id, forecast_run_id: published.forecast_run_id })));
+});
+
+it("with no forecast run yet, freezing is blocked and the page points to the Overview to run one (W4-02)", async () => {
+  vi.mocked(networkApi.forecastRuns).mockResolvedValue({ ...runs, network_id: network.id, runs: [] });
+  render(<MethodComparisonSection />);
+  expect(await screen.findByText(/No forecast for this network yet\./)).toBeVisible();
+  expect(screen.getByRole("link", { name: "Run one on the Overview" })).toHaveAttribute("href", "/overview");
+  expect(screen.getByText("A forecast run is needed before freezing a scenario.")).toBeVisible();
+  expect(screen.getByRole("button", { name: "Freeze scenario" })).toBeDisabled();
 });

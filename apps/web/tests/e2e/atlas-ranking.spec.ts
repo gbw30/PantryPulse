@@ -1,11 +1,11 @@
 // covers: V1-A13, V1-A20
 import { expect, test, type Page } from "@playwright/test";
 import { expectNoSeriousA11yViolations } from "./a11y";
-import { envelope, example, mockV1 } from "./v1-mocks";
+import { envelope, example, mockV1, publishedRun } from "./v1-mocks";
 
 // Mocked against packages/contracts/examples/v1 (DangerRanking, NetworkList, LocationList, LocationProjection):
-// proves UI behavior, not the connected app. The forecast run comes from the URL until a run can be discovered
-// (CR-w1-web-2). The projection route is a 501 stub until W3-F05; only P-12 has an example projection.
+// proves UI behavior, not the connected app. The forecast run is the network's newest published run (W4-02).
+// The projection route is a 501 stub until W3-F05; only P-12 has an example projection.
 const ranking = example("DangerRanking");
 const network = example("NetworkList").networks.find((n) => n.id === ranking.network_id)!;
 const names = Object.fromEntries(example("LocationList").locations.map((l) => [l.location_id, `${l.name} (${l.location_id})`]));
@@ -13,6 +13,7 @@ const names = Object.fromEntries(example("LocationList").locations.map((l) => [l
 async function open(page: Page) {
   const calls = await mockV1(page, {
     "GET networks": { body: { networks: [network] } },
+    ...publishedRun(network, ranking.forecast_run_id),
     [`GET networks/${network.id}/danger`]: (call) => call.query.get("forecast_run_id") === ranking.forecast_run_id
       ? { body: ranking } : { status: 404, body: { error: { code: "NOT_FOUND", message: "not found", details: {} } } },
     [`GET networks/${network.id}/locations`]: { body: example("LocationList") },
@@ -21,7 +22,7 @@ async function open(page: Page) {
         ? { body: example("LocationProjection") } : { status: 404, body: envelope("NOT_FOUND") },
   });
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto(`/overview?forecast_run_id=${ranking.forecast_run_id}`);
+  await page.goto("/overview");
   return calls;
 }
 

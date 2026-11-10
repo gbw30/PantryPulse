@@ -1,97 +1,31 @@
 // covers: V1-A14, V1-A15, V1-A16
-import { readFileSync } from "node:fs";
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { CONNECTED, NEEDS_BACKEND, REQUIRED, importNetwork, probe, seedForecast, signIn, uniqueName, type TemplateFile } from "./connected";
+import { CONNECTED, NEEDS_BACKEND, REQUIRED, datasetOf, importNetwork, probe, runForecast, signIn, uniqueName, type TemplateFile } from "./connected";
+import { PANTRY_METHODS, PER_PRODUCT, RETAIL_METHODS, SIMULATED, STOCK, compare, decideAndExport, expectAllVerified, freeze, type Opened } from "./connected-plan";
 
 // W3-W02, connected only: a fictional network is imported through the real proxy, API, PostgreSQL and
-// production worker (import.v1, enrichment.v1, or-comparison.v3), then frozen, compared, decided and
-// exported in the browser. The forecast run is a FIXTURE (Escalation E-1, approved): the v1 forecast
-// routes are 501 until W3-F03 (W4), so seedForecast() inserts one from the set's forecast.json. These
-// tests are evidence for import, scenario, comparison, decisions and export, never for forecasting.
+// production worker (import.v1, enrichment.v1, forecast.v1, or-comparison.v3), forecast from the Overview's
+// "Run forecast" control, then frozen, compared, decided and exported in the browser. W4-02 closed
+// Escalation E-1: the forecast is a real forecast.v1 run of the set's 42 days of history, not a fixture.
 
 const ALL: readonly TemplateFile[] = [...REQUIRED, "routes", "inbound", "donation_history"];
 const RETAIL_FILES: readonly TemplateFile[] = [...REQUIRED, "inbound"];
-const PANTRY_METHODS = ["No transfers", "Equal share", "Most-urgent-first", "Classical GP", "EGP-PI-inspired"];
-const RETAIL_METHODS = ["No transfers", "Soonest-expiry-first", "Optimized (minimize expired + lost sales)"];
-const PER_PRODUCT = "optimized per product, with shared capacity split in advance";
-const SIMULATED = "simulated plan; no stock was reserved or moved";
-// The W2-05 journey's stock tables: a plan, a decision or an export must not change a row of any.
-const STOCK = ["net_batches", "net_inbound", "stock_ledger", "stock_commands", "inventory_lots", "receipts", "receipt_lines",
-  "receipt_postings", "supply_receipts", "inventory_versions", "expected_supplies"];
-// A real solver run; the comparison ceiling is 690 s, but these networks have 4 locations and 2 products.
-const COMPARE_TIMEOUT = 300_000;
 
 test.beforeEach(() => test.skip(!CONNECTED, NEEDS_BACKEND));
 test.describe.configure({ timeout: 900_000 });
 
-type Opened = { id: string; name: string; section: Locator };
-
-/** Import a fixture set, seed its fixture forecast run and open the comparison for it. */
+/** Import a fixture set, run its forecast from the Overview and open the comparison for it. */
 async function openComparison(page: Page, { base, mode, set, files }: { base: string; mode: "Pantry" | "Retail"; set: string; files: readonly TemplateFile[] }): Promise<Opened> {
   const name = uniqueName(base);
   const id = await importNetwork(page, { name, mode, set, files });
   expect(id).toBeTruthy();
-  const run = await seedForecast(page, id!, set);
-  await page.goto(`/scenarios?forecast_run_id=${run}`);
+  await runForecast(page, name);
+  await page.goto("/scenarios");
   const section = page.getByRole("region", { name: `Method comparison · ${name}` });
   await expect(section).toBeVisible();
   // A chosen v1 network shows only its own comparison: the legacy builder is gone (W3 lead decision).
   await expect(page.getByRole("form", { name: "Scenario builder" })).toHaveCount(0);
   return { id: id!, name, section };
-}
-
-/** Freeze one transfer mode; returns the frozen scenario's short id. */
-async function freeze(section: Locator, transfer: string, days?: string) {
-  await section.getByRole("radio", { name: transfer }).click();
-  if (days) await section.getByRole("radio", { name: days }).click();
-  await section.getByRole("button", { name: "Freeze scenario" }).click();
-  const frozen = section.getByText(new RegExp(`^Frozen scenario [0-9a-f]{8} · ${transfer}$`));
-  await expect(frozen).toBeVisible({ timeout: 30_000 });
-  return (await frozen.textContent())!.slice("Frozen scenario ".length, "Frozen scenario ".length + 8);
-}
-
-/** Compare every method of the mode on the frozen scenario and wait for the saved result. */
-async function compare(section: Locator, scenario: string, transfer: string, measure?: "Units" | "USD") {
-  if (measure) await section.getByRole("radio", { name: measure }).click();
-  await section.getByRole("button", { name: "Compare methods" }).click();
-  const results = section.getByRole("region", { name: "Comparison results" });
-  await expect(results.getByText(`Same frozen scenario ${scenario} · ${transfer}`)).toBeVisible({ timeout: COMPARE_TIMEOUT });
-  return results;
-}
-
-/** Every method ran and its published result passed the independent verifier. */
-async function expectAllVerified(results: Locator, methods: readonly string[]) {
-  for (const name of methods) {
-    const card = results.getByRole("region", { name, exact: true });
-    await expect(card, name).toContainText("Verified by the independent check");
-  }
-}
-
-/** Open the method's suggested actions, select them all and export; returns the CSV and the comparison id. */
-async function decideAndExport(page: Page, results: Locator, { id, name }: Opened, method: string, code: string) {
-  await results.getByRole("link", { name: `Open suggested actions for ${method}` }).click();
-  await expect(page).toHaveURL(/\/decisions\?/);
-  const comparisonId = new URL(page.url()).searchParams.get("comparison_id")!;
-  const section = page.getByRole("region", { name: `Suggested actions · ${name}` });
-  const actions = section.getByRole("article");
-  await expect(actions.first()).toBeVisible({ timeout: 30_000 });
-  const count = await actions.count();
-  for (const action of await actions.all()) {
-    for (const part of ["Action", "Why", "Effect"]) await expect(action.getByRole("heading", { name: part, exact: true })).toBeVisible();
-  }
-  await expect(section).toContainText("effect of this action given the rest of the plan; effects don't add up across actions");
-  if (count > 1) await section.getByRole("button", { name: "Select all" }).click();
-  else await actions.first().getByRole("checkbox", { name: "Include in export" }).check();
-  const exportButton = section.getByRole("button", { name: /^Export CSV/ });
-  await expect(exportButton).toHaveText(`Export CSV (${count} action${count === 1 ? "" : "s"})`);
-  const [download] = await Promise.all([page.waitForEvent("download"), exportButton.click()]);
-  expect(download.suggestedFilename()).toBe(`pantrypulse-plan-${comparisonId.slice(0, 8)}-${code}.csv`);
-  const csv = readFileSync((await download.path())!, "utf8");
-  // The hash the server saved with this comparison, read independently of the page.
-  const saved = await page.request.get(`/api/v1/networks/${id}/comparisons/${comparisonId}`);
-  expect(saved.status()).toBe(200);
-  const hash = ((await saved.json()) as { result: { scenario_hash: string } }).result.scenario_hash;
-  return { csv, hash, count, section };
 }
 
 test("@V1-A14 pantry: import → scenario (both transfer modes) → 5 methods verified → decisions → export", async ({ page }) => {
@@ -156,7 +90,8 @@ test("@V1-A15 retail: 3 methods units and USD, USD unavailable with reason on a 
 test("@V1-A16 export CSV contains hash and simulated text; stock tables unchanged", async ({ page }) => {
   await signIn(page);
   const opened = await openComparison(page, { base: "Export Pantry", mode: "Pantry", set: "pantry", files: ALL });
-  const before = probe(STOCK);
+  const dataset = await datasetOf(page, opened.id);
+  const before = probe(STOCK, dataset);
 
   const transfer = "Hub → pantries only";
   const scenario = await freeze(opened.section, transfer, "3 days");
@@ -180,5 +115,5 @@ test("@V1-A16 export CSV contains hash and simulated text; stock tables unchange
   await expect(page.getByText(SIMULATED)).toBeVisible();
 
   // Freezing, comparing, deciding, exporting and printing changed no stock row (W1-S07; no reservation, no dispatch).
-  expect(probe(STOCK)).toEqual(before);
+  expect(probe(STOCK, dataset)).toEqual(before);
 });
