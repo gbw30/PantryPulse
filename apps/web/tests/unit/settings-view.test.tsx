@@ -109,3 +109,22 @@ it("a sample network's pre-filled rates say they are sample values; a real manua
   expect(sourceLine({ ...location, source: null })).toBe("Source: entered by you");
   expect(sourceLine({ ...location, source: "manual" })).toBe("Source: entered by you");
 });
+
+// W4 web hardening (lead, 2026-11-10): an import whose lookups were refused by a full queue says so, and Retry starts them.
+it("lookups that did not start say why and offer Retry, which queues them", async () => {
+  const message = "Address lookups did not start: the job queue was full when the import finished. Use Retry to start them.";
+  const accepted = example("ForecastAccepted");
+  const onRetry = vi.fn(async () => accepted);
+  render(<EnrichmentStatusPanel status={{ ...example("EnrichmentStatus"), state: "not_started", unmatched: [], last_error: message }} onRetry={onRetry} onSaveAttributes={vi.fn()} />);
+  expect(screen.getByText(message)).toBeVisible();
+  expect(screen.queryByText(/last error/)).not.toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "Addresses not found" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Retry lookups" }));
+  expect(onRetry).toHaveBeenCalledTimes(1);
+  expect(await screen.findByText(`Lookups queued (job ${accepted.job_id.slice(0, 8)}). This list updates when they finish.`)).toBeVisible();
+});
+
+it("a sample network's lookups never started, with no message: nothing to retry", () => {
+  render(<EnrichmentStatusPanel status={{ ...example("EnrichmentStatus"), state: "not_started", unmatched: [], last_error: null }} onRetry={vi.fn()} onSaveAttributes={vi.fn()} />);
+  expect(screen.queryByRole("button", { name: "Retry lookups" })).not.toBeInTheDocument();
+});
