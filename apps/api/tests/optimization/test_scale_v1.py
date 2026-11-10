@@ -390,6 +390,72 @@ def test_storage_share_too_small_is_starved_not_optimized():
             assert (rice.native_status, rice.label) == starved, (storage, method)
 
 
+@pytest.mark.parametrize("method", ("RETAIL_OPTIMIZED", "SOONEST_EXPIRY_FIRST"))
+def test_share_only_on_a_route_that_breaks_donor_protection_is_starved(method):
+    """F2 residual: lost-vs-waste plus store C, which holds exactly its own seven-day forecast
+    (7 non-expiring units, selling 1/day). C is protected with no plan, but sending one unit
+    leaves it short on day 7. With A -> B at capacity 0, the only route with room for a unit is
+    C -> B, which BD-49 forbids, so P is starved, never optimized. With room on A -> B, A moves
+    units. With C -> B alone nothing can move whatever the capacity, so it is no capacity
+    verdict: P is optimized (0 moves) as before."""
+    s = scenario("retail-lost-vs-waste")
+    store_c = s.locations[0].model_copy(update={"id": "C", "name": "Store C"})
+    c1 = s.batches[0].model_copy(
+        update={
+            "id": "c1",
+            "location_id": "C",
+            "quantity": 7,
+            "expiry_date": None,
+            "non_expiring": True,
+        }
+    )
+    from_c = s.routes[0].model_copy(update={"from_location_id": "C"})
+    s = s.model_copy(
+        update={
+            "locations": (*s.locations, store_c),
+            "batches": (*s.batches, c1),
+            "demand": (*s.demand, s.demand[0].model_copy(update={"location_id": "C"})),
+            "routes": (*s.routes, from_c),
+        }
+    )
+    assert protected_senders(s, project_v3(s).days, "P") == {"A", "C"}
+    no_room = s.routes[0].model_copy(update={"capacity_per_batch": 0})
+    for routes, senders, label in (
+        ((no_room, from_c), set(), STARVED_LABEL),
+        ((s.routes[0], from_c), {"A"}, None),
+        ((from_c,), set(), None),
+    ):
+        result = run_method(s.model_copy(update={"routes": routes}), method, "UNITS")
+        assert result.verified, result.failure_reason
+        assert {t.from_location_id for t in result.transfers} == senders
+        (p,) = result.products
+        assert p.label == label, (method, len(routes))
+        if label:
+            assert p.native_status is None
+
+
+@pytest.mark.parametrize("mode", ("retail", "pantry"))
+def test_one_unit_screen_agrees_with_the_verifier_on_donor_protection(mode):
+    """The F2 screen runs the model's own BD-49 lots and FEFO kernel. For one unit on every
+    candidate of a generated network it must agree with the independent verifier's probe."""
+    from app.services.optimization.product_model import one_unit_protected
+    from app.services.optimization.v3 import Shares
+    from app.services.optimization.verify import product_violations
+
+    s = bench_scenario(16, 6, mode)
+    baseline = project_v3(s).days
+    no_limits = Shares({}, {}, {}, {}, None, None)
+    seen = set()
+    for product in s.products:
+        sends = one_unit_protected(s, product.id)
+        rows = [d for d in baseline if d.product_id == product.id]
+        for c in candidates(s, product.id):
+            found = product_violations(s, product.id, {c.key: 1}, no_limits, rows)
+            assert sends(c) == ("DONOR_PROTECTION" not in found), c.key
+            seen.add(sends(c))
+    assert seen == {True, False}
+
+
 def test_k_nearest_routes_used(monkeypatch):
     """Three DCs hold oil for B at 1, 2 and 3 days; with k = 1 only the 1-day DC is a candidate."""
     s = scenario()

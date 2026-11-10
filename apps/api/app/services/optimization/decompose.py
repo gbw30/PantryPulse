@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from fractions import Fraction
 from math import lcm
 
-from app.services.optimization.product_model import _unit_cost
+from app.services.optimization.product_model import _unit_cost, one_unit_protected
 from app.services.optimization.v3 import Candidate, Shares, dates, window_days
 
 
@@ -197,6 +197,13 @@ def split(s, baseline, products, measure, cands: dict[str, tuple[Candidate, ...]
                 )
             ) and (sh.cost_minor is None or sh.cost_minor >= unit_cost)
 
-        if usable and not any(fits(c) for c in usable):
+        fitting = [c for c in usable if fits(c)]
+        if usable and not fitting:
             starved.add(p)
+        elif fitting:
+            # F2: room only on routes BD-49 forbids (the model's own check) moves nothing. If no
+            # route at all can send, capacity is not the reason, so the product stays unstarved.
+            sends = one_unit_protected(s, p)
+            if not any(sends(c) for c in fitting) and any(sends(c) for c in usable):
+                starved.add(p)
     return Split(shares, frozenset(starved))
