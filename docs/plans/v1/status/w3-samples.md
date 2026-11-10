@@ -17,14 +17,15 @@ Status values: `todo`, `in progress`, `done`, `blocked (<reason or CR id>)`.
 
 ### Next step
 
-PR #121 merged (`77da30e`). The follow-up (`46e4706`, merge `915b98c` of `origin/v1-local` `a2c7258`) passed its gates and the `verifier` (pass with findings). PR #128 is open. Ship-check step 5 (`/code-review medium 128`) is done: one fix in `2ee844b`, with gates green on it. Next: the lead's review. **Merge order:** the w3-web `&mode=` fix for `network-api.ts:18` must land with this PR or before it (verifier finding, Medium), or a Retail import page offers the Pantry examples. Gabriel approves the merge.
+PR #121 merged (`77da30e`). The follow-up (`46e4706`, merge `915b98c` of `origin/v1-local` `a2c7258`) passed its gates and the `verifier` (pass with findings). PR #128 is open at `e0e0414` and has passed the lead's review. Holding until the web PR merges; see the save point below. **Merge order:** the w3-web `&mode=` fix for `network-api.ts:18` must land with this PR or before it (verifier finding, Medium), or a Retail import page offers the Pantry examples. Gabriel approves the merge.
 
-## Save point 2026-11-09
+## Save point 2026-11-09 (follow-up, PR #128)
 
-- **Head:** the status commit on top of `a172430` (merge of `origin/v1-local` = lead PR #122 `5c5fbe7`, CR-1 and CR-2) and `8d1fe06` (review fixes).
-- **Verifier review of `51b65aa`: all 3 Low findings fixed** in `8d1fe06` (L1 serialized seed, L2 recorded outbound attempts, L3 mutant-killing tests; details under Decisions).
-- **Evidence on `a172430`:** `uv run --frozen pytest -q -rs tests/samples tests/enrichment tests/imports tests/test_v1_contract.py tests/test_local_bootstrap.py` (with `.env.lane`) → 332 passed, 0 skipped; `node scripts/quality/run.cjs quick` → PASS 4/4. The concurrency test ran green 3 times in a row on `8d1fe06`. Full gate not re-run since `c5dce80`.
-- **Exact next step:** wait for the verifier's re-check of `51b65aa..` this head on PR #121 and fix any findings test-first. Optionally run `node scripts/quality/run.cjs full` (with `.env.lane`, `PP19_TEST_SCHEMA_ISOLATION=1`) on this head. CR-3 and CR-4 are with Gabriel. No merge before Gabriel's next session.
+- **PR #128 at `e0e0414`** (lane/w3-samples → v1-local). The lead reviewed it: every requirement PASS, 4/4 mutants killed, 270 passed and 0 skipped. The G1 wording fix was checked by the lead as a comment and status-file diff. The commit after `e0e0414` changes only this status file.
+- **Evidence on `e0e0414`** (with `.env.lane`, run one at a time): focused (`tests/samples tests/imports tests/enrichment tests/test_v1_contract.py tests/test_local_bootstrap.py`) 341 passed, 0 skipped; quick PASS 4/4. Full PASS 8/8 and `pytest -q -rs` 2078 passed, 0 skipped on `2ee844b` (the last code change; `e0e0414` changes only a comment).
+- **Holding:** Gabriel's merge order is the web PR (adds `mode` to example links and drops the dead reason fetch) first, then #128, so `v1-local` never offers Pantry files for a Retail import. No pushes until the lead says so.
+- **Exact next step:** when the lead says the web PR has merged, run `git fetch && git merge origin/v1-local` (no rebase), re-run the focused suites and then quick (one at a time, never two API suites on the lane DB), push, and report the new head to the lead. Gabriel approves the #128 merge.
+- **Previous save point (PR #121):** superseded; #121 merged as `77da30e` with L1–L3 fixed.
 
 ## Gates
 
