@@ -9,7 +9,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: "list",
-  use: { baseURL, trace: "retain-on-failure" },
+  // Connected runs sign in with the presenter password, which a trace would keep (CR-w3-web-2).
+  use: { baseURL, trace: process.env.PP_E2E_PRODUCTION === "1" ? "off" : "retain-on-failure" },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
     command: `npm run ${process.env.PP_E2E_PRODUCTION === "1" ? "start" : "dev"} -- --port ${port}`,
