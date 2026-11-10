@@ -10,6 +10,7 @@ from collections.abc import AsyncIterator
 from uuid import UUID
 
 import sqlalchemy as sa
+from fastapi.concurrency import run_in_threadpool
 
 from app.repositories import imports as repo
 from app.repositories.jobs import TrustedScope
@@ -48,18 +49,26 @@ async def store_import_file(
     rt, scope, import_id: UUID, name: TemplateName, chunks: AsyncIterator[bytes]
 ) -> ImportFile:
     """`chunks` is already capped at UPLOAD_CAP_BYTES by the router (InputRejected → 413).
-    An over-cap or broken upload leaves no file (W1-D04)."""
-    with rt.engine.connect() as conn:
-        _uploading(repo.get_run(conn, import_id))
-    base = staging.import_dir()
-    partial, size, sha256 = await staging.stream_upload(base, import_id, name, chunks)
-    try:
+    An over-cap or broken upload leaves no file (W1-D04). The database work runs in the
+    threadpool, never on the event loop (code-review #6)."""
+
+    def check() -> None:
+        with rt.engine.connect() as conn:
+            _uploading(repo.get_run(conn, import_id))
+
+    def record() -> None:
         with rt.engine.begin() as conn:
             # Under the run's row lock, which the commit and other uploads also take: the file
             # on disk changes only with its record, and never after the commit.
             _uploading(repo.get_run(conn, import_id, lock=True))
             repo.record_file(conn, import_id, name, size, sha256)
             os.replace(partial, staging.upload_path(base, import_id, name))
+
+    await run_in_threadpool(check)
+    base = staging.import_dir()
+    partial, size, sha256 = await staging.stream_upload(base, import_id, name, chunks)
+    try:
+        await run_in_threadpool(record)
     finally:
         partial.unlink(missing_ok=True)
     return ImportFile(name=name, bytes=size, sha256=sha256)

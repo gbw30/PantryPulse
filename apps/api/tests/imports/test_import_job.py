@@ -4,6 +4,7 @@ re-import, network reads. These run `run_import`, the job's step, prepare and pu
 process; tests/imports/test_import_worker.py runs the same job under a real supervisor."""
 
 import asyncio
+import threading
 import uuid
 from datetime import date
 from types import SimpleNamespace
@@ -425,3 +426,18 @@ def test_a_commit_retried_after_its_phase_write_failed_reuses_the_admitted_job(r
     monkeypatch.setattr(api.repo, "set_phase", set_phase)
     retried = api.commit_import(rt, SCOPE, created.import_id, commit, "click-2")
     assert admitted == [admitted[0], admitted[0]] and retried.job_id == admitted[0]
+
+
+def test_an_upload_does_its_database_work_off_the_event_loop(rt, monkeypatch):  # code-review #6
+    created = api.create_import(rt, SCOPE, _new())
+    loop_thread, seen = threading.get_ident(), []
+    for name in ("get_run", "record_file"):
+        real = getattr(api.repo, name)
+
+        def spy(*args, _real=real, **kwargs):
+            seen.append(threading.get_ident())
+            return _real(*args, **kwargs)
+        monkeypatch.setattr(api.repo, name, spy)
+    _upload(rt, created.import_id, {"locations": FILES["locations"]})
+    assert seen  # the run checked before and under its lock, then the file recorded
+    assert loop_thread not in seen
