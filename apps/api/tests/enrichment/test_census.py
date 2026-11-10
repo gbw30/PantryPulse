@@ -153,6 +153,7 @@ def _corrupt(row_id: str, replacement: str) -> str:
           '"12","073","0002000"',  # tract one digit long (geoid 12 digits)
           '"1","0730","002000"',  # 11 digits, parts of the wrong length
           '"12","073","00020x"',  # garbled tract
+          '"\u0661\u0662","073","000200"',  # Arabic-Indic digits: isdigit() but not ASCII
       )),
 ])
 def test_malformed_match_row_is_unreadable_and_other_rows_are_unaffected(bad_row):
