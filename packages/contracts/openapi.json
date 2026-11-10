@@ -1941,6 +1941,7 @@
               "minLength": 1,
               "type": "string"
             },
+            "maxItems": 40000,
             "minItems": 1,
             "title": "Action Ids",
             "type": "array"
