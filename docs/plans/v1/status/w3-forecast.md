@@ -9,8 +9,8 @@
 | W3-F02 | done | `94737e5` | `uv run --frozen pytest -q tests/forecasting/test_backtest.py` → 13 passed, 0 skipped |
 | W3-F01 | done | `70dc30e` | S7 verdict **fits with a compact network input** ([S7](../spikes/S7-forecast-volume.md)): `bench_forecast.py --part compact --series 50000` → 10.27 s compute, 1,714 MB peak; `--part db` → 50,001 rows, 8.7 + 8.5 MB; `--part existing --sample 500` → ~10,700 s extrapolated (does not fit) |
 | W3-F04 | done | `db08dde` | `uv run --frozen pytest -q tests/test_inventory_projection.py` → 71 passed, 0 skipped (6 new cases on `project_v3`). They passed on the first run: they characterize the existing kernel (W2-06 §3). A throwaway mutation check, one process per mutant, killed all 5 mutants: inbound counted twice, on hand from day 1 and arriving after demand fail all 4 kernel cases; ignored delivery expiry and on-hand-before-deliveries fail the FEFO case |
-| W3-F03 | done | `0f0decd`, `eacf8b2` (backtest), merge `bdfb0cd`, this commit | After merging `origin/v1-local` (`ppv1_0014`, PR #123): `PP19_TEST_SCHEMA_ISOLATION=1 uv run --frozen pytest -q tests/forecasting tests/danger tests/test_v1_contract.py tests/networks tests/workers tests/test_inventory_projection.py tests/integration/{test_v1_backend_journey,test_forecast_api_postgres,test_worker_slice,test_v1_job_status}.py` → 443 passed, 0 skipped, including `test_backtest_persisted_and_served_by_get_backtest` (stored row, service and `GET /forecasts/{job_id}/backtest`, 404 for an unknown job) |
-| W3-F05 | done | `86b5672` | `PP19_TEST_SCHEMA_ISOLATION=1 uv run --frozen pytest -q tests/danger/test_ranking.py` → 10 passed, 0 skipped (3 rule tests on hand-built projections; 7 on a Pantry and a Retail network through the real import and production `forecast.v1`, including both HTTP routes). A throwaway mutation check, one process per mutant, killed all 7 mutants: Pantry scoring expiry, no first-day tie-break, inbound ignored, HIGH moved to 0.60, wrong driving units, unknown demand treated as known, expiry winning ties. Related suites `tests/danger tests/forecasting tests/test_v1_contract.py tests/networks tests/test_inventory_projection.py tests/integration/test_v1_backend_journey.py` → 398 passed, 0 skipped |
+| W3-F03 | done | `0f0decd`, `eacf8b2` (backtest), merge `bdfb0cd`, this commit | After merging `origin/v1-local` (`ppv1_0014`, PR #123): `PP19_TEST_SCHEMA_ISOLATION=1 uv run --frozen pytest -q tests/forecasting tests/danger tests/test_v1_contract.py tests/networks tests/workers tests/test_inventory_projection.py tests/integration/{test_v1_backend_journey,test_forecast_api_postgres,test_worker_slice,test_v1_job_status}.py` → 443 passed, 0 skipped, including `test_backtest_persisted_and_served_by_get_backtest` (stored row, service and `GET /forecasts/{job_id}/backtest`, 404 for an unknown job). PR #127 review fix `700cf54`: windows end on the version's last history day, so the default as-of date keeps seasonal naive (`test_default_as_of_day_after_history_is_not_a_blank_day` red at `MOVING_AVERAGE`, fallback, missing 1; `test_network_window.py` gaps 0, 1, 3, 9) |
+| W3-F05 | done | `86b5672` | `PP19_TEST_SCHEMA_ISOLATION=1 uv run --frozen pytest -q tests/danger/test_ranking.py` → 10 passed, 0 skipped (3 rule tests on hand-built projections; 7 on a Pantry and a Retail network through the real import and production `forecast.v1`, including both HTTP routes). A throwaway mutation check, one process per mutant, killed all 7 mutants: Pantry scoring expiry, no first-day tie-break, inbound ignored, HIGH moved to 0.60, wrong driving units, unknown demand treated as known, expiry winning ties. PR #127 review fix `700cf54`: unmet now wins a tie between locations too (`test_unmet_wins_a_retail_tie_between_locations`, red first). Related suites `tests/danger tests/forecasting tests/test_v1_contract.py tests/networks tests/test_inventory_projection.py tests/integration/test_v1_backend_journey.py` → 398 passed, 0 skipped |
 | W3-F06 | done | `23c998d` (code), this commit (evidence) | `uv run --frozen pytest -q tests/forecasting/test_forecast_scale.py` → 2 passed: splitting the series (sizes 1, 2, 4, reversed) never changes the output (passed on the first run, it characterizes `compute`; a mutant reading another series' values is killed), and the worst-case input fits (red at 20,602,900 > 16,000,000 bytes, green after `max_input_bytes` → 24 MB). `bench_forecast.py --part built --series 50000` at `23c998d` → forecast job 12.5 s of 300 s, 1,094 MB peak, step output 13.4 MB of 32 MB, publish 4.2 s in the lock before the INSERT; `--part freeze` → 3.1 s history aggregate over 4.5 M rows. [Evidence](../../../forecasting/evidence/v1-forecast-scale.json). Related suites (forecasting, workers, danger, networks, contract, projection, 4 integration files) → 444 passed, 0 skipped |
 
 Order: F02 → F01 → F04 → F03 → F05 → F06. F01 and F02 depend on nothing (wave-3.md), and S7 should time the real backtest code, not a stand-in. F04 depends on nothing; F03 needs F02; F05 needs F03 and F04.
@@ -27,7 +27,7 @@ Order: F02 → F01 → F04 → F03 → F05 → F06. F01 and F02 depend on nothin
 
 ## Next
 
-1. **PR** into `v1-local`, then `/code-review` on it; report the URL and wait for the orchestrator's review.
+1. **PR #127** (https://github.com/gbw30/PantryPulse/pull/127) is open into `v1-local`. `/code-review` found 2 issues, both fixed in `700cf54` (Gates). Wait for the orchestrator's review.
 
 ## Gates
 
@@ -36,13 +36,18 @@ Order: F02 → F01 → F04 → F03 → F05 → F06. F01 and F02 depend on nothin
 | `node scripts/quality/run.cjs quick` | `e532b2b` | PASS (web typecheck, web lint, api lint, api tests) |
 | `node scripts/quality/run.cjs full` (with `.env.lane`) | `e532b2b` | PASS, all 8 steps (adds web unit tests, web build, contract drift, database migrations) |
 | Backend as CI runs it: `PP19_TEST_SCHEMA_ISOLATION=1 uv run --frozen pytest -q --junitxml=…` then `python scripts/quality/require-test-evidence.py …` | `e532b2b` | 2105 passed, 0 failed, 0 skipped; "2105 backend tests completed without skips or failures". Neither gate prints skip counts, and its plain `pytest -q` skips the PP19 opt-in suites, so this run is the 0-skipped evidence |
+| `/code-review 127` (2 CLAUDE.md reviewers, 2 bug reviewers, each finding re-checked by its own validator) | `6c90f60` | 2 confirmed bugs, both fixed test-first in `700cf54`: (1) the window ended on the as-of date, which by default (V1-SPEC §6.1, both samples) has no history, so every series fell back to the moving average labeled `INSUFFICIENT_DATA` with `missing_count` one too high; (2) the location sort skipped "unmet before expiry". CLAUDE.md reviewers: no issues. The "out-of-horizon inbound in the expiry base" question is moot: `scenario._inbound` keeps `within_horizon` rows only |
+| `node scripts/quality/run.cjs full` (with `.env.lane`) | `7961d1d` (merge of `origin/v1-local` `a2c7258`, #125/#126) | PASS, all 8 steps |
+| Backend as CI runs it (as above) | `7961d1d` | 2118 passed, 0 failed, 0 skipped; "2118 backend tests completed without skips or failures" |
+| `node scripts/quality/run.cjs quick` | the commit adding these rows (docs only on top of `7961d1d`) | see the next row |
+| `bench_forecast.py --part freeze --series 50000` | `7961d1d` | the new `_history_end` query: 0.24 s, run right after the backend suite (load 11.5); evidence key `freeze_history_end` |
 | `/devkit:ship-check` | `15eb5f8` → `7d6718a` | Step 1 green. Step 2 was the project `verifier` (independent, read-only): no blocking defect, 373 passed / 0 skipped in its focused run, 0 of 3,000 mismatches against its own rolling-origin oracle, 4 Low findings. Three were fixed in `7d6718a` (an unscored backtest now reports not evaluated; two test oracles made independent); the fourth (`bias_pct` interpretation) goes to the lead. Step 3: security-guidance isn't installed. Steps 4–5: the PR, then `/code-review` |
 
 ## Decisions made inside the lane
 
 - **A backtest with nothing scored is not evaluated:** 35+ calendar days where no origin can be scored (every fit window blank, or every scored actual blank) reports `not_evaluated_insufficient_history` with 0 origins, never `evaluated` without metrics (verifier finding, 2026-11-09). — W3-F02.
 - **Lead-authorized edit of `apps/api/tests/test_v1_contract.py` (lead, 2026-11-09), in the merge of `origin/v1-local` only.** The merge conflicted on `STUBS`: #121 removed W3-P03 and this lane removed W3-F03/F05, so no route raises `NotImplementedV1` any more. As the lead decided: `STUBS`, `test_unimplemented_routes_return_501_with_task_id` (now an empty parameter set, so it would skip) and `test_network_scoped_job_routes_return_501` (it asserted nothing) are deleted. `test_not_implemented_v1_answers_501_with_task_id` keeps the 501 handler (`app/main.py:145`) covered through a throwaway route raising `NotImplementedV1("W3-TEST")`, with the same assertions. `tests/test_v1_contract.py` → 46 passed, 0 skipped. No other change to that file.
-- **Network runs freeze a compact input** (`services/forecasting/network.py`). Per series: the last 42 days to the as-of date (gap-explicit), plus observed, missing and sales-day counts, keyed by `net_locations.id`/`net_products.id`. The history is aggregated in PostgreSQL, so the 4.5 M history rows never enter Python. The policy is fixed (seasonal naive, then the moving average with a 14-day window and 3 samples, 14-day minimum), so a request can't choose Chronos. — W3-F03 (S7).
+- **Network runs freeze a compact input** (`services/forecasting/network.py`). Per series: the last 42 days to the version's last history day, `history_end` (gap-explicit). The as-of date defaults to the day after that day (V1-SPEC §6.1), so the days between are not history and never count as blank; seasonal naive repeats each horizon day's prior comparable weekday across that gap (PR #127 review, `700cf54`). Also stored per series: plus observed, missing and sales-day counts, keyed by `net_locations.id`/`net_products.id`. The history is aggregated in PostgreSQL, so the 4.5 M history rows never enter Python. The policy is fixed (seasonal naive, then the moving average with a 14-day window and 3 samples, 14-day minimum), so a request can't choose Chronos. — W3-F03 (S7).
 - **`forecast_run_id` = `job_id`** for network runs, like the existing publisher's `id = run_id = job_id`. `result_url` is `/networks/{id}/forecasts/{job_id}`. — W3-F03.
 - **One step, per-series fallback:** each series tries seasonal naive, then the moving average. `fallback_reason` is seasonal naive's own `ProviderError` code, as in `service.forecast`. There is no whole-batch fallback step for networks. — W3-F03.
 - **`required` = the series is AVAILABLE**, so a run with some ineligible series stays `planning_ready`. `create_scenario` then lists those series as "No available forecast, so no demand target (not zero)". This is the shape the W1 fixture used. — W3-F03.
@@ -119,54 +124,6 @@ Commands, from `apps/api` with `.env.lane` loaded: `uv run --frozen python scrip
 
 (none)
 
-## PR description draft
+## PR
 
-Fill in the gate rows and the re-timed lock after `ppv1_0014` merges. Checked with `research-claims-check` on 2026-11-09: no forecast, accuracy or danger statement here claims calibration, probability or real-world outcomes.
-
-```markdown
-## w3-forecast: backtest, network forecasts, inbound, danger ranking, volume
-
-Wave 3 forecast lane (`lane/w3-forecast`, base `0a4959359a447233e8ca5eea87b1917d70bd7de8`, merged with `origin/v1-local` at <SHA>).
-
-### Tasks
-| Task | Commit | Acceptance | What |
-|---|---|---|---|
-| W3-F01 | `70dc30e` | V1-A17 | Spike S7: the per-day `forecast.v1` input can't reach 50,000 series; a compact per-series input can. |
-| W3-F02 | `94737e5` | V1-A12 | Rolling-origin backtest: 4 weekly origins, WAPE and bias % on one scored set, missing actuals excluded (never zero), 35-day minimum. |
-| W3-F03 | `0f0decd`, <final> | V1-A08, A12, A23 | Network forecasts through `forecast.v1`: seasonal naive, then a labeled moving-average fallback; series under 14 days are listed, not forecast; donation forecasts are labeled "not confirmed" and never supply. The backtest is stored in `forecast_runs.backtest` (CR-w3-forecast-1 B, migration `ppv1_0014`) and served by `GET /forecasts/{job_id}/backtest`. |
-| W3-F04 | `db08dde` | V1-A23 | Tests pinning `project_v3`: confirmed inbound enters once on its arrival day, outside-horizon rows are refused, FEFO applies to deliveries. |
-| W3-F05 | `86b5672` | V1-A13, A23 | `GET /networks/{id}/danger` and `/projection` on `project_v3`. The score is the worst product's share of 7-day demand projected unmet (Retail: or the share of stock projected to expire unsold, the higher with its reason). Bands: high ≥ 0.50, medium ≥ 0.20. Units are never summed across products; unknown demand is not scored. |
-| W3-F06 | `23c998d`, `2339048` | V1-A17 | 50,000 series: forecast job 12.5 s of the 300 s ceiling, 1.1 GB peak. Evidence: `docs/forecasting/evidence/v1-forecast-scale.json`. |
-
-Forecasts are projections. The backtest's WAPE and bias are the forecast's error on the network's own last four weeks: a measurement on past data, not a calibrated interval or a stockout probability. The danger score is a unitless share inside the projection, not a probability. The scale evidence is timings on synthetic history, never accuracy evidence.
-
-### For the lead's review
-- `forecast.v1` `max_output_bytes` 4 → 32 MB (W3-F03): the compact network step output is 13.4 MB at 50k series.
-- `forecast.v1` `max_input_bytes` 16 → 24 MB (W3-F06): the worst-case network input at the envelope encodes to 20.6 MB (`test_worst_case_frozen_input_fits_the_registered_bound`); 4-digit daily quantities already passed 16 MB.
-- The only lead-file edit, in the merge of `origin/v1-local` and authorized by the lead (2026-11-09): `STUBS` and the two 501 tests deleted, replaced by `test_not_implemented_v1_answers_501_with_task_id`.
-- `bias_pct` = 100 × Σ(prediction − actual) / Σactual: the frozen field is a percentage, while V5 §7's bias (Σerror / n) is in units. Please accept or redirect.
-- Retail: a DC has no demand, so any dated stock there is scored by its expiry share, which is 1.0 when nothing moves. That fits V1-SPEC §6.6 as written; the atlas copy may want a UX decision.
-- Outside this lane: an import within the envelope can still yield more than 50,000 demand + donation series, so the forecast is refused at submit (422 `FORECAST_SERIES_OVER_ENVELOPE`), not at import as V1-SPEC §5.1 asks.
-
-### Commands and results
-| Command | Result |
-|---|---|
-| `PP19_TEST_SCHEMA_ISOLATION=1 uv run --frozen pytest -q tests/forecasting tests/danger tests/test_v1_contract.py tests/networks tests/workers tests/test_inventory_projection.py tests/integration/{test_v1_backend_journey,test_forecast_api_postgres,test_worker_slice,test_v1_job_status}.py` | <n> passed, 0 skipped |
-| `node scripts/quality/run.cjs quick` | <PASS> |
-| `node scripts/quality/run.cjs full` (with `.env.lane`) | <PASS, 0 skipped> |
-| `/devkit:ship-check` (verifier agent for the local review) | <result> |
-| `uv run --frozen python scripts/bench_forecast.py --part built --series 50000` | job 12.5 s of 300 s at `23c998d`; at `3d03fd1` (load about 2.5) 18.0–18.9 s, with 7.3–7.9 s in the publish lock before the INSERT, of which `build_backtest` is 1.6 s |
-| `uv run --frozen python scripts/bench_forecast.py --part freeze --series 50000` | 3.1 s history aggregate over 4.5 M rows |
-
-### Known limits (measured at 50,000 series)
-- The submit request runs the history aggregate itself: 3.1 s.
-- Publishing builds the 106 MB output and the 9.4 MB backtest inside the publication lock: about 7.3 s at 50k series (load about 2.5), plus the INSERT.
-- `create_scenario` re-reads the 106 MB output (about 4.5 s).
-- `GET /networks/{id}/danger` and `/projection` recompute on every request: about 4 s of ranking plus re-reading the 106 MB output (about 4.5 s); nothing is cached.
-- `GET /networks/{id}/forecasts/{run}` returns every series (tens of MB); pagination would be a contract change.
-
-### Change requests
-- CR-w3-forecast-1 (backtest persistence): decided, option B; the lead's `ppv1_0014` adds `forecast_runs.backtest`.
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-```
+PR #127, `lane/w3-forecast` → `v1-local`: https://github.com/gbw30/PantryPulse/pull/127. Its description is the PR body on GitHub (checked with `research-claims-check` on 2026-11-09: no forecast, accuracy or danger statement claims calibration, probability or real-world outcomes).

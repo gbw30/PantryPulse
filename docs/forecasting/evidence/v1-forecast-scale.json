@@ -111,5 +111,17 @@
       7.3
     ],
     "within_ceiling": true
+  },
+  "freeze_history_end": {
+    "task": "PR #127 review: windows end on the version's last history day",
+    "commit": "7961d1d",
+    "command": "uv run --frozen python scripts/bench_forecast.py --part freeze --series 50000",
+    "load_average_1_5_min_after_run": [
+      5.59,
+      11.47
+    ],
+    "history_end_s": 0.24,
+    "history_aggregate_s": 5.51,
+    "note": "The new max(day) query adds 0.24 s before the aggregate. The full backend suite ran just before on the same machine, so the unchanged aggregate took 5.51 s against 3.13 s quiet (freeze_sql above)."
   }
 }
