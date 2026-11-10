@@ -1,0 +1,4 @@
+product_id,name,unit,unit_value_usd,handling_units_per_unit
+RICE,Rice,case,,2
+RICE,Rice again,case,,
+BEANS,Beans,case,,

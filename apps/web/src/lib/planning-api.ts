@@ -25,6 +25,8 @@ async function send<T>(path: string, init: RequestInit, text = false): Promise<T
     response = await fetch(`/api/v1/${path}`, { cache: "no-store", credentials: "same-origin", ...init });
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") throw error;
+    // Aborted with an ApiError as the reason (the sign-in timeout): the caller gets that error.
+    if (error instanceof ApiError) throw error;
     throw new ApiError("NETWORK_ERROR", 0);
   }
   if (text && response.ok) return (await response.text()) as T;
@@ -38,8 +40,9 @@ async function send<T>(path: string, init: RequestInit, text = false): Promise<T
 }
 
 /** GET without a body; POST JSON with CSRF and an Idempotency-Key (reuse the key when retrying one intent). */
-export async function api<T>(path: string, body?: unknown, idempotencyKey?: string): Promise<T> {
+export async function api<T>(path: string, body?: unknown, idempotencyKey?: string, signal?: AbortSignal): Promise<T> {
   return send<T>(path, {
+    signal,
     method: body === undefined ? "GET" : "POST",
     headers: body === undefined ? {} : { "Content-Type": "application/json",
       "X-CSRF-Token": csrfToken(), "Idempotency-Key": idempotencyKey ?? crypto.randomUUID() },

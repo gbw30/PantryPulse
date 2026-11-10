@@ -15,6 +15,7 @@ export function PresenterFooter() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const pending = useRef(false);
+  const password = useRef<HTMLInputElement>(null);
 
   async function submit(form: FormData) {
     if (pending.current) return;
@@ -24,6 +25,8 @@ export function PresenterFooter() {
       await signIn(String(form.get("username") ?? ""), String(form.get("password") ?? ""));
     } catch (e) {
       setError(signInMessage(e));
+      // No password stays on the page after a failed sign-in, where a snapshot or screenshot could capture it.
+      if (password.current) { password.current.value = ""; password.current.focus(); }
     } finally {
       pending.current = false;
       setBusy(false);
@@ -35,7 +38,7 @@ export function PresenterFooter() {
       <div className="flex flex-col gap-2 rounded-lg border border-sidebar-border px-3 py-2.5 text-xs">
         <span className="flex items-center gap-2.5 text-foreground">
           <ShieldCheck className="size-4 shrink-0 text-pp-teal" aria-hidden="true" />
-          <span>Presenter session · simulated demo</span>
+          <span>Presenter session</span>
         </span>
         <Button variant="outline" size="sm" className="justify-start gap-2" disabled={busy}
           onClick={() => { setBusy(true); void signOut().finally(() => setBusy(false)); }}>
@@ -69,7 +72,7 @@ export function PresenterFooter() {
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="presenter-password">Password</Label>
-              <Input id="presenter-password" name="password" type="password" autoComplete="current-password" required maxLength={256} />
+              <Input ref={password} id="presenter-password" name="password" type="password" autoComplete="current-password" required maxLength={256} />
             </div>
             {error && <p role="alert" className="text-sm text-foreground">{error}</p>}
             <DialogFooter>

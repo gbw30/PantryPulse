@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 import { ImportView } from "@/components/import/import-view";
 import { lastHistoryDate } from "@/components/import/network-settings";
+import { CHOOSE_MODE_NOTE } from "@/components/import/template-guide";
 import { networkApi } from "@/lib/network-api";
 import { ApiError } from "@/lib/planning-api";
 import { example } from "./contract-examples";
@@ -23,7 +24,6 @@ beforeEach(() => {
   vi.restoreAllMocks();
   vi.mocked(lastHistoryDate).mockReset().mockResolvedValue(null);
   vi.spyOn(networkApi, "templates").mockResolvedValue(example("TemplateCatalog"));
-  vi.spyOn(networkApi, "exampleUnavailableReason").mockResolvedValue(null);
 });
 
 const csv = (name: string) => new File(["x"], name, { type: "text/csv" });
@@ -40,6 +40,14 @@ async function importAll() {
   for (const t of example("TemplateCatalog").templates) await user.upload(screen.getByLabelText(`${t.name}.csv (${t.required ? "required" : "optional"})`), csv(`${t.name}.csv`));
   fireEvent.click(screen.getByRole("button", { name: "Check and import" }));
 }
+
+it("says which addresses are sent to the US Census Geocoder before anything is uploaded (V1-SPEC §2, §6.3)", async () => {
+  render(<ImportView />);
+  const notice = await screen.findByText(/Addresses without latitude and longitude are sent to the US Census Geocoder/);
+  expect(notice).toHaveTextContent(/after the import/);
+  expect(notice).toHaveTextContent(/Locations with coordinates are never sent/);
+  expect(notice).toHaveTextContent(/stay unknown.*retry/);
+});
 
 it("a slower scan of an earlier demand_history.csv never overwrites the later file's date", async () => {
   let finishFirst!: (last: string | null) => void;
@@ -73,8 +81,12 @@ it("losing the status check after the commit was accepted never claims nothing w
   const lost = await screen.findByRole("alert");
   expect(lost).toHaveTextContent("Lost contact with the import (network error). It may still finish; nothing is known yet about what was saved.");
   expect(lost).not.toHaveTextContent(/Nothing was saved/);
-  // The accepted import may still commit: a second submit could create a second copy.
-  expect(screen.getByRole("button", { name: "Check and import" })).toBeDisabled();
+  // The accepted import may still commit: a second submit could create a second copy. The button stays
+  // focusable (aria-disabled) so keyboard focus isn't dropped, but pressing it does nothing.
+  const again = screen.getByRole("button", { name: "Check and import" });
+  expect(again).toHaveAttribute("aria-disabled", "true");
+  fireEvent.click(again);
+  expect(networkApi.createImport).toHaveBeenCalledTimes(1);
   fireEvent.click(screen.getByRole("button", { name: "Check again" }));
   await screen.findByText(example("ImportStatus").failure!.message);
   expect(status).toHaveBeenCalledTimes(2);
@@ -106,4 +118,15 @@ it("a commit the server refused still says nothing was saved", async () => {
   await importAll();
   expect(await screen.findByRole("alert")).toHaveTextContent("Import request failed (as of date invalid). Nothing was saved.");
   expect(status).not.toHaveBeenCalled();
+});
+
+it("follows the catalog's example_available and requests no example just to learn why (CR-w3-samples-3)", async () => {
+  const fetches = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 404 }));
+  vi.mocked(networkApi.templates).mockImplementation(async (mode) => ({ ...example("TemplateCatalog"), mode: mode ?? null }));
+  render(<ImportView />);
+  expect(await screen.findAllByText(CHOOSE_MODE_NOTE)).toHaveLength(2);
+  fireEvent.click(screen.getByRole("radio", { name: /^Retail network/ }));
+  await waitFor(() => expect(networkApi.templates).toHaveBeenLastCalledWith("RETAIL"));
+  expect(await screen.findAllByText("Example not available yet.")).toHaveLength(2);
+  expect(fetches.mock.calls.map(([url]) => String(url)).filter((url) => url.includes("kind=example"))).toEqual([]);
 });

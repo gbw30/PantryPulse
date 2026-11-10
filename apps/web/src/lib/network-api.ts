@@ -15,7 +15,9 @@ export type TemplateName = Schema["Template"]["name"];
 export type ImportStatus = Schema["ImportStatus"];
 
 /** Same-origin download URL for a template CSV (the proxy allows only template names and `kind`). */
-export const templateUrl = (name: TemplateName, kind: "blank" | "example") => `/api/v1/templates/${name}.csv?kind=${kind}`;
+export const templateUrl = (name: TemplateName) => `/api/v1/templates/${name}.csv?kind=blank`;
+/** An example always names its mode: without one the API serves the Pantry set (CR-w3-samples-3). */
+export const exampleUrl = (name: TemplateName, mode: Network["mode"]) => `/api/v1/templates/${name}.csv?kind=example&mode=${mode}`;
 
 /** v1 network and template reads (README "Interfaces frozen in W0-08"). Presenter-only; a visitor gets 401. */
 export const networkApi = {
@@ -36,6 +38,9 @@ export const networkApi = {
   danger: (networkId: string, forecastRunId: string) =>
     api<Schema["DangerRanking"]>(`networks/${seg(networkId)}/danger?forecast_run_id=${encodeURIComponent(forecastRunId)}`),
   backtest: (forecastJobId: string) => api<Schema["BacktestResult"]>(`forecasts/${encodeURIComponent(forecastJobId)}/backtest`),
+  /** A published run's series (CR-w1-web-4): method, fallback, missing days, points; demand and donation. */
+  forecastRun: (networkId: string, forecastRunId: string) =>
+    api<Schema["NetworkForecastRun"]>(`networks/${seg(networkId)}/forecasts/${encodeURIComponent(forecastRunId)}`),
   createScenario: (networkId: string, body: Schema["ScenarioOptions"]) => api<Schema["ScenarioV3"]>(`networks/${seg(networkId)}/scenarios`, body),
   submitComparison: (networkId: string, body: Schema["ComparisonRequestV3"]) => api<Schema["ForecastAccepted"]>(`networks/${seg(networkId)}/comparisons`, body),
   /** The finished comparison named by the job's `result_url`; anything else is refused rather than fetched. */
@@ -57,13 +62,4 @@ export const networkApi = {
   /** Write-only: the key is sent once and never read back. */
   setGoogleKey: (key: string) => apiWrite<Schema["LocalSettings"]>("PUT", "settings/google-maps-key", { key }),
   deleteGoogleKey: () => apiWrite<Schema["LocalSettings"]>("DELETE", "settings/google-maps-key"),
-  /** Why an example CSV can't be downloaded, from the API's error envelope ("message (task)"); null when it can. */
-  async exampleUnavailableReason(name: TemplateName): Promise<string | null> {
-    const response = await fetch(templateUrl(name, "example"), { cache: "no-store", credentials: "same-origin" });
-    if (response.ok) return null;
-    const error = (await response.json().catch(() => null) as Partial<Schema["ErrorEnvelope"]> | null)?.error;
-    if (!error) return `HTTP ${response.status}`;
-    const task = (error.details as { task?: unknown } | null | undefined)?.task;
-    return `${error.message}${typeof task === "string" ? ` (${task})` : ""}`;
-  },
 };

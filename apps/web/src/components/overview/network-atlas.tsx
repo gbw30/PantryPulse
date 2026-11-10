@@ -3,7 +3,8 @@
 import { useEffect, useEffectEvent, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { AnimatePresence, motion, MotionConfig, useReducedMotion } from "motion/react";
 import Link from "next/link";
-import { AppShell } from "@/components/shell/app-shell";
+import { AppShell, ShellProviders } from "@/components/shell/app-shell";
+import { SampleBadge, useNetwork } from "@/components/shell/network-switcher";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
@@ -26,6 +27,7 @@ import { ProvenancePill } from "./provenance-pill";
 import { overviewSourceFor } from "./sources";
 import { STATIC_FIXTURE_LABEL } from "./static-fixture";
 import { formatDay, formatInstant, formatRange, formatUnits, markerAccessibleName, nextDeficitFrom, nextDeficitLine, roleLabel, STATUS_LABEL, statusDetail, statusFor, statusLine } from "./status";
+import type { Network } from "@/lib/network-api";
 import type { BeneficiaryStatus, ForecastMethod, MarkerStatus, OverviewSnapshot } from "./types";
 
 type LoadState = { status: "loading" } | { status: "ready"; snapshot: OverviewSnapshot } | { status: "error"; message: string };
@@ -81,7 +83,45 @@ function ScrollCue({ className }: { className?: string }) {
   );
 }
 
-export function NetworkAtlas({ statePreview, forecastRunId }: { statePreview?: string; forecastRunId?: string }) {
+type AtlasProps = { statePreview?: string; forecastRunId?: string };
+
+/**
+ * A chosen v1 network gets its own header and danger ranking; the legacy demo atlas (its fixture or live
+ * snapshot, pickers and "simulated network" wording) shows only when no v1 network is chosen (W2-06 carry-in).
+ */
+export function NetworkAtlas(props: AtlasProps) {
+  return <ShellProviders><AtlasForNetwork {...props} /></ShellProviders>;
+}
+
+function AtlasForNetwork(props: AtlasProps) {
+  const { state, network } = useNetwork();
+  // Every state renders through LegacyAtlas's one shell: swapping shells when the network list settles
+  // would remount the navigation and close a drawer or sign-in dialog opened meanwhile.
+  const body = network ? <NetworkOverview network={network} forecastRunId={props.forecastRunId} />
+    : state.status === "loading" ? <p role="status" className="px-4 py-5 text-sm text-muted-foreground md:px-6">Loading networks…</p>
+    : undefined;
+  return <LegacyAtlas {...props} body={body} />;
+}
+
+function NetworkOverview({ network, forecastRunId }: { network: Network; forecastRunId?: string }) {
+  return (
+    <div className="flex flex-1 flex-col gap-3 px-4 pt-3 pb-4 md:gap-4 md:px-6 md:py-5 lg:gap-6">
+      <header data-atlas-header className="min-w-0">
+        <p className="font-condensed text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Network intelligence</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="text-[26px] leading-tight font-semibold tracking-tight md:text-[28px]">Network Atlas</h1>
+          {network.is_sample && <SampleBadge />}
+        </div>
+        <p className="text-sm text-muted-foreground">Which locations in {network.name} are projected to run short, ranked by danger.</p>
+      </header>
+      <DangerRankingSection forecastRunId={forecastRunId} />
+    </div>
+  );
+}
+
+/** The legacy demo atlas, or `body` (the v1 overview, or "Loading networks…") in the same shell. */
+function LegacyAtlas({ statePreview, body }: AtlasProps & { body?: React.ReactNode }) {
+  const legacy = body === undefined;
   const { source, preview } = overviewSourceFor(statePreview);
   const [load, setLoad] = useState<LoadState>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
@@ -118,6 +158,7 @@ export function NetworkAtlas({ statePreview, forecastRunId }: { statePreview?: s
 
   // Load through the adapter. Aborting on change/unmount means a stale response never replaces newer intent.
   useEffect(() => {
+    if (!legacy) return;
     const controller = new AbortController();
     source.load(controller.signal).then(
       (snapshot) => {
@@ -132,7 +173,7 @@ export function NetworkAtlas({ statePreview, forecastRunId }: { statePreview?: s
       },
     );
     return () => controller.abort();
-  }, [source, attempt]);
+  }, [source, attempt, legacy]);
 
   // Markers start below the floating legend, whose height depends on width and wrapping.
   useEffect(() => {
@@ -322,6 +363,9 @@ export function NetworkAtlas({ statePreview, forecastRunId }: { statePreview?: s
     </motion.div>
   ) : null;
 
+  // Same element types as the legacy return below, so React keeps the shell mounted across the switch.
+  if (!legacy) return <MotionConfig reducedMotion="user"><AppShell active="overview">{body}</AppShell></MotionConfig>;
+
   return (
     <MotionConfig reducedMotion="user">
       <AppShell
@@ -356,7 +400,7 @@ export function NetworkAtlas({ statePreview, forecastRunId }: { statePreview?: s
                 <span id="atlas-product-label" className="text-xs font-medium text-muted-foreground">Product</span>
                 <Select value={product?.id ?? ""} onValueChange={(value) => setProductId(value)} disabled={!snapshot}>
                   <SelectTrigger aria-labelledby="atlas-product-label" className="h-10 w-full bg-card data-[size=default]:h-10 sm:w-[236px]">
-                    <SelectValue placeholder="Loading products…" />
+                    <SelectValue placeholder={snapshot ? "No products" : load.status === "error" ? "No products (snapshot unavailable)" : "Loading products…"} />
                   </SelectTrigger>
                   <SelectContent>
                     {snapshot?.products.map((item) => <SelectItem key={item.id} value={item.id}>{item.name} ({item.unitPlural})</SelectItem>)}
@@ -365,9 +409,9 @@ export function NetworkAtlas({ statePreview, forecastRunId }: { statePreview?: s
               </div>
               <div className="grid gap-1">
                 <span id="atlas-day-label" className="text-xs font-medium text-muted-foreground">Local day</span>
-                <Select value={String(dayIndex)} onValueChange={(value) => setDayIndex(Number(value))} disabled={!snapshot}>
+                <Select value={snapshot ? String(dayIndex) : ""} onValueChange={(value) => setDayIndex(Number(value))} disabled={!snapshot}>
                   <SelectTrigger aria-labelledby="atlas-day-label" className="h-10 w-full bg-card data-[size=default]:h-10 sm:w-[160px]">
-                    <SelectValue placeholder="Loading dates…" />
+                    <SelectValue placeholder={load.status === "error" ? "No dates (snapshot unavailable)" : "Loading dates…"} />
                   </SelectTrigger>
                   <SelectContent>
                     {snapshot?.dates.map((date, index) => <SelectItem key={date} value={String(index)}>{formatDay(date)}</SelectItem>)}
@@ -416,8 +460,6 @@ export function NetworkAtlas({ statePreview, forecastRunId }: { statePreview?: s
               {snapshot.emptyReason}
             </p>
           )}
-
-          <DangerRankingSection forecastRunId={forecastRunId} />
 
           {productMatches.length > 0 && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">

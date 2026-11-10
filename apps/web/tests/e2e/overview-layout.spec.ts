@@ -236,6 +236,9 @@ test("drops are clamped: a node dropped on the card band, the legend or the insp
     expect(overlaps(await box(card), await box(willow)), `${name} card covers the dropped node`).toBe(false);
     await page.keyboard.press("Escape");
     await expect(card).toBeHidden();
+    // Focus returns to the opening marker once the card unmounts (onCloseAutoFocus), which can land after the
+    // dialog role is gone; wait for it so the next focus() isn't taken back.
+    await expect(marker(page, name)).toBeFocused();
   }
 
   // Onto the legend card.

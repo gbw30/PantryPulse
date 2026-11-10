@@ -1,0 +1,5 @@
+location_id,product_id,date,quantity,basis
+S1,MILK,2026-11-01,2,sales
+S2,MILK,2026-11-01,9,sales
+S2,MILK,2026-11-02,,sales
+S3,BREAD,2026-11-02,6,sales

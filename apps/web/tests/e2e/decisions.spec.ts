@@ -6,8 +6,9 @@ import { example, mockV1, type Schemas } from "./v1-mocks";
 
 // Mocked against packages/contracts/examples/v1 (DecisionActions, SavedComparisonV3, NetworkList):
 // proves UI behavior, not the connected app. The example has one action; a second, inferred action is
-// cloned from it. The export CSV is the server's (W1-S07 columns); here it is assembled from the same
-// examples so the test can check that the page saves exactly what the server returned.
+// cloned from it. The export CSV here is assembled from the same examples, with illustrative columns, so
+// the test can check that the page saves exactly what the server returned. The server's real W1-S07
+// columns are pinned by the connected v1-connected-journey.spec.ts (@V1-A16).
 
 const saved = example("SavedComparisonV3");
 const network = example("NetworkList").networks.find((n) => n.id === saved.network_id)!;

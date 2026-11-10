@@ -4,7 +4,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import type { NavKey } from "./app-sidebar";
+import { SAMPLE_LABEL, useNetwork } from "./network-switcher";
 import { ThemeToggle } from "./theme-toggle";
+
+const snapshotDate = (iso: string) =>
+  new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+
+// Screens that show no network data, so the legacy demo's "simulated" pill would mislabel them (lead, 2026-11-09).
+const NO_NETWORK_DATA: ReadonlySet<NavKey> = new Set(["import", "settings"]);
+// Screens that never read the chosen network: they render the legacy fixture data whatever is chosen (L1).
+const ALWAYS_LEGACY: ReadonlySet<NavKey> = new Set(["data", "recommendations"]);
+
+/**
+ * The data labels (W2-06 carry-in): a screen that renders the legacy demo says "Simulated network" (the data
+ * and recommendations screens always do); otherwise a sample network is fictional sample data and a real
+ * import gets none. A network list that failed says so. Nothing is guessed while the list loads.
+ */
+function dataLabels(state: ReturnType<typeof useNetwork>["state"], network: ReturnType<typeof useNetwork>["network"], active?: NavKey) {
+  const unavailable = state.status === "error" ? ["Network list unavailable"] : [];
+  if (active && ALWAYS_LEGACY.has(active)) return [...unavailable, "Simulated network"];
+  if (network) return network.is_sample ? [SAMPLE_LABEL] : [];
+  if (state.status === "loading") return [];
+  return active && NO_NETWORK_DATA.has(active) ? unavailable : [...unavailable, "Simulated network"];
+}
 
 export type TopBarSearch = {
   value: string;
@@ -15,10 +38,12 @@ export type TopBarSearch = {
 
 const SEARCH_LABEL = "Search sites or products";
 
-/** Shared top bar (blueprint §2): search left; simulated-network pill, horizon and theme toggle right. No identity here. */
-export function TopBar({ search, horizonLabel }: { search?: TopBarSearch; horizonLabel?: string }) {
+/** Shared top bar (blueprint §2): search left; data label, snapshot date, horizon and theme toggle right. No identity here. */
+export function TopBar({ search, horizonLabel, active }: { search?: TopBarSearch; horizonLabel?: string; active?: NavKey }) {
   const { toggleSidebar } = useSidebar();
+  const { state, network } = useNetwork();
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const labels = dataLabels(state, network, active);
 
   return (
     <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-card px-3 md:gap-4 md:px-6">
@@ -54,10 +79,15 @@ export function TopBar({ search, horizonLabel }: { search?: TopBarSearch; horizo
         <Search />
       </Button>
       <div className={cn("ml-auto flex shrink-0 items-center gap-3", mobileSearchOpen && "max-md:hidden")}>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-pp-teal/30 bg-pp-teal-soft px-2.5 py-1 text-xs font-medium text-foreground">
-          <span aria-hidden="true" className="size-1.5 rounded-full bg-pp-teal" />
-          Simulated network
-        </span>
+        {labels.map((label) => (
+          <span key={label} className="inline-flex items-center gap-1.5 rounded-full border border-pp-teal/30 bg-pp-teal-soft px-2.5 py-1 text-xs font-medium text-foreground">
+            <span aria-hidden="true" className="size-1.5 rounded-full bg-pp-teal" />
+            {label}
+          </span>
+        ))}
+        {network?.as_of_date && (
+          <span className="text-xs whitespace-nowrap text-muted-foreground tabular-nums">Snapshot {snapshotDate(network.as_of_date)}</span>
+        )}
         {horizonLabel && (
           <span className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-sm text-foreground max-md:hidden">
             <CalendarDays className="size-4 text-muted-foreground" aria-hidden="true" />

@@ -74,6 +74,9 @@ test("@V1-A14 pantry comparison mocked in both transfer modes", async ({ page },
     () => example("SavedComparisonV3"));
 
   await expect(section.getByRole("list", { name: "Methods compared" }).getByRole("listitem")).toHaveCount(5);
+  // With a v1 network chosen, the legacy builder is gone and its planning data is never loaded.
+  await expect(page.getByRole("form", { name: "Scenario builder" })).toHaveCount(0);
+  expect(calls.filter((c) => c.path === "planning-catalog")).toEqual([]);
   await section.getByRole("radio", { name: "3 days" }).click();
   for (const [mode, label] of [["HUB_ONLY", "Hub → pantries only"], ["HUB_AND_PANTRY", "Hub and pantries → pantries"]] as const) {
     await section.getByRole("radio", { name: label }).click();
