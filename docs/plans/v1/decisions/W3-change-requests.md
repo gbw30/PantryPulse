@@ -37,3 +37,60 @@ Filed at `lane/w3-forecast` `448f8e3`. `backtest_scores` (`ppv1_0008`) has no `o
 | B (lane recommends) | A nullable `forecast_runs.backtest` JSONB column holding the `BacktestResult` body, written in the run's existing INSERT and read as one row. |
 
 **Decision (Gabriel, 2026-11-09): option B.** Migration `ppv1_0014` adds `forecast_runs.backtest` JSONB, NULL or a JSON object (`ck_forecast_runs_backtest`), and the `ForecastRun.backtest` model column. Only the `forecast.v1` network publisher writes it, in the run's INSERT, so it stays immutable with the run. `get_backtest` reads that one row and returns 404 for a run without one. Older runs and v2 site runs keep NULL. Downgrade refuses while a backtest is stored. `backtest_scores` stays unused in v1.
+
+## 6. CR-w3-samples-3: Retail examples need a mode on the example download (approved, lead, then samples)
+
+- **Lead (#125):** `GET /v1/templates/{name}.csv?kind=example&mode=PANTRY|RETAIL`.
+  - With no mode, the route serves PANTRY. Any other mode returns 422. A blank download ignores the mode.
+  - The Next.js proxy allows `kind` and `mode` on the template route.
+  - RETAIL returned 404 `TEMPLATE_EXAMPLE_UNAVAILABLE` until the samples lane added Retail examples.
+- **Samples (#128):**
+  - `template_csv(name, "example", "RETAIL")` serves the Retail sample on `EXAMPLE_AS_OF`, byte for byte equal to `data/templates/examples/retail/*.csv`. The drift check covers both modes.
+  - The RETAIL catalog offers examples. The catalog with no mode offers none.
+  - The Retail sample gains `routes.csv`; the other six Retail files are unchanged.
+  - The lead authorized one edit in `tests/imports/test_templates.py`: the RETAIL assertion now expects 200.
+- **Merge order (Gabriel):** #128 merges only after the web PR that adds `mode` to example links. Otherwise a Retail import would download the Pantry files. The connected check that a Retail import downloads the Retail file is a W4 carry-in.
+
+## 7. CR-w3-samples-4: seed date and transaction (approved (a) and (b), lead, then samples)
+
+- **(a) Date (#125):** the bootstrap seeds with today's date in New York, the samples' timezone (`local_bootstrap.seed_today`). The UTC date was a day ahead from 20:00 to 24:00 New York time.
+- **(b) Transaction (#125):** the login and the organization commit in their own transaction before `ensure_samples`. An open organizations write blocked the import's partition ATTACH.
+- **Follow-up (#128):**
+  - `ensure_samples` no longer commits the caller's transaction.
+  - It refuses a session with pending ORM changes or an assigned xid.
+  - The test helper commits the organization first.
+  - Known limit (verifier G1): the guard misses a no-op write that holds a lock without an xid, for example `INSERT … ON CONFLICT DO NOTHING`. No caller does this. W4 passes an engine instead of a session, which removes the case.
+
+## 8. CR-w3-web-2: presenter password in Playwright traces (approved, option (a), web lane)
+
+- **Problem:** `trace: "retain-on-failure"` records the password, and CI uploads `apps/web/test-results/`. The password appears in the `fill` argument, in DOM snapshots of the input and in the login request body. No change to the sign-in helper can prevent this.
+- **Decision:** `trace` is `"off"` when `PP_E2E_PRODUCTION=1`, the connected suite with a real password. Mocked runs keep `"retain-on-failure"`.
+- **Ownership:** the web lane may make this bounded edit to the lead file `apps/web/playwright.config.ts`, with a test.
+- **Rejected:** (b), excluding `trace.zip` from the CI upload. Local connected runs would still write the password to disk.
+
+## 9. "Simulated network" label narrowed (approved, W3, web lane)
+
+The top bar showed "Simulated network" whenever no v1 network was chosen. That included /import and /settings for a new user, and a failed network list.
+- It is hidden on /import and /settings.
+- A failed network list shows "Network list unavailable".
+- It stays on every page that shows the legacy fixture data. A test lists those pages.
+
+## 10. Forecast PR #127 review (Gabriel, 2026-11-09)
+
+- **F1, fix in W3:** at 50k series, `publish` built the 106 MB output and the backtest inside the global queue lock: 4.2 s quiet, 7.3–7.9 s under load, against a 5 s lock timeout. The build moves to the publisher's `prepare` hook, and `publish` keeps only the INSERT.
+- **`bias_pct`, accepted:** 100 × Σ(prediction − actual) / Σactual, a percentage, null when Σactual is 0. This overrides V5 §7's bias in units for v1. Units differ per product, so a bias in units can't be compared across series.
+- **Limits, accepted:** `forecast.v1` `max_input_bytes` 24 MB and `max_output_bytes` 32 MB. The measured worst cases are 20.6 MB and 14.5 MB, pinned by a test.
+- **Retail DC scoring, accepted:** a DC has no demand, so its dated stock is scored by expiry share. That share is 1.0 when nothing moves (V1-SPEC §6.6). The W5 UX review checks how the atlas explains it.
+- **Test gaps F2–F4:** the lane closes them in W3. They cover an absent day staying null, donation history ending after demand, and the inbound term in the expiry share.
+
+## 11. W4 carry-ins from W3
+
+- **Series cap at import (lead):** V1-SPEC §5.1. An import within the envelope can still yield more than 50,000 demand + donation series. Today that is refused only at forecast submit (422 `FORECAST_SERIES_OVER_ENVELOPE`).
+- **Danger and projection reads:** `GET /networks/{id}/danger` and `/projection` recompute on every request, about 4–6.7 s at 50k series, with no cache.
+- **Samples:** `ensure_samples` and `seed_local.seed` take an engine, not a session (§7).
+- **Web:** the connected Retail example download (§6), and W4-02's real `forecast.v1` run (§4).
+
+## 12. Gate and test fixes (lead, merged)
+
+- **#124:** the Stop hook waits `stopHookTimeoutSeconds` (600 s) and reports a timeout as a timeout. The API-test step gets 900 s; the budgets are quick 960 s and full 1500 s. Under lane load, passing runs had been killed at 165 s and 480 s.
+- **#126:** the supervisor test's prepare probe used `FOR UPDATE NOWAIT`, which failed whenever it landed inside the heartbeat's brief row lock (once in 2032 tests). It now waits up to 500 ms.
