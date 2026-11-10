@@ -20,11 +20,12 @@ import json
 import os
 import shutil
 import tempfile
+import time
 import uuid
 from collections.abc import AsyncIterator, Callable, Mapping
 from contextlib import ExitStack
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import IO, Any
 from uuid import UUID
@@ -319,6 +320,10 @@ def load_staged(engine: sa.Engine, attempt_id: UUID, job: Mapping[str, Any],
             for name in HISTORY_TABLES:
                 _load_history(conn, name, raw, attempt_id, org, version_id)
             conn.execute(sa.text(f"DROP TABLE {raw}"))
+            stamp = datetime.now(UTC).isoformat()  # _sweep's age check: when this attempt staged
+            for name in _staged_tables(conn):
+                if name.startswith(stage_table(attempt_id, "")):
+                    conn.execute(sa.text(f"COMMENT ON TABLE {name} IS '{stamp}'"))
     finally:
         shutil.rmtree(folder, ignore_errors=True)
 
@@ -337,19 +342,41 @@ def _staged_tables(conn: sa.Connection) -> list[str]:
         "AND tablename LIKE 'pp\\_stage\\_%'")))
 
 
+# An import attempt lives at most import_total_s (300 s); staging older than this is an orphan.
+ORPHAN_AGE_S = 3600
+
+
+def _stamped_before(stamp: str | None, cutoff: float) -> bool:
+    try:
+        return datetime.fromisoformat(stamp).timestamp() < cutoff  # type: ignore[arg-type]
+    except (TypeError, ValueError):  # no stamp: not staged by a load_staged that finished
+        return True
+
+
+def _modified_before(path: Path, cutoff: float) -> bool:
+    try:
+        return path.stat().st_mtime < cutoff
+    except FileNotFoundError:  # its own attempt already removed it
+        return False
+
+
 def _sweep(engine: sa.Engine, base: Path, attempt_id: UUID) -> None:
     """Clear what earlier attempts left: `discard` never runs after an uncertain commit, or
-    when a supervisor dies between prepare and publish. One supervisor runs one attempt at a
-    time and publish renames the tables it attaches, so every other staged table or attempt
-    folder is an orphan. A done import's uploads are no longer needed."""
-    mine = stage_table(attempt_id, "")
+    when a supervisor dies between prepare and publish. The sample seed stages outside the
+    queue, beside a live worker (code-review #3), so another attempt's staged table or folder is
+    an orphan only once it is older than ORPHAN_AGE_S, or a table carries no staging stamp.
+    A done import's uploads are no longer needed."""
+    mine, cutoff = stage_table(attempt_id, ""), time.time() - ORPHAN_AGE_S
     with engine.begin() as conn:
-        for name in _staged_tables(conn):
-            if not name.startswith(mine):
-                conn.execute(sa.text(f"DROP TABLE {name}"))
+        for name, stamp in conn.execute(sa.text(
+                "SELECT c.relname, obj_description(c.oid, 'pg_class') FROM pg_class c "
+                "WHERE c.relnamespace = current_schema()::regnamespace AND c.relkind = 'r' "
+                "AND c.relname LIKE 'pp\\_stage\\_%'")):
+            if not name.startswith(mine) and _stamped_before(stamp, cutoff):
+                conn.execute(sa.text(f"DROP TABLE IF EXISTS {name}"))
         done = set(conn.scalars(sa.text("SELECT id::text FROM import_runs WHERE phase = 'done'")))
     for folder in base.glob("*/attempt-*"):
-        if folder.name != f"attempt-{attempt_id.hex}":
+        if folder.name != f"attempt-{attempt_id.hex}" and _modified_before(folder, cutoff):
             shutil.rmtree(folder, ignore_errors=True)
     for folder in base.glob("*"):
         if folder.name in done:

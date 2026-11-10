@@ -7,9 +7,10 @@ A committed version queues its enrichment.v1 in the same transaction (CR-w1-data
 
 import contextlib
 import dataclasses
+import os
 import time
 import uuid
-from datetime import date
+from datetime import UTC, date, datetime
 from types import SimpleNamespace
 
 import pytest
@@ -22,7 +23,7 @@ from app.repositories.jobs import QueueRepository, TrustedScope, create_queue_en
 from app.schemas.v1_imports import ImportCommit, ImportCreate
 from app.services.enrichment.api import enrichment_status
 from app.services.enrichment.census import CensusClient
-from app.services.imports import api
+from app.services.imports import api, staging
 from app.services.imports.staging import job_input, stage_table
 from app.services.jobs.contracts import TERMINAL_STATES, AttemptState, StepStatus
 from app.services.jobs.registry import (
@@ -170,17 +171,51 @@ def test_row_errors_fail_the_import_save_nothing_and_keep_the_files(lane):
         f"{name}.csv" for name in BAD)  # uploads kept for a corrected retry, no attempt folder
 
 
+def _staged_at(conn, table: str, seconds_ago: float) -> None:
+    stamp = datetime.fromtimestamp(time.time() - seconds_ago, UTC).isoformat()
+    conn.execute(sa.text(f"COMMENT ON TABLE {table} IS '{stamp}'"))
+
+
+def _attempt_folder(base, hexid: str, seconds_ago: float):
+    folder = base / str(uuid.uuid4()) / f"attempt-{hexid}"
+    folder.mkdir(parents=True)
+    (folder / "history.csv").write_text("demand_history,2,P1,RICE,2026-11-01,3,demand\n")
+    then = time.time() - seconds_ago
+    os.utime(folder, (then, then))
+    return folder
+
+
 def test_prepare_drops_what_a_crashed_attempt_left(lane):
-    orphan = uuid.uuid4().hex  # a supervisor died between prepare and publish
+    orphan = uuid.uuid4().hex  # a supervisor died between prepare and publish, long ago
     with lane.engine.begin() as conn:
         conn.execute(sa.text(f"CREATE TABLE pp_stage_{orphan}_demand (LIKE net_demand_history)"))
-    crashed = lane.base / str(uuid.uuid4()) / f"attempt-{orphan}"
-    crashed.mkdir(parents=True)
-    (crashed / "history.csv").write_text("demand_history,2,P1,RICE,2026-11-01,3,demand\n")
+        _staged_at(conn, f"pp_stage_{orphan}_demand", 2 * staging.ORPHAN_AGE_S)
+    crashed = _attempt_folder(lane.base, orphan, 2 * staging.ORPHAN_AGE_S)
     import_id, job_id = _commit(lane, FILES)
     assert _settle(lane, import_id, job_id).state == AttemptState.SUCCEEDED
     assert _staged(lane.engine) == []
     assert not crashed.exists()
+
+
+def test_sweep_keeps_a_live_attempts_staging_and_drops_old_orphans(lane):  # code-review #3
+    """The sample seed stages outside the queue, so another attempt's staged tables and folder
+    may belong to a live import: only an unstamped or old one is an orphan."""
+    live, old, unstamped = (uuid.uuid4().hex for _ in range(3))
+    with lane.engine.begin() as conn:
+        for hexid in (live, old, unstamped):
+            conn.execute(sa.text(
+                f"CREATE TABLE pp_stage_{hexid}_demand (LIKE net_demand_history)"))
+        _staged_at(conn, f"pp_stage_{live}_demand", 5)
+        _staged_at(conn, f"pp_stage_{old}_demand", 2 * staging.ORPHAN_AGE_S)
+    live_folder = _attempt_folder(lane.base, live, 5)
+    old_folder = _attempt_folder(lane.base, old, 2 * staging.ORPHAN_AGE_S)
+    try:
+        staging._sweep(lane.engine, lane.base, uuid.uuid4())
+        assert _staged(lane.engine) == [f"pp_stage_{live}_demand"]
+        assert live_folder.exists() and not old_folder.exists()
+    finally:  # the schema is shared by the module's later tests
+        with lane.engine.begin() as conn:
+            conn.execute(sa.text(f"DROP TABLE IF EXISTS pp_stage_{live}_demand"))
 
 
 def test_next_import_removes_the_uploads_of_a_done_import(lane):
