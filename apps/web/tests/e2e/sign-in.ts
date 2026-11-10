@@ -1,11 +1,12 @@
-import type { Page } from "@playwright/test";
+import { test, type Page } from "@playwright/test";
 
 /**
  * Sign in through the presenter form, the one way every connected spec signs in (W3 lead decision, item 3).
- * A rejected login (429 from the login limit, a wrong password) never reloads the page, so this fails fast
- * instead of at the test timeout, and it empties the password field first, so the password never reaches
- * error-context.md. A failed test's trace still holds it (the fill value, DOM snapshots and the login
- * request), however it is typed: keeping it out of uploaded test-results is CR-w3-web-2.
+ * A rejected or unanswered login never reloads the page, so this waits at most half the test's timeout
+ * (15 s at most) and fails before the test does, and it always empties the password field on the way out.
+ * The form also empties it after any failed login. Together they keep the password out of the page
+ * snapshot in error-context.md (tests/e2e/sign-in-canary.spec.ts checks every file a failure writes).
+ * A trace would still hold it, so connected runs record none (CR-w3-web-2).
  */
 export async function signInThroughForm(page: Page) {
   const open = page.getByRole("button", { name: "Presenter sign in" });
@@ -16,10 +17,11 @@ export async function signInThroughForm(page: Page) {
   await dialog.getByLabel("Username", { exact: true }).fill(process.env.PP_E2E_USERNAME ?? "presenter");
   const password = dialog.getByLabel("Password", { exact: true });
   await password.fill(process.env.PP_E2E_PASSWORD ?? "pantry-local-demo");
+  const wait = Math.min(15_000, (test.info().timeout || 30_000) / 2);
   try {
-    await Promise.all([page.waitForEvent("load", { timeout: 30_000 }), dialog.getByRole("button", { name: "Sign in", exact: true }).click()]);
-  } catch (error) {
-    await password.fill("").catch(() => {});
-    throw error;
+    await Promise.all([page.waitForEvent("load", { timeout: wait }), dialog.getByRole("button", { name: "Sign in", exact: true }).click()]);
+  } finally {
+    // After a sign-in the page has reloaded and the field is gone; otherwise empty it.
+    if (await password.isVisible().catch(() => false)) await password.fill("").catch(() => {});
   }
 }
