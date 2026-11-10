@@ -16,7 +16,7 @@ from fastapi.testclient import TestClient
 
 from app.main import create_app
 from app.repositories.jobs import QueueRepository, TrustedScope, create_queue_engine
-from app.repositories.networks import inbound_file_provided
+from app.repositories.networks import inbound_file_provided, network_scope
 from app.routers.forecasts import presenter, runtime
 from app.schemas.v1_imports import ImportCommit, ImportCreate, NewNetwork
 from app.services.imports import api
@@ -441,3 +441,31 @@ def test_an_upload_does_its_database_work_off_the_event_loop(rt, monkeypatch):  
     _upload(rt, created.import_id, {"locations": FILES["locations"]})
     assert seen  # the run checked before and under its lock, then the file recorded
     assert loop_thread not in seen
+
+
+def test_a_network_acts_under_its_own_organization_with_the_sessions_actor(rt):  # W2-06 §4
+    """The one tenancy rule (W0-network-model §2): the network decides the organization, never
+    the client or the session's own organization."""
+    network_id = _imported(rt).network_id
+    with rt.engine.connect() as conn:
+        org = conn.scalar(sa.text("SELECT organization_id FROM networks WHERE id = :n"),
+                          {"n": network_id})
+        assert network_scope(conn, SCOPE, network_id) == TrustedScope(org, SCOPE.actor_ref)
+        with pytest.raises(AccessError) as missing:
+            network_scope(conn, SCOPE, uuid.uuid4())
+    assert (missing.value.code, missing.value.status) == ("NETWORK_NOT_FOUND", 404)
+
+
+def test_the_session_can_cancel_an_import_job_but_not_retry_it(rt):  # W2-06 §4
+    """Retry is refused: an import is committed again through its own route, which checks the
+    files and the network's other imports."""
+    created = api.create_import(rt, SCOPE, _new())
+    _upload(rt, created.import_id, FILES)
+    job_id = _commit(rt, created.import_id).job_id
+    client = _client(rt)
+    refused = client.post(f"/api/v1/jobs/{job_id}/retry", headers={"Idempotency-Key": "r-1"})
+    assert refused.status_code == 404, refused.text
+    cancelled = client.post(f"/api/v1/jobs/{job_id}/cancel", headers={"Idempotency-Key": "c-1"})
+    assert cancelled.status_code == 202, cancelled.text
+    assert cancelled.json()["state"] == "CANCELLED"
+    assert api.import_status(rt, SCOPE, created.import_id).phase == "failed"

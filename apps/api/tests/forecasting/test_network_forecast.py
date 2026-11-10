@@ -445,7 +445,7 @@ def test_reimport_makes_older_versions_and_runs_stale(stack):
 
 
 def test_unknown_network_and_foreign_run_are_404(published, stack):
-    with pytest.raises(HistoryRejected) as missing:
+    with pytest.raises(AccessError) as missing:  # the one tenancy helper (W2-06 §4)
         submit_network_forecast(stack, SESSION, uuid.uuid4(), NetworkForecastRequest(
             dataset_version_id=published.network.dataset_version_id), "nope")
     assert (missing.value.code, missing.value.status) == ("NETWORK_NOT_FOUND", 404)

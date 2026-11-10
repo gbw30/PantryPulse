@@ -20,7 +20,6 @@ from uuid import UUID
 import sqlalchemy as sa
 
 from app.repositories import networks as networks_repo
-from app.repositories.jobs import TrustedScope
 from app.schemas.forecast_api import ForecastAccepted
 from app.schemas.v1_enrichment import GoogleLookupPreview
 from app.services.enrichment import settings
@@ -179,11 +178,9 @@ def fetch_routes(rt, scope, network_id: UUID, idempotency_key: str) -> ForecastA
         version_id = _latest(conn, network_id).dataset_version_id
         if not settings.google_key_saved(conn):
             raise AccessError("GOOGLE_KEY_MISSING", 409)
-        org = conn.scalar(sa.text("SELECT organization_id FROM networks WHERE id = :n"),
-                          {"n": network_id})
+        tenant = networks_repo.network_scope(conn, scope, network_id)
         payload = google_input(conn, version_id)
-    accepted = rt.queue.submit(TrustedScope(org, scope.actor_ref), CONTRACT, payload,
-                               idempotency_key)
+    accepted = rt.queue.submit(tenant, CONTRACT, payload, idempotency_key)
     url = f"/api/v1/networks/{network_id}/routes"
     return ForecastAccepted(job_id=accepted.job_id, attempt_id=accepted.attempt_id,
                             state=accepted.state, replayed=accepted.replayed, status_url=url,

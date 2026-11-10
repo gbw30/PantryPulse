@@ -158,6 +158,52 @@ def submit(
     )
 
 
+V1_NETWORK_JOBS = {
+    "import.v1",
+    "enrichment.v1",
+    "routes-google.v1",
+    "or-comparison.v3",
+    "forecast.v1",
+}
+RETRYABLE = {"forecast.v1", CHRONOS_CONTRACT, "or-comparison.v2", "or-allocation.v2",
+             "or-comparison.v3"}
+# An import, enrichment or routes job starts again through its own route, which checks its
+# files or network again; here the session may only cancel one (W2-06 §4).
+CANCELLABLE = RETRYABLE | V1_NETWORK_JOBS
+
+
+def _job_network(rt, scope: TrustedScope, job_id: UUID) -> tuple[TrustedScope, UUID | None]:
+    """A v1 network job belongs to its network's organization; the session may use every
+    network and import of the install (W0-network-model §2). Only those job kinds are reached
+    across organizations, and the organization never comes from the client. A new network's
+    import has no network row until its commit, so its run names the organization."""
+    with rt.engine.connect() as conn:
+        tenant = conn.execute(
+            sa.text(
+                "SELECT j.organization_id, n.id AS network_id FROM compute_jobs j"
+                " LEFT JOIN networks n ON n.organization_id = j.organization_id"
+                " WHERE j.job_id = :j AND j.handler_contract = ANY(:kinds) AND (n.id IS NOT NULL"
+                " OR EXISTS (SELECT 1 FROM import_runs r"
+                " WHERE r.organization_id = j.organization_id))"
+            ),
+            {"j": job_id, "kinds": sorted(V1_NETWORK_JOBS)},
+        ).one_or_none()
+    if tenant is None:
+        return scope, None
+    return TrustedScope(tenant.organization_id, scope.actor_ref), tenant.network_id
+
+
+def _result_url(contract: str, job_id: UUID, network_id: UUID | None) -> str:
+    if contract == "or-allocation.v2":
+        return f"/api/v1/allocation-jobs/{job_id}/results"
+    if contract == "or-comparison.v2":
+        return f"/api/v1/comparisons/{job_id}"
+    if network_id is not None:
+        kind = "comparisons" if contract == "or-comparison.v3" else "forecasts"
+        return f"/api/v1/networks/{network_id}/{kind}/{job_id}"
+    return f"/api/v1/forecasts/{job_id}"
+
+
 @router.post(
     "/jobs/{job_id}/retry", response_model=ForecastAccepted, status_code=202, tags=["forecasts"]
 )
@@ -168,20 +214,11 @@ def retry(
     rt=RUNTIME,
     scope=PRESENTER,
 ):
-    if rt.queue.get_job(scope, job_id).handler_contract not in {
-        "forecast.v1",
-        CHRONOS_CONTRACT,
-        "or-comparison.v2",
-        "or-allocation.v2",
-    }:
+    scope, network_id = _job_network(rt, scope, job_id)
+    contract = rt.queue.get_job(scope, job_id).handler_contract
+    if contract not in RETRYABLE:
         raise JobNotFound()
     accepted = rt.queue.retry(scope, job_id, idempotency_key)
-    contract = rt.queue.get_job(scope, job_id).handler_contract
-    resource = (
-        "comparisons"
-        if rt.queue.get_job(scope, job_id).handler_contract == "or-comparison.v2"
-        else "forecasts"
-    )
     status_url = f"/api/v1/jobs/{job_id}"
     response.headers["Location"] = status_url
     return ForecastAccepted(
@@ -190,11 +227,7 @@ def retry(
         state=accepted.state,
         replayed=accepted.replayed,
         status_url=status_url,
-        result_url=(
-            f"/api/v1/allocation-jobs/{job_id}/results"
-            if contract == "or-allocation.v2"
-            else f"/api/v1/{resource}/{job_id}"
-        ),
+        result_url=_result_url(contract, job_id, network_id),
     )
 
 
@@ -207,12 +240,8 @@ def cancel(
     rt=RUNTIME,
     scope=PRESENTER,
 ):
-    if rt.queue.get_job(scope, job_id).handler_contract not in {
-        "forecast.v1",
-        CHRONOS_CONTRACT,
-        "or-comparison.v2",
-        "or-allocation.v2",
-    }:
+    scope, _ = _job_network(rt, scope, job_id)
+    if rt.queue.get_job(scope, job_id).handler_contract not in CANCELLABLE:
         raise JobNotFound()
     outcome = rt.queue.cancel(scope, job_id, idempotency_key)
     return ForecastCancelled(
@@ -224,41 +253,10 @@ def cancel(
     )
 
 
-V1_NETWORK_JOBS = {
-    "import.v1",
-    "enrichment.v1",
-    "routes-google.v1",
-    "or-comparison.v3",
-    "forecast.v1",
-}
-
-
-def _job_scope(rt, scope: TrustedScope, job_id: UUID) -> TrustedScope:
-    """A v1 network job belongs to its network's organization; the session may read every
-    network of the install (W0-network-model §2). Only those job kinds are read across
-    organizations, and the organization never comes from the client."""
-    with rt.engine.connect() as conn:
-        network_org = conn.scalar(
-            sa.text(
-                "SELECT n.organization_id FROM compute_jobs j"
-                " JOIN networks n ON n.organization_id = j.organization_id"
-                " WHERE j.job_id = :j AND j.handler_contract = ANY(:kinds)"
-            ),
-            {"j": job_id, "kinds": sorted(V1_NETWORK_JOBS)},
-        )
-    return scope if network_org is None else TrustedScope(network_org, scope.actor_ref)
-
-
 @router.get("/jobs/{job_id}", response_model=ForecastJob, tags=["forecasts"])
 def job_status(job_id: UUID, rt=RUNTIME, scope=PRESENTER):
-    job = rt.queue.get_job(_job_scope(rt, scope, job_id), job_id)  # CR-w1-solver-5
-    if job.handler_contract not in {
-        "forecast.v1",
-        CHRONOS_CONTRACT,
-        "or-comparison.v2",
-        "or-allocation.v2",
-        *V1_NETWORK_JOBS,
-    }:
+    job = rt.queue.get_job(_job_network(rt, scope, job_id)[0], job_id)  # CR-w1-solver-5
+    if job.handler_contract not in CANCELLABLE:
         raise JobNotFound()
     return ForecastJob(
         job_id=job.job_id,

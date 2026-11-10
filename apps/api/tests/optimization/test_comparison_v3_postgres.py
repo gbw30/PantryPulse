@@ -356,3 +356,22 @@ def test_uncertain_commit_leaves_one_row_or_none_and_retry_never_doubles(api, cl
     rt.queue.publish(own, again, package)
     assert rows(rt.engine, job_id) == [(again.attempt_id,)]
     assert client.get(accepted["result_url"]).json()["id"] == str(job_id)
+
+
+def test_the_session_can_cancel_then_retry_a_comparison(api):  # W2-06 §4
+    """The job is under the network's organization, not the session's (W0-network-model §2)."""
+    client, headers, rt, own, ids = api
+    job = submit(client, headers, ids).json()
+    cancelled = client.post(f"/api/v1/jobs/{job['job_id']}/cancel",
+                            headers=headers | {"Idempotency-Key": "cancel-1"})
+    assert cancelled.status_code == 202, cancelled.text
+    assert cancelled.json()["state"] == "CANCELLED"
+    retried = client.post(f"/api/v1/jobs/{job['job_id']}/retry",
+                          headers=headers | {"Idempotency-Key": "retry-1"})
+    assert retried.status_code == 202, retried.text
+    assert (retried.json()["status_url"], retried.json()["result_url"]) == (
+        job["status_url"], job["result_url"])
+    claim, package = run(rt.queue, own)
+    assert claim.job_id == UUID(job["job_id"])
+    rt.queue.publish(own, claim, package)
+    assert client.get(job["result_url"]).status_code == 200

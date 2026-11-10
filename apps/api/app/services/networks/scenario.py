@@ -66,8 +66,7 @@ def build_scenario(conn: sa.Connection, network: sa.Row, options: ScenarioOption
             {"v": version_id, "n": network.id})
         raise (AccessError("STALE_DATASET_VERSION", 409) if known
                else AccessError("DATASET_VERSION_NOT_FOUND", 404))
-    org = conn.scalar(sa.text("SELECT organization_id FROM networks WHERE id = :n"),
-                      {"n": network.id})
+    org = networks_repo.network_organization(conn, network.id)
     forecast = _forecast(conn, options.forecast_run_id, org, version_id, network.as_of_date)
     assumptions: list[str] = []
 
