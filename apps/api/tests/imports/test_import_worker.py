@@ -426,3 +426,29 @@ def test_handler_rejects_malformed_payloads(payload):
 def test_handler_accepts_the_commit_payload():
     validated = ImportHandler().validate_input(_payload(as_of_date=None))
     assert validated["as_of_date"] is None and validated["files"] == sorted(_payload()["files"])
+
+
+def test_a_job_whose_commit_record_was_lost_still_completes_the_import(lane, monkeypatch):
+    """H1 review: the queue admitted the job, then the commit's record of it was lost. The job
+    records itself as it starts, so the import finishes and names its job."""
+    created = api.create_import(lane, SCOPE, _new())
+    _upload(lane, created.import_id, FILES)
+    admitted, submit, set_phase = [], lane.queue.submit, api.repo.set_phase
+
+    def recording_submit(*args, **kwargs):
+        accepted = submit(*args, **kwargs)
+        admitted.append(accepted.job_id)
+        return accepted
+
+    def lost(*args, **kwargs):
+        raise RuntimeError("connection lost after admission")
+
+    monkeypatch.setattr(lane.queue, "submit", recording_submit)
+    monkeypatch.setattr(api.repo, "set_phase", lost)
+    with pytest.raises(RuntimeError):
+        api.commit_import(lane, SCOPE, created.import_id, ImportCommit(as_of_date=AS_OF), "c-1")
+    monkeypatch.setattr(api.repo, "set_phase", set_phase)
+    job = _settle(lane, created.import_id, admitted[0])
+    assert job.state == AttemptState.SUCCEEDED, job
+    status = api.import_status(lane, SCOPE, created.import_id)
+    assert (status.phase, status.job_id) == ("done", admitted[0])

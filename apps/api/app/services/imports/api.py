@@ -27,7 +27,7 @@ from app.schemas.v1_imports import (
 )
 from app.schemas.v1_networks import REQUIRED_TEMPLATES, TemplateName
 from app.services.imports import staging
-from app.services.jobs.contracts import AttemptState
+from app.services.jobs.contracts import AttemptState, sha256_hex
 from app.services.jobs.registry import InputRejected
 from app.services.presenter_access import AccessError
 
@@ -113,14 +113,17 @@ def commit_import(
                 {"n": run.network_id, "id": import_id}).all()
             if not all(_ended(rt, org, job_id) for org, job_id in running):
                 raise AccessError("IMPORT_IN_PROGRESS", 409)
-        # The queue admits in its own transaction, before this one records the job. A key per
-        # run and earlier job, not the caller's, lets a Retry after a lost record get the job
-        # already admitted; a commit after a failed job gets a new one (import edge, W4).
+        # The queue admits in its own transaction, before this one records the job. The key is
+        # the run's, its earlier job's and this input's (with the files' content), never the
+        # caller's: a Retry after a lost record gets the job already admitted, while other input
+        # gets its own job and the admitted one stops at its first progress write (W4).
+        payload = staging.job_input(conn, run, request.as_of_date, staging.import_dir(),
+                                    scope.actor_ref)
+        content = sorted((f["name"], f["sha256"]) for f in run.files)
+        digest = sha256_hex({"input": payload, "files": content})[:32]
         accepted = rt.queue.submit(
-            TrustedScope(run.organization_id, scope.actor_ref), CONTRACT,
-            staging.job_input(conn, run, request.as_of_date, staging.import_dir(),
-                              scope.actor_ref),
-            f"import-commit:{import_id}:{run.job_id or 'first'}")
+            TrustedScope(run.organization_id, scope.actor_ref), CONTRACT, payload,
+            f"import-commit:{import_id}:{run.job_id or 'first'}:{digest}")
         repo.set_phase(conn, import_id, "staging", job_id=accepted.job_id,
                        progress={"unit": "rows", "done": 0, "total": None})
     return ImportAccepted(import_id=import_id, job_id=accepted.job_id, status_url=status_url)

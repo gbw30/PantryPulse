@@ -469,3 +469,37 @@ def test_the_session_can_cancel_an_import_job_but_not_retry_it(rt):  # W2-06 §4
     assert cancelled.status_code == 202, cancelled.text
     assert cancelled.json()["state"] == "CANCELLED"
     assert api.import_status(rt, SCOPE, created.import_id).phase == "failed"
+
+
+@pytest.mark.parametrize("change", ["date", "file"])
+def test_other_input_after_a_lost_record_gets_its_own_job(rt, monkeypatch, change):  # H1 review
+    """The admitted job may never record itself (it can end before its first progress write).
+    A commit with another date or other file content must then get its own job, which the run
+    records, instead of a 409 every time; the admitted job stops at its first progress write."""
+    created = api.create_import(rt, SCOPE, _new())
+    _upload(rt, created.import_id, FILES)
+    admitted, submit, set_phase = [], rt.queue.submit, api.repo.set_phase
+
+    def recording_submit(*args, **kwargs):
+        accepted = submit(*args, **kwargs)
+        admitted.append(accepted.job_id)
+        return accepted
+
+    def lost(*args, **kwargs):
+        raise RuntimeError("connection lost after admission")
+
+    monkeypatch.setattr(rt.queue, "submit", recording_submit)
+    monkeypatch.setattr(api.repo, "set_phase", lost)
+    with pytest.raises(RuntimeError):
+        api.commit_import(rt, SCOPE, created.import_id,
+                          ImportCommit(as_of_date=date(2026, 11, 4)), "click-1")
+    monkeypatch.setattr(api.repo, "set_phase", set_phase)
+    as_of = date(2026, 11, 3) if change == "date" else date(2026, 11, 4)
+    if change == "file":
+        _upload(rt, created.import_id, {"products": FILES["products"] + "SALT,Salt,case\n"})
+    retried = api.commit_import(rt, SCOPE, created.import_id, ImportCommit(as_of_date=as_of),
+                                "click-2")
+    assert retried.job_id != admitted[0]
+    with rt.engine.connect() as conn:
+        assert api.repo.get_run(conn, created.import_id).job_id == retried.job_id
+    _cancel_queued(rt.engine, rt.queue)
