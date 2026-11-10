@@ -79,6 +79,8 @@ Mirrors the CI connected step (`.github/workflows/pantrypulse-ci.yml:86-108`), w
 | `pytest tests/integration/test_supervisor.py` (after merging #126) | `15a3456` | 73 passed |
 | full gate, then API counts | `a555cb0` | exit 0, all 8 PASS; API 2073 passed, 0 skipped |
 | full gate, then API counts | `75a2f71` | exit 0, all 8 PASS; API 2073 passed, 0 skipped. Since then: only `import-templates.spec.ts` (test-only; eslint and tsc exit 0; 3 of 3 passed). |
+| full gate, then API counts (after the #129 review fixes) | `c065884` | exit 0, all 8 PASS; API 2073 passed, 0 skipped |
+| full gate, then API counts | `2901a4e` (merge of v1-local `aa4bc2d`: #127, #130, #131) | exit 0, all 8 PASS; API 2124 passed, 0 skipped. Before the gate: tsc exit 0, vitest 146 passed, node 13 passed. |
 | `/devkit:ship-check` | `15a3456` | step 1: the gates above. Step 2: verifier, findings and dispositions in "Ship-check step 2". Step 3: no security-guidance plugin. Steps 4-5: the PR. |
 
 ### Lead items (approved 2026-11-09)
