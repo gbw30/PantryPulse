@@ -1,5 +1,7 @@
 # Resuming W3 (save point 2026-11-09, late)
 
+> **Historical.** W3 closed on 2026-11-10 at v1-local `caa5010`; the W3 row of [BOARD.md](../../../pantrypulse/BOARD.md) has the outcome, and [decisions/W3-change-requests.md](../decisions/W3-change-requests.md) §1–§13 has the decisions. Don't resume from this file.
+
 W3 started 2026-11-09 from base `0a49593`. The lanes run as separate CLI sessions. Decisions are in [decisions/W3-change-requests.md](../decisions/W3-change-requests.md), §1–§12. §6–§12 are committed only on the local branch `w3/decisions-3`, together with this runbook (see below).
 
 ## State at the save point
