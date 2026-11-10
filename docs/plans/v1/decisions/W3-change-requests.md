@@ -89,8 +89,24 @@ The top bar showed "Simulated network" whenever no v1 network was chosen. That i
 - **Danger and projection reads:** `GET /networks/{id}/danger` and `/projection` recompute on every request, about 4–6.7 s at 50k series, with no cache.
 - **Samples:** `ensure_samples` and `seed_local.seed` take an engine, not a session (§7).
 - **Web:** the connected Retail example download (§6), and W4-02's real `forecast.v1` run (§4).
+- **Queue lock timeout (lead, Gabriel 2026-11-10):** after F1, a 50k-series forecast still holds the global queue lock for about 3.9–4.8 s, to INSERT its run row: the 106 MB output, the frozen input and the 9.4 MB backtest. The lock timeout is 5 s. Gabriel chose to raise the lock timeout for submit, retry and cancel (for example to 15 s) rather than stage the row outside the lock.
+- **Prepare retries (lead, verifier N3 on #127):** a passing database error in a publisher's `prepare` now fails the attempt (`PREPARE_FAILED`). Before F1, the same read was retried as `QueueStorageUnavailable`. The supervisor should retry it.
+- **Test gaps:** no test covers the network-switcher half of `235e30e` alone, the part where a visitor makes no `/networks` request. The API fixtures `apps/api/tests/networks/fixtures/{mini-network,retail-twin}/forecast.json` still say "fixture stand-ins".
+- **W5 UX review:** /data shows "Simulated network" above a real network's "Forecast trust" section, so the page mixes simulated and real data. Also check how the atlas explains a Retail DC's expiry share (§10).
 
 ## 12. Gate and test fixes (lead, merged)
 
 - **#124:** the Stop hook waits `stopHookTimeoutSeconds` (600 s) and reports a timeout as a timeout. The API-test step gets 900 s; the budgets are quick 960 s and full 1500 s. Under lane load, passing runs had been killed at 165 s and 480 s.
 - **#126:** the supervisor test's prepare probe used `FOR UPDATE NOWAIT`, which failed whenever it landed inside the heartbeat's brief row lock (once in 2032 tests). It now waits up to 500 ms.
+
+## 13. Later W3 decisions (Gabriel, 2026-11-10)
+
+- **Forecast #127 review round 2:** N4 is fixed: a publish retried after a failed INSERT reuses the prepared run. N1 is fixed: the bench counts the lock acquire, and the 50k figures were about 5% low. N2 adds a shortcut comment: `prepare` ignores `remaining_s`. Gabriel approved the merge after the lead checked the diff and CI passed.
+- **Web #129, H1 (High):** a rejected sign-in left the typed password in the form, and Playwright's aria snapshot wrote it to `error-context.md`, which CI uploads. Gabriel chose both fixes:
+  - the sign-in form empties the password after any failed sign-in;
+  - the test helper waits less than the test's time and clears the field in `finally`;
+  - a canary spec checks that no output file contains the password.
+- **Web #129, N1:** a login that never answered could still leak the password. Gabriel chose to fix it before the merge. Sign-in now aborts after 10 s with "Sign-in timed out. Try again." and empties the field. The helper extends the test's timeout to cover its own wait.
+- **Web #129, M1:** traces are off when `PP_RUN_CONNECTED=1` or `PP_E2E_PRODUCTION=1`, so local connected runs are covered too (§8).
+- **Attribution:** no attribution line in commits or PR bodies: no Co-Authored-By, no Claude-Session, no "🤖 Generated with". Claude Code's own reminder adds the PR line, so lanes remove it.
+- **Merge order:** #127, then #129, then #128. #128 waited for #129 so that Retail example links carry `mode` before the catalog offers them.
