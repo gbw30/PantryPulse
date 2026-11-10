@@ -66,6 +66,9 @@ The save point of 2026-11-09 (late) was `6214126`, pushed. Its steps 1–5 are d
 | Backend as CI runs it (as above) | `7961d1d` | 2118 passed, 0 failed, 0 skipped; "2118 backend tests completed without skips or failures" |
 | `node scripts/quality/run.cjs quick` | `dd7ef76` (docs only on top of `7961d1d`) | PASS (web typecheck, web lint, api lint, api tests). The first run at `7961d1d` passed all 4 steps but refused the result, "source changed during checks", because this file was edited mid-run |
 | `bench_forecast.py --part freeze --series 50000` | `7961d1d` | the new `_history_end` query: 0.24 s, run right after the backend suite (load 11.5); evidence key `freeze_history_end` |
+| `bench_forecast.py --part lock --series 50000`, then the same with `prepare` as a pass-through | `6214126` | Lock held after: 4.59 s and 3.68 s. Before: 9.85 s and 9.44 s. Back to back, alternating, load 2.3–3.3. Evidence key `publish_lock_after_f1` |
+| `node scripts/quality/run.cjs quick` | `4e7db99` | PASS (web typecheck, web lint, api lint, api tests) |
+| `node scripts/quality/run.cjs full` (with `.env.lane`) | `4e7db99` | PASS, all 8 steps |
 | `/devkit:ship-check` | `15eb5f8` → `7d6718a` | Step 1 green. Step 2 was the project `verifier` (independent, read-only): no blocking defect, 373 passed / 0 skipped in its focused run, 0 of 3,000 mismatches against its own rolling-origin oracle, 4 Low findings. Three were fixed in `7d6718a` (an unscored backtest now reports not evaluated; two test oracles made independent); the fourth (`bias_pct` interpretation) goes to the lead. Step 3: security-guidance isn't installed. Steps 4–5: the PR, then `/code-review` |
 
 ## Decisions made inside the lane
