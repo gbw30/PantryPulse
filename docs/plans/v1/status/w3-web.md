@@ -137,6 +137,31 @@ Mirrors the CI connected step (`.github/workflows/pantrypulse-ci.yml:86-108`), w
   - Mocked e2e `import-templates.spec.ts` (`@V1-A06`) now covers no mode, Pantry downloads and Retail reasons, and asserts every example request the page made named its mode. It passed 3 of 3.
   - `npx vitest run` → 24 files, 142 passed.
 
+### Ship-check step 2: verifier review of `15a3456` (2026-11-09)
+
+The project `verifier` agent reviewed the whole lane diff (`a2c725827..15a3456`) without the builder's rationale. Its results:
+- **Checks:** tsc exit 0; vitest 142 passed. Ten mocked specs together: 41 passed, 5 failed, 8 skipped (the connected-only tests). The 3 failing specs each passed alone.
+- **Acceptance:** connected IDs are UNVERIFIED by the verifier, because it was not allowed to start the stack; CI runs them. A20 was FAIL (intermittent).
+
+What was done about each finding:
+1. **A20 intermittent (major), reproduced, FIXED.**
+   - The cause: `ui/button.tsx` (`transition-all`) and nine more layout transitions (sidebar, sheet, tabs, the overview site list) had no reduced-motion guard. The motion recorder sees one only when a size change lands after the first style pass, which depends on load. The verifier caught a `padding` transition on the presenter sign-in button at 1280×720.
+   - The spec now also reads computed styles. Every A20 test fails on any element whose transition covers a layout property, or `all`, with a non-zero duration. The live control test proves the check finds them when motion is allowed.
+   - RED: 12 of 13 failed, listing `button[button]: all`, `a[sidebar-menu-button]: padding`, sidebar `left/right/width`, and the drawer's `transform`.
+   - Fix: `motion-reduce:transition-none` on all 11 class strings. GREEN: 26 of 26 (13 tests, 2 repeats).
+2. **Parallel-load timeouts (minor), environmental, not changed.**
+   - Whole mocked suite after the fix: 191 passed, 3 failed, 14 skipped (connected-only tests).
+   - The failures were two `design-lab` axe scans that hit the 30 s test timeout, plus `overview-layout` "grip handles" waiting for map markers just after "Error creating WebGL context".
+   - Machine load average was 28 on 16 cores, from other lanes' suites. `design-lab` passed when rerun with overview-layout. The grip-handle test fails only under load; its rerun is in the gates table.
+3. **Full gate not run on `15a3456` (process).** The final gate is run on the PR head; see the gates table.
+4. **Password in uploaded traces (minor security), reproduced.** It can't be fixed in lane paths; raised as CR-w3-web-2. The `sign-in.ts` comment no longer overclaims.
+5. **Recorder could miss a short CSS animation (minor), FIXED.** An animation that ended before it could be read now counts as motion ("unknown"), so the check fails closed.
+6. **"Simulated network" pill (minor), raised to the lead, not changed.**
+   - `top-bar.tsx:17-20` (W3-W01, the W2-06 carry-in) labels every screen "Simulated network" when no v1 network is chosen, including /import and /settings for a presenter with no networks or whose list failed.
+   - It over-labels and never under-labels. Narrowing it is a labeling decision for the lead.
+7. **Confirmed safe:** InertOutside cleanup (no leak; fails open), aria-disabled busy buttons (no second request), every example URL names a mode, and Settings follows each job once.
+8. **Stale reasons on a mode change (minor), not changed.** Only Retail lacks examples today, so a stale reason can't show; it becomes moot once the samples lane adds Retail examples.
+
 ## Decisions made inside the lane
 
 - Connected fixtures are lane-owned CSV sets in `apps/web/tests/e2e/fixtures/v1-connected/` (`pantry`, `bad`, `unlocated`), fictional, with fixed dates (as_of 2026-11-04). `pantry` follows the backend `mini-network` fixture and adds routes, inbound and donation files. — W3-W01
@@ -158,7 +183,19 @@ Mirrors the CI connected step (`.github/workflows/pantrypulse-ci.yml:86-108`), w
 - **Exact change:** in "Real browser, proxy, database and worker journey", run the API and the worker without outbound network and export `PP_E2E_NO_EGRESS=1` for Playwright. Options: (a) the lane's launcher approach (`unshare -rn` plus a unix-socket bridge to PostgreSQL; on GitHub's Ubuntu 24.04 runners this needs `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0` first); (b) run the worker as a separate user and drop its outbound traffic with an `iptables -m owner` rule (sudo is available on hosted runners). Recommend (a): it is the same setup as the lane evidence.
 - **Why:** wave-3 W3-W01 requires `@V1-A10 offline enrichment marks unknown with retry` with "the API runs with no egress". CI runs every connected spec and rejects skips (`require-test-evidence.py`). Without this change, CI either calls the real Census geocoder with a fictional address (not offline, and flaky) or the test fails on its precondition. The test now fails loudly in CI until this lands.
 - **Unblocks:** W3-W01 in CI (V1-A10 connected evidence); the lane PR's CI.
-- **Status:** approved (Gabriel via the lead, 2026-11-09), option (a). The lead lands the CI change on v1-local with a lead-owned copy of `bridge.py` at `scripts/quality/netns-bridge.py`. When that PR merges: `git merge origin/v1-local`, point `stack-up.sh` at `scripts/quality/netns-bridge.py`, delete `connected/bridge.py`.
+- **Status:** approved (Gabriel via the lead, 2026-11-09), option (a). The lead lands the CI change on v1-local with a lead-owned copy of `bridge.py` at `scripts/quality/netns-bridge.py`. When that PR merges: `git merge origin/v1-local`, point `stack-up.sh` at `scripts/quality/netns-bridge.py`, delete `connected/bridge.py`. **Landed:** lead PR #122 (`5c5fbe7`), merged into the lane in `298b24a`; the lane switched in `694d2d2`, verified by the 208-test connected run on pw5.
+
+### CR-w3-web-2 — keep the presenter password out of uploaded Playwright traces
+- **File(s):** `apps/web/playwright.config.ts` and/or `.github/workflows/pantrypulse-ci.yml` (lead-only).
+- **Finding (verifier, ship-check step 2; reproduced by the lane on 2026-11-09):** `trace: "retain-on-failure"` (`playwright.config.ts:12`) keeps a failed test's `trace.zip` in `test-results/`, and CI uploads `apps/web/test-results/` (`pantrypulse-ci.yml:131-134`). Probe in the scratchpad with the secret passed through the environment:
+  - The value given to `fill` appears in `test.trace` and `1-trace.trace`.
+  - A value set through `exposeBinding` (never a `fill` argument) still appears in `1-trace.trace` and an attachment, because DOM snapshots record input values.
+  - The login request's body is in the trace's network log too. So no change to how `sign-in.ts` types the password keeps it out. The connected CI password is generated per run, which limits the damage.
+- **Exact change, one of:**
+  - (a) for connected runs (`PP_E2E_PRODUCTION=1`), set `trace: "off"` in `playwright.config.ts`. Recommended: smallest, and screenshots and error-context.md stay.
+  - (b) upload `test-results/` without `**/trace.zip`.
+- **Status:** proposed, sent to the lead 2026-11-09. The lane corrected `sign-in.ts`'s comment, which had claimed the password never reaches uploaded test-results.
+
 
 ## Escalations
 

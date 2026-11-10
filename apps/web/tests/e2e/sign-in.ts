@@ -3,8 +3,9 @@ import type { Page } from "@playwright/test";
 /**
  * Sign in through the presenter form, the one way every connected spec signs in (W3 lead decision, item 3).
  * A rejected login (429 from the login limit, a wrong password) never reloads the page, so this fails fast
- * instead of at the test timeout, and it empties the password field first: the password never reaches
- * error-context.md or the uploaded test-results.
+ * instead of at the test timeout, and it empties the password field first, so the password never reaches
+ * error-context.md. A failed test's trace still holds it (the fill value, DOM snapshots and the login
+ * request), however it is typed: keeping it out of uploaded test-results is CR-w3-web-2.
  */
 export async function signInThroughForm(page: Page) {
   const open = page.getByRole("button", { name: "Presenter sign in" });

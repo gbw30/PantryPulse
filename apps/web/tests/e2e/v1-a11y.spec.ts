@@ -32,7 +32,8 @@ async function recordMotion(page: Page) {
     });
     document.addEventListener("animationstart", (event) => {
       const target = event.target as Element;
-      record("css-animation", event.animationName, target.getAnimations().find((a) => (a as CSSAnimation).animationName === event.animationName), target);
+      // One that ended before it could be read counts as motion ("unknown"): the check fails closed.
+      record("css-animation", event.animationName, target.getAnimations().find((a) => (a as CSSAnimation).animationName === event.animationName), target, ["unknown"]);
     }, true);
     document.addEventListener("transitionrun", (event) => {
       record("css-transition", event.propertyName, undefined, event.target as Element, [event.propertyName]);
@@ -59,12 +60,31 @@ async function recordMotion(page: Page) {
 
 /** What the page has started so far that moves something on screen, or never ends. */
 const moving = async (page: Page) => (await page.evaluate(() => (window as unknown as { __started: Started[] }).__started))
-  .filter((s) => s.infinite || s.props.some((p) => MOTION.test(p)));
+  .filter((s) => s.infinite || s.props.some((p) => p === "unknown" || MOTION.test(p)));
+
+/**
+ * Every element whose computed transition would move or resize it: a layout property, or "all", with a
+ * non-zero duration. The recorder above sees a transition only when a size change happens to land after
+ * the first style pass, which depends on load; this reads the styles themselves, so it never depends on timing.
+ */
+const movingTransitions = (page: Page) => page.evaluate((source) => {
+  const motion = new RegExp(source);
+  const label = (el: Element) => [el.tagName.toLowerCase(), el.getAttribute("data-slot") && `[${el.getAttribute("data-slot")}]`,
+    el.getAttribute("aria-label") && `"${el.getAttribute("aria-label")}"`].filter(Boolean).join("");
+  return [...new Set([...document.querySelectorAll("*")].flatMap((el) => {
+    const style = getComputedStyle(el);
+    const durations = style.transitionDuration.split(",").map((d) => parseFloat(d));
+    return style.transitionProperty.split(",").map((p) => p.trim())
+      .filter((p, i) => (p === "all" || motion.test(p)) && durations[i % durations.length] > 0)
+      .map((p) => `${label(el)}: ${p}`);
+  }))];
+}, MOTION.source);
 
 /** prefers-reduced-motion is on, and nothing the page started so far moved anything on screen. */
 async function expectNoMotion(page: Page) {
   expect(await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches)).toBe(true);
   expect(await moving(page)).toEqual([]);
+  expect(await movingTransitions(page)).toEqual([]);
 }
 
 /** axe (WCAG 2.1 A/AA): no violation of any impact, not only serious and critical ones. */
@@ -106,7 +126,7 @@ const ranking = example("DangerRanking");
 const atlasNetwork = example("NetworkList").networks.find((n) => n.id === ranking.network_id)!;
 const P12 = example("LocationList").locations.find((l) => l.location_id === "P-12")!;
 
-test("@V1-A20 the motion check is live: with motion allowed, it records the network switcher opening", async ({ page }) => {
+test("@V1-A20 the motion check is live: with motion allowed, it records the network switcher opening and finds layout transitions", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await recordMotion(page);
   await mockImport(page, failedStatus);
@@ -115,6 +135,8 @@ test("@V1-A20 the motion check is live: with motion allowed, it records the netw
   await page.getByRole("combobox", { name: "Network", exact: true }).click();
   await expect(page.getByRole("listbox")).toBeVisible();
   await expect.poll(() => moving(page)).not.toEqual([]);
+  // The computed-transition check is live too: with motion allowed, layout transitions are there to find.
+  expect(await movingTransitions(page)).not.toEqual([]);
 });
 
 for (const [width, height] of VIEWPORTS) {
