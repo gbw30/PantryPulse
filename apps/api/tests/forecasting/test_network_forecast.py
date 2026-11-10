@@ -37,6 +37,7 @@ from app.schemas.v1_networks import BacktestScore, NetworkForecastRequest
 from app.schemas.v1_planning import ScenarioOptions
 from app.services.forecasting.backtest import get_backtest
 from app.services.forecasting.network import (
+    build_output,
     get_forecast_run,
     list_forecast_runs,
     submit_network_forecast,
@@ -45,6 +46,7 @@ from app.services.jobs.contracts import TERMINAL_STATES, AttemptState
 from app.services.jobs.registry import Registry
 from app.services.networks.api import create_scenario
 from app.services.presenter_access import AccessError
+from app.workers import forecasting as worker
 from app.workers.forecasting import REGISTRATION
 from app.workers.supervisor import Supervisor, SupervisorConfig
 from tests.enrichment.test_enrichment_job import PROFILE, QUIET
@@ -214,6 +216,83 @@ def test_default_as_of_day_after_history_is_not_a_blank_day(stack):
     assert (donation.actual_provider.name, donation.missing_count) == ("SEASONAL_NAIVE", 0)
     (scored,) = get_backtest(stack, SESSION, job_id).series
     assert (scored.score.origins_evaluated, scored.score.scored_points) == (4, 28)
+
+
+DEMAND, DONATION = ("location_id,product_id,date,quantity,basis\n",
+                    "location_id,product_id,date,quantity,donor\n")
+
+
+def frozen(stack, job_id, location, product, kind="demand") -> tuple[dict, dict]:
+    """The run's stored frozen input and its one series for location × product × kind."""
+    with stack.engine.connect() as conn:
+        inputs = conn.scalar(sa.text("SELECT frozen_input FROM forecast_runs WHERE id = :j"),
+                             {"j": job_id})
+    (row,) = [s for s in inputs["series"] if s["kind"] == kind
+              and inputs["locations"][s["location"]][1] == location
+              and inputs["products"][s["product"]][1] == product]
+    return inputs, row
+
+
+def test_absent_history_day_stays_missing_not_zero(stack):
+    """INV-10 (verifier F2): a day with no history row at all is unknown, like a blank one:
+    null in the frozen window, counted as missing, and never scored by the backtest."""
+    absent = AS_OF - timedelta(days=11)  # slot 30 of 42, before the last week
+    files = {**FILES, "demand_history": DEMAND + "".join(
+        f"P1,RICE,{d},{WEEK[i % 7]},demand\n" for i, d in enumerate(back(42)) if d != absent)}
+    network = import_network(stack, files)
+    job_id = run(stack, network)
+    rice = series(get_forecast_run(stack, SESSION, network.network_id, job_id), "P1", "RICE")
+    assert (rice.actual_provider.name, rice.observed_count, rice.missing_count) == (
+        "SEASONAL_NAIVE", 41, 1)
+    _, row = frozen(stack, job_id, "P1", "RICE")
+    assert [i for i, v in enumerate(row["values"]) if v is None] == [30]
+    (scored,) = get_backtest(stack, SESSION, job_id).series
+    assert scored.score.scored_points == 27  # 28 days in the four folds, less the absent one
+
+
+def test_window_ends_on_the_last_day_of_either_history_file(stack):
+    """Verifier F3: donations recorded after the last demand day move the window's end."""
+    files = {**FILES, "demand_history": DEMAND + "".join(
+        f"P1,RICE,{d},{WEEK[i % 7]},demand\n"
+        for i, d in enumerate(back(42, AS_OF - timedelta(days=2))))}  # donations end at AS_OF
+    network = import_network(stack, files)
+    job_id = run(stack, network)
+    inputs, demand = frozen(stack, job_id, "P1", "RICE")
+    _, donation = frozen(stack, job_id, "P1", "RICE", kind="donation")
+    assert inputs["history_end"] == AS_OF.isoformat()
+    assert (demand["values"][-3:], demand["missing"]) == ([WEEK[6], None, None], 2)
+    assert (donation["values"], donation["missing"]) == ([3] * 21, 0)
+
+
+def test_publish_builds_the_run_outside_the_queue_lock(stack, monkeypatch):
+    """Verifier F1: at 50,000 series the build takes 4-8 s. Inside the queue lock it would
+    hold back every submit, retry and cancel past their 5 s lock timeout."""
+    built = []
+
+    def probed(inputs, compact, run_id):
+        with stack.engine.connect() as conn:  # waits out a heartbeat, not a held queue lock
+            conn.execute(sa.text("SET LOCAL lock_timeout = '500ms'"))
+            conn.execute(sa.text("SELECT 1 FROM compute_control FOR UPDATE"))
+            conn.rollback()
+        built.append(run_id)
+        return build_output(inputs, compact, run_id)
+
+    monkeypatch.setattr(worker, "build_output", probed)
+    network = import_network(stack)
+    assert built == [run(stack, network)]
+
+
+def test_publish_rebuilds_when_its_prepared_run_is_gone(stack, monkeypatch):
+    """A publish retried after a storage error finds its prepared run already taken: it builds
+    the same run again from the job row, inside the lock (rare, slow, correct)."""
+    monkeypatch.setattr(REGISTRATION.publisher, "prepare",
+                        lambda engine, identity, package, *, remaining_s: package)
+    network = import_network(stack)
+    job_id = run(stack, network)
+    rice = series(get_forecast_run(stack, SESSION, network.network_id, job_id), "P1", "RICE")
+    assert (rice.actual_provider.name, [p.central_estimate for p in rice.points]) == (
+        "SEASONAL_NAIVE", list(WEEK))
+    assert get_backtest(stack, SESSION, job_id).series
 
 
 def test_series_under_14_days_listed_ineligible_not_zero_filled(published, stack):

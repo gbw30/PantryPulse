@@ -13,6 +13,10 @@ Synthetic, seeded history: N series × D days, weekly pattern with noise and ~5 
             build_output and build_backtest, sized against forecast.v1's byte bounds, then the
             danger ranking (danger.ranking.project_lines + danger_ranking) over one dated lot
             per series
+  lock      forecast.v1 at N series through the real queue, supervisor and publisher in a
+            scratch schema of a *_test database (the step runs in process, through the
+            integration tests' fake driver): the publisher's prepare, outside the queue lock,
+            and the lock itself, held from _lock_claimed to COMMIT (verifier F1)
   freeze    the freeze's real history aggregate (network._history) over N × D demand rows in
             a scratch schema of a *_test database: the submit request's own SQL time
 
@@ -22,6 +26,7 @@ Usage (from apps/api):
   uv run --frozen python scripts/bench_forecast.py --part db --series 50000   # PP_TEST_DATABASE_URL
   uv run --frozen python scripts/bench_forecast.py --part built --series 50000
   uv run --frozen python scripts/bench_forecast.py --part freeze --series 50000  # same URL
+  uv run --frozen python scripts/bench_forecast.py --part lock --series 50000    # same URL
 Prints one JSON object. Synthetic data: timings only, never accuracy evidence.
 """
 
@@ -260,29 +265,19 @@ def db(n: int, days: int) -> dict:
     return result
 
 
-def built(n: int, days: int) -> dict:
-    from app.schemas.v1_planning import BatchV3
-    from app.services.danger.ranking import danger_ranking, project_lines
+def network_input(n: int, days: int):
+    """N synthetic demand series over 100 locations, as the freeze would encode them."""
     from app.services.forecasting.network import (
         WINDOW_DAYS,
         FrozenSeries,
         NetworkForecastInput,
         NetworkPolicy,
         _hash,
-        build_backtest,
-        build_output,
-        compute,
-        validate_frozen,
     )
-    from app.workers.forecasting import REGISTRATION
-
-    timings, t = {}, time.perf_counter()
     data = history(n, days)
-    timings["generate_s"] = time.perf_counter() - t
     locations = tuple((uuid5(DATASET, f"L{i}"), f"L{i:03d}") for i in range(100))
     products = tuple((uuid5(DATASET, f"P{i}"), f"P{i:04d}", "case")
                      for i in range(max(1, -(-n // 100))))
-    t = time.perf_counter()  # the freeze's Python side; its SQL aggregate is not timed here
     inputs = NetworkForecastInput(
         organization_id=ORG, network_id=uuid5(DATASET, "network"), dataset_id=DATASET,
         data_cutoff_date=CUTOFF, history_end=CUTOFF, timezone="America/New_York",
@@ -292,17 +287,32 @@ def built(n: int, days: int) -> dict:
                                   observed=sum(x is not None for x in v),
                                   missing=sum(x is None for x in v))
                      for i, v in enumerate(data)))
-    inputs = inputs.model_copy(update={"input_hash": _hash(inputs)})
+    return inputs.model_copy(update={"input_hash": _hash(inputs)})
+
+
+def built(n: int, days: int) -> dict:
+    from app.schemas.v1_planning import BatchV3
+    from app.services.danger.ranking import danger_ranking, project_lines
+    from app.services.forecasting.network import (
+        build_backtest,
+        build_output,
+        compute,
+        validate_frozen,
+    )
+    from app.workers.forecasting import REGISTRATION
+    timings, t = {}, time.perf_counter()  # the freeze's Python side; its SQL is not timed here
+    inputs = network_input(n, days)
+    locations, products = inputs.locations, inputs.products
     input_json = json.dumps({"network_forecast": inputs.model_dump(mode="json")},
                             separators=(",", ":"))
-    timings["freeze_python_s"] = time.perf_counter() - t
+    timings["generate_and_freeze_python_s"] = time.perf_counter() - t
     t = time.perf_counter()  # admission, the step child and the publisher each pay this
     validated = validate_frozen(json.loads(input_json)["network_forecast"])
     timings["validate_input_s"] = time.perf_counter() - t
     t = time.perf_counter()
     step_json = json.dumps({"network_output": compute(validated)}, separators=(",", ":"))
     timings["step_compute_s"] = time.perf_counter() - t
-    t = time.perf_counter()  # inside the publication lock
+    t = time.perf_counter()  # the publisher's prepare, outside the queue lock since verifier F1
     package, run_id = json.loads(step_json)["network_output"], uuid4()
     output = build_output(validated, package, run_id)
     output_json = output.model_dump_json()
@@ -320,16 +330,16 @@ def built(n: int, days: int) -> dict:
     timings["danger_ranking_s"] = time.perf_counter() - t
     timings = {k: round(v, 2) for k, v in timings.items()}
     # workers/forecasting.py validates the frozen input 4 times: admission, the step, the
-    # publisher's validate and its publish; publish then builds the output in the lock.
+    # publisher's validate and its prepare, which then builds the run outside the lock.
     publish = timings["publish_build_output_s"] + timings["publish_build_backtest_s"]
     job = 4 * timings["validate_input_s"] + timings["step_compute_s"] + publish
-    lock = timings["validate_input_s"] + publish
+    prepare = timings["validate_input_s"] + publish
     statuses = [r["status"] for r in json.loads(step_json)["network_output"]["series"]]
     return {
         "series": n, "days": days, "timings": timings,
         "forecast_job_compute_s": round(job, 2), "ceiling_s": CEILING_S,
         "within_ceiling": job < CEILING_S,
-        "publish_in_lock_s_before_insert": round(lock, 2),
+        "publish_prepare_s_outside_lock": round(prepare, 2),
         "frozen_input_mb": round(len(input_json) / 1e6, 2),
         "max_input_mb": REGISTRATION.max_input_bytes / 1e6,
         "step_output_mb": round(len(step_json) / 1e6, 2),
@@ -340,6 +350,94 @@ def built(n: int, days: int) -> dict:
         "series_insufficient": statuses.count("INSUFFICIENT_DATA"),
         "danger_rows": len(rows),
     }
+
+
+def lock(n: int, days: int) -> dict:
+    import pytest
+    import sqlalchemy as sa
+    from alembic import command
+
+    import tests.integration.fake_driver as fake_driver
+    from app.repositories.jobs import QueueRepository, TrustedScope, create_queue_engine
+    from app.services.jobs.contracts import PRODUCTION_PROFILE, TERMINAL_STATES
+    from app.services.jobs.registry import Registry
+    from app.workers.forecasting import REGISTRATION
+    from app.workers.supervisor import Supervisor, SupervisorConfig
+    from tests.integration.wq_support import alembic_config, reset_schema
+
+    url = os.environ.get("PP_TEST_DATABASE_URL", "")
+    if not url.rsplit("/", 1)[-1].split("?")[0].endswith("_test"):
+        raise SystemExit("PP_TEST_DATABASE_URL must name a *_test database")
+    payload = {"network_forecast": network_input(n, days).model_dump(mode="json")}
+    schema, marks, errors = "bench_w3f1_test", {}, {}
+    reset_schema(url, schema)
+    engine = create_queue_engine(url, schema=schema)
+    with engine.begin() as conn:
+        command.upgrade(alembic_config(conn), "head")
+        conn.execute(sa.text("INSERT INTO organizations (id, name, is_demo) "
+                             "VALUES (:o, 'bench', false)"), {"o": ORG})
+    registry = Registry([REGISTRATION])
+    queue = QueueRepository(engine, registry=registry, profile=PRODUCTION_PROFILE)
+    publisher, claimed = REGISTRATION.publisher, queue._lock_claimed
+
+    def timed(name, call):
+        def wrapper(*args, **kwargs):
+            t = time.perf_counter()
+            try:
+                return call(*args, **kwargs)
+            except Exception as exc:  # the supervisor logs only the type
+                errors[name] = f"{type(exc).__name__}: {str(exc)[:300]}"
+                raise
+            finally:
+                marks[name] = time.perf_counter() - t
+        return wrapper
+
+    def locked(*args, **kwargs):
+        result = claimed(*args, **kwargs)
+        marks["locked_at"] = time.perf_counter()
+        return result
+
+    def publish(*args, **kwargs):  # the queue lock: from _lock_claimed to COMMIT
+        queue._lock_claimed = locked
+        try:
+            return timed("queue_publish_s", type(queue).publish.__get__(queue))(*args, **kwargs)
+        finally:
+            queue._lock_claimed = claimed
+            marks["lock_held_s"] = time.perf_counter() - marks.pop("locked_at")
+
+    quiet = {"sleep_s": 0, "spawn_descendant": False, "ignore_sigterm": False, "fail": None}
+    try:
+        with pytest.MonkeyPatch.context() as patch:
+            patch.setattr(fake_driver, "_behavior_for", lambda validated, step: quiet)
+            patch.setattr(fake_driver, "_with_behavior", lambda validated, step, b: validated)
+            patch.setattr(publisher, "prepare", timed("prepare_s", publisher.prepare))
+            patch.setattr(publisher, "publish", timed("publisher_publish_s", publisher.publish))
+            patch.setattr(queue, "publish", publish)
+            supervisor = Supervisor(queue, registry, fake_driver.FakeDriver(registry=registry),
+                                    SupervisorConfig(registry_name="bench",
+                                                     profile=PRODUCTION_PROFILE, tick_s=0.05))
+            assert supervisor.start()
+            scope = TrustedScope(ORG, "bench")
+            try:
+                t = time.perf_counter()
+                job_id = queue.submit(scope, "forecast.v1", payload, "bench-lock").job_id
+                marks["submit_s"] = time.perf_counter() - t
+                while (job := queue.get_job(scope, job_id)).state not in TERMINAL_STATES:
+                    supervisor.tick()
+                    time.sleep(0.01)
+                marks["job_s"] = time.perf_counter() - t
+            finally:
+                supervisor.shutdown_drain(timeout_s=60)
+    finally:
+        engine.dispose()
+        reset_schema(url, schema)
+    attempt = job.attempts[-1]
+    return {"series": n, "days": days, "state": job.state.value, "error": attempt.error,
+            "errors": errors,
+            "timings": {k: round(v, 2) for k, v in marks.items()},
+            "input_mb": round(len(json.dumps(payload, separators=(",", ":"))) / 1e6, 2),
+            "note": "lock_held_s runs from the queue's _lock_claimed to COMMIT: its own checks "
+                    "(the job row and the input hash), the INSERT, the transitions and COMMIT"}
 
 
 def freeze(n: int, days: int) -> dict:
@@ -390,7 +488,7 @@ def freeze(n: int, days: int) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Spike S7: forecast and backtest volume")
     parser.add_argument("--part", default="compact",
-                        choices=("compact", "existing", "db", "built", "freeze"))
+                        choices=("compact", "existing", "db", "built", "freeze", "lock"))
     parser.add_argument("--series", type=int, default=50_000)
     parser.add_argument("--days", type=int, default=90)
     parser.add_argument("--sample", type=int, default=500)
@@ -404,6 +502,8 @@ def main() -> None:
         result = built(args.series, args.days)
     elif args.part == "freeze":
         result = freeze(args.series, args.days)
+    elif args.part == "lock":
+        result = lock(args.series, args.days)
     else:
         result = compact(args.series, args.days)[0]
     commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True,

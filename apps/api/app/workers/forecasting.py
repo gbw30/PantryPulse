@@ -1,9 +1,11 @@
 """Production baseline forecast handler and atomic publisher for the shared lane."""
 
+import json
 from collections.abc import Mapping
 from uuid import uuid4
 
 import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import JSONB
 
 from app.models.forecasts import ForecastPointRecord, ForecastRun, ForecastSeries
 from app.schemas.forecast_api import BaselinePolicy
@@ -128,6 +130,21 @@ class ForecastHandler:
 class ForecastPublisher:
     contract = "forecast.v1"
 
+    def __init__(self):
+        self._prepared: dict = {}  # attempt_id -> a network run built outside the queue lock
+
+    def prepare(self, engine, identity, package, *, remaining_s):
+        """Builds a network run here, outside the queue lock (verifier F1): at 50,000 series
+        it takes 4-8 s, and held under the lock it would make submits, retries and cancels
+        miss their 5 s lock timeout. `publish` then only INSERTs it. Site runs pass through."""
+        if "network_output" in package:
+            with engine.connect() as conn:
+                self._prepared[identity.attempt_id] = self.network_row(conn, identity, package)
+        return package
+
+    def discard(self, engine, identity):
+        self._prepared.pop(identity.attempt_id, None)
+
     def primary_identity(self, inputs):
         BaselinePolicy.model_validate(inputs.policy.model_dump())
         return (
@@ -210,6 +227,8 @@ class ForecastPublisher:
         """Called INSIDE QueueRepository.publish's fence/transaction, never standalone."""
         from app.models.jobs import compute_jobs
 
+        if "network_output" in package:
+            return self.publish_network(connection, identity, package)
         job = (
             connection.execute(
                 sa.select(compute_jobs).where(
@@ -220,8 +239,6 @@ class ForecastPublisher:
             .mappings()
             .one()
         )
-        if "network_forecast" in job["input_package"]["input"]:
-            return self.publish_network(connection, identity, job, package)
         inputs = validate_input(
             ForecastInput.model_validate(job["input_package"]["input"]["forecast_input"])
         )
@@ -296,11 +313,17 @@ class ForecastPublisher:
             "input_hash": inputs.input_hash,
         }
 
-    def publish_network(self, connection, identity, job, package):
-        """One forecast_runs row; no forecast_series rows, whose keys point at the v2 sites and
-        products tables. create_scenario reads only the run's output (W1-D09)."""
+    def network_row(self, connection, identity, package) -> dict:
+        """The run's forecast_runs values, its JSON columns already encoded. No forecast_series
+        rows: their keys point at the v2 sites and products tables. create_scenario reads only
+        the run's output (W1-D09)."""
+        from app.models.jobs import compute_jobs
+
+        payload = connection.scalar(sa.select(compute_jobs.c.input_package).where(
+            compute_jobs.c.job_id == identity.job_id,
+            compute_jobs.c.organization_id == identity.organization_id))
         try:
-            inputs = validate_frozen(job["input_package"]["input"]["network_forecast"])
+            inputs = validate_frozen(payload["input"]["network_forecast"])
             if (
                 inputs.organization_id != identity.organization_id
                 or identity.handler_contract != self.contract
@@ -310,25 +333,34 @@ class ForecastPublisher:
             backtest = build_backtest(inputs, package["network_output"], identity.job_id)
         except (ValueError, TypeError, KeyError) as exc:
             raise PublicationRejected("OUTPUT_INVALID") from exc
+        return {"input_hash": inputs.input_hash, "planning_ready": output.ready_for_publication,
+                "frozen_input": inputs.model_dump_json(), "output": output.model_dump_json(),
+                "backtest": json.dumps(backtest)}
+
+    def publish_network(self, connection, identity, package):
+        """The INSERT of the run `prepare` built. A publish retried after a storage error finds
+        that run already taken and builds it again here, inside the lock: rare, slow, correct."""
+        row = self._prepared.pop(identity.attempt_id, None)
+        if row is None:
+            row = self.network_row(connection, identity, package)
+        encoded = {k: sa.cast(sa.literal(row[k], sa.Text), JSONB)
+                   for k in ("frozen_input", "output", "backtest")}
         connection.execute(
             sa.insert(ForecastRun).values(
                 organization_id=identity.organization_id,
                 id=identity.job_id,
                 job_id=identity.job_id,
                 attempt_id=identity.attempt_id,
-                input_hash=inputs.input_hash,
-                planning_ready=output.ready_for_publication,
-                frozen_input=inputs.model_dump(mode="json"),
-                output=output.model_dump(mode="json"),
-                backtest=backtest,
+                input_hash=row["input_hash"],
+                planning_ready=row["planning_ready"],
+                **encoded,
             )
         )
         return {
             "result_ref": str(identity.job_id),
-            "planning_ready": output.ready_for_publication,
-            "input_hash": inputs.input_hash,
+            "planning_ready": row["planning_ready"],
+            "input_hash": row["input_hash"],
         }
-
 
 REGISTRATION = Registration(
     contract="forecast.v1",

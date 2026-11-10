@@ -154,6 +154,14 @@ def test_unmet_wins_a_retail_tie_and_pantry_ignores_expiry():
         ("A", Decimal("0.0714"), "unmet", "X", 1, "case", DAYS[6])]
 
 
+def test_expiry_share_counts_confirmed_inbound_in_its_stock():
+    """Verifier F4: 5 of 10 on hand + 10 arriving expire unsold, a share of 0.25, not 0.5."""
+    arriving = line("A", "X", (0,) * 7, (0,) * 7, expired=(0, 0, 0, 5, 0, 0, 0), stock=10,
+                    inbound=10)
+    assert summary(danger_ranking([arriving], "RETAIL")) == [
+        ("A", Decimal("0.25"), "expiry", "X", 5, "case", DAYS[3])]
+
+
 def test_unmet_wins_a_retail_tie_between_locations():
     expiry = line("A", "X", (2,) * 7, (0,) * 7, expired=(0, 0, 0, 7, 0, 0, 0), stock=14)
     unmet = line("B", "X", (2,) * 7, (0, 0, 0, 1, 2, 2, 2))  # 0.5 from day 4, as A's expiry
