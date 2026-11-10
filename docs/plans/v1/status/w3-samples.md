@@ -17,14 +17,14 @@ Status values: `todo`, `in progress`, `done`, `blocked (<reason or CR id>)`.
 
 ### Next step
 
-PR #121 merged (`77da30e`). The follow-up (`46e4706`, merge `915b98c` of `origin/v1-local` `a2c7258`) passed its gates and the `verifier` (pass with findings). PR #128 is open at `e0e0414` and has passed the lead's review. Holding until the web PR merges; see the save point below. **Merge order:** the w3-web `&mode=` fix for `network-api.ts:18` must land with this PR or before it (verifier finding, Medium), or a Retail import page offers the Pantry examples. Gabriel approves the merge.
+PR #121 merged (`77da30e`). The follow-up (`46e4706`, merge `915b98c` of `origin/v1-local` `a2c7258`) passed its gates and the `verifier` (pass with findings). PR #128 passed the lead's review at `e0e0414`. The web PR #129 (example links carry `mode`) merged into `v1-local` `be5e609`, so the merge-order hold is over: `origin/v1-local` is merged in as `0c3b115` and its focused tests and quick are green. Gabriel approves the #128 merge.
 
 ## Save point 2026-11-09 (follow-up, PR #128)
 
 - **PR #128 at `e0e0414`** (lane/w3-samples → v1-local). The lead reviewed it: every requirement PASS, 4/4 mutants killed, 270 passed and 0 skipped. The G1 wording fix was checked by the lead as a comment and status-file diff. The commit after `e0e0414` changes only this status file.
 - **Evidence on `e0e0414`** (with `.env.lane`, run one at a time): focused (`tests/samples tests/imports tests/enrichment tests/test_v1_contract.py tests/test_local_bootstrap.py`) 341 passed, 0 skipped; quick PASS 4/4. Full PASS 8/8 and `pytest -q -rs` 2078 passed, 0 skipped on `2ee844b` (the last code change; `e0e0414` changes only a comment).
-- **Holding:** Gabriel's merge order is the web PR (adds `mode` to example links and drops the dead reason fetch) first, then #128, so `v1-local` never offers Pantry files for a Retail import. No pushes until the lead says so.
-- **Exact next step:** when the lead says the web PR has merged, run `git fetch && git merge origin/v1-local` (no rebase), re-run the focused suites and then quick (one at a time, never two API suites on the lane DB), push, and report the new head to the lead. Gabriel approves the #128 merge.
+- **Hold released 2026-11-10:** the web PR #129 merged (`v1-local` `be5e609`). Done: `git merge origin/v1-local` (no rebase) as `0c3b115`; focused 336 passed, 0 skipped (5 fewer than on `e0e0414`: #127 merged the lead's 501-stub tests in `test_v1_contract.py` into one test; no lane test changed); quick PASS 4/4. Pushed and reported to the lead.
+- **Exact next step:** none in the lane. Gabriel approves the #128 merge.
 - **Previous save point (PR #121):** superseded; #121 merged as `77da30e` with L1–L3 fixed.
 
 ## Gates
@@ -35,6 +35,7 @@ PR #121 merged (`77da30e`). The follow-up (`46e4706`, merge `915b98c` of `origin
 | `node scripts/quality/run.cjs full` (with `.env.lane`, `PP19_TEST_SCHEMA_ISOLATION=1`) | `55026c0`, rerun `f7d996e`, `c5dce80` | PASS (8/8) each time; same env `uv run --frozen pytest -q -rs` → 2052 passed, 0 skipped (`55026c0`); 2053 passed, 0 skipped in 291 s (`f7d996e`); 2054 passed, 0 skipped in 333 s (`c5dce80`). Focused (`tests/samples`, `test_templates`, `test_v1_contract`, `test_local_bootstrap`) on `c5dce80`: 107 passed, 0 skipped |
 | Follow-up gates (with `.env.lane`; quick in the standard env) | `915b98c` | focused (`tests/samples tests/imports tests/enrichment tests/test_v1_contract.py tests/test_local_bootstrap.py`) 340 passed, 0 skipped; quick PASS 4/4; full (`PP19_TEST_SCHEMA_ISOLATION=1`) PASS 8/8; `uv run --frozen pytest -q -rs` 2077 passed, 0 skipped in 401 s |
 | Follow-up gates after the code-review fix (same commands) | `2ee844b` | focused 341 passed, 0 skipped; quick PASS 4/4; full PASS 8/8; `uv run --frozen pytest -q -rs` 2078 passed, 0 skipped in 449 s (load average about 25 from other sessions) |
+| After merging `v1-local` `be5e609` (web PR #129), same commands | `0c3b115` | focused 336 passed, 0 skipped; quick PASS 4/4 (full not rerun: the merge brings no change to the lane's paths) |
 | Follow-up ship-check step 2 (project `verifier`) | `915b98c` | pass with findings: CR-3, CR-4, N1, the authorized edit and the sample rules PASS (54 focused tests, 0 skipped; `--check` 14 examples clean; drift mutants caught; commit mutant caught; Pantry examples unchanged; the other 6 Retail files byte-identical on 4 dates). Medium: the web's example URL sends no `mode` (w3-web fix, merge order). Info: an install seeded before this keeps its old Retail sample, without `routes.csv`, for up to 7 days |
 | `/devkit:ship-check` | `0053567` → fixes in the next commit | step 1 quick+full PASS; step 2 project `verifier`: pass with findings (106 focused tests incl. PostgreSQL 0 skipped, generator `--check` clean, own W1-rule sweep over 1,100 Pantry and 134 Retail dates 0 failures, partial-failure and concurrent-seed runs held). F1 and F2 fixed; F3–F5 recorded below. Step 3: security-guidance not installed. Step 5 `/code-review medium` on PR #121: 10 findings, outcome under Decisions (R1–R10). Step 6 not needed (no auth, payments, migrations or permissions) |
 
