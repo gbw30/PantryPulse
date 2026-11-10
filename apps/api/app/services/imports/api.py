@@ -92,8 +92,10 @@ def commit_import(
             error.details = {"missing": missing}
             raise error
         if run.network_id is not None:
-            # The network row lock serializes concurrent commits for one network.
-            conn.execute(sa.text("SELECT 1 FROM networks WHERE id = :n FOR UPDATE"),
+            # The network row lock serializes concurrent commits for one network. NO KEY: a
+            # publisher's FK insert (FOR KEY SHARE) must not wait on it while submit waits on
+            # that publisher's queue lock (code-review #2).
+            conn.execute(sa.text("SELECT 1 FROM networks WHERE id = :n FOR NO KEY UPDATE"),
                          {"n": run.network_id})
             running = conn.execute(sa.text(
                 "SELECT organization_id, job_id FROM import_runs WHERE network_id = :n AND "

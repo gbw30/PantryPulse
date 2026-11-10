@@ -1407,3 +1407,17 @@ def test_slow_publish_does_not_make_the_live_supervisor_look_stale(db, org):  # 
     assert job_state(repo, org, accepted.job_id) is AttemptState.SUCCEEDED
     assert _rejections(repo, accepted.job_id) == []
     assert len(children) == 1
+
+
+def test_a_validate_error_fails_the_job_and_keeps_the_supervisor(db, org, prep):  # code-review #4
+    """Bad child output that a publisher's validate trips over (e.g. ValueError
+    DUPLICATE_TRANSFER) fails that job as OUTPUT_INVALID; it never escapes the supervisor loop."""
+    publisher, _ = prep
+
+    def broken(validated, outcomes):
+        raise ValueError("DUPLICATE_TRANSFER")
+
+    publisher.validate = broken
+    _, attempt = _prep_run(db, org, prep)
+    assert attempt.state is AttemptState.FAILED and attempt.reason_code == "OUTPUT_INVALID"
+    assert publisher.prepared == [] and publisher.discarded == []
