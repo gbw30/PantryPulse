@@ -171,6 +171,28 @@ def verify_plan(scenario, transfers) -> PlanReport:
         expected = by_key[t.product_id, t.from_location_id, t.to_location_id].transfer
         if tuple(t.batch_ids) != expected.batch_ids:
             violations.append("PACKING_FEFO_MISMATCH")
+    # S1: FEFO re-derived from the raw batches, never from v3.pack/candidates/fefo_key. A lot
+    # leaves a sender only when every lot eligible for that route that sorts before it (earliest
+    # expiry, non-expiring last, then batch id) has left too.
+    held, left = defaultdict(list), {b.id: b.quantity for b in s.batches}
+    for b in s.batches:
+        held[b.location_id, b.product_id].append(b)
+    for p in packed:
+        for batch_id, units in p.splits:
+            left[batch_id] -= units
+    for p in packed:
+        t = p.transfer
+        stock = [
+            b
+            for b in held[t.from_location_id, t.product_id]
+            if b.expiry_date is None or b.expiry_date >= t.arrival_date
+        ]
+        rank = {b.id: (b.expiry_date or date.max, b.id) for b in stock}
+        for batch_id, _ in p.splits:
+            if batch_id not in rank or any(
+                left[b.id] and rank[b.id] < rank[batch_id] for b in stock
+            ):
+                violations.append("PACKING_FEFO_MISMATCH")
     plan = project_v3(s, packed)
     base = project_v3(s)
     window = window_days(s)
