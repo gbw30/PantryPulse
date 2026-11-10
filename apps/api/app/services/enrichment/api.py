@@ -81,8 +81,7 @@ def retry_enrichment(rt, scope, network_id: UUID, idempotency_key: str) -> Forec
 
 
 def _latest_job(conn: sa.Connection, network_id: UUID, version_id: UUID):
-    org = conn.scalar(sa.text("SELECT organization_id FROM networks WHERE id = :n"),
-                      {"n": network_id})
+    org = networks_repo.network_organization(conn, network_id)
     job_id = conn.scalar(sa.text(
         "SELECT job_id FROM compute_jobs WHERE organization_id = :org AND handler_contract = "
         ":contract AND input_package -> 'input' ->> 'dataset_version_id' = :v "
