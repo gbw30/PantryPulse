@@ -68,7 +68,11 @@ class TemplateCatalog(ORContract):
 
 
 class BacktestScore(ORContract):
-    """V5 §7 WAPE and bias on one shared scored set (W3-F02)."""
+    """WAPE and bias as percentages of total actual demand, on one shared scored set (W3-F02).
+
+    wape_pct = 100 × Σ|prediction − actual| / Σactual; bias_pct = 100 × Σ(prediction − actual) /
+    Σactual, positive = over-forecast. Both are null when Σactual is 0. bias_pct replaces V5 §7's
+    bias in units for v1 (W3 decisions §10), because units differ per product."""
 
     origins_evaluated: int = Field(ge=0)
     wape_pct: Decimal | None
