@@ -81,6 +81,7 @@ Mirrors the CI connected step (`.github/workflows/pantrypulse-ci.yml:86-108`), w
 | full gate, then API counts | `75a2f71` | exit 0, all 8 PASS; API 2073 passed, 0 skipped. Since then: only `import-templates.spec.ts` (test-only; eslint and tsc exit 0; 3 of 3 passed). |
 | full gate, then API counts (after the #129 review fixes) | `c065884` | exit 0, all 8 PASS; API 2073 passed, 0 skipped |
 | full gate, then API counts | `2901a4e` (merge of v1-local `aa4bc2d`: #127, #130, #131) | exit 0, all 8 PASS; API 2124 passed, 0 skipped. Before the gate: tsc exit 0, vitest 146 passed, node 13 passed. |
+| full gate, then API counts (after N1) | `12528d2` | exit 0, all 8 PASS; API 2124 passed, 0 skipped |
 | `/devkit:ship-check` | `15a3456` | step 1: the gates above. Step 2: verifier, findings and dispositions in "Ship-check step 2". Step 3: no security-guidance plugin. Steps 4-5: the PR. |
 
 ### Lead items (approved 2026-11-09)
@@ -246,6 +247,30 @@ Everything else passed: §1, §6, §9, ownership, 4a, vitest 144, node 13, tsc, 
   - `npx vitest run`: 25 files, 146 passed.
   - `node --test tests/*.test.mjs`: 13 passed, 0 skipped.
   - Mocked e2e, whole suite: 200 passed, 0 failed, 14 skipped (connected-only, not evidence); exit 0.
+
+### Re-verify at `4a88177` (lead's verifier, 2026-11-10): H1, M1 and L1 resolved; N1 fixed in `12528d2`
+
+- **N1 (Low): a login that never answers could still leak the password.** The form cleared the field only when the login failed, and a hung request never fails. The helper waited `min(15 s, timeout/2)` of the test's *total* timeout, so a sign-in that started late in a test could be cut off by the test timeout with the password typed. Fixes, test-first:
+  - The presenter sign-in (`presenter-session.tsx`) aborts the login after 10 s with `ApiError("TIMEOUT")`. The form then says "Sign-in timed out. Try again." and empties the field. `planning-api.ts`: `api` takes an optional `signal`, and an abort whose reason is an `ApiError` passes through as that error.
+    - Unit test: `tests/unit/presenter-sign-in.test.tsx` (real provider and form, fake timers, a fetch that settles only on abort). RED: at 10 s there was no alert. GREEN.
+    - Why not `AbortSignal.timeout`: fake timers do not drive it, and in the test environment its reason is not an `instanceof DOMException`.
+  - The helper (`sign-in.ts`) adds its own 15 s wait plus 5 s cleanup to the test's timeout, just before typing the password. However late the sign-in starts, the test outlasts the wait and the cleanup.
+    - This differs from the lead's "time left" wording on purpose. Playwright 1.64's `TestInfo` exposes no elapsed time or start time (`duration` is 0 until the test ends), so time left cannot be measured. Extending the timeout is the documented `testInfo.setTimeout(testInfo.timeout + n)` pattern.
+  - Canary: the verifier's case D, "a late, never answered form sign-in". It hangs the login and starts the sign-in after 12 s of a 20 s test.
+    - RED: test timeout inside the helper's 10 s wait, and its `error-context.md` held the canary.
+    - GREEN: 4 of 4 passed, with 0 files containing the canary across 3 `error-context.md`. Both never-answered snapshots show the alert "Sign-in timed out. Try again."
+- **Which change each presenter-session test guards (`235e30e`)**, checked by reverting each half in the working tree and running `:97` and `:117`:
+  - `network-atlas.tsx` (one shell) reverted: `:117` fails (`getByRole('combobox', { name: 'Network' })` not found at `:139`); `:97` passes.
+  - `network-switcher.tsx` (a visitor is signed out in the same render, with no `/networks` request) reverted: both pass.
+  - Both reverted (item 4 above): both fail.
+  - So `:117` guards the atlas half. `:97` guards the visitor's dialog, which either half keeps open, and fails only if both are lost. With the switcher half in place a visitor never requests `/networks`, so `:97`'s held request is never made.
+  - Nothing tests the switcher half on its own: the unit tests that use `signed_out` mock `useNetwork`. A one-line assertion in `:97` that a visitor makes no `/networks` request would cover it; offered to the lead, not added.
+- **Evidence at `12528d2`:**
+  - tsc and `npm run lint` exit 0.
+  - `npx vitest run`: 26 files, 147 passed.
+  - `node --test tests/*.test.mjs`: 13 passed, 0 skipped.
+  - `sign-in-canary.spec.ts` and `presenter-session.spec.ts`: 9 of 9 passed.
+  - Full gate: exit 0, all 8 PASS; API 2124 passed, 0 skipped.
 
 ## Decisions made inside the lane
 
