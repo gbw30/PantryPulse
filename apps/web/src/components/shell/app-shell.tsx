@@ -41,7 +41,7 @@ export function AppShell({ active, horizonLabel, search, contentElement = "main"
         </a>
         <AppSidebar active={active} />
         <div className="flex min-h-svh min-w-0 flex-1 flex-col bg-background">
-          <TopBar search={search} horizonLabel={horizonLabel} />
+          <TopBar search={search} horizonLabel={horizonLabel} active={active} />
           <Content id="main-content" tabIndex={-1} className="flex min-w-0 flex-1 flex-col outline-none">
             {children}
           </Content>
