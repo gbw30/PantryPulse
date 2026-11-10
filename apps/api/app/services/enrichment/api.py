@@ -37,7 +37,8 @@ def enrichment_status(rt, scope, network_id: UUID) -> EnrichmentStatus:
         locations = service.location_attributes(conn, version_id)
         found = service.blockers(conn, version_id)
         unconfirmed = _unconfirmed(conn, org, version_id)
-    state, last_error, unmatched = "not_started", None, []
+        last_error = None if job_id is not None else _not_started(conn, version_id)
+    state, unmatched = "not_started", []
     if job_id is not None:
         job = rt.queue.get_job(TrustedScope(org, "status"), job_id)
         if job.state not in TERMINAL_STATES:
@@ -88,6 +89,28 @@ def _latest_job(conn: sa.Connection, network_id: UUID, version_id: UUID):
         "ORDER BY created_at DESC, job_id LIMIT 1"),
         {"org": org, "contract": CONTRACT, "v": str(version_id)})
     return org, job_id
+
+
+NOT_STARTED = {
+    "COMPUTE_QUEUE_FULL": "the job queue was full when the import finished",
+    "COMPUTE_UNAVAILABLE": "the background worker was not running when the import finished",
+}
+
+
+def _not_started(conn: sa.Connection, version_id: UUID) -> str | None:
+    """Why the import's enrichment follow-up never started: the queue audits a refused
+    follow-up on the import job and still commits the import (CR-w1-data-5). None when there
+    is no such record, e.g. a sample network, which is seeded in-process and never calls out."""
+    code = conn.scalar(sa.text(
+        "SELECT e.reason_code FROM dataset_versions v JOIN import_runs r ON r.id = "
+        "v.import_run_id JOIN compute_audit_events e ON e.job_id = r.job_id WHERE v.id = :v "
+        "AND e.event_type = 'FOLLOW_UP_REJECTED' AND coalesce(e.details ->> 'contract', "
+        ":contract) = :contract ORDER BY e.event_id DESC LIMIT 1"),
+        {"v": version_id, "contract": CONTRACT})
+    if code is None:
+        return None
+    why = NOT_STARTED.get(code, f"it could not be queued when the import finished ({code})")
+    return f"Address lookups did not start: {why}. Use Retry to start them."
 
 
 def _unconfirmed(conn: sa.Connection, org, version_id: UUID) -> dict[str, dict]:

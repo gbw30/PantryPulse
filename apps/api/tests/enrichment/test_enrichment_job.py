@@ -163,6 +163,29 @@ def test_non_exact_match_stays_listed_for_review_after_a_retry(lane, network):
     assert "100 N ANDREWS AVE" in first["P4"].hint
 
 
+def test_an_enrichment_rejected_at_import_says_why_and_to_retry(engine, tmp_path, monkeypatch):
+    """W2-06 deferral: the import commits, its enrichment follow-up is refused because the
+    queue is full (audited, CR-w1-data-5), and the status says so in plain words."""
+    from app.services.imports import api as imports_api
+    from app.services.jobs.contracts import AdmissionOutcome
+    from tests.imports.test_import_worker import SCOPE as IMPORT_SCOPE
+    from tests.imports.test_import_worker import _commit, _running
+    from tests.imports.test_import_worker import _settle as _settle_import
+
+    with _running(engine, tmp_path, monkeypatch, ENRICHMENT_REGISTRATION) as running:
+        admission = running.queue._admission
+        monkeypatch.setattr(running.queue, "_admission", lambda conn, ctl, now, contract, v: (
+            AdmissionOutcome.COMPUTE_QUEUE_FULL if contract == "enrichment.v1"
+            else admission(conn, ctl, now, contract, v)))
+        import_id, job_id = _commit(running, FILES)
+        assert _settle_import(running, import_id, job_id).state == AttemptState.SUCCEEDED
+        network_id = imports_api.import_status(running, IMPORT_SCOPE, import_id).network_id
+        status = enrichment_status(running, SCOPE, network_id)
+    assert (status.state, status.job_id) == ("not_started", None)
+    assert "queue was full when the import finished" in status.last_error
+    assert "Retry" in status.last_error
+
+
 def test_unknown_network_is_404(lane):
     with pytest.raises(AccessError) as error:
         enrichment_status(lane.rt, SCOPE, uuid.uuid4())
