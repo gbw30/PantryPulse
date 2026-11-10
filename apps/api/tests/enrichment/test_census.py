@@ -130,3 +130,27 @@ def test_acs_unpublished_or_zero_universe_stays_unknown(tmp_path):
     assert table.rates("12073000200") == (None, Decimal("0.20000"))
     assert table.rates("12011042501") == (None, None)
     assert table.rates("99999999999") == (None, None)  # tract not in the table
+
+
+def _corrupt(row_id: str, replacement: str) -> str:
+    """The recorded body with one row replaced, as a malformed Census answer."""
+    return "\n".join(replacement if line.startswith(f'"{row_id}",') else line
+                     for line in RECORDED["response"]["body"].splitlines())
+
+
+@pytest.mark.parametrize("bad_row", [
+    '"1","301 S Monroe St, Tallahassee, FL, 32301","Match","Exact"',  # short: no coordinates
+    '"1","301 S Monroe St, Tallahassee, FL, 32301","Match"',  # 3 columns
+    '"1","301 S Monroe St, Tallahassee, FL, 32301","Match","Exact","301 S MONROE ST","",'
+    '"82850785","R","12","073","000200","3033"',  # empty coordinates
+    '"1","301 S Monroe St, Tallahassee, FL, 32301","Match","Exact","301 S MONROE ST","x,y",'
+    '"82850785","R","12","073","000200","3033"',  # garbled coordinates
+])
+def test_malformed_match_row_is_unreadable_and_other_rows_are_unaffected(bad_row):
+    """#9: a Match row Census could not have meant never crashes and never reads as success."""
+    results = CensusClient(Recorded(_corrupt("1", bad_row))).geocode(_addresses())
+    bad = results["L1"]
+    assert (bad.status, bad.latitude, bad.longitude, bad.tract_geoid) == (
+        "Unreadable", None, None, None)
+    assert (results["L11"].status, results["L11"].tract_geoid) == ("Exact", "12073000200")
+    assert results["L13"].status == "No_Match"

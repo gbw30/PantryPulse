@@ -24,6 +24,7 @@ TIMEOUT_S = 120
 COORDINATE = Decimal("0.000001")
 RATE = Decimal("0.00001")
 MATCH_STATUSES = ("Exact", "Non_Exact")
+UNREADABLE = "Unreadable"  # a Match row Census could not have meant (#9)
 
 Transport = Callable[[urllib.request.Request], bytes]
 
@@ -47,7 +48,7 @@ class Address:
 @dataclass(frozen=True, slots=True)
 class Geocode:
     location_id: str
-    status: str  # Exact | Non_Exact | No_Match | Tie
+    status: str  # Exact | Non_Exact | No_Match | Tie | Unreadable
     matched_address: str | None = None
     latitude: Decimal | None = None
     longitude: Decimal | None = None
@@ -101,15 +102,24 @@ def _parse(text: str, addresses: Sequence[Address]) -> dict[str, Geocode]:
         if len(row) < 3 or not row[0].isdigit() or not 1 <= int(row[0]) <= len(addresses):
             raise CensusUnavailable("Census geocoder answered with something other than CSV")
         location_id = addresses[int(row[0]) - 1].location_id
-        if row[2] == "Match" and len(row) >= 12 and row[3] in MATCH_STATUSES:
-            lon, lat = (Decimal(v).quantize(COORDINATE) for v in row[5].split(","))
-            results[location_id] = Geocode(location_id, row[3], row[4], lat, lon,
-                                           row[8] + row[9] + row[10])
-        else:
-            results[location_id] = Geocode(location_id, row[3] if row[2] == "Match" else row[2])
+        results[location_id] = (_match(location_id, row) if row[2] == "Match"
+                                else Geocode(location_id, row[2]))
     if len(results) != len(addresses):
         raise CensusUnavailable("Census geocoder answered for only some addresses")
     return results
+
+
+def _match(location_id: str, row: list[str]) -> Geocode:
+    """A Match row; one too short or with unreadable coordinates is Unreadable (#9): the
+    location stays unlocated and is listed for review, and the rest of the batch stands."""
+    try:
+        lon, lat = (Decimal(v).quantize(COORDINATE) for v in row[5].split(","))
+        if len(row) >= 12 and row[3] in MATCH_STATUSES and -90 <= lat <= 90 and (
+                -180 <= lon <= 180):  # a NaN comparison raises InvalidOperation
+            return Geocode(location_id, row[3], row[4], lat, lon, row[8] + row[9] + row[10])
+    except (IndexError, ValueError, InvalidOperation):
+        pass
+    return Geocode(location_id, UNREADABLE)
 
 
 @dataclass(frozen=True, slots=True)

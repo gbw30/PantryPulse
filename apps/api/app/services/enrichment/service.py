@@ -15,6 +15,7 @@ import sqlalchemy as sa
 
 from app.schemas.v1_enrichment import GeoLocation, LocationAttributes
 from app.services.enrichment.census import (
+    UNREADABLE,
     AcsTable,
     Address,
     CensusClient,
@@ -30,6 +31,8 @@ NO_MATCH_HINT = ("Census found no match. Correct the street, city, state or ZIP,
 UNCONFIRMED = "unconfirmed address match"  # a Non_Exact geocode (W2-06 A7)
 TIE_HINT = ("Census found more than one match. Make the address more specific, or enter "
             "latitude and longitude for this location in locations.csv")
+UNREADABLE_HINT = ("Census answered for this address in a form PantryPulse could not read. "
+                   "Retry, or enter latitude and longitude for this location in locations.csv")
 
 
 def enrichment_input(conn: sa.Connection, version_id: UUID) -> dict[str, Any]:
@@ -71,7 +74,8 @@ def apply_enrichment(conn: sa.Connection, version_id: UUID, step: dict[str, Any]
                  "note": UNCONFIRMED if g.status == "Non_Exact" else None,
                  "v": version_id, "e": g.location_id}).rowcount > 0
         if g.status != "Exact":
-            hint = {"No_Match": NO_MATCH_HINT, "Tie": TIE_HINT}.get(g.status) or (
+            hint = {"No_Match": NO_MATCH_HINT, "Tie": TIE_HINT,
+                    UNREADABLE: UNREADABLE_HINT}.get(g.status) or (
                 f"Census matched a different address: {g.matched_address}. Check it; if it's "
                 "wrong, correct the address or enter latitude and longitude in locations.csv")
             unmatched.append({"location_id": g.location_id,
