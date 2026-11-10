@@ -15,31 +15,27 @@
 
 Order: F02 → F01 → F04 → F03 → F05 → F06. F01 and F02 depend on nothing (wave-3.md), and S7 should time the real backtest code, not a stand-in. F04 depends on nothing; F03 needs F02; F05 needs F03 and F04.
 
-## Save point 2026-11-09 (late)
+## #127 verifier fixes F1–F4 (`12e5dbf`) and the 50k lock re-timing
 
-- **Head:** the commit that adds this section, on top of `12e5dbf` (verifier F1–F4 on #127 at `e12fdc1`). Pushed only if the quick gate passes on that commit; the lead's reply records which.
+The save point of 2026-11-09 (late) was `6214126`, pushed. Its steps 1–5 are done; the results are under Gates.
+
 - **Done in `12e5dbf`, test-first:**
-  - **F1:** `ForecastPublisher.prepare` builds the network run outside the queue lock, keyed by attempt; `publish` only INSERTs it; `discard` drops it; a retried publish rebuilds it from the job row.
+  - **F1:** `ForecastPublisher.prepare` builds the network run outside the queue lock, keyed by attempt. `publish` only INSERTs it, and `discard` drops it. A retried publish rebuilds it from the job row.
   - **F2:** an absent history day stays null and missing.
   - **F3:** donations after the last demand day move the window's end.
   - **F4:** inbound counts in the expiry share's stock.
-  - **Red/mutant evidence:** F1's probe test was red at `e12fdc1` (attempt `TIMED_OUT`). F2, F3 and F4 fail under their mutants: F2 `COUNTS_CONTRADICT_VALUES` at submit; F3 `IndexError`; F4 0.5000 against 0.25.
-  - **Suites:** `PP19_TEST_SCHEMA_ISOLATION=1 uv run --frozen pytest -q tests/forecasting tests/danger tests/test_v1_contract.py tests/networks tests/workers tests/test_inventory_projection.py tests/samples tests/integration/{test_v1_backend_journey,test_forecast_api_postgres,test_worker_slice,test_v1_job_status,test_supervisor}.py` → 557 passed, 0 skipped.
-  - **Bench:** `bench_forecast.py --part lock` added and smoke-run at 2,000 series: SUCCEEDED, lock held 0.18 s.
-- **Not done yet:**
-  - The 50k re-timing of the publish lock.
-  - The evidence JSON and S7 updates.
-  - The full gate.
-  - The PR body update.
-  - The reply to the lead.
-- **Exact next step**, from `apps/api` with `.env.lane` loaded, on a quiet machine (check `uptime`):
-  1. Run `uv run --frozen python scripts/bench_forecast.py --part lock --series 50000` twice. Then run it once more with the build forced inside the lock, for the before number. That run uses the same harness with `prepare` replaced by a pass-through: `python -c "import sys; sys.argv=['x','--part','lock','--series','50000']; sys.path.insert(0,'scripts'); import bench_forecast as b; from app.workers.forecasting import REGISTRATION as R; R.publisher.prepare=lambda e,i,p,*,remaining_s: p; b.main()"`.
-  2. Add an evidence key `publish_lock_after_f1` to `docs/forecasting/evidence/v1-forecast-scale.json`, holding both results and the load. Update S7 (`docs/plans/v1/spikes/S7-forecast-volume.md`) and the known limits here.
-  3. If `origin/v1-local` moved, merge it. Then run quick, then full, one at a time.
-  4. Update the PR #127 body with no attribution line (`gh api -X PATCH repos/gbw30/PantryPulse/pulls/127 -F body=@…`; `gh pr edit` fails on the GraphQL deprecation).
-  5. Push and report the head to the lead.
+- **Red/mutant evidence:**
+  - F1's probe test was red at `e12fdc1`: the attempt ended `TIMED_OUT`.
+  - F2 fails under its mutant with `COUNTS_CONTRADICT_VALUES` at submit.
+  - F3 fails under its mutant with `IndexError`.
+  - F4 fails under its mutant with a share of 0.5000 against 0.25.
+- **Suites, at the `12e5dbf` tree** (code unchanged since): `PP19_TEST_SCHEMA_ISOLATION=1 uv run --frozen pytest -q tests/forecasting tests/danger tests/test_v1_contract.py tests/networks tests/workers tests/test_inventory_projection.py tests/samples tests/integration/{test_v1_backend_journey,test_forecast_api_postgres,test_worker_slice,test_v1_job_status,test_supervisor}.py` → 557 passed, 0 skipped.
+- **50k lock** (`bench_forecast.py --part lock`, the real queue and publisher; evidence key `publish_lock_after_f1`; S7):
+  - Lock held, after: 4.59 s and 3.68 s. Before (the same harness with `prepare` as a pass-through): 9.85 s and 9.44 s.
+  - The runs went back to back, alternating, at load 2.3–3.3.
+  - What remains in the lock is the INSERT of the run row, 3.06–3.93 s. That is close to the queue's 5 s lock timeout (known limits).
 - **Lead decisions (2026-11-09, Gabriel), no code change:**
-  - `bias_pct` as a percentage is accepted. It overrides V5 §7's unit bias for v1, so check that the field and docs say percent and null when Σactual = 0.
+  - `bias_pct` as a percentage is accepted, overriding V5 §7's unit bias for v1. `backtest.py`'s docstring says percent and unavailable when Σactual = 0, and `test_zero_denominator_reports_none` pins the null. The schema's own docstring (`app/schemas/v1_networks.py:71`, lead-owned) still says only "V5 §7 WAPE and bias".
   - The 24/32 MB limits are accepted.
   - Retail DC expiry-share scoring is accepted; the atlas wording goes to the W5 UX review.
   - The series cap at import and F5 (read paths recompute) are W4 carry-ins.
@@ -56,7 +52,7 @@ Order: F02 → F01 → F04 → F03 → F05 → F06. F01 and F02 depend on nothin
 
 ## Next
 
-1. **PR #127** (https://github.com/gbw30/PantryPulse/pull/127) is open into `v1-local`. `/code-review` found 2 issues, both fixed in `700cf54` (Gates). Wait for the orchestrator's review.
+1. **PR #127** (https://github.com/gbw30/PantryPulse/pull/127) is open into `v1-local`. The verifier's F1–F4 at `e12fdc1` are fixed in `12e5dbf`. Wait for the lead's re-verification of `e12fdc1..` the new head.
 
 ## Gates
 
@@ -106,7 +102,7 @@ Order: F02 → F01 → F04 → F03 → F05 → F06. F01 and F02 depend on nothin
 Commands, from `apps/api` with `.env.lane` loaded: `uv run --frozen python scripts/bench_forecast.py --part built --series 50000` (the job, the publish lock, the danger ranking, sizes) and `… --part freeze --series 50000` (the submit's history aggregate). Measured at `23c998d`, on the machine in the evidence file.
 
 - The submit request runs the history aggregate itself: 3.1 s over 4.5 M rows (`--part freeze`), in the API request's REPEATABLE READ transaction.
-- Publishing builds the 106 MB `ForecastOutput` and the 9.4 MB backtest inside the publication lock: 4.2 s for the output at `23c998d` on a quiet machine. At `3d03fd1` (load average about 2.5) `build_backtest` adds 1.55–1.58 s, for 7.3–7.9 s in the lock before the INSERT (`--part built`, `publish_in_lock_s_before_insert`, `publish_build_backtest_s`; evidence key `publish_lock_with_backtest`). The INSERT comes on top (S7 `--part db`: 1.65 s for the output alone).
+- Publishing builds the 106 MB `ForecastOutput` and the 9.4 MB backtest in the publisher's `prepare`, outside the queue lock since `12e5dbf` (verifier F1): 5.6–6.4 s at load 2.3–3.3. The lock still holds the INSERT of that row (output, frozen input, backtest), which PostgreSQL parses as JSONB and TOAST-compresses: 3.06–3.93 s, for 3.68–4.59 s held in all, against 9.44–9.85 s before (`--part lock`, evidence key `publish_lock_after_f1`). That is close to the queue's 5 s lock timeout, so a submit, retry or cancel arriving then can still wait most of it. Shrinking it means storing less in the row (W4). Before `12e5dbf`: 4.2 s quiet at `23c998d`, 7.3–7.9 s at load about 2.5 at `3d03fd1`, plus the INSERT.
 - `create_scenario` re-reads that 106 MB output (S7: about 4.5 s).
 - `get_danger` and `get_projection` recompute per request: about 4 s of projection and ranking (`--part built`, `danger_ranking_s`), plus the run read, which re-validates the whole 106 MB output (S7: about 4.5 s), plus the batch SQL. `get_projection` for one location still reads and converts every series. Nothing is cached, and the read paths are not timed end to end (verifier, 2026-11-09).
 - `GET /networks/{id}/forecasts/{run}` returns every series (tens of MB). Pagination would be a contract change.

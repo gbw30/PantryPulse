@@ -123,5 +123,85 @@
     "history_end_s": 0.24,
     "history_aggregate_s": 5.51,
     "note": "The new max(day) query adds 0.24 s before the aggregate. The full backend suite ran just before on the same machine, so the unchanged aggregate took 5.51 s against 3.13 s quiet (freeze_sql above)."
+  },
+  "publish_lock_after_f1": {
+    "task": "#127 verifier F1: the network run is built in the publisher's prepare, outside the queue lock",
+    "commit": "6214126",
+    "command": "uv run --frozen python scripts/bench_forecast.py --part lock --series 50000; the before runs replace REGISTRATION.publisher.prepare with a pass-through, so publish builds the run inside the lock (the e12fdc1 behaviour) on the same harness",
+    "harness": "forecast.v1 through the real QueueRepository, Supervisor and ForecastPublisher (PRODUCTION_PROFILE) in a scratch schema of pantrypulse_forecast_test; the step runs in process through the integration tests' fake driver. lock_held_s runs from the queue's _lock_claimed to COMMIT.",
+    "frozen_input_mb": 11.93,
+    "runs": [
+      {
+        "run": "after_1",
+        "build": "prepare, outside the lock",
+        "timings": {
+          "submit_s": 5.76,
+          "prepare_s": 6.44,
+          "publisher_publish_s": 3.93,
+          "queue_publish_s": 5.11,
+          "lock_held_s": 4.59,
+          "job_s": 31.0
+        },
+        "peak_rss_mb": 1100.8,
+        "load_1_5_15_start": "2.28 0.89 0.33",
+        "load_1_5_15_end": "3.08 1.26 0.48"
+      },
+      {
+        "run": "before_1",
+        "build": "inside the lock (prepare as a pass-through)",
+        "timings": {
+          "submit_s": 5.51,
+          "prepare_s": 0.0,
+          "publisher_publish_s": 9.23,
+          "queue_publish_s": 10.38,
+          "lock_held_s": 9.85,
+          "job_s": 29.76
+        },
+        "peak_rss_mb": 1119.6,
+        "load_1_5_15_start": "3.07 1.29 0.49",
+        "load_1_5_15_end": "3.27 1.50 0.59"
+      },
+      {
+        "run": "after_2",
+        "build": "prepare, outside the lock",
+        "timings": {
+          "submit_s": 4.96,
+          "prepare_s": 5.6,
+          "publisher_publish_s": 3.06,
+          "queue_publish_s": 4.19,
+          "lock_held_s": 3.68,
+          "job_s": 28.17
+        },
+        "peak_rss_mb": 1100.9,
+        "load_1_5_15_start": "3.16 1.51 0.60",
+        "load_1_5_15_end": "2.60 1.56 0.65"
+      },
+      {
+        "run": "before_2",
+        "build": "inside the lock (prepare as a pass-through)",
+        "timings": {
+          "submit_s": 4.83,
+          "prepare_s": 0.0,
+          "publisher_publish_s": 8.81,
+          "queue_publish_s": 9.98,
+          "lock_held_s": 9.44,
+          "job_s": 27.82
+        },
+        "peak_rss_mb": 1140.3,
+        "load_1_5_15_start": "2.60 1.56 0.65",
+        "load_1_5_15_end": "2.48 1.65 0.71"
+      }
+    ],
+    "lock_held_s": {
+      "after": [
+        4.59,
+        3.68
+      ],
+      "before": [
+        9.85,
+        9.44
+      ]
+    },
+    "note": "Run back to back, alternating, at load 2.3-3.3 while the web lane's full gate also ran. The lock still holds the INSERT of the run row (106 MB output, 12 MB frozen input, 9.4 MB backtest, JSONB-parsed and TOAST-compressed by PostgreSQL): 3.06-3.93 s of the 3.68-4.59 s, close to the queue's 5 s lock timeout. The worst-case frozen input (20.6 MB) would add to it."
   }
 }
