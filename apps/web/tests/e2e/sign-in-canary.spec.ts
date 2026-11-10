@@ -14,13 +14,15 @@ test.describe.configure({ mode: "serial" });
 const CANARY = "Canary-Pw-7Q2x";
 const failedOutputs: string[] = [];
 
-async function failSignIn(page: Page, login: "reject" | "hang") {
+async function failSignIn(page: Page, login: "reject" | "hang" | "late") {
   await page.route("**/api/v1/**", (route) => {
     if (!route.request().url().includes("/presenter/login")) return route.fulfill({ status: 401, json: envelope("PRESENTER_REQUIRED") });
     if (login === "reject") return route.fulfill({ status: 429, json: envelope("RATE_LIMITED") });
-    // "hang": never answered, so only the helper's own timeout ends the sign-in.
+    // "hang" and "late": never answered, so only a timeout (the form's or the helper's) ends the sign-in.
   });
   await page.goto("/import");
+  // "late" (N1): the sign-in starts with less of the test's 20 s left than the helper waits or the form allows.
+  if (login === "late") await page.waitForTimeout(12_000);
   const saved = process.env.PP_E2E_PASSWORD;
   process.env.PP_E2E_PASSWORD = CANARY;
   try {
@@ -30,7 +32,7 @@ async function failSignIn(page: Page, login: "reject" | "hang") {
   }
 }
 
-for (const [login, how] of [["reject", "rejected (429)"], ["hang", "never answered"]] as const) {
+for (const [login, how] of [["reject", "rejected (429)"], ["hang", "never answered"], ["late", "late, never answered"]] as const) {
   test(`@V1-A04 canary: a ${how} form sign-in fails (expected)`, async ({ page }, testInfo) => {
     test.fail(); // The sign-in must fail; the last test reads what Playwright wrote for this failure.
     test.setTimeout(20_000);
@@ -40,7 +42,7 @@ for (const [login, how] of [["reject", "rejected (429)"], ["hang", "never answer
 }
 
 test("@V1-A04 canary: no file written for those failed sign-ins contains the password", () => {
-  expect(failedOutputs).toHaveLength(2);
+  expect(failedOutputs).toHaveLength(3);
   for (const dir of failedOutputs) {
     const files = fs.readdirSync(dir, { recursive: true, withFileTypes: true }).filter((e) => e.isFile()).map((e) => path.join(e.parentPath, e.name));
     // Not vacuous: the failure's error-context.md (with its page snapshot) is there to read.
