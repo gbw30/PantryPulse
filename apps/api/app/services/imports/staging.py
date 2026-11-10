@@ -31,6 +31,7 @@ from typing import IO, Any
 from uuid import UUID
 
 import sqlalchemy as sa
+from psycopg.errors import QueryCanceled
 
 from app.repositories import imports as repo
 from app.schemas.v1_enrichment import GeoLocation
@@ -284,9 +285,21 @@ def _write_rows(folder: Path, org: UUID, version_id: UUID, rows: ParsedNetwork) 
 
 def load_staged(engine: sa.Engine, attempt_id: UUID, job: Mapping[str, Any],
                 step: Mapping[str, Any], *, timeout_s: float | None = None,
+                clock: Callable[[], float] = time.monotonic,
                 on_phase: Callable[[str], None] | None = None) -> None:
     base, import_id = Path(job["import_dir"]), UUID(job["import_id"])
     folder = attempt_dir(base, import_id, attempt_id)
+    deadline = None if timeout_s is None else clock() + timeout_s
+
+    def time_left(cursor) -> None:
+        """One deadline for the whole load: each statement gets only what is left of it."""
+        if deadline is None:
+            return
+        left_ms = int((deadline - clock()) * 1000)
+        if left_ms <= 0:
+            raise PublicationRejected("IMPORT_TIMED_OUT", timed_out=True)
+        cursor.execute(f"SET LOCAL statement_timeout = {left_ms}")
+
     try:
         _sweep(engine, base, attempt_id)
         if not step["ok"]:
@@ -300,8 +313,7 @@ def load_staged(engine: sa.Engine, attempt_id: UUID, job: Mapping[str, Any],
                 on_phase(phase)
         org, version_id = UUID(job["organization_id"]), UUID(step["dataset_version_id"])
         with engine.begin() as conn:
-            if timeout_s:
-                conn.execute(sa.text(f"SET LOCAL statement_timeout = {int(timeout_s * 1000)}"))
+            sa.event.listen(conn, "before_cursor_execute", lambda _c, cursor, *_: time_left(cursor))
             for name, (table, columns) in LOAD_FILES.items():
                 staged = stage_table(attempt_id, name)
                 if name in PARTITIONS:  # a partition to be: logged, with the parent's CHECKs
@@ -310,13 +322,13 @@ def load_staged(engine: sa.Engine, attempt_id: UUID, job: Mapping[str, Any],
                 else:
                     conn.execute(sa.text(
                         f"CREATE UNLOGGED TABLE {staged} (LIKE {table} INCLUDING DEFAULTS)"))
-                _copy(conn, staged, columns, folder / f"{name}.csv")
+                _copy(conn, staged, columns, folder / f"{name}.csv", time_left)
                 if name in PARTITIONS:
                     _partition_keys(conn, staged, name, version_id)
             raw = stage_table(attempt_id, "raw")
             conn.execute(sa.text(f"CREATE UNLOGGED TABLE {raw} (file text, line_no integer, "
                                  "c01 text, c02 text, c03 text, c04 text, c05 text)"))
-            _copy(conn, raw, RAW_COLUMNS, folder / "history.csv")
+            _copy(conn, raw, RAW_COLUMNS, folder / "history.csv", time_left)
             for name in HISTORY_TABLES:
                 _load_history(conn, name, raw, attempt_id, org, version_id)
             conn.execute(sa.text(f"DROP TABLE {raw}"))
@@ -324,12 +336,18 @@ def load_staged(engine: sa.Engine, attempt_id: UUID, job: Mapping[str, Any],
             for name in _staged_tables(conn):
                 if name.startswith(stage_table(attempt_id, "")):
                     conn.execute(sa.text(f"COMMENT ON TABLE {name} IS '{stamp}'"))
+    except (QueryCanceled, sa.exc.OperationalError) as exc:
+        if isinstance(getattr(exc, "orig", exc), QueryCanceled):  # its statement_timeout
+            raise PublicationRejected("IMPORT_TIMED_OUT", timed_out=True) from None
+        raise
     finally:
         shutil.rmtree(folder, ignore_errors=True)
 
 
-def _copy(conn: sa.Connection, table: str, columns: str, path: Path) -> None:
+def _copy(conn: sa.Connection, table: str, columns: str, path: Path,
+          time_left: Callable[[Any], None]) -> None:
     cursor = conn.connection.driver_connection.cursor()
+    time_left(cursor)  # COPY runs on the driver's cursor, which SQLAlchemy events do not see
     with cursor.copy(f"COPY {table} ({columns}) FROM STDIN (FORMAT csv)") as copy, \
             path.open("rb") as source:
         while block := source.read(1 << 20):

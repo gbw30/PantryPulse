@@ -190,17 +190,29 @@ def test_batches_round_trip_exact(engine, tmp_path):
     ]
 
 
-def _prepared(engine, base: Path):
-    """A new network's run through the job's `validate` step and `prepare`."""
+def _validated(engine, base: Path):
+    """A new network's run through the job's `validate` step, ready for `prepare`."""
     with engine.begin() as conn:
         run = repo.create_run(conn, NEW, None)
     _write(engine, base, run.id, FILES)
     with engine.connect() as conn:
         job = job_input(conn, repo.get_run(conn, run.id), AS_OF, base, "local")
     attempt = uuid.uuid4()
-    step = write_load_files(job, attempt)
+    return run, attempt, job, write_load_files(job, attempt)
+
+
+def _prepared(engine, base: Path):
+    """A new network's run through the job's `validate` step and `prepare`."""
+    run, attempt, job, step = _validated(engine, base)
     load_staged(engine, attempt, job, step)
     return run, attempt, job, step
+
+
+def _staged_of(engine, attempt: uuid.UUID) -> list[str]:
+    with engine.connect() as conn:
+        return list(conn.scalars(sa.text(
+            "SELECT tablename FROM pg_tables WHERE schemaname = current_schema() "
+            "AND tablename LIKE :p"), {"p": stage_table(attempt, "") + "%"}))
 
 
 def _batch_partitions(conn) -> list[tuple[str, str]]:
@@ -575,3 +587,24 @@ def test_a_job_that_no_longer_owns_the_run_cannot_publish(engine, tmp_path):  # 
     assert rejected.value.code == "IMPORT_SUPERSEDED"
     with engine.begin() as conn:
         assert publish_staged(conn, run.organization_id, attempt, job, step, job_id=owner)["ok"]
+
+
+def test_staging_stops_at_one_total_deadline(engine, tmp_path):  # code-review #13
+    """Each statement gets only what is left of the attempt's time, so quick statements cannot
+    add up past it, and running out reads as a timeout, never as a failed load."""
+    _, attempt, job, step = _validated(engine, tmp_path)
+    ticks = iter(range(10_000))  # one second passes at each look at the clock
+    with pytest.raises(PublicationRejected) as rejected:
+        load_staged(engine, attempt, job, step, timeout_s=5, clock=lambda: next(ticks))
+    assert rejected.value.timed_out
+    assert _staged_of(engine, attempt) == []
+
+
+def test_a_statement_cancelled_by_its_timeout_reads_as_timed_out(engine, tmp_path):  # #13
+    _, attempt, job, step = _validated(engine, tmp_path)
+    with engine.connect() as holder, holder.begin():  # staging waits on this lock past its time
+        holder.execute(sa.text("LOCK TABLE net_locations, net_products, net_batches"))
+        with pytest.raises(PublicationRejected) as rejected:
+            load_staged(engine, attempt, job, step, timeout_s=1)
+    assert rejected.value.timed_out
+    assert _staged_of(engine, attempt) == []
