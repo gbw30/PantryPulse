@@ -4,6 +4,9 @@ from uuid import UUID
 
 import sqlalchemy as sa
 
+from app.repositories.jobs import TrustedScope
+from app.services.presenter_access import AccessError
+
 # The version's import uploaded inbound.csv (even header-only), so "no deliveries" is data, not a
 # blank. One definition for the network reads and the frozen scenario (`v` = dataset_versions).
 INBOUND_FILE_PROVIDED = (
@@ -31,3 +34,18 @@ def inbound_file_provided(conn: sa.Connection, version_id: UUID) -> bool:
     return conn.scalar(sa.text(
         f"SELECT {INBOUND_FILE_PROVIDED} FROM dataset_versions v WHERE v.id = :v"),
         {"v": version_id})
+
+
+def network_organization(conn: sa.Connection, network_id: UUID) -> UUID:
+    """The one tenancy rule (W0-network-model §2): a network's rows and jobs are under its own
+    organization; the client never names it. 404 if there is no such network."""
+    organization = conn.scalar(sa.text("SELECT organization_id FROM networks WHERE id = :n"),
+                               {"n": network_id})
+    if organization is None:
+        raise AccessError("NETWORK_NOT_FOUND", 404)
+    return organization
+
+
+def network_scope(conn: sa.Connection, scope: TrustedScope, network_id: UUID) -> TrustedScope:
+    """The network's organization, acting as the session's actor."""
+    return TrustedScope(network_organization(conn, network_id), scope.actor_ref)

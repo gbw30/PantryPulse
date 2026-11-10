@@ -10,6 +10,7 @@ from collections.abc import AsyncIterator
 from uuid import UUID
 
 import sqlalchemy as sa
+from fastapi.concurrency import run_in_threadpool
 
 from app.repositories import imports as repo
 from app.repositories.jobs import TrustedScope
@@ -26,7 +27,7 @@ from app.schemas.v1_imports import (
 )
 from app.schemas.v1_networks import REQUIRED_TEMPLATES, TemplateName
 from app.services.imports import staging
-from app.services.jobs.contracts import AttemptState
+from app.services.jobs.contracts import AttemptState, sha256_hex
 from app.services.jobs.registry import InputRejected
 from app.services.presenter_access import AccessError
 
@@ -48,18 +49,26 @@ async def store_import_file(
     rt, scope, import_id: UUID, name: TemplateName, chunks: AsyncIterator[bytes]
 ) -> ImportFile:
     """`chunks` is already capped at UPLOAD_CAP_BYTES by the router (InputRejected → 413).
-    An over-cap or broken upload leaves no file (W1-D04)."""
-    with rt.engine.connect() as conn:
-        _uploading(repo.get_run(conn, import_id))
-    base = staging.import_dir()
-    partial, size, sha256 = await staging.stream_upload(base, import_id, name, chunks)
-    try:
+    An over-cap or broken upload leaves no file (W1-D04). The database work runs in the
+    threadpool, never on the event loop (code-review #6)."""
+
+    def check() -> None:
+        with rt.engine.connect() as conn:
+            _uploading(repo.get_run(conn, import_id))
+
+    def record() -> None:
         with rt.engine.begin() as conn:
             # Under the run's row lock, which the commit and other uploads also take: the file
             # on disk changes only with its record, and never after the commit.
             _uploading(repo.get_run(conn, import_id, lock=True))
             repo.record_file(conn, import_id, name, size, sha256)
             os.replace(partial, staging.upload_path(base, import_id, name))
+
+    await run_in_threadpool(check)
+    base = staging.import_dir()
+    partial, size, sha256 = await staging.stream_upload(base, import_id, name, chunks)
+    try:
+        await run_in_threadpool(record)
     finally:
         partial.unlink(missing_ok=True)
     return ImportFile(name=name, bytes=size, sha256=sha256)
@@ -104,11 +113,17 @@ def commit_import(
                 {"n": run.network_id, "id": import_id}).all()
             if not all(_ended(rt, org, job_id) for org, job_id in running):
                 raise AccessError("IMPORT_IN_PROGRESS", 409)
+        # The queue admits in its own transaction, before this one records the job. The key is
+        # the run's, its earlier job's and this input's (with the files' content), never the
+        # caller's: a Retry after a lost record gets the job already admitted, while other input
+        # gets its own job and the admitted one stops at its first progress write (W4).
+        payload = staging.job_input(conn, run, request.as_of_date, staging.import_dir(),
+                                    scope.actor_ref)
+        content = sorted((f["name"], f["sha256"]) for f in run.files)
+        digest = sha256_hex({"input": payload, "files": content})[:32]
         accepted = rt.queue.submit(
-            TrustedScope(run.organization_id, scope.actor_ref), CONTRACT,
-            staging.job_input(conn, run, request.as_of_date, staging.import_dir(),
-                              scope.actor_ref),
-            idempotency_key)
+            TrustedScope(run.organization_id, scope.actor_ref), CONTRACT, payload,
+            f"import-commit:{import_id}:{run.job_id or 'first'}:{digest}")
         repo.set_phase(conn, import_id, "staging", job_id=accepted.job_id,
                        progress={"unit": "rows", "done": 0, "total": None})
     return ImportAccepted(import_id=import_id, job_id=accepted.job_id, status_url=status_url)

@@ -101,14 +101,14 @@ class ImportPublisher:
         if package["job"]["organization_id"] != str(identity.organization_id):
             raise PublicationRejected("IMPORT_NOT_FOUND")
         load_staged(engine, identity.attempt_id, package["job"], package["step"],
-                    timeout_s=remaining_s)
+                    timeout_s=remaining_s, job_id=identity.job_id)
         return package
 
     def publish(self, connection, identity, package):
         """Inside the queue lock: the small inserts, then ATTACH of the batches and history
         partitions, which clones and validates the parent's FKs (no batch row is inserted)."""
         return publish_staged(connection, identity.organization_id, identity.attempt_id,
-                              package["job"], package["step"])
+                              package["job"], package["step"], job_id=identity.job_id)
 
     def follow_ups(self, connection, identity, manifest):
         """In `publish`'s transaction: the new version's enrichment.v1 exists only if the version

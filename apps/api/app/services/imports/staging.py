@@ -20,16 +20,18 @@ import json
 import os
 import shutil
 import tempfile
+import time
 import uuid
 from collections.abc import AsyncIterator, Callable, Mapping
 from contextlib import ExitStack
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import IO, Any
 from uuid import UUID
 
 import sqlalchemy as sa
+from psycopg.errors import QueryCanceled
 
 from app.repositories import imports as repo
 from app.schemas.v1_enrichment import GeoLocation
@@ -155,15 +157,22 @@ def _data_lines(path: Path) -> int:
 
 
 class _Progress:
-    """Writes progress on its own short transactions, outside the import transaction."""
+    """Writes progress on its own short transactions, outside the import transaction. A queue
+    job (`job_id`) moves only a run that is its own; `run_import` has no job."""
 
-    def __init__(self, engine: sa.Engine, import_id: UUID):
-        self.engine, self.import_id = engine, import_id
+    def __init__(self, engine: sa.Engine, import_id: UUID, job_id: UUID | None = None):
+        self.engine, self.import_id, self.job_id = engine, import_id, job_id
 
     def phase(self, phase: str, unit: str, done: int, total: int | None) -> None:
+        progress = {"unit": unit, "done": done, "total": total}
         with self.engine.begin() as conn:
-            repo.set_phase(conn, self.import_id, phase,
-                           progress={"unit": unit, "done": done, "total": total})
+            if self.job_id is None:
+                repo.set_phase(conn, self.import_id, phase, progress=progress)
+            elif not repo.set_job_phase(conn, self.import_id, self.job_id, phase,
+                                        progress=progress):
+                finished = repo.get_run(conn, self.import_id).phase in ("done", "failed")
+                raise PublicationRejected("IMPORT_ALREADY_FINISHED" if finished
+                                          else "IMPORT_SUPERSEDED")
 
 
 def stage_table(attempt_id: UUID, suffix: str) -> str:
@@ -283,14 +292,26 @@ def _write_rows(folder: Path, org: UUID, version_id: UUID, rows: ParsedNetwork) 
 
 def load_staged(engine: sa.Engine, attempt_id: UUID, job: Mapping[str, Any],
                 step: Mapping[str, Any], *, timeout_s: float | None = None,
+                clock: Callable[[], float] = time.monotonic, job_id: UUID | None = None,
                 on_phase: Callable[[str], None] | None = None) -> None:
     base, import_id = Path(job["import_dir"]), UUID(job["import_id"])
     folder = attempt_dir(base, import_id, attempt_id)
+    deadline = None if timeout_s is None else clock() + timeout_s
+
+    def time_left(cursor) -> None:
+        """One deadline for the whole load: each statement gets only what is left of it."""
+        if deadline is None:
+            return
+        left_ms = int((deadline - clock()) * 1000)
+        if left_ms <= 0:
+            raise PublicationRejected("IMPORT_TIMED_OUT", timed_out=True)
+        cursor.execute(f"SET LOCAL statement_timeout = {left_ms}")
+
     try:
         _sweep(engine, base, attempt_id)
         if not step["ok"]:
             return
-        progress = _Progress(engine, import_id)
+        progress = _Progress(engine, import_id, job_id)
         checks = len(job["files"])
         for phase, unit, done, total in (("validating", "checks", checks, checks),
                                          ("committing", "rows", 0, step["rows"])):
@@ -299,8 +320,7 @@ def load_staged(engine: sa.Engine, attempt_id: UUID, job: Mapping[str, Any],
                 on_phase(phase)
         org, version_id = UUID(job["organization_id"]), UUID(step["dataset_version_id"])
         with engine.begin() as conn:
-            if timeout_s:
-                conn.execute(sa.text(f"SET LOCAL statement_timeout = {int(timeout_s * 1000)}"))
+            sa.event.listen(conn, "before_cursor_execute", lambda _c, cursor, *_: time_left(cursor))
             for name, (table, columns) in LOAD_FILES.items():
                 staged = stage_table(attempt_id, name)
                 if name in PARTITIONS:  # a partition to be: logged, with the parent's CHECKs
@@ -309,22 +329,32 @@ def load_staged(engine: sa.Engine, attempt_id: UUID, job: Mapping[str, Any],
                 else:
                     conn.execute(sa.text(
                         f"CREATE UNLOGGED TABLE {staged} (LIKE {table} INCLUDING DEFAULTS)"))
-                _copy(conn, staged, columns, folder / f"{name}.csv")
+                _copy(conn, staged, columns, folder / f"{name}.csv", time_left)
                 if name in PARTITIONS:
                     _partition_keys(conn, staged, name, version_id)
             raw = stage_table(attempt_id, "raw")
             conn.execute(sa.text(f"CREATE UNLOGGED TABLE {raw} (file text, line_no integer, "
                                  "c01 text, c02 text, c03 text, c04 text, c05 text)"))
-            _copy(conn, raw, RAW_COLUMNS, folder / "history.csv")
+            _copy(conn, raw, RAW_COLUMNS, folder / "history.csv", time_left)
             for name in HISTORY_TABLES:
                 _load_history(conn, name, raw, attempt_id, org, version_id)
             conn.execute(sa.text(f"DROP TABLE {raw}"))
+            stamp = datetime.now(UTC).isoformat()  # _sweep's age check: when this attempt staged
+            for name in _staged_tables(conn):
+                if name.startswith(stage_table(attempt_id, "")):
+                    conn.execute(sa.text(f"COMMENT ON TABLE {name} IS '{stamp}'"))
+    except (QueryCanceled, sa.exc.OperationalError) as exc:
+        if isinstance(getattr(exc, "orig", exc), QueryCanceled):  # its statement_timeout
+            raise PublicationRejected("IMPORT_TIMED_OUT", timed_out=True) from None
+        raise
     finally:
         shutil.rmtree(folder, ignore_errors=True)
 
 
-def _copy(conn: sa.Connection, table: str, columns: str, path: Path) -> None:
+def _copy(conn: sa.Connection, table: str, columns: str, path: Path,
+          time_left: Callable[[Any], None]) -> None:
     cursor = conn.connection.driver_connection.cursor()
+    time_left(cursor)  # COPY runs on the driver's cursor, which SQLAlchemy events do not see
     with cursor.copy(f"COPY {table} ({columns}) FROM STDIN (FORMAT csv)") as copy, \
             path.open("rb") as source:
         while block := source.read(1 << 20):
@@ -337,19 +367,41 @@ def _staged_tables(conn: sa.Connection) -> list[str]:
         "AND tablename LIKE 'pp\\_stage\\_%'")))
 
 
+# An import attempt lives at most import_total_s (300 s); staging older than this is an orphan.
+ORPHAN_AGE_S = 3600
+
+
+def _stamped_before(stamp: str | None, cutoff: float) -> bool:
+    try:
+        return datetime.fromisoformat(stamp).timestamp() < cutoff  # type: ignore[arg-type]
+    except (TypeError, ValueError):  # no stamp: not staged by a load_staged that finished
+        return True
+
+
+def _modified_before(path: Path, cutoff: float) -> bool:
+    try:
+        return path.stat().st_mtime < cutoff
+    except FileNotFoundError:  # its own attempt already removed it
+        return False
+
+
 def _sweep(engine: sa.Engine, base: Path, attempt_id: UUID) -> None:
     """Clear what earlier attempts left: `discard` never runs after an uncertain commit, or
-    when a supervisor dies between prepare and publish. One supervisor runs one attempt at a
-    time and publish renames the tables it attaches, so every other staged table or attempt
-    folder is an orphan. A done import's uploads are no longer needed."""
-    mine = stage_table(attempt_id, "")
+    when a supervisor dies between prepare and publish. The sample seed stages outside the
+    queue, beside a live worker (code-review #3), so another attempt's staged table or folder is
+    an orphan only once it is older than ORPHAN_AGE_S, or a table carries no staging stamp.
+    A done import's uploads are no longer needed."""
+    mine, cutoff = stage_table(attempt_id, ""), time.time() - ORPHAN_AGE_S
     with engine.begin() as conn:
-        for name in _staged_tables(conn):
-            if not name.startswith(mine):
-                conn.execute(sa.text(f"DROP TABLE {name}"))
+        for name, stamp in conn.execute(sa.text(
+                "SELECT c.relname, obj_description(c.oid, 'pg_class') FROM pg_class c "
+                "WHERE c.relnamespace = current_schema()::regnamespace AND c.relkind = 'r' "
+                "AND c.relname LIKE 'pp\\_stage\\_%'")):
+            if not name.startswith(mine) and _stamped_before(stamp, cutoff):
+                conn.execute(sa.text(f"DROP TABLE IF EXISTS {name}"))
         done = set(conn.scalars(sa.text("SELECT id::text FROM import_runs WHERE phase = 'done'")))
     for folder in base.glob("*/attempt-*"):
-        if folder.name != f"attempt-{attempt_id.hex}":
+        if folder.name != f"attempt-{attempt_id.hex}" and _modified_before(folder, cutoff):
             shutil.rmtree(folder, ignore_errors=True)
     for folder in base.glob("*"):
         if folder.name in done:
@@ -403,10 +455,15 @@ def _partition_keys(conn: sa.Connection, part: str, suffix: str, version_id: UUI
 # --- publish: inside the queue lock -----------------------------------------------------------
 
 def publish_staged(conn: sa.Connection, organization_id: UUID, attempt_id: UUID,
-                   job: Mapping[str, Any], step: Mapping[str, Any]) -> dict[str, Any]:
+                   job: Mapping[str, Any], step: Mapping[str, Any], *,
+                   job_id: UUID | None = None) -> dict[str, Any]:
     run = repo.get_run(conn, UUID(job["import_id"]), lock=True)
     if run.organization_id != organization_id:
         raise PublicationRejected("IMPORT_NOT_FOUND")
+    if run.phase in ("done", "failed"):  # never a second version, never over a final report
+        raise PublicationRejected("IMPORT_ALREADY_FINISHED")
+    if job_id is not None and run.job_id not in (None, job_id):  # a later commit replaced it
+        raise PublicationRejected("IMPORT_SUPERSEDED")
     if not step["ok"]:
         repo.fail_run(conn, run, [RowError.model_validate(e) for e in step["errors"]],
                       step["error_count"])

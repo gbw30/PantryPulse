@@ -4,6 +4,7 @@ re-import, network reads. These run `run_import`, the job's step, prepare and pu
 process; tests/imports/test_import_worker.py runs the same job under a real supervisor."""
 
 import asyncio
+import threading
 import uuid
 from datetime import date
 from types import SimpleNamespace
@@ -15,7 +16,7 @@ from fastapi.testclient import TestClient
 
 from app.main import create_app
 from app.repositories.jobs import QueueRepository, TrustedScope, create_queue_engine
-from app.repositories.networks import inbound_file_provided
+from app.repositories.networks import inbound_file_provided, network_scope
 from app.routers.forecasts import presenter, runtime
 from app.schemas.v1_imports import ImportCommit, ImportCreate, NewNetwork
 from app.services.imports import api
@@ -399,3 +400,109 @@ def test_reimport_commit_does_not_block_writers_that_reference_the_network(rt, m
 
     monkeypatch.setattr(rt.queue, "submit", submit_while_a_writer_references_the_network)
     assert _commit(rt, again.import_id).job_id is not None
+
+
+def test_a_commit_retried_after_its_phase_write_failed_reuses_the_admitted_job(rt, monkeypatch):
+    """Import edge (W4): the queue admits the job in its own transaction, before the run records
+    it. If that record is lost, the user's Retry (a new Idempotency-Key) must get the same job,
+    not admit a second one."""
+    created = api.create_import(rt, SCOPE, _new())
+    _upload(rt, created.import_id, FILES)
+    admitted, submit, set_phase = [], rt.queue.submit, api.repo.set_phase
+
+    def recording_submit(*args, **kwargs):
+        accepted = submit(*args, **kwargs)
+        admitted.append(accepted.job_id)
+        return accepted
+
+    def lost(*args, **kwargs):
+        raise RuntimeError("connection lost after admission")
+
+    monkeypatch.setattr(rt.queue, "submit", recording_submit)
+    monkeypatch.setattr(api.repo, "set_phase", lost)
+    commit = ImportCommit(as_of_date=date(2026, 11, 4))
+    with pytest.raises(RuntimeError):
+        api.commit_import(rt, SCOPE, created.import_id, commit, "click-1")
+    monkeypatch.setattr(api.repo, "set_phase", set_phase)
+    retried = api.commit_import(rt, SCOPE, created.import_id, commit, "click-2")
+    assert admitted == [admitted[0], admitted[0]] and retried.job_id == admitted[0]
+
+
+def test_an_upload_does_its_database_work_off_the_event_loop(rt, monkeypatch):  # code-review #6
+    created = api.create_import(rt, SCOPE, _new())
+    loop_thread, seen = threading.get_ident(), []
+    for name in ("get_run", "record_file"):
+        real = getattr(api.repo, name)
+
+        def spy(*args, _real=real, **kwargs):
+            seen.append(threading.get_ident())
+            return _real(*args, **kwargs)
+        monkeypatch.setattr(api.repo, name, spy)
+    _upload(rt, created.import_id, {"locations": FILES["locations"]})
+    assert seen  # the run checked before and under its lock, then the file recorded
+    assert loop_thread not in seen
+
+
+def test_a_network_acts_under_its_own_organization_with_the_sessions_actor(rt):  # W2-06 §4
+    """The one tenancy rule (W0-network-model §2): the network decides the organization, never
+    the client or the session's own organization."""
+    network_id = _imported(rt).network_id
+    with rt.engine.connect() as conn:
+        org = conn.scalar(sa.text("SELECT organization_id FROM networks WHERE id = :n"),
+                          {"n": network_id})
+        assert network_scope(conn, SCOPE, network_id) == TrustedScope(org, SCOPE.actor_ref)
+        with pytest.raises(AccessError) as missing:
+            network_scope(conn, SCOPE, uuid.uuid4())
+    assert (missing.value.code, missing.value.status) == ("NETWORK_NOT_FOUND", 404)
+
+
+def test_the_session_can_cancel_an_import_job_but_not_retry_it(rt):  # W2-06 §4
+    """Retry is refused: an import is committed again through its own route, which checks the
+    files and the network's other imports."""
+    created = api.create_import(rt, SCOPE, _new())
+    _upload(rt, created.import_id, FILES)
+    job_id = _commit(rt, created.import_id).job_id
+    client = _client(rt)
+    refused = client.post(f"/api/v1/jobs/{job_id}/retry", headers={"Idempotency-Key": "r-1"})
+    assert refused.status_code == 404, refused.text
+    cancelled = client.post(f"/api/v1/jobs/{job_id}/cancel", headers={"Idempotency-Key": "c-1"})
+    assert cancelled.status_code == 202, cancelled.text
+    assert cancelled.json()["state"] == "CANCELLED"
+    assert api.import_status(rt, SCOPE, created.import_id).phase == "failed"
+
+
+@pytest.mark.parametrize("change", ["date", "file", "same file"])
+def test_other_input_after_a_lost_record_gets_its_own_job(rt, monkeypatch, change):  # H1 review
+    """The admitted job may never record itself (it can end before its first progress write).
+    A commit with another date or other file content must then get its own job, which the run
+    records, instead of a 409 every time; the admitted job stops at its first progress write.
+    The same bytes uploaded again (the file moves in the run's list) still replay it."""
+    created = api.create_import(rt, SCOPE, _new())
+    _upload(rt, created.import_id, FILES)
+    admitted, submit, set_phase = [], rt.queue.submit, api.repo.set_phase
+
+    def recording_submit(*args, **kwargs):
+        accepted = submit(*args, **kwargs)
+        admitted.append(accepted.job_id)
+        return accepted
+
+    def lost(*args, **kwargs):
+        raise RuntimeError("connection lost after admission")
+
+    monkeypatch.setattr(rt.queue, "submit", recording_submit)
+    monkeypatch.setattr(api.repo, "set_phase", lost)
+    with pytest.raises(RuntimeError):
+        api.commit_import(rt, SCOPE, created.import_id,
+                          ImportCommit(as_of_date=date(2026, 11, 4)), "click-1")
+    monkeypatch.setattr(api.repo, "set_phase", set_phase)
+    as_of = date(2026, 11, 3) if change == "date" else date(2026, 11, 4)
+    if change == "file":
+        _upload(rt, created.import_id, {"products": FILES["products"] + "SALT,Salt,case\n"})
+    if change == "same file":
+        _upload(rt, created.import_id, {"locations": FILES["locations"]})
+    retried = api.commit_import(rt, SCOPE, created.import_id, ImportCommit(as_of_date=as_of),
+                                "click-2")
+    assert (retried.job_id == admitted[0]) is (change == "same file")
+    with rt.engine.connect() as conn:
+        assert api.repo.get_run(conn, created.import_id).job_id == retried.job_id
+    _cancel_queued(rt.engine, rt.queue)

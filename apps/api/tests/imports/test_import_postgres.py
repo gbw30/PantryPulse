@@ -3,6 +3,7 @@
 
 import asyncio
 import hashlib
+import inspect
 import uuid
 from datetime import date
 from pathlib import Path
@@ -17,6 +18,7 @@ from app.repositories.jobs import create_queue_engine
 from app.schemas.v1_imports import NewNetwork
 from app.services.imports import api
 from app.services.imports.staging import (
+    LOAD_FILES,
     drop_staged,
     job_input,
     load_staged,
@@ -27,6 +29,7 @@ from app.services.imports.staging import (
     write_load_files,
     write_upload,
 )
+from app.services.jobs.registry import PublicationRejected
 from tests.integration.wq_support import alembic_config, database_url, reset_schema
 
 pytestmark = pytest.mark.integration
@@ -189,17 +192,29 @@ def test_batches_round_trip_exact(engine, tmp_path):
     ]
 
 
-def _prepared(engine, base: Path):
-    """A new network's run through the job's `validate` step and `prepare`."""
+def _validated(engine, base: Path):
+    """A new network's run through the job's `validate` step, ready for `prepare`."""
     with engine.begin() as conn:
         run = repo.create_run(conn, NEW, None)
     _write(engine, base, run.id, FILES)
     with engine.connect() as conn:
         job = job_input(conn, repo.get_run(conn, run.id), AS_OF, base, "local")
     attempt = uuid.uuid4()
-    step = write_load_files(job, attempt)
+    return run, attempt, job, write_load_files(job, attempt)
+
+
+def _prepared(engine, base: Path):
+    """A new network's run through the job's `validate` step and `prepare`."""
+    run, attempt, job, step = _validated(engine, base)
     load_staged(engine, attempt, job, step)
     return run, attempt, job, step
+
+
+def _staged_of(engine, attempt: uuid.UUID) -> list[str]:
+    with engine.connect() as conn:
+        return list(conn.scalars(sa.text(
+            "SELECT tablename FROM pg_tables WHERE schemaname = current_schema() "
+            "AND tablename LIKE :p"), {"p": stage_table(attempt, "") + "%"}))
 
 
 def _batch_partitions(conn) -> list[tuple[str, str]]:
@@ -550,3 +565,105 @@ def test_overlapping_uploads_of_one_file_keep_disk_and_record_in_step(
 
     asyncio.run(both())
     assert _on_disk_matches_record(engine, tmp_path, run.id, "products")
+
+
+def test_a_finished_run_is_never_published_again(engine, tmp_path):  # code-review #5
+    run, attempt, job, step = _prepared(engine, tmp_path)
+    with engine.begin() as conn:
+        assert publish_staged(conn, run.organization_id, attempt, job, step)["ok"]
+    again = uuid.uuid4()
+    with pytest.raises(PublicationRejected) as rejected, engine.begin() as conn:
+        publish_staged(conn, run.organization_id, again, job, step)
+    assert rejected.value.code == "IMPORT_ALREADY_FINISHED"
+
+
+def test_a_job_that_no_longer_owns_the_run_cannot_publish(engine, tmp_path):  # import edge (W4)
+    """A job the run no longer names (a later commit replaced it) cannot publish."""
+    run, attempt, job, step = _prepared(engine, tmp_path)
+    owner = uuid.uuid4()
+    with engine.begin() as conn:
+        repo.set_phase(conn, run.id, "staging", job_id=owner)
+    with pytest.raises(PublicationRejected) as rejected, engine.begin() as conn:
+        publish_staged(conn, run.organization_id, attempt, job, step, job_id=uuid.uuid4())
+    assert rejected.value.code == "IMPORT_SUPERSEDED"
+    with engine.begin() as conn:
+        assert publish_staged(conn, run.organization_id, attempt, job, step, job_id=owner)["ok"]
+
+
+def test_staging_stops_at_one_total_deadline(engine, tmp_path):  # code-review #13
+    """Each statement gets only what is left of the attempt's time, so quick statements cannot
+    add up past it, and running out reads as a timeout, never as a failed load."""
+    _, attempt, job, step = _validated(engine, tmp_path)
+    ticks = iter(range(10_000))  # one second passes at each look at the clock
+    with pytest.raises(PublicationRejected) as rejected:
+        load_staged(engine, attempt, job, step, timeout_s=5, clock=lambda: next(ticks))
+    assert rejected.value.timed_out
+    assert _staged_of(engine, attempt) == []
+
+
+def test_a_statement_cancelled_by_its_timeout_reads_as_timed_out(engine, tmp_path):  # #13
+    _, attempt, job, step = _validated(engine, tmp_path)
+    with engine.connect() as holder, holder.begin():  # staging waits on this lock past its time
+        holder.execute(sa.text("LOCK TABLE net_locations, net_products, net_batches"))
+        with pytest.raises(PublicationRejected) as rejected:
+            load_staged(engine, attempt, job, step, timeout_s=1)
+    assert rejected.value.timed_out
+    assert _staged_of(engine, attempt) == []
+
+
+# --- H1 review: the job is the run's record when the commit's was lost -----------------------
+
+def test_a_job_whose_record_was_lost_records_itself_and_publishes(engine, tmp_path):
+    """The queue admitted the job, then the commit's record of it was lost. The commit key is
+    stable per run, so this is the run's only job: it records itself as it starts."""
+    run, attempt, job, step = _validated(engine, tmp_path)
+    admitted = uuid.uuid4()
+    load_staged(engine, attempt, job, step, job_id=admitted)
+    with engine.connect() as conn:
+        assert repo.get_run(conn, run.id).job_id == admitted
+    with engine.begin() as conn:
+        assert publish_staged(conn, run.organization_id, attempt, job, step, job_id=admitted)["ok"]
+
+
+def test_a_run_that_names_no_job_is_published_by_the_job_that_staged_it(engine, tmp_path):
+    run, attempt, job, step = _prepared(engine, tmp_path)  # the run records no job
+    with engine.begin() as conn:
+        assert publish_staged(conn, run.organization_id, attempt, job, step,
+                              job_id=uuid.uuid4())["ok"]
+
+
+def test_a_replaced_job_stops_before_staging_and_leaves_the_run_alone(engine, tmp_path):
+    run, attempt, job, step = _validated(engine, tmp_path)
+    owner = uuid.uuid4()
+    with engine.begin() as conn:
+        repo.set_phase(conn, run.id, "staging", job_id=owner)
+    with pytest.raises(PublicationRejected) as rejected:
+        load_staged(engine, attempt, job, step, job_id=uuid.uuid4())
+    assert rejected.value.code == "IMPORT_SUPERSEDED"
+    with engine.connect() as conn:
+        after = repo.get_run(conn, run.id)
+    assert (after.phase, after.job_id) == ("staging", owner)
+    assert _staged_of(engine, attempt) == []
+
+
+def test_a_late_attempt_never_moves_a_finished_run_back(engine, tmp_path):
+    run, attempt, job, step = _prepared(engine, tmp_path)
+    with engine.begin() as conn:
+        publish_staged(conn, run.organization_id, attempt, job, step)
+    with pytest.raises(PublicationRejected) as rejected:
+        load_staged(engine, uuid.uuid4(), job, step, job_id=uuid.uuid4())
+    assert rejected.value.code == "IMPORT_ALREADY_FINISHED"
+    with engine.connect() as conn:
+        assert repo.get_run(conn, run.id).phase == "done"
+
+
+def test_each_copy_gets_only_the_time_left(engine, tmp_path):  # #13, H1 review
+    _, attempt, job, step = _validated(engine, tmp_path)
+    asked_by = []
+
+    def clock():
+        asked_by.append(inspect.stack()[2].function)  # clock ← time_left ← its caller
+        return 0.0
+
+    load_staged(engine, attempt, job, step, timeout_s=60, clock=clock)
+    assert asked_by.count("_copy") == len(LOAD_FILES) + 1  # each file, then the raw history

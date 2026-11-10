@@ -9,6 +9,7 @@ from uuid import UUID
 
 import sqlalchemy as sa
 
+from app.repositories.networks import network_organization
 from app.schemas.v1_imports import NewNetwork, OutsideHorizonInbound, RowError
 from app.services.presenter_access import AccessError
 
@@ -44,10 +45,7 @@ def create_run(conn: sa.Connection, network: NewNetwork | None, network_id: UUID
                      {"id": organization_id, "name": network.name})
         new_network = json.dumps({**network.model_dump(mode="json"), "is_sample": is_sample})
     else:
-        organization_id = conn.scalar(sa.text(
-            "SELECT organization_id FROM networks WHERE id = :id"), {"id": network_id})
-        if organization_id is None:
-            raise AccessError("NETWORK_NOT_FOUND", 404)
+        organization_id = network_organization(conn, network_id)
         new_network = None
     run_id = uuid.uuid4()
     conn.execute(sa.text(
@@ -84,6 +82,20 @@ def set_phase(conn: sa.Connection, run_id: UUID, phase: str, *, job_id: UUID | N
         "WHERE id = :id"),
         {"id": run_id, "phase": phase, "job": job_id,
          "progress": None if progress is None else json.dumps(progress)})
+
+
+def set_job_phase(conn: sa.Connection, run_id: UUID, job_id: UUID, phase: str, *,
+                  progress: dict[str, Any]) -> bool:
+    """A job's own progress. It records the job when the commit's record was lost (the commit key
+    is stable per run, so it is the run's only job), and never writes over a run that names
+    another job or has finished. False when the run is not this job's to move."""
+    return conn.execute(sa.text(
+        "UPDATE import_runs SET phase = :phase, job_id = :job, "
+        "progress = CAST(:progress AS jsonb), updated_at = clock_timestamp() "
+        "WHERE id = :id AND (job_id IS NULL OR job_id = :job) "
+        "AND phase NOT IN ('done', 'failed')"),
+        {"id": run_id, "job": job_id, "phase": phase,
+         "progress": json.dumps(progress)}).rowcount == 1
 
 
 def set_progress(conn: sa.Connection, run_id: UUID, unit: str, done: int,

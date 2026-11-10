@@ -53,7 +53,6 @@ from app.services.forecasting.schemas import (
     StructuredError,
 )
 from app.services.jobs.contracts import AttemptState, canonical_json
-from app.services.optimization.api_v3 import _tenant
 
 WINDOW_DAYS = 42  # the most any method reads: the moving average at backtest origin 4 (28 + 14)
 SENDERS = ("hub", "distribution_center")  # never have demand of their own
@@ -350,7 +349,7 @@ def submit_network_forecast(
         rt.engine.connect().execution_options(isolation_level="REPEATABLE READ") as conn,
         conn.begin(),
     ):
-        tenant = _tenant(conn, scope, network_id)
+        tenant = networks_repo.network_scope(conn, scope, network_id)
         (network,) = networks_repo.networks(conn, network_id)
         if request.dataset_version_id != network.dataset_version_id:
             known = conn.scalar(sa.text(
@@ -371,7 +370,7 @@ def submit_network_forecast(
 def list_forecast_runs(rt, scope, network_id: UUID) -> ForecastRunList:
     """The network's forecast.v1 jobs, newest first (CR-w1-web-2)."""
     with rt.engine.connect() as conn:
-        tenant = _tenant(conn, scope, network_id)
+        tenant = networks_repo.network_scope(conn, scope, network_id)
         rows = conn.execute(sa.text(
             "SELECT j.job_id, j.state, j.created_at, r.id AS run_id, "
             "j.input_package -> 'input' -> 'network_forecast' ->> 'dataset_id' AS dataset_id "
@@ -389,7 +388,7 @@ def list_forecast_runs(rt, scope, network_id: UUID) -> ForecastRunList:
 def read_run(rt, scope, network_id: UUID, forecast_run_id: UUID):
     """(frozen input, output, row) of a published network run; 404 for any other run."""
     with rt.engine.connect() as conn:
-        tenant = _tenant(conn, scope, network_id)
+        tenant = networks_repo.network_scope(conn, scope, network_id)
         row = conn.execute(sa.text(
             "SELECT id, job_id, planning_ready, frozen_input, output FROM forecast_runs "
             "WHERE id = :r AND organization_id = :org "
