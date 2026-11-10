@@ -91,8 +91,20 @@ def test_leaves_the_callers_transaction_to_the_caller(db):
     with Session(db) as session:
         session.begin()
         assert samples.ensure_samples(session, TODAY).loaded == NAMES
-        assert session.in_transaction()
+        assert session.in_transaction() and session.connection().in_transaction()
         session.rollback()
+
+
+def test_refuses_a_caller_with_an_open_write(db):
+    # An open organizations insert would block each import's partition attach forever (a
+    # deadlock PostgreSQL can't see), so the seed must refuse at once instead of hanging.
+    with Session(db) as session:
+        session.begin()
+        seed_local.ensure_local_organization(session)
+        with pytest.raises(RuntimeError, match="commit"):
+            samples.ensure_samples(session, TODAY)
+        session.rollback()
+    assert sample_versions(db) == {}
 
 
 def sample_versions(engine) -> dict[str, list[tuple]]:

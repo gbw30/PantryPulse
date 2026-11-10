@@ -45,6 +45,12 @@ def ensure_samples(session, today: date) -> SeedReport:
     One seed runs at a time: the freshness check and the import aren't one transaction, so two
     seeds at once would both import (a duplicate version, or a deadlock on the partition attach).
     The advisory lock's transaction holds no table locks, so the imports can't block on it."""
+    # Refuse at once rather than hang: any write (pending or executed) in the caller's
+    # transaction may hold a lock an import waits on.
+    if session.new or session.dirty or session.deleted or session.scalar(
+            sa.text("SELECT pg_current_xact_id_if_assigned()")) is not None:
+        raise RuntimeError("commit the caller's writes before seeding the samples: an open "
+                           "write would block each import's partition attach")
     engine = session.get_bind()
     loaded = []
     with engine.begin() as lock:

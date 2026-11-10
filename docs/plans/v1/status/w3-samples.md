@@ -63,6 +63,14 @@ PR #121 merged (`77da30e`). The follow-up (`46e4706`, merge `915b98c` of `origin
   - CR-4: `ensure_samples` no longer commits its caller's session; `local_bootstrap.run` commits the organization first (lead, #125). `test_leaves_the_callers_transaction_to_the_caller` failed before the change.
   - Verifier N1: `test_seed.seed()` commits the organization, then seeds in its own transaction, as the bootstrap now does; the module and helper docstrings say so.
   - The web's example URL (`network-api.ts:18`) needs `&mode=`; the w3-web lane has that follow-up (lead, 2026-11-09).
+  - PR #128 `/code-review medium` (9 findings), each checked against the code:
+    - Fixed (finding 2): with the commit gone, an open write in the caller's transaction would hang the seed silently, as the W3-P04 deadlock did. `ensure_samples` now refuses at once with a `RuntimeError` if the session has pending ORM changes or an assigned transaction id (`pg_current_xact_id_if_assigned()`, PostgreSQL 13+; compose and CI use 16). Test: `test_refuses_a_caller_with_an_open_write` (before the fix it hit the test's 30 s `lock_timeout`; production sets none).
+    - Fixed (finding 9): `test_leaves_the_callers_transaction_to_the_caller` also asserts that the connection's transaction is still open.
+    - Fixed (finding 8): `test_every_template_has_example_in_each_mode` builds each sample once. The Retail build takes 0.24 s, so nothing more is worth caching. The subprocess `--check` stays because it tests the script itself.
+    - Already recorded: finding 1 (the web `&mode=` merge order), finding 3 (freshness by date only), finding 7 (the 2.77 MB Retail example).
+    - For the lead or w3-web, not in lane paths:
+      - Finding 6: passing `engine` instead of a session to `seed_local.seed`/`ensure_samples` would make "no caller writes" hold by construction. The guard gives the same safety within the current interface.
+      - Findings 4 and 5: with no mode, the catalog offers no examples, yet the route's default serves Pantry. The web's `exampleUnavailableReason` can no longer get an error envelope, so its reason lookup is now dead code. With no mode chosen it still downloads all 7 Pantry examples just to get `null` (`import-view.tsx:41`).
 - Demand follows real weekdays (busy Saturdays, quiet Sundays), so a sample generated on a later day has different quantities; determinism is per (seed, date) — W3-P01.
 
 ## Gotchas

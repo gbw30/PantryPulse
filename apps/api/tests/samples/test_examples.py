@@ -56,8 +56,9 @@ def test_every_template_has_example_in_each_mode():
     for folder, build in MODES.values():
         assert sorted(p.stem for p in folder.glob("*.csv")) == sorted(NAMES), folder
         # every example is filled: a header and at least one row (V1-SPEC §6.1)
-        assert all(text.count("\n") >= 2 for text in build(EXAMPLE_AS_OF).files.values())
-        assert set(build(EXAMPLE_AS_OF).files) == set(NAMES), folder
+        files = build(EXAMPLE_AS_OF).files
+        assert all(text.count("\n") >= 2 for text in files.values())
+        assert set(files) == set(NAMES), folder
     for mode in MODES:
         assert all(t.example_available for t in template_catalog(mode).templates), mode
     # Without a mode the page can't know which example set fits, so it offers none.
