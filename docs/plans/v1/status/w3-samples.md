@@ -11,13 +11,13 @@
 | W3-P03 | done | `be0f8e0` | `uv run --frozen pytest -q tests/samples tests/imports/test_templates.py tests/test_v1_contract.py` → 88 passed, 0 skipped |
 | W3-P04 | done | `55026c0` | `uv run --frozen pytest -q tests/samples` → 23 passed, 0 skipped; `tests/test_local_bootstrap.py` → 10 passed, 0 skipped (with `.env.lane`); compose: seed log "samples loaded: 2", both networks `is_sample`, as-of 2026-11-09, 0 jobs queued; offline seed on an `--internal` network (outbound probe blocked) loaded both on a fresh DB |
 
-| Follow-up: CR-3 Retail examples, CR-4 commit removal, N1 | done | see `git log` after `e3ca57e` | `uv run --frozen pytest -q -rs tests/samples tests/imports tests/enrichment tests/test_v1_contract.py tests/test_local_bootstrap.py` (with `.env.lane`) → 340 passed, 0 skipped |
+| Follow-up: CR-3 Retail examples, CR-4 commit removal, N1 | done | `46e4706` (merge `915b98c` adds `origin/v1-local` `a2c7258`) | `uv run --frozen pytest -q -rs tests/samples tests/imports tests/enrichment tests/test_v1_contract.py tests/test_local_bootstrap.py` (with `.env.lane`) → 340 passed, 0 skipped |
 
 Status values: `todo`, `in progress`, `done`, `blocked (<reason or CR id>)`.
 
 ### Next step
 
-PR #121 merged (`77da30e`). Follow-up on `lane/w3-samples` from `e3ca57e` (`origin/v1-local` after lead PR #125; a fast-forward, nothing to merge-commit): quick, full (`PP19_TEST_SCHEMA_ISOLATION=1`), ship-check with the `verifier`, then a new PR to `v1-local` and report head and evidence to the lead. Gabriel approves the merge.
+PR #121 merged (`77da30e`). The follow-up (`46e4706`, merge `915b98c` of `origin/v1-local` `a2c7258`) passed its gates and the `verifier` (pass with findings). Next: the follow-up PR to `v1-local`, ship-check step 5 (`/code-review`) on it, then the lead's review. **Merge order:** the w3-web `&mode=` fix for `network-api.ts:18` must land with this PR or before it (verifier finding, Medium), or a Retail import page offers the Pantry examples. Gabriel approves the merge.
 
 ## Save point 2026-11-09
 
@@ -32,6 +32,8 @@ PR #121 merged (`77da30e`). Follow-up on `lane/w3-samples` from `e3ca57e` (`orig
 |---|---|---|
 | `node scripts/quality/run.cjs quick` (standard env) | `55026c0`, rerun `f7d996e`, `c5dce80`, `a172430` | PASS (4/4) each time. Without a DB, pytest is 1669 passed, 383 skipped: every skip is a PostgreSQL suite reporting `NOT RUN: PP_TEST_DATABASE_URL is not set` (e.g. `test_supervisor` 63, `test_job_queue` 38, `test_build_scenario` 22, `test_import_postgres` 21, `test_seed` 7); not counted as validated, all run in `full` below |
 | `node scripts/quality/run.cjs full` (with `.env.lane`, `PP19_TEST_SCHEMA_ISOLATION=1`) | `55026c0`, rerun `f7d996e`, `c5dce80` | PASS (8/8) each time; same env `uv run --frozen pytest -q -rs` → 2052 passed, 0 skipped (`55026c0`); 2053 passed, 0 skipped in 291 s (`f7d996e`); 2054 passed, 0 skipped in 333 s (`c5dce80`). Focused (`tests/samples`, `test_templates`, `test_v1_contract`, `test_local_bootstrap`) on `c5dce80`: 107 passed, 0 skipped |
+| Follow-up gates (with `.env.lane`; quick in the standard env) | `915b98c` | focused (`tests/samples tests/imports tests/enrichment tests/test_v1_contract.py tests/test_local_bootstrap.py`) 340 passed, 0 skipped; quick PASS 4/4; full (`PP19_TEST_SCHEMA_ISOLATION=1`) PASS 8/8; `uv run --frozen pytest -q -rs` 2077 passed, 0 skipped in 401 s |
+| Follow-up ship-check step 2 (project `verifier`) | `915b98c` | pass with findings: CR-3, CR-4, N1, the authorized edit and the sample rules PASS (54 focused tests, 0 skipped; `--check` 14 examples clean; drift mutants caught; commit mutant caught; Pantry examples unchanged; the other 6 Retail files byte-identical on 4 dates). Medium: the web's example URL sends no `mode` (w3-web fix, merge order). Info: an install seeded before this keeps its old Retail sample, without `routes.csv`, for up to 7 days |
 | `/devkit:ship-check` | `0053567` → fixes in the next commit | step 1 quick+full PASS; step 2 project `verifier`: pass with findings (106 focused tests incl. PostgreSQL 0 skipped, generator `--check` clean, own W1-rule sweep over 1,100 Pantry and 134 Retail dates 0 failures, partial-failure and concurrent-seed runs held). F1 and F2 fixed; F3–F5 recorded below. Step 3: security-guidance not installed. Step 5 `/code-review medium` on PR #121: 10 findings, outcome under Decisions (R1–R10). Step 6 not needed (no auth, payments, migrations or permissions) |
 
 ## Decisions made inside the lane
@@ -74,6 +76,8 @@ PR #121 merged (`77da30e`). Follow-up on `lane/w3-samples` from `e3ca57e` (`orig
 
 - F3: a failed sample import leaves its import run (`failed`) and, for a new network, its organization row; abandoned-import cleanup is deferred to W5 (W2-06 §5 D). A restart imports the missing sample once; nothing is duplicated (verified).
 - F4: a sample import error raises, so the `seed` service fails and compose doesn't start `api`/`worker`. Chosen deliberately: the samples are our own generated files, and the verifier's date sweep found no failing date. Lead call whether a sample failure should instead be logged and skipped.
+- Follow-up: an install seeded before the Retail `routes.csv` keeps that Retail version (estimated routes only) until it's more than 7 days old; freshness is by date only (verifier, Info).
+- Follow-up: until the w3-web `&mode=` fix lands, the Retail import page's example links download the Pantry examples (verifier, Medium; merge order above).
 - F5 (resolved by CR-4): `ensure_samples` no longer commits its caller's session; the caller must not hold an organizations write (see the deadlock gotcha). Concurrent seeds are serialized by an advisory lock since the PR review (L1).
 
 ## Change requests
