@@ -3,12 +3,14 @@
 
 import csv
 import io
+import json
 from datetime import UTC, datetime
 from uuid import UUID
 
 import pytest
+from pydantic import ValidationError
 
-from app.schemas.v1_planning import InboundV3, SavedComparisonV3
+from app.schemas.v1_planning import EXPORT_MAX_ACTIONS, ExportRequest, InboundV3, SavedComparisonV3
 from app.services.optimization.actions import decision_actions
 from app.services.optimization.compare import compare_methods
 from app.services.optimization.export import COLUMNS, SIMULATED_NOTE, export_plan_csv
@@ -249,3 +251,12 @@ def test_export_neutralizes_spreadsheet_formulas():
     for row in rows(text):
         for column in ("product", "from", "to", "why"):
             assert row[column][0] == "'", (column, row[column])
+
+
+def test_export_request_caps_the_selection():  # code-review #7 (W4)
+    ids = [f"t-{i:020x}" for i in range(EXPORT_MAX_ACTIONS + 1)]  # real action ids: t- plus 20 hex
+    assert len(ExportRequest(action_ids=ids[:-1]).action_ids) == EXPORT_MAX_ACTIONS
+    with pytest.raises(ValidationError):
+        ExportRequest(action_ids=ids)
+    # the web proxy's 1 MiB export body cap must admit the largest valid selection
+    assert len(json.dumps({"action_ids": ids[:-1]})) < 1_048_576

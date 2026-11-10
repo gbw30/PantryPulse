@@ -464,5 +464,9 @@ class DecisionActions(ORContract):
     ] = NON_ADDITIVE_LABEL
 
 
+# The web proxy admits export bodies up to 1 MiB; 40,000 real action ids (22 characters) fit.
+EXPORT_MAX_ACTIONS = 40_000
+
+
 class ExportRequest(ORContract):
-    action_ids: tuple[Id, ...] = Field(min_length=1)
+    action_ids: tuple[Id, ...] = Field(min_length=1, max_length=EXPORT_MAX_ACTIONS)
