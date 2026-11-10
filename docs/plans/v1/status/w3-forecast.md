@@ -15,6 +15,35 @@
 
 Order: F02 → F01 → F04 → F03 → F05 → F06. F01 and F02 depend on nothing (wave-3.md), and S7 should time the real backtest code, not a stand-in. F04 depends on nothing; F03 needs F02; F05 needs F03 and F04.
 
+## Save point 2026-11-09 (late)
+
+- **Head:** the commit that adds this section, on top of `12e5dbf` (verifier F1–F4 on #127 at `e12fdc1`). Pushed only if the quick gate passes on that commit; the lead's reply records which.
+- **Done in `12e5dbf`, test-first:**
+  - **F1:** `ForecastPublisher.prepare` builds the network run outside the queue lock, keyed by attempt; `publish` only INSERTs it; `discard` drops it; a retried publish rebuilds it from the job row.
+  - **F2:** an absent history day stays null and missing.
+  - **F3:** donations after the last demand day move the window's end.
+  - **F4:** inbound counts in the expiry share's stock.
+  - **Red/mutant evidence:** F1's probe test was red at `e12fdc1` (attempt `TIMED_OUT`). F2, F3 and F4 fail under their mutants: F2 `COUNTS_CONTRADICT_VALUES` at submit; F3 `IndexError`; F4 0.5000 against 0.25.
+  - **Suites:** `PP19_TEST_SCHEMA_ISOLATION=1 uv run --frozen pytest -q tests/forecasting tests/danger tests/test_v1_contract.py tests/networks tests/workers tests/test_inventory_projection.py tests/samples tests/integration/{test_v1_backend_journey,test_forecast_api_postgres,test_worker_slice,test_v1_job_status,test_supervisor}.py` → 557 passed, 0 skipped.
+  - **Bench:** `bench_forecast.py --part lock` added and smoke-run at 2,000 series: SUCCEEDED, lock held 0.18 s.
+- **Not done yet:**
+  - The 50k re-timing of the publish lock.
+  - The evidence JSON and S7 updates.
+  - The full gate.
+  - The PR body update.
+  - The reply to the lead.
+- **Exact next step**, from `apps/api` with `.env.lane` loaded, on a quiet machine (check `uptime`):
+  1. Run `uv run --frozen python scripts/bench_forecast.py --part lock --series 50000` twice. Then run it once more with the build forced inside the lock, for the before number. That run uses the same harness with `prepare` replaced by a pass-through: `python -c "import sys; sys.argv=['x','--part','lock','--series','50000']; sys.path.insert(0,'scripts'); import bench_forecast as b; from app.workers.forecasting import REGISTRATION as R; R.publisher.prepare=lambda e,i,p,*,remaining_s: p; b.main()"`.
+  2. Add an evidence key `publish_lock_after_f1` to `docs/forecasting/evidence/v1-forecast-scale.json`, holding both results and the load. Update S7 (`docs/plans/v1/spikes/S7-forecast-volume.md`) and the known limits here.
+  3. If `origin/v1-local` moved, merge it. Then run quick, then full, one at a time.
+  4. Update the PR #127 body with no attribution line (`gh api -X PATCH repos/gbw30/PantryPulse/pulls/127 -F body=@…`; `gh pr edit` fails on the GraphQL deprecation).
+  5. Push and report the head to the lead.
+- **Lead decisions (2026-11-09, Gabriel), no code change:**
+  - `bias_pct` as a percentage is accepted. It overrides V5 §7's unit bias for v1, so check that the field and docs say percent and null when Σactual = 0.
+  - The 24/32 MB limits are accepted.
+  - Retail DC expiry-share scoring is accepted; the atlas wording goes to the W5 UX review.
+  - The series cap at import and F5 (read paths recompute) are W4 carry-ins.
+
 ## Save point 2026-11-09 (superseded: `ppv1_0014` merged, W3-F03 done)
 
 - **Head:** the commit that adds this section, on top of WIP `eacf8b2`. Branch `lane/w3-forecast`, pushed; no PR yet.
