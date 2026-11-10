@@ -24,6 +24,7 @@ from app.services.imports.validate import MAX_QUANTITY
 from app.workers.forecasting import REGISTRATION
 
 NET = UUID(int=9)
+CUTOFF = date(2026, 11, 4)
 WEEK = (10, 12, 8, 9, 11, 14, 6)
 SERIES = (
     # 42 weekly days: seasonal naive, backtest evaluated
@@ -47,10 +48,11 @@ SERIES = (
 )
 
 
-def network_input(series) -> NetworkForecastInput:
+def network_input(series, history_end: date = CUTOFF) -> NetworkForecastInput:
     inputs = NetworkForecastInput(
         organization_id=UUID(int=1), network_id=NET, dataset_id=UUID(int=2),
-        data_cutoff_date=date(2026, 11, 4), timezone="America/New_York", policy=NetworkPolicy(),
+        data_cutoff_date=CUTOFF, history_end=history_end, timezone="America/New_York",
+        policy=NetworkPolicy(),
         locations=tuple((uuid5(NET, f"L{i}"), f"L{i}") for i in range(3)),
         products=tuple((uuid5(NET, f"P{i}"), f"P{i}", "case") for i in range(3)),
         series=tuple(series), input_hash="")

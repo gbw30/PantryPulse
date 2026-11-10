@@ -76,9 +76,9 @@ class FrozenSeries(Contract):
     product: Count  # index into NetworkForecastInput.products
     kind: Literal["demand", "donation"]
     basis: Literal["demand", "sales"] | None  # demand only; sales if any row is sales
-    values: tuple[Count | None, ...] = Field(max_length=WINDOW_DAYS)  # ends at the cutoff
+    values: tuple[Count | None, ...] = Field(max_length=WINDOW_DAYS)  # ends at history_end
     observed: Count  # days with a known quantity in the whole history
-    missing: Count  # blank or absent days between the first history day and the cutoff
+    missing: Count  # blank or absent days from the first history day through history_end
     sales_days: Count = 0  # observed days reported as sales (the proxy share)
 
 
@@ -88,6 +88,9 @@ class NetworkForecastInput(Contract):
     network_id: UUID
     dataset_id: UUID  # the dataset version; create_scenario checks it (W1-D09)
     data_cutoff_date: date  # the version's as-of date
+    # The version's last history day (demand or donation). By default the as-of date is the
+    # day after it (V1-SPEC §6.1): the days between are not history, so never read as blank.
+    history_end: date
     timezone: str
     policy: NetworkPolicy
     locations: tuple[tuple[UUID, str], ...]  # (net_locations.id, location_id)
@@ -104,6 +107,8 @@ def _hash(inputs: NetworkForecastInput) -> str:
 def validate_frozen(payload: Any) -> NetworkForecastInput:
     """Revalidate a frozen input: schema, keys, and the hash over its exact content."""
     inputs = NetworkForecastInput.model_validate(payload)
+    if inputs.history_end > inputs.data_cutoff_date:
+        raise ValueError("HISTORY_AFTER_CUTOFF")
     keys = [(s.location, s.product, s.kind) for s in inputs.series]
     if len(set(keys)) != len(keys):
         raise ValueError("DUPLICATE_SERIES")
@@ -121,7 +126,16 @@ def validate_frozen(payload: Any) -> NetworkForecastInput:
 
 # --- freeze (API process) -------------------------------------------------------------------
 
-def _history(conn, table: str, version_id: UUID, as_of: date) -> list[sa.Row]:
+def _history_end(conn, version_id: UUID, as_of: date) -> date:
+    """The version's last history day, blank rows included (as the import's default as-of
+    date reads it); the as-of date when the version has no history."""
+    return conn.scalar(sa.text(
+        "SELECT greatest((SELECT max(day) FROM net_demand_history WHERE dataset_version_id = :v),"
+        " (SELECT max(day) FROM net_donation_history WHERE dataset_version_id = :v))"),
+        {"v": version_id}) or as_of
+
+
+def _history(conn, table: str, version_id: UUID, end: date) -> list[sa.Row]:
     """One row per location × product, aggregated in PostgreSQL (≤ 4.5 M history rows)."""
     sales = ("count(quantity) FILTER (WHERE basis = 'sales')" if table == "net_demand_history"
              else "0")
@@ -132,23 +146,24 @@ def _history(conn, table: str, version_id: UUID, as_of: date) -> list[sa.Row]:
         "array_agg(day ORDER BY day) FILTER (WHERE day > :start) AS days, "
         "array_agg(quantity ORDER BY day) FILTER (WHERE day > :start) AS quantities "
         f"FROM {table} WHERE dataset_version_id = :v GROUP BY location_id, product_id"),
-        {"v": version_id, "start": as_of - timedelta(days=WINDOW_DAYS)}))
+        {"v": version_id, "start": end - timedelta(days=WINDOW_DAYS)}))
 
 
-def _frozen_series(row, kind: str, as_of: date, location: int, product: int) -> dict:
-    first = max(row.first_day, as_of - timedelta(days=WINDOW_DAYS - 1))
-    values: list[int | None] = [None] * ((as_of - first).days + 1)
+def _frozen_series(row, kind: str, end: date, location: int, product: int) -> dict:
+    first = max(row.first_day, end - timedelta(days=WINDOW_DAYS - 1))
+    values: list[int | None] = [None] * ((end - first).days + 1)
     for day, quantity in zip(row.days or (), row.quantities or (), strict=True):
         values[(day - first).days] = quantity
     return dict(location=location, product=product, kind=kind,
                 basis=None if kind == "donation" else ("sales" if row.sales else "demand"),
                 values=values, observed=row.observed,
-                missing=(as_of - row.first_day).days + 1 - row.observed,
+                missing=(end - row.first_day).days + 1 - row.observed,
                 sales_days=row.sales_days)
 
 
 def freeze(conn, organization_id: UUID, network) -> NetworkForecastInput:
     version, as_of = network.dataset_version_id, network.as_of_date
+    end = _history_end(conn, version, as_of)
     locations = conn.execute(sa.text(
         "SELECT id, external_id, role FROM net_locations WHERE dataset_version_id = :v "
         'ORDER BY external_id COLLATE "C"'), {"v": version}).all()
@@ -157,10 +172,10 @@ def freeze(conn, organization_id: UUID, network) -> NetworkForecastInput:
         'ORDER BY external_id COLLATE "C"'), {"v": version}).all()
     li = {r.id: i for i, r in enumerate(locations)}
     pi = {r.id: i for i, r in enumerate(products)}
-    series = [_frozen_series(r, kind, as_of, li[r.location_id], pi[r.product_id])
+    series = [_frozen_series(r, kind, end, li[r.location_id], pi[r.product_id])
               for kind, table in (("demand", "net_demand_history"),
                                   ("donation", "net_donation_history"))
-              for r in _history(conn, table, version, as_of)]
+              for r in _history(conn, table, version, end)]
     # A receiving location with stock or deliveries but no demand rows (a new store) is listed,
     # never forecast from zeros (plan Review Focus 5).
     known = {(s["location"], s["product"]) for s in series if s["kind"] == "demand"}
@@ -179,7 +194,7 @@ def freeze(conn, organization_id: UUID, network) -> NetworkForecastInput:
                                products[s["product"]].external_id.encode(), s["kind"]))
     inputs = NetworkForecastInput(
         organization_id=organization_id, network_id=network.id, dataset_id=version,
-        data_cutoff_date=as_of, timezone=network.timezone, policy=NetworkPolicy(),
+        data_cutoff_date=as_of, history_end=end, timezone=network.timezone, policy=NetworkPolicy(),
         locations=tuple((r.id, r.external_id) for r in locations),
         products=tuple((r.id, r.external_id, r.unit) for r in products),
         series=tuple(FrozenSeries(**s) for s in series), input_hash="")
@@ -192,7 +207,8 @@ def _unavailable(code: str, message: str) -> dict:
     return {"status": "INSUFFICIENT_DATA", "error_code": code, "error_message": message}
 
 
-def _forecast(s: FrozenSeries, policy: NetworkPolicy, cutoff: date) -> dict:
+def _forecast(s: FrozenSeries, policy: NetworkPolicy, cutoff: date, gap: int) -> dict:
+    """`gap` = cutoff − history_end in days; the horizon starts the day after the cutoff."""
     if s.observed == 0:
         return _unavailable("NO_HISTORY", "Every history day is blank (unknown), so there is "
                             "nothing to forecast from; blank days are never read as zero"
@@ -202,9 +218,11 @@ def _forecast(s: FrozenSeries, policy: NetworkPolicy, cutoff: date) -> dict:
         return _unavailable("INSUFFICIENT_HISTORY", f"Needs {policy.min_history_days}+ days of "
                             f"history to forecast; has {s.observed}")
     values = [None if v is None else float(v) for v in s.values]
+    week, shift = values[-7:], gap % 7  # rotated so each horizon day reads its own weekday
     fallback = None
     try:
-        points, provider = NAIVE.predict_values(values[-7:], cutoff=cutoff), policy.strategy
+        points = NAIVE.predict_values(week[shift:] + week[:shift], cutoff=cutoff)
+        provider = policy.strategy
     except ProviderError as primary:
         fallback = primary.code
         try:
@@ -228,7 +246,8 @@ def compute(inputs: NetworkForecastInput) -> dict:
     """Compact output, in the input's series order: the forecasts and the demand backtests."""
     policy, generated_at = inputs.policy, datetime.now(UTC)
     fit = baseline_fit(policy.sparse_window_days, policy.sparse_min_samples)
-    series = [_forecast(s, policy, inputs.data_cutoff_date) for s in inputs.series]
+    gap = (inputs.data_cutoff_date - inputs.history_end).days
+    series = [_forecast(s, policy, inputs.data_cutoff_date, gap) for s in inputs.series]
     backtest = [_sums(scored_set(s.values, fit))
                 if s.kind == "demand" and row["status"] == "AVAILABLE" else None
                 for s, row in zip(inputs.series, series, strict=True)]

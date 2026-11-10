@@ -77,7 +77,8 @@ def danger_ranking(projection: Iterable[Line], mode: NetworkMode) -> list[Danger
             key = (-score, first or date.max, reason != "unmet", p.product_id.encode())
             if line.location_id not in worst or key < worst[line.location_id][0]:
                 worst[line.location_id] = key, (score, reason, p.product_id, units, p.unit, first)
-    ordered = sorted(worst.items(), key=lambda item: (*item[1][0][:2], item[0].encode()))
+    # score, first day, unmet before expiry, then the location (not the product)
+    ordered = sorted(worst.items(), key=lambda item: (*item[1][0][:3], item[0].encode()))
     return [DangerRow(location_id=location, rank=rank, score_ratio=score, band=band(score),
                       reason=reason, driving_product_id=product, driving_units=units, unit=unit,
                       first_deficit_date=first)

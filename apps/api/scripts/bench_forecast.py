@@ -285,8 +285,8 @@ def built(n: int, days: int) -> dict:
     t = time.perf_counter()  # the freeze's Python side; its SQL aggregate is not timed here
     inputs = NetworkForecastInput(
         organization_id=ORG, network_id=uuid5(DATASET, "network"), dataset_id=DATASET,
-        data_cutoff_date=CUTOFF, timezone="America/New_York", policy=NetworkPolicy(),
-        locations=locations, products=products, input_hash="",
+        data_cutoff_date=CUTOFF, history_end=CUTOFF, timezone="America/New_York",
+        policy=NetworkPolicy(), locations=locations, products=products, input_hash="",
         series=tuple(FrozenSeries(location=i % 100, product=i // 100, kind="demand",
                                   basis="demand", values=tuple(v[-WINDOW_DAYS:]),
                                   observed=sum(x is not None for x in v),
@@ -345,7 +345,7 @@ def built(n: int, days: int) -> dict:
 def freeze(n: int, days: int) -> dict:
     import sqlalchemy as sa
 
-    from app.services.forecasting.network import _history
+    from app.services.forecasting.network import _history, _history_end
 
     url = os.environ.get("PP_TEST_DATABASE_URL", "")
     if not url.rsplit("/", 1)[-1].split("?")[0].endswith("_test"):
@@ -357,6 +357,8 @@ def freeze(n: int, days: int) -> dict:
             conn.execute(sa.text(
                 f"CREATE TABLE {schema}.net_demand_history (dataset_version_id uuid, "
                 "location_id uuid, product_id uuid, day date, quantity int, basis text)"))
+            conn.execute(sa.text(f"CREATE TABLE {schema}.net_donation_history "
+                                 "(dataset_version_id uuid, day date)"))  # empty here
             t = time.perf_counter()
             conn.execute(sa.text(
                 f"INSERT INTO {schema}.net_demand_history SELECT :v, "
@@ -370,14 +372,18 @@ def freeze(n: int, days: int) -> dict:
         with engine.connect() as conn:
             conn.execute(sa.text(f"SET search_path TO {schema}"))
             t = time.perf_counter()
-            rows = _history(conn, "net_demand_history", DATASET, CUTOFF)
+            end = _history_end(conn, DATASET, CUTOFF)
+            end_s = time.perf_counter() - t
+            t = time.perf_counter()
+            rows = _history(conn, "net_demand_history", DATASET, end)
             query_s = time.perf_counter() - t
     finally:
         with engine.begin() as conn:
             conn.execute(sa.text(f"DROP SCHEMA IF EXISTS {schema} CASCADE"))
         engine.dispose()
     return {"series": n, "days": days, "history_rows": n * days, "series_rows": len(rows),
-            "scratch_load_s": round(load_s, 2), "history_aggregate_s": round(query_s, 2),
+            "scratch_load_s": round(load_s, 2), "history_end_s": round(end_s, 2),
+            "history_aggregate_s": round(query_s, 2),
             "note": "one unpartitioned scratch table holding only this version's rows"}
 
 

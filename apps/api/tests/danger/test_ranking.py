@@ -154,6 +154,14 @@ def test_unmet_wins_a_retail_tie_and_pantry_ignores_expiry():
         ("A", Decimal("0.0714"), "unmet", "X", 1, "case", DAYS[6])]
 
 
+def test_unmet_wins_a_retail_tie_between_locations():
+    expiry = line("A", "X", (2,) * 7, (0,) * 7, expired=(0, 0, 0, 7, 0, 0, 0), stock=14)
+    unmet = line("B", "X", (2,) * 7, (0, 0, 0, 1, 2, 2, 2))  # 0.5 from day 4, as A's expiry
+    assert summary(danger_ranking([expiry, unmet], "RETAIL")) == [
+        ("B", Decimal("0.5"), "unmet", "X", 7, "case", DAYS[3]),
+        ("A", Decimal("0.5"), "expiry", "X", 7, "case", DAYS[3])]
+
+
 # --- the services, on imported networks with real forecast runs --------------------------------
 
 @pytest.fixture(scope="module")

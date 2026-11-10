@@ -59,8 +59,8 @@ HORIZON = [AS_OF + timedelta(days=i) for i in range(1, 8)]
 WEEK = (10, 12, 8, 9, 11, 14, 6)
 
 
-def back(n: int) -> list[date]:
-    return [AS_OF - timedelta(days=n - 1 - i) for i in range(n)]
+def back(n: int, end: date = AS_OF) -> list[date]:
+    return [end - timedelta(days=n - 1 - i) for i in range(n)]
 
 
 def demand_csv() -> str:
@@ -124,10 +124,10 @@ def stack(tmp_path_factory):
         yield built
 
 
-def import_network(stack, files=FILES, network=None):
+def import_network(stack, files=FILES, network=None, as_of=AS_OF):
     outcome = _import(stack.engine, stack.tmp, files, network=network or NewNetwork(
         name=f"Forecast {uuid.uuid4().hex[:6]}", mode="PANTRY", timezone="America/New_York"),
-        as_of=AS_OF)
+        as_of=as_of)
     assert outcome.ok, outcome.errors
     return outcome
 
@@ -189,6 +189,31 @@ def test_every_eligible_series_gets_seven_dated_points_with_actual_provider_and_
     assert [p.central_estimate for p in beans.points] == [4.0] * 7
     assert {p.estimate_kind for p in beans.points} == {"MEAN"}
     assert (beans.observed_count, beans.missing_count) == (19, 1)
+
+
+def test_default_as_of_day_after_history_is_not_a_blank_day(stack):
+    """V1-SPEC §6.1 defaults the as-of date to the day after the last history day, as both
+    samples do. The as-of day has no history by construction; it is not a missing day."""
+    end = AS_OF - timedelta(days=1)
+    history = {d: WEEK[i % 7] for i, d in enumerate(back(42, end))}
+    files = {**FILES, "demand_history": "location_id,product_id,date,quantity,basis\n" + "".join(
+        f"P1,RICE,{d},{q},demand\n" for d, q in history.items()),
+        "donation_history": "location_id,product_id,date,quantity,donor\n" + "".join(
+        f"P1,RICE,{d},3,Grocer\n" for d in back(21, end))}
+    network = import_network(stack, files, as_of=None)
+    job_id = run(stack, network)
+    forecast = get_forecast_run(stack, SESSION, network.network_id, job_id)
+    assert forecast.data_cutoff_date == AS_OF  # the default
+    rice = series(forecast, "P1", "RICE")
+    assert (rice.actual_provider.name, rice.fallback_used, rice.observed_count,
+            rice.missing_count) == ("SEASONAL_NAIVE", False, 42, 0)
+    # each horizon day repeats the last observed day of its weekday
+    assert [p.central_estimate for p in rice.points] == [
+        history[max(d for d in history if (day - d).days % 7 == 0)] for day in HORIZON]
+    donation = series(forecast, "P1", "RICE", kind="donation")
+    assert (donation.actual_provider.name, donation.missing_count) == ("SEASONAL_NAIVE", 0)
+    (scored,) = get_backtest(stack, SESSION, job_id).series
+    assert (scored.score.origins_evaluated, scored.score.scored_points) == (4, 28)
 
 
 def test_series_under_14_days_listed_ineligible_not_zero_filled(published, stack):
