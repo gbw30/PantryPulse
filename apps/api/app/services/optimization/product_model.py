@@ -160,9 +160,8 @@ def build_product_model(s, product_id, cands: tuple[Candidate, ...], shares, bas
             sending = m.new_bool_var(f"sending:{loc}")
             m.add(sum(outgoing[loc]) >= 1).only_enforce_if(sending)
             m.add(sum(outgoing[loc]) == 0).only_enforce_if(~sending)
-            for k in range(7):
-                _enforce(m, unmet_p[k], 0, 0, sending)
-                _enforce(m, ends_p[k], floors.get(loc, 0), None, sending)
+            for expr, low, high in _protection(unmet_p, ends_p, floors.get(loc, 0)):
+                _enforce(m, expr, low, high, sending)
         for k, day in enumerate(days):
             room = shares.storage_room.get((loc, day))
             if room is not None:
@@ -244,10 +243,19 @@ def one_unit_protected(s, product_id):
             targets = (*demand.get(loc, (0,) * 7), 0)
             # all-integer lots: _project returns plain ints and adds nothing to the model
             _, unmet, _, ends, _ = _project(cp_model.CpModel(), points, targets, lots, "")
-            verdicts[loc, sent] = not any(unmet[:7]) and min(ends[:7]) >= floors.get(loc, 0)
+            verdicts[loc, sent] = all(
+                low <= v and (high is None or v <= high)
+                for v, low, high in _protection(unmet, ends, floors.get(loc, 0))
+            )
         return verdicts[loc, sent]
 
     return protected
+
+
+def _protection(unmet, ends, floor):
+    """BD-49 on each planning day: no unmet demand, stock at or above the reserve floor.
+    (expr, low, high) in the order the model adds them; the screen evaluates the same list."""
+    return [b for k in range(7) for b in ((unmet[k], 0, 0), (ends[k], floor, None))]
 
 
 def _enforce(m, expr, low, high, literal):

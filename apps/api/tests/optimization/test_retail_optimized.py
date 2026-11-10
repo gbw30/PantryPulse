@@ -177,3 +177,21 @@ def test_verifier_fefo_check_is_independent_of_the_shared_packing(monkeypatch, m
     assert [x.splits for x in v3.pack(s, v3.quantities_of(later_first))] == [(("a2", 2),)]
     report = verify_plan(s, later_first)
     assert report.violations == ("PACKING_FEFO_MISMATCH",)
+
+
+def test_verifier_fefo_eligibility_uses_its_own_arrival(monkeypatch):
+    """S1: a1 expires 11-02, before the 1-day route arrives on 11-03, so it can't ship. With the
+    shared arrival mutated to the ship date, the shared packing ships a1 anyway; the verifier
+    derives the arrival from the route's own travel days and still refuses the plan."""
+    from datetime import timedelta as real
+
+    from app.services.optimization import v3
+
+    s = scenario("retail-lost-vs-waste")
+    a1 = s.batches[0].model_copy(update={"expiry_date": s.first_planning_date})
+    s = s.model_copy(update={"batches": (a1, *s.batches[1:])})
+    monkeypatch.setattr(v3, "timedelta", lambda days=0, **_: real(0))
+    expired_first = plan(s, ("P", "A", "B", 1, 1, ("a1",)))
+    assert [x.splits for x in v3.pack(s, v3.quantities_of(expired_first))] == [(("a1", 1),)]
+    report = verify_plan(s, expired_first)
+    assert report.violations == ("PACKING_FEFO_MISMATCH",)
