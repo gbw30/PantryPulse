@@ -44,15 +44,24 @@ export async function loadPlan(networkId: string, comparisonId: string, method: 
 }
 
 // The print page gets the selection through storage, not its URL: hundreds of ids overflow a URL (code-review #7).
-const selectionKey = (networkId: string, comparisonId: string, method: V1Method) => `pantrypulse:print-selection:${networkId}:${comparisonId}:${method}`;
+// One selection is kept, naming the plan it belongs to; each save replaces it, so storage never piles up.
+const SELECTION_KEY = "pantrypulse:print-selection";
+type Selection = { network_id: string; comparison_id: string; method: V1Method; ids: string[] };
 function saveSelection(networkId: string, comparisonId: string, method: V1Method, ids: string[]) {
-  try { window.localStorage.setItem(selectionKey(networkId, comparisonId, method), JSON.stringify(ids)); } catch { /* blocked or full: the print page says the selection is missing */ }
+  const value: Selection = { network_id: networkId, comparison_id: comparisonId, method, ids };
+  try {
+    window.localStorage.setItem(SELECTION_KEY, JSON.stringify(value));
+  } catch {
+    // Full or blocked: leave no older selection behind, so the print page says the selection is missing.
+    try { window.localStorage.removeItem(SELECTION_KEY); } catch { /* storage unavailable */ }
+  }
 }
-/** The ids chosen on Decisions for this plan; empty when none were stored or storage is unavailable. */
+/** The ids chosen on Decisions for this plan; empty when none were stored for it or storage is unavailable. */
 export function readSelection(networkId: string, comparisonId: string, method: V1Method): string[] {
   try {
-    const ids: unknown = JSON.parse(window.localStorage.getItem(selectionKey(networkId, comparisonId, method)) ?? "[]");
-    return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === "string") : [];
+    const stored = JSON.parse(window.localStorage.getItem(SELECTION_KEY) ?? "null") as Partial<Selection> | null;
+    if (stored?.network_id !== networkId || stored.comparison_id !== comparisonId || stored.method !== method || !Array.isArray(stored.ids)) return [];
+    return stored.ids.filter((id): id is string => typeof id === "string");
   } catch {
     return [];
   }

@@ -103,3 +103,56 @@ it("an export the server finds too large says how many actions can be exported a
   fireEvent.click(screen.getByRole("button", { name: "Export CSV (3 actions)" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("Export failed: too many actions selected to export at once (at most 40,000).");
 });
+
+it("a selection that cannot be saved (storage full) leaves none behind, so print says it is missing instead of printing an older one", async () => {
+  vi.spyOn(networkApi, "actions").mockResolvedValue(actions(700));
+  render(<DecisionsView comparisonId={saved.id} method="CLASSICAL_GP" />);
+  fireEvent.click((await screen.findAllByRole("checkbox"))[0]);
+  await waitFor(() => expect(window.localStorage.length).toBe(1)); // one action saved
+  vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new DOMException("full", "QuotaExceededError"); });
+  fireEvent.click(screen.getByRole("button", { name: "Select all" }));
+  expect(screen.getByRole("link", { name: "Print page (700 actions)" })).toBeVisible();
+  await waitFor(() => expect(window.localStorage.length).toBe(0));
+  cleanup();
+
+  render(<PrintPlan networkId={network.id} comparisonId={saved.id} method="CLASSICAL_GP" />);
+  expect(await screen.findByRole("alert")).toHaveTextContent("No selected actions were found for this plan.");
+  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+});
+
+it("only the latest selection is kept, and the print page uses it only for the same network, comparison and method", async () => {
+  vi.spyOn(networkApi, "actions").mockResolvedValue(actions(3));
+  render(<DecisionsView comparisonId={saved.id} method="CLASSICAL_GP" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Select all" }));
+  cleanup();
+  render(<DecisionsView comparisonId={saved.id} method="NO_TRANSFERS" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Select all" }));
+  await waitFor(() => expect(window.localStorage.length).toBe(1)); // saving overwrites; storage never piles up
+  cleanup();
+
+  // CLASSICAL_GP's selection was replaced by NO_TRANSFERS's; another comparison has none either.
+  for (const [comparisonId, method] of [[saved.id, "CLASSICAL_GP"], ["00000000-0000-4000-8000-000000000000", "NO_TRANSFERS"]] as const) {
+    render(<PrintPlan networkId={network.id} comparisonId={comparisonId} method={method} />);
+    expect(await screen.findByRole("alert")).toHaveTextContent("No selected actions were found for this plan.");
+    cleanup();
+  }
+  render(<PrintPlan networkId={network.id} comparisonId={saved.id} method="NO_TRANSFERS" />);
+  expect(within(await screen.findByRole("table", { name: "Selected actions" })).getAllByRole("row")).toHaveLength(4);
+});
+
+it("a verified method whose actions still answer 409 shows the no-plan state on Decisions and print, not an error", async () => {
+  const classical = saved.result.methods.find((m) => m.method === "CLASSICAL_GP")!;
+  expect(classical.verified).toBe(true);
+  const actionsCall = vi.spyOn(networkApi, "actions").mockRejectedValue(new ApiError("RESULT_NOT_VERIFIED", 409));
+  render(<DecisionsView comparisonId={saved.id} method="CLASSICAL_GP" />);
+  const section = screen.getByRole("region", { name: `Suggested actions · ${network.name}` });
+  await waitFor(() => expect(section).toHaveTextContent("Classical GP has no verified plan in this comparison, so there are no suggested actions."));
+  expect(actionsCall).toHaveBeenCalled();
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  cleanup();
+
+  render(<PrintPlan networkId={network.id} comparisonId={saved.id} method="CLASSICAL_GP" />);
+  await waitFor(() => expect(screen.getByRole("main")).toHaveTextContent("Classical GP has no verified plan in this comparison, so there are no suggested actions."));
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+});
