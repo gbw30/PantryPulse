@@ -430,10 +430,15 @@ def _partition_keys(conn: sa.Connection, part: str, suffix: str, version_id: UUI
 # --- publish: inside the queue lock -----------------------------------------------------------
 
 def publish_staged(conn: sa.Connection, organization_id: UUID, attempt_id: UUID,
-                   job: Mapping[str, Any], step: Mapping[str, Any]) -> dict[str, Any]:
+                   job: Mapping[str, Any], step: Mapping[str, Any], *,
+                   job_id: UUID | None = None) -> dict[str, Any]:
     run = repo.get_run(conn, UUID(job["import_id"]), lock=True)
     if run.organization_id != organization_id:
         raise PublicationRejected("IMPORT_NOT_FOUND")
+    if run.phase in ("done", "failed"):  # never a second version, never over a final report
+        raise PublicationRejected("IMPORT_ALREADY_FINISHED")
+    if job_id is not None and run.job_id != job_id:  # only the job the run records publishes
+        raise PublicationRejected("IMPORT_SUPERSEDED")
     if not step["ok"]:
         repo.fail_run(conn, run, [RowError.model_validate(e) for e in step["errors"]],
                       step["error_count"])

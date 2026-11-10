@@ -27,6 +27,7 @@ from app.services.imports.staging import (
     write_load_files,
     write_upload,
 )
+from app.services.jobs.registry import PublicationRejected
 from tests.integration.wq_support import alembic_config, database_url, reset_schema
 
 pytestmark = pytest.mark.integration
@@ -550,3 +551,27 @@ def test_overlapping_uploads_of_one_file_keep_disk_and_record_in_step(
 
     asyncio.run(both())
     assert _on_disk_matches_record(engine, tmp_path, run.id, "products")
+
+
+def test_a_finished_run_is_never_published_again(engine, tmp_path):  # code-review #5
+    run, attempt, job, step = _prepared(engine, tmp_path)
+    with engine.begin() as conn:
+        assert publish_staged(conn, run.organization_id, attempt, job, step)["ok"]
+    again = uuid.uuid4()
+    with pytest.raises(PublicationRejected) as rejected, engine.begin() as conn:
+        publish_staged(conn, run.organization_id, again, job, step)
+    assert rejected.value.code == "IMPORT_ALREADY_FINISHED"
+
+
+def test_a_job_that_no_longer_owns_the_run_cannot_publish(engine, tmp_path):  # import edge (W4)
+    """A commit whose outer transaction failed after admission can leave a queued job that the
+    run never recorded; only the job the run names may publish it."""
+    run, attempt, job, step = _prepared(engine, tmp_path)
+    owner = uuid.uuid4()
+    with engine.begin() as conn:
+        repo.set_phase(conn, run.id, "staging", job_id=owner)
+    with pytest.raises(PublicationRejected) as rejected, engine.begin() as conn:
+        publish_staged(conn, run.organization_id, attempt, job, step, job_id=uuid.uuid4())
+    assert rejected.value.code == "IMPORT_SUPERSEDED"
+    with engine.begin() as conn:
+        assert publish_staged(conn, run.organization_id, attempt, job, step, job_id=owner)["ok"]

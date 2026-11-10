@@ -108,7 +108,7 @@ class ImportPublisher:
         """Inside the queue lock: the small inserts, then ATTACH of the batches and history
         partitions, which clones and validates the parent's FKs (no batch row is inserted)."""
         return publish_staged(connection, identity.organization_id, identity.attempt_id,
-                              package["job"], package["step"])
+                              package["job"], package["step"], job_id=identity.job_id)
 
     def follow_ups(self, connection, identity, manifest):
         """In `publish`'s transaction: the new version's enrichment.v1 exists only if the version
