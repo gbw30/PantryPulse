@@ -36,7 +36,9 @@ def enrichment_status(rt, scope, network_id: UUID) -> EnrichmentStatus:
         org, job_id = _latest_job(conn, network_id, version_id)
         locations = service.location_attributes(conn, version_id)
         found = service.blockers(conn, version_id)
-    state, last_error, unmatched = "not_started", None, []
+        unconfirmed = _unconfirmed(conn, org, version_id)
+        last_error = None if job_id is not None else _not_started(conn, version_id)
+    state, unmatched = "not_started", []
     if job_id is not None:
         job = rt.queue.get_job(TrustedScope(org, "status"), job_id)
         if job.state not in TERMINAL_STATES:
@@ -50,6 +52,8 @@ def enrichment_status(rt, scope, network_id: UUID) -> EnrichmentStatus:
             state = "failed"
             last_error = (f"The enrichment job ended {job.state.value.lower().replace('_', ' ')} "
                           "before saving anything. Retry it.")
+    listed = {u["location_id"] for u in unmatched}
+    unmatched = [*unmatched, *(u for i, u in unconfirmed.items() if i not in listed)]
     return EnrichmentStatus(
         network_id=network_id, dataset_version_id=version_id, state=state, job_id=job_id,
         last_error=last_error, locations=tuple(locations),
@@ -67,8 +71,9 @@ def retry_enrichment(rt, scope, network_id: UUID, idempotency_key: str) -> Forec
     if job_id is not None and rt.queue.get_job(
             TrustedScope(org, "status"), job_id).state not in TERMINAL_STATES:
         raise AccessError("ENRICHMENT_IN_PROGRESS", 409)
+    # The check above can race (two tabs, fresh keys); the queue's dedupe closes it (#10).
     accepted = rt.queue.submit(TrustedScope(org, scope.actor_ref), CONTRACT, payload,
-                               idempotency_key)
+                               idempotency_key, deduplicate=True)
     url = f"/api/v1/networks/{network_id}/enrichment"
     return ForecastAccepted(job_id=accepted.job_id, attempt_id=accepted.attempt_id,
                             state=accepted.state, replayed=accepted.replayed, status_url=url,
@@ -84,6 +89,49 @@ def _latest_job(conn: sa.Connection, network_id: UUID, version_id: UUID):
         "ORDER BY created_at DESC, job_id LIMIT 1"),
         {"org": org, "contract": CONTRACT, "v": str(version_id)})
     return org, job_id
+
+
+NOT_STARTED = {
+    "COMPUTE_QUEUE_FULL": "the job queue was full when the import finished",
+    "COMPUTE_UNAVAILABLE": "the background worker was not running when the import finished",
+}
+
+
+def _not_started(conn: sa.Connection, version_id: UUID) -> str | None:
+    """Why the import's enrichment follow-up never started: the queue audits a refused
+    follow-up on the import job and still commits the import (CR-w1-data-5). None when there
+    is no such record, e.g. a sample network, which is seeded in-process and never calls out."""
+    code = conn.scalar(sa.text(
+        "SELECT e.reason_code FROM dataset_versions v JOIN import_runs r ON r.id = "
+        "v.import_run_id JOIN compute_audit_events e ON e.job_id = r.job_id WHERE v.id = :v "
+        "AND e.event_type = 'FOLLOW_UP_REJECTED' AND coalesce(e.details ->> 'contract', "
+        ":contract) = :contract ORDER BY e.event_id DESC LIMIT 1"),
+        {"v": version_id, "contract": CONTRACT})
+    if code is None:
+        return None
+    why = NOT_STARTED.get(code, f"it could not be queued when the import finished ({code})")
+    return f"Address lookups did not start: {why}. Use Retry to start them."
+
+
+def _unconfirmed(conn: sa.Connection, org, version_id: UUID) -> dict[str, dict]:
+    """The review entry of each location still marked "unconfirmed address match" (W2-06 A7),
+    from the enrichment that matched it: a later retry doesn't resend it, so the latest
+    manifest no longer lists it. Manifests are never deleted, so the entry is always there."""
+    marked = set(conn.scalars(sa.text(
+        "SELECT external_id FROM net_locations WHERE dataset_version_id = :v AND acs_source "
+        "LIKE :m"), {"v": version_id, "m": f"%{service.UNCONFIRMED}%"}))
+    if not marked:
+        return {}
+    entries: dict[str, dict] = {}
+    for manifest in conn.scalars(sa.text(
+            "SELECT a.result_manifest FROM compute_jobs j JOIN compute_attempts a ON "
+            "a.attempt_id = j.current_attempt_id WHERE j.organization_id = :org AND "
+            "j.handler_contract = :contract AND j.input_package -> 'input' ->> "
+            "'dataset_version_id' = :v AND a.state = 'SUCCEEDED' ORDER BY j.created_at, j.job_id"),
+            {"org": org, "contract": CONTRACT, "v": str(version_id)}):
+        entries |= {u["location_id"]: u for u in (manifest or {}).get("unmatched", [])
+                    if u["location_id"] in marked}
+    return entries
 
 
 def set_location_attributes(

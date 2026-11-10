@@ -292,3 +292,21 @@ def test_attribute_and_route_endpoints(engine, network, acs):
     assert routes.status_code == 200, routes.text
     assert {"straight_line_estimate"} == {r["method"] for r in routes.json()["routes"]}
     assert client.get(f"/api/v1/networks/{uuid.uuid4()}/routes").status_code == 404
+
+
+def test_malformed_match_row_stays_unlocated_and_listed_for_review(engine, network, acs):
+    """#9: H1's Match row has no coordinates; P1 in the same batch is still geocoded."""
+    class Malformed(Census):
+        def __call__(self, request) -> bytes:
+            out = io.StringIO()
+            for row in csv.reader(io.StringIO(super().__call__(request).decode())):
+                csv.writer(out).writerow(row[:4] if row[1].startswith("301 S Monroe") else row)
+            return out.getvalue().encode()
+
+    manifest = _enrich(engine, network, acs, Malformed())
+    listed = {u["location_id"]: u for u in manifest["unmatched"]}
+    assert "H1" in listed and "latitude and longitude" in listed["H1"]["hint"]
+    assert manifest["last_error"] is None
+    assert (_location(engine, network, "H1").latitude,
+            _location(engine, network, "H1").tract_geoid) == (None, None)
+    assert _location(engine, network, "P1").tract_geoid == GAINESVILLE_TRACT

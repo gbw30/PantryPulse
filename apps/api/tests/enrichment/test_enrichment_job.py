@@ -136,6 +136,56 @@ def test_retry_while_a_job_is_running_is_409(lane, network):
     _settle(lane, network.network_id)
 
 
+def test_two_retries_racing_past_the_running_check_share_one_job(lane, network, monkeypatch):
+    """#10: two tabs both pass the in-progress check before either job exists; the queue's
+    dedupe on the identical payload gives the second the first one's job."""
+    import app.services.enrichment.api as enrichment_api
+
+    first = retry_enrichment(lane.rt, SCOPE, network.network_id, str(uuid.uuid4()))
+    latest_job = enrichment_api._latest_job
+    monkeypatch.setattr(enrichment_api, "_latest_job",
+                        lambda conn, n, v: (latest_job(conn, n, v)[0], None))
+    second = retry_enrichment(lane.rt, SCOPE, network.network_id, str(uuid.uuid4()))
+    assert (second.job_id, second.replayed) == (first.job_id, True)
+    monkeypatch.undo()
+    _settle(lane, network.network_id)
+
+
+def test_non_exact_match_stays_listed_for_review_after_a_retry(lane, network):
+    """W2-06 verifier: P4's Non_Exact match keeps its "unconfirmed address match" marker, so it
+    stays listed with the address Census matched, though the retry no longer sends it."""
+    retry_enrichment(lane.rt, SCOPE, network.network_id, str(uuid.uuid4()))
+    first = {u.location_id: u for u in _settle(lane, network.network_id).unmatched}
+    retry_enrichment(lane.rt, SCOPE, network.network_id, str(uuid.uuid4()))
+    status = _settle(lane, network.network_id)
+    assert lane.census.calls[-1] == ["99999 Nonexistent Pantry Rd"]  # P4 is not resent
+    assert {u.location_id: u for u in status.unmatched} == first
+    assert "100 N ANDREWS AVE" in first["P4"].hint
+
+
+def test_an_enrichment_rejected_at_import_says_why_and_to_retry(engine, tmp_path, monkeypatch):
+    """W2-06 deferral: the import commits, its enrichment follow-up is refused because the
+    queue is full (audited, CR-w1-data-5), and the status says so in plain words."""
+    from app.services.imports import api as imports_api
+    from app.services.jobs.contracts import AdmissionOutcome
+    from tests.imports.test_import_worker import SCOPE as IMPORT_SCOPE
+    from tests.imports.test_import_worker import _commit, _running
+    from tests.imports.test_import_worker import _settle as _settle_import
+
+    with _running(engine, tmp_path, monkeypatch, ENRICHMENT_REGISTRATION) as running:
+        admission = running.queue._admission
+        monkeypatch.setattr(running.queue, "_admission", lambda conn, ctl, now, contract, v: (
+            AdmissionOutcome.COMPUTE_QUEUE_FULL if contract == "enrichment.v1"
+            else admission(conn, ctl, now, contract, v)))
+        import_id, job_id = _commit(running, FILES)
+        assert _settle_import(running, import_id, job_id).state == AttemptState.SUCCEEDED
+        network_id = imports_api.import_status(running, IMPORT_SCOPE, import_id).network_id
+        status = enrichment_status(running, SCOPE, network_id)
+    assert (status.state, status.job_id) == ("not_started", None)
+    assert "queue was full when the import finished" in status.last_error
+    assert "Retry" in status.last_error
+
+
 def test_unknown_network_is_404(lane):
     with pytest.raises(AccessError) as error:
         enrichment_status(lane.rt, SCOPE, uuid.uuid4())
