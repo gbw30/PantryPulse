@@ -1,6 +1,6 @@
 import { Download } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { exampleUrl, templateUrl, type TemplateCatalog, type TemplateName } from "@/lib/network-api";
+import { exampleUrl, templateUrl, type TemplateCatalog } from "@/lib/network-api";
 import { cn } from "@/lib/utils";
 
 export const OPTIONAL_BLANK_NOTE = "Leave it blank if you don't know it; a blank never becomes zero.";
@@ -9,14 +9,10 @@ export const OPTIONAL_BLANK_NOTE = "Leave it blank if you don't know it; a blank
 export const CHOOSE_MODE_NOTE = "Choose Pantry or Retail under 2. Network settings to get an example.";
 export const LOCATED_RATES_NOTE = "A pantry given latitude and longitude is never looked up, so it gets no Census rates: fill in both poverty_rate and snap_rate, or exclude it in Settings before a Pantry comparison.";
 
-type Props = {
-  catalog: TemplateCatalog;
-  /** Why each unavailable example can't be downloaded, read from the API's error envelope. */
-  exampleReasons: Partial<Record<TemplateName, string>>;
-};
+type Props = { catalog: TemplateCatalog };
 
 /** V1-SPEC §6.1: every template with blank/example downloads and a guide to every column. */
-export function TemplateGuide({ catalog, exampleReasons }: Props) {
+export function TemplateGuide({ catalog }: Props) {
   return (
     <div className="grid gap-4">
       {catalog.notes.length > 0 && (
@@ -28,7 +24,6 @@ export function TemplateGuide({ catalog, exampleReasons }: Props) {
         const file = `${template.name}.csv`;
         const headingId = `template-${template.name}`;
         const reasonId = `template-${template.name}-example-reason`;
-        const reason = exampleReasons[template.name];
         return (
           <section key={template.name} aria-labelledby={headingId} className="grid gap-3 rounded-xl border border-border bg-card p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -57,7 +52,7 @@ export function TemplateGuide({ catalog, exampleReasons }: Props) {
                     <Button variant="outline" size="sm" disabled aria-label={`Download example ${file}`} aria-describedby={reasonId}>
                       <Download aria-hidden="true" /> Example
                     </Button>
-                    <p id={reasonId} className="text-xs text-muted-foreground">{catalog.mode ? `Example not available yet${reason ? `: ${reason}` : "."}` : CHOOSE_MODE_NOTE}</p>
+                    <p id={reasonId} className="text-xs text-muted-foreground">{catalog.mode ? "Example not available yet." : CHOOSE_MODE_NOTE}</p>
                   </div>
                 )}
               </div>

@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 import { ImportView } from "@/components/import/import-view";
 import { lastHistoryDate } from "@/components/import/network-settings";
+import { CHOOSE_MODE_NOTE } from "@/components/import/template-guide";
 import { networkApi } from "@/lib/network-api";
 import { ApiError } from "@/lib/planning-api";
 import { example } from "./contract-examples";
@@ -23,7 +24,6 @@ beforeEach(() => {
   vi.restoreAllMocks();
   vi.mocked(lastHistoryDate).mockReset().mockResolvedValue(null);
   vi.spyOn(networkApi, "templates").mockResolvedValue(example("TemplateCatalog"));
-  vi.spyOn(networkApi, "exampleUnavailableReason").mockResolvedValue(null);
 });
 
 const csv = (name: string) => new File(["x"], name, { type: "text/csv" });
@@ -120,13 +120,13 @@ it("a commit the server refused still says nothing was saved", async () => {
   expect(status).not.toHaveBeenCalled();
 });
 
-it("asks why an example is unavailable in the catalog's mode, and asks nothing before a mode is chosen (CR-w3-samples-3)", async () => {
+it("follows the catalog's example_available and requests no example just to learn why (CR-w3-samples-3)", async () => {
+  const fetches = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 404 }));
   vi.mocked(networkApi.templates).mockImplementation(async (mode) => ({ ...example("TemplateCatalog"), mode: mode ?? null }));
-  vi.mocked(networkApi.exampleUnavailableReason).mockResolvedValue("template example unavailable");
   render(<ImportView />);
-  expect(await screen.findAllByText("Choose Pantry or Retail under 2. Network settings to get an example.")).toHaveLength(2);
-  expect(networkApi.exampleUnavailableReason).not.toHaveBeenCalled();
+  expect(await screen.findAllByText(CHOOSE_MODE_NOTE)).toHaveLength(2);
   fireEvent.click(screen.getByRole("radio", { name: /^Retail network/ }));
-  expect(await screen.findAllByText("Example not available yet: template example unavailable")).toHaveLength(2);
-  expect(vi.mocked(networkApi.exampleUnavailableReason).mock.calls).toEqual([["locations", "RETAIL"], ["demand_history", "RETAIL"]]);
+  await waitFor(() => expect(networkApi.templates).toHaveBeenLastCalledWith("RETAIL"));
+  expect(await screen.findAllByText("Example not available yet.")).toHaveLength(2);
+  expect(fetches.mock.calls.map(([url]) => String(url)).filter((url) => url.includes("kind=example"))).toEqual([]);
 });

@@ -62,13 +62,4 @@ export const networkApi = {
   /** Write-only: the key is sent once and never read back. */
   setGoogleKey: (key: string) => apiWrite<Schema["LocalSettings"]>("PUT", "settings/google-maps-key", { key }),
   deleteGoogleKey: () => apiWrite<Schema["LocalSettings"]>("DELETE", "settings/google-maps-key"),
-  /** Why an example CSV can't be downloaded, from the API's error envelope ("message (task)"); null when it can. */
-  async exampleUnavailableReason(name: TemplateName, mode: Network["mode"]): Promise<string | null> {
-    const response = await fetch(exampleUrl(name, mode), { cache: "no-store", credentials: "same-origin" });
-    if (response.ok) return null;
-    const error = (await response.json().catch(() => null) as Partial<Schema["ErrorEnvelope"]> | null)?.error;
-    if (!error) return `HTTP ${response.status}`;
-    const task = (error.details as { task?: unknown } | null | undefined)?.task;
-    return `${error.message}${typeof task === "string" ? ` (${task})` : ""}`;
-  },
 };

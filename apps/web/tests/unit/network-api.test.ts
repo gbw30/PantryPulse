@@ -36,11 +36,7 @@ it('refuses "." and ".." ids, which the browser would resolve to another path', 
   expect(urls).toEqual([]);
 });
 
-it("an example request always names the network's mode, and an unavailable one says why (CR-w3-samples-3)", async () => {
-  const urls: string[] = [];
-  const unavailable = { error: { code: "TEMPLATE_EXAMPLE_UNAVAILABLE", message: "template example unavailable", details: {} }, request_id: "r-1" };
-  vi.stubGlobal("fetch", vi.fn(async (url: string) => { urls.push(url); return new Response(JSON.stringify(unavailable), { status: 404 }); }));
+it("an example URL always names the network's mode (CR-w3-samples-3)", () => {
   expect(exampleUrl("locations", "RETAIL")).toBe("/api/v1/templates/locations.csv?kind=example&mode=RETAIL");
-  expect(await networkApi.exampleUnavailableReason("locations", "RETAIL")).toBe("template example unavailable");
-  expect(urls).toEqual(["/api/v1/templates/locations.csv?kind=example&mode=RETAIL"]);
+  expect(exampleUrl("inventory", "PANTRY")).toBe("/api/v1/templates/inventory.csv?kind=example&mode=PANTRY");
 });

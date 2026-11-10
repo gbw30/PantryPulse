@@ -30,7 +30,6 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 /** The template catalog for the chosen mode. A mode change keeps the previous catalog while it reloads. */
 function useTemplateCatalog(mode: NetworkSettingsValue["mode"]) {
   const [state, setState] = useState<CatalogState>({ status: "loading" });
-  const [reasons, setReasons] = useState<Partial<Record<TemplateName, string>>>({});
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let active = true;
@@ -38,13 +37,6 @@ function useTemplateCatalog(mode: NetworkSettingsValue["mode"]) {
       (catalog) => {
         if (!active) return;
         setState({ status: "ready", catalog });
-        const catalogMode = catalog.mode;
-        if (catalogMode) for (const template of catalog.templates.filter((t) => !t.example_available)) {
-          networkApi.exampleUnavailableReason(template.name, catalogMode).then(
-            (reason) => { if (active && reason) setReasons((current) => ({ ...current, [template.name]: reason })); },
-            () => undefined, // The disabled button still says "not available yet" without a reason.
-          );
-        }
       },
       (error: unknown) => {
         if (!active) return;
@@ -54,7 +46,7 @@ function useTemplateCatalog(mode: NetworkSettingsValue["mode"]) {
     );
     return () => { active = false; };
   }, [mode, attempt]);
-  return { state, reasons, retry: () => { setState({ status: "loading" }); setAttempt((n) => n + 1); } };
+  return { state, retry: () => { setState({ status: "loading" }); setAttempt((n) => n + 1); } };
 }
 
 const defaultTimezone = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; } catch { return "UTC"; } };
@@ -69,7 +61,7 @@ function ImportContent() {
   const [target, setTarget] = useState<"new" | "existing">("new");
   const reimport = target === "existing" && network !== null && !network.is_sample ? network : null;
   const [settings, setSettings] = useState<NetworkSettingsValue>(() => ({ name: "", mode: null, timezone: defaultTimezone(), asOfDate: null }));
-  const { state, reasons, retry } = useTemplateCatalog(reimport?.mode ?? settings.mode);
+  const { state, retry } = useTemplateCatalog(reimport?.mode ?? settings.mode);
   const [files, setFiles] = useState<ChosenFiles>({});
   const [formKey, setFormKey] = useState(0); // remounts the file inputs on "Start a new import"
   const [lastHistory, setLastHistory] = useState<string | null>(null);
@@ -201,7 +193,7 @@ function ImportContent() {
             <Button variant="outline" size="sm" onClick={retry}>Retry</Button>
           </div>
         )}
-        {state.status === "ready" && <TemplateGuide catalog={state.catalog} exampleReasons={reasons} />}
+        {state.status === "ready" && <TemplateGuide catalog={state.catalog} />}
       </section>
 
       {state.status === "ready" && (
