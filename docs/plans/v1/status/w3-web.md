@@ -190,7 +190,7 @@ What was done about each finding:
   - `npx vitest run` → 24 files, 144 passed.
   - Mocked e2e, whole suite → 196 passed, 0 failed, 14 skipped (connected-only, not evidence); exit 0.
 
-### Save point 2026-11-09 (late)
+### Save point 2026-11-09 (late) (done: PR #129 opened at `4e52aaa`; kept for the record)
 
 - **Head:** this commit, pushed. The branch is green:
   - full gate at `75a2f71`: exit 0, API 2073 passed, 0 skipped;
@@ -214,6 +214,36 @@ What was done about each finding:
 
      It ends with "🤖 Generated with [Claude Code](https://claude.com/claude-code)".
   4. Report the PR URL to the lead and wait.
+
+### Review of PR #129 at `4e52aaa` (lead's verifier, 2026-11-09): FAIL on H1; fixes
+
+Everything else passed: §1, §6, §9, ownership, 4a, vitest 144, node 13, tsc, lint, a11y 13/13, and 14 mocked specs. Each fix below went RED first.
+
+- **H1 (High), fixed in `f48e6d9`: the password reached error-context.md.**
+  - What happened: a rejected login (429 or a wrong password) under a spec's default 30 s timeout outlived the helper's 30 s `waitForEvent("load")`. The helper's clearing `catch` never ran. The form kept the typed value, and Playwright's page snapshot in `error-context.md` records input values, even with trace off.
+  - Fixes:
+    - The form (`presenter-footer.tsx`) empties and focuses the password field after any failed sign-in. Test: `tests/unit/presenter-footer.test.tsx`.
+    - The helper (`sign-in.ts`) waits at most half the test's timeout (15 s cap) and empties the field in `finally`. Its comment now states exactly what is covered.
+  - Canary: `tests/e2e/sign-in-canary.spec.ts` (`@V1-A04`, trace off, as connected runs are) fails a sign-in two ways, as expected failures: rejected (429) and never answered. A serial test then asserts that no file under either failure's output dir contains the canary password, and that each dir has its `error-context.md`, so the check is not vacuous.
+    - RED: the 429 test hit the 20 s test timeout inside the helper's 30 s wait, and its `error-context.md` held the canary.
+    - GREEN: 3 passed. 0 files under the whole mocked run's output contain the canary. The snapshot reads `textbox "Password" [active]` with no value.
+- **M1 (Medium), fixed in `ff588ee`:** local connected runs record no trace either; see CR-w3-web-2.
+- **L1 (Low), fixed in `f72c98a`: /data and /recommendations under-labelled.**
+  - They never read the chosen network (`data-explorer.tsx`, `recommendations-screen.tsx`, `inputs-view.tsx` and `inventory-view.tsx` have no `useNetwork`), so they always render the legacy fixture data. With a real network chosen, the pill was gone.
+  - Now the `data` and `recommendations` screens always say "Simulated network", plus "Network list unavailable" when the list failed. Overview and Scenarios say it only with no network chosen, and /import and /settings never do.
+  - `data-label.spec.ts` now checks every listed page in all three states: no network, a real network, a failed list.
+  - The connected forecast fixtures (pantry, retail and retail-noprice `forecast.json`) no longer call their SEASONAL_NAIVE and MOVING_AVERAGE providers "fixture stand-ins". The values are fixed, and the provider only labels the baseline each stands in for (E-1).
+  - The API's `tests/networks/fixtures/{mini-network,retail-twin}/forecast.json` carry the same sentence. They are lead paths, reported, not changed.
+- **Item 4, RED evidence for two earlier fixes.** Method: no throwaway commits. Each fix's diff was reverse-applied in the working tree (`git show <fix> -- <src files> > p.patch; git apply -R p.patch`), the spec run, and the diff re-applied (`git apply p.patch`). `git status` was clean before and after, and nothing was committed or pushed.
+  - Motion guard (`a555cb0`, `ui/button.tsx` only reverted): `npx playwright test tests/e2e/v1-a11y.spec.ts` gave **12 failed, 1 passed** (the live control). Each failure is at `> 87 | expect(await movingTransitions(page)).toEqual([]);`, listing for example `"a\"Download blank demand_history.csv\": all"`: Button-styled links still had `transition: all`.
+  - Shell remount (`235e30e`, `network-switcher.tsx` and `network-atlas.tsx` reverted): `npx playwright test tests/e2e/presenter-session.spec.ts:97 …:117` gave **2 failed**.
+    - `:97`, the visitor's dialog: `Locator: getByRole('dialog', { name: 'Presenter sign in' })`, `> 113 | await expect(dialog).toBeVisible();`, element(s) not found.
+    - `:117`, the phone navigation: `Locator: getByRole('combobox', { name: 'Network', exact: true })`, `> 139 | ...toBeVisible();`, element(s) not found.
+- **Evidence after the fixes:**
+  - tsc and `npm run lint` exit 0.
+  - `npx vitest run`: 25 files, 146 passed.
+  - `node --test tests/*.test.mjs`: 13 passed, 0 skipped.
+  - Mocked e2e, whole suite: 200 passed, 0 failed, 14 skipped (connected-only, not evidence); exit 0.
 
 ## Decisions made inside the lane
 
@@ -253,6 +283,7 @@ What was done about each finding:
   - **CI:** the connected step sets it (`.github/workflows/pantrypulse-ci.yml:103`, "Real browser, proxy, database and worker journey"), and no other step does. The workflow is unchanged.
   - **Test:** `tests/playwright-config.test.mjs` loads the config under `1`, `0` and empty. RED (`retain-on-failure` for `1`), then GREEN.
   - The lane also corrected `sign-in.ts`'s comment, which had claimed the password never reaches uploaded test-results.
+  - **Extended in `ff588ee` (#129 review M1):** the local runner `connected/run-e2e.sh` sets `PP_RUN_CONNECTED=1` but not `PP_E2E_PRODUCTION`, so local connected runs still traced. Trace is now off when either is `1`, under the same bounded authorization; the config test covers both variables.
 
 
 ## Escalations
