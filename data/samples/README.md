@@ -30,5 +30,7 @@ the Census geocoder or Google: every location already has coordinates.
 
 ## Template examples
 
-`data/templates/examples/*.csv` are the Pantry sample, generated for a fixed date by
-`apps/api/scripts/generate_samples.py`. A test fails if they drift from the generator.
+`data/templates/examples/*.csv` are the Pantry sample and `data/templates/examples/retail/*.csv`
+the Retail sample, both generated for a fixed date by `apps/api/scripts/generate_samples.py`. They
+are the `kind=example` template downloads (`mode=PANTRY`, the default, or `mode=RETAIL`). A test
+fails if they drift from the generator by a single byte.

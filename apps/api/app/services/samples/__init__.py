@@ -37,15 +37,22 @@ def ensure_samples(session, today: date) -> SeedReport:
     """`session` is the seed's ORM session; each import commits on its own connections, as the
     import job does (the seed runs before the worker starts, so the API commit path can't).
 
-    It commits the session's pending work (the bootstrap's login and organization inserts)
-    first: publishing an import attaches a `net_batches` partition, whose foreign key needs
-    SHARE ROW EXCLUSIVE on `organizations`, and the caller's open insert would block it forever
-    (a client-side deadlock PostgreSQL can't detect).
+    The caller's transaction must hold no write that an import waits on: publishing attaches a
+    `net_batches` partition, whose foreign key needs SHARE ROW EXCLUSIVE on `organizations`, so
+    an open organizations insert would block it forever (a client-side deadlock PostgreSQL can't
+    detect). `local_bootstrap.run` commits the organization first (CR-w3-samples-4).
 
     One seed runs at a time: the freshness check and the import aren't one transaction, so two
     seeds at once would both import (a duplicate version, or a deadlock on the partition attach).
     The advisory lock's transaction holds no table locks, so the imports can't block on it."""
-    session.commit()
+    # Refuse at once rather than hang when the caller's transaction has pending ORM changes or
+    # an assigned xid: such a write may hold a lock an import waits on.
+    # shortcut: misses a no-op write that holds a lock without an xid (e.g. INSERT ... ON
+    # CONFLICT DO NOTHING); W4 passes an engine instead
+    if session.new or session.dirty or session.deleted or session.scalar(
+            sa.text("SELECT pg_current_xact_id_if_assigned()")) is not None:
+        raise RuntimeError("commit the caller's writes before seeding the samples: an open "
+                           "write would block each import's partition attach")
     engine = session.get_bind()
     loaded = []
     with engine.begin() as lock:

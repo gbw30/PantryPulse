@@ -158,11 +158,19 @@ def retail_sample(today: date, seed: int = SEED) -> SampleNetwork:
                                   quantity=round(rng.uniform(20, 120)) if reported else 0,
                                   donor=DONOR))
 
+    # Delivery costs from the DC (drawn last, so the other files don't depend on them); one
+    # store takes smaller deliveries and one store-to-store transfer is switched off.
+    routes = [dict(from_location_id=DC[0], to_location_id=s,
+                   cost_per_handling_unit=f"{rng.uniform(0.2, 0.8):.2f}",
+                   capacity_per_batch=400 if s == "S07" else None) for s, *_ in STORES]
+    routes.append(dict(from_location_id="S01", to_location_id="S02", disabled="true"))
+
     return SampleNetwork(name=NAME, mode="RETAIL", as_of_date=today, files={
         "locations": to_csv("locations", locations),
         "products": to_csv("products", products),
         "inventory": to_csv("inventory", inventory),
         "demand_history": to_csv("demand_history", sales),
+        "routes": to_csv("routes", routes),
         "inbound": to_csv("inbound", inbound),
         "donation_history": to_csv("donation_history", donations),
     })

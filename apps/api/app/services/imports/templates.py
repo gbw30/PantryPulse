@@ -13,8 +13,8 @@ from app.schemas.v1_networks import (
 )
 from app.schemas.v1_planning import ROLES_BY_MODE, NetworkMode
 from app.services.imports.columns import COLUMNS, header
-from app.services.presenter_access import AccessError
 from app.services.samples.pantry import pantry_sample
+from app.services.samples.retail import retail_sample
 
 EXAMPLE_AS_OF = date(2026, 11, 4)  # the examples' as-of date; their history ends the day before
 NO_LIMIT = "capacity not provided — no limit assumed"
@@ -147,25 +147,22 @@ def template_catalog(mode: NetworkMode | None) -> TemplateCatalog:
                 effect_on_plan=effect, allowed_values=roles if column == "type" else ()))
         templates.append(Template(name=name, required=name in REQUIRED_TEMPLATES,
                                   description=DESCRIPTIONS[name], columns=tuple(entries),
-                                  # shortcut: the examples are the Pantry sample, so only Pantry
-                                  # offers them until the samples lane adds Retail ones
-                                  # (CR-w3-samples-3).
-                                  example_available=mode == "PANTRY"))
+                                  # Each mode has its sample as examples; a mode-less catalog
+                                  # can't know which set fits.
+                                  example_available=mode is not None))
     return TemplateCatalog(mode=mode, templates=tuple(templates), notes=NOTES)
 
 
 def template_csv(name: TemplateName, kind: Literal["blank", "example"],
                  mode: NetworkMode | None = None) -> str:
     if kind == "example":
-        if mode == "RETAIL":
-            # shortcut: no Retail examples yet; the samples lane adds them (CR-w3-samples-3).
-            raise AccessError("TEMPLATE_EXAMPLE_UNAVAILABLE", 404)
-        return _examples()[name]
+        return _examples(mode or "PANTRY")[name]
     return header(name) + "\n"
 
 
 @cache
-def _examples() -> dict[TemplateName, str]:
-    """The Pantry sample on a fixed date, so the download matches the committed files in
-    data/templates/examples (written by scripts/generate_samples.py) and the sample itself."""
-    return pantry_sample(EXAMPLE_AS_OF).files
+def _examples(mode: NetworkMode) -> dict[TemplateName, str]:
+    """The mode's sample on a fixed date, so the download matches the committed files in
+    data/templates/examples (Pantry) and data/templates/examples/retail (both written by
+    scripts/generate_samples.py) and the sample itself."""
+    return (retail_sample if mode == "RETAIL" else pantry_sample)(EXAMPLE_AS_OF).files
