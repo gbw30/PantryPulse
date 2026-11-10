@@ -1,7 +1,7 @@
 # covers: V1-A15
 """RETAIL_OPTIMIZED behavior beyond the oracle values, and the independent verifier's refusals."""
 
-from datetime import timedelta
+from datetime import date, timedelta
 
 import pytest
 from ortools.sat.python import cp_model
@@ -148,3 +148,50 @@ def test_verifier_rejects(name, rows, violation):
     report = verify_plan(s, plan(s, *rows))
     assert not report.passed
     assert violation in report.violations
+
+
+def latest_expiry_first(expiry, available, ident):
+    return (-(expiry or date.max).toordinal(), available, ident)
+
+
+def highest_id_first(expiry, available, ident):
+    return (expiry or date.max, available, [-ord(ch) for ch in ident])
+
+
+@pytest.mark.parametrize(
+    ("mutant", "a1_expiry"),
+    [(latest_expiry_first, date(2026, 11, 3)), (highest_id_first, date(2026, 11, 30))],
+)
+def test_verifier_fefo_check_is_independent_of_the_shared_packing(monkeypatch, mutant, a1_expiry):
+    """S1: lost-vs-waste A holds a1 (1 unit) and a2 (10, 11-30); both are eligible for the 1-day
+    route. Sending 2 units of a2 while a1 stays at A breaks FEFO: a1 expires first (11-03), or
+    on the same day with the lower batch id. With the shared FEFO order mutated the same way, the
+    shared packing draws a2 too, so only an independent FEFO check can still refuse the plan."""
+    from app.services.optimization import v3
+
+    s = scenario("retail-lost-vs-waste")
+    a1 = s.batches[0].model_copy(update={"expiry_date": a1_expiry})
+    s = s.model_copy(update={"batches": (a1, *s.batches[1:])})
+    monkeypatch.setattr(v3, "fefo_key", mutant)
+    later_first = plan(s, ("P", "A", "B", 2, 1, ("a2",)))
+    assert [x.splits for x in v3.pack(s, v3.quantities_of(later_first))] == [(("a2", 2),)]
+    report = verify_plan(s, later_first)
+    assert report.violations == ("PACKING_FEFO_MISMATCH",)
+
+
+def test_verifier_fefo_eligibility_uses_its_own_arrival(monkeypatch):
+    """S1: a1 expires 11-02, before the 1-day route arrives on 11-03, so it can't ship. With the
+    shared arrival mutated to the ship date, the shared packing ships a1 anyway; the verifier
+    derives the arrival from the route's own travel days and still refuses the plan."""
+    from datetime import timedelta as real
+
+    from app.services.optimization import v3
+
+    s = scenario("retail-lost-vs-waste")
+    a1 = s.batches[0].model_copy(update={"expiry_date": s.first_planning_date})
+    s = s.model_copy(update={"batches": (a1, *s.batches[1:])})
+    monkeypatch.setattr(v3, "timedelta", lambda days=0, **_: real(0))
+    expired_first = plan(s, ("P", "A", "B", 1, 1, ("a1",)))
+    assert [x.splits for x in v3.pack(s, v3.quantities_of(expired_first))] == [(("a1", 1),)]
+    report = verify_plan(s, expired_first)
+    assert report.violations == ("PACKING_FEFO_MISMATCH",)

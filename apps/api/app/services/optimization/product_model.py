@@ -129,15 +129,7 @@ def build_product_model(s, product_id, cands: tuple[Candidate, ...], shares, bas
             )
         m.add(request == 0)
 
-    own = defaultdict(list)
-    for b in s.batches:
-        if b.product_id == product_id:
-            own[b.location_id].append((bid(b.id), residual[b.id], b.quantity, first, b.expiry_date))
-    for i in s.inbound:
-        if i.product_id == product_id:
-            own[i.location_id].append(
-                (iid(i.id), i.quantity, i.quantity, i.arrival_date, i.expiry_date)
-            )
+    own = own_lots(s, product_id, residual)
 
     outgoing, incoming = defaultdict(list), defaultdict(list)
     for c in cands:
@@ -168,12 +160,11 @@ def build_product_model(s, product_id, cands: tuple[Candidate, ...], shares, bas
             sending = m.new_bool_var(f"sending:{loc}")
             m.add(sum(outgoing[loc]) >= 1).only_enforce_if(sending)
             m.add(sum(outgoing[loc]) == 0).only_enforce_if(~sending)
-            for k in range(7):
-                _enforce(m, unmet_p[k], 0, 0, sending)
-                _enforce(m, ends_p[k], floors.get(loc, 0), None, sending)
+            for expr, low, high in _protection(unmet_p, ends_p, floors.get(loc, 0)):
+                _enforce(m, expr, low, high, sending)
         for k, day in enumerate(days):
             room = shares.storage_room.get((loc, day))
-            if room is not None and loc in sublots:
+            if room is not None:
                 start = base[loc][day].on_hand if day in base[loc] else 0
                 m.add(h * pm.ends[loc][k] <= h * start + room)
 
@@ -207,6 +198,64 @@ def build_product_model(s, product_id, cands: tuple[Candidate, ...], shares, bas
     for v in every:
         m.add_hint(v, 0)  # the no-transfer plan is always feasible
     return pm
+
+
+def own_lots(s, product_id, residual) -> defaultdict:
+    """Each location's own lots for _project: on-hand batches left after sending, then inbound.
+    BD-49 protection projects exactly these (never proposed inbound)."""
+    bid, iid, _ = lot_ids_v3()
+    own = defaultdict(list)
+    for b in s.batches:
+        if b.product_id == product_id:
+            own[b.location_id].append(
+                (bid(b.id), residual[b.id], b.quantity, s.first_planning_date, b.expiry_date)
+            )
+    for i in s.inbound:
+        if i.product_id == product_id:
+            own[i.location_id].append(
+                (iid(i.id), i.quantity, i.quantity, i.arrival_date, i.expiry_date)
+            )
+    return own
+
+
+def one_unit_protected(s, product_id):
+    """c -> whether BD-49, as build_product_model enforces it, lets c's sender ship one unit.
+
+    The unit comes from the first non-empty batch in c's FEFO loading order; the sender must
+    still serve its whole forecast and stay at or above its reserve every planning day. More
+    units only take more stock, so a sender that fails here can't send on c at all.
+    """
+    bid, _, _ = lot_ids_v3()
+    days = dates(s)
+    points = (*days, days[-1] + timedelta(days=1))
+    own = own_lots(s, product_id, {b.id: b.quantity for b in s.batches})
+    demand = {d.location_id: d.targets for d in s.demand if d.product_id == product_id}
+    floors = {r.location_id: r.floor for r in s.reserves if r.product_id == product_id}
+    verdicts = {}
+
+    def protected(c) -> bool:
+        loc = c.route.from_location_id
+        sent = next((bid(b.id) for b in c.batches if b.quantity), None)
+        if sent is None:
+            return False
+        if (loc, sent) not in verdicts:
+            lots = [(i, units - (i == sent), *rest) for i, units, *rest in own[loc]]
+            targets = (*demand.get(loc, (0,) * 7), 0)
+            # all-integer lots: _project returns plain ints and adds nothing to the model
+            _, unmet, _, ends, _ = _project(cp_model.CpModel(), points, targets, lots, "")
+            verdicts[loc, sent] = all(
+                low <= v and (high is None or v <= high)
+                for v, low, high in _protection(unmet, ends, floors.get(loc, 0))
+            )
+        return verdicts[loc, sent]
+
+    return protected
+
+
+def _protection(unmet, ends, floor):
+    """BD-49 on each planning day: no unmet demand, stock at or above the reserve floor.
+    (expr, low, high) in the order the model adds them; the screen evaluates the same list."""
+    return [b for k in range(7) for b in ((unmet[k], 0, 0), (ends[k], floor, None))]
 
 
 def _enforce(m, expr, low, high, literal):
