@@ -53,6 +53,10 @@ Each lands test-first through a small PR with Gabriel's OK:
 - Import commit edges (web verifier): the queue admits a job in its own transaction before the run's phase is saved, so a failure in between leaves a queued job while the run reads "no job". Give the commit a stable idempotency key per run, and make `run_import` check which job owns the run. A commit still waiting when the proxy gives up at 20 s reads as "didn't start"; soften that wording after a proxy timeout.
 - Notes from the #134 verifier: an import commit can outlast the proxy's 20 s; the statement budget on submit, retry and cancel is 25 s; a validate crash is stored with the same `OUTPUT_INVALID` reason as a real rejection (only the log line tells them apart).
 
-## 5. W5 UX review
+## 5. W4-02 ownership
+
+The web lane builds W4-02: the new `apps/web/tests/e2e/v1-full-journey.spec.ts`, the E-1 switch to a real `forecast.v1` run and the connected Retail example download. This changes `wave-4.md`, which gave the spec to the orchestrator; the web lane already owns the connected harness and the E-1 journeys. The lead runs the whole set connected, does the #3 compose re-up check and sends failures to an integration-fixer. An independent verifier checks before the PR.
+
+## 6. W5 UX review
 
 - With a second plan's Decisions open in another tab, printing from the first tab shows the "No selected actions" alert. It fails openly and never prints wrong rows. Saving the selection only when the print link is used would avoid it.
