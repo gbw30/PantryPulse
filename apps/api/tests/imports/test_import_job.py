@@ -471,11 +471,12 @@ def test_the_session_can_cancel_an_import_job_but_not_retry_it(rt):  # W2-06 §4
     assert api.import_status(rt, SCOPE, created.import_id).phase == "failed"
 
 
-@pytest.mark.parametrize("change", ["date", "file"])
+@pytest.mark.parametrize("change", ["date", "file", "same file"])
 def test_other_input_after_a_lost_record_gets_its_own_job(rt, monkeypatch, change):  # H1 review
     """The admitted job may never record itself (it can end before its first progress write).
     A commit with another date or other file content must then get its own job, which the run
-    records, instead of a 409 every time; the admitted job stops at its first progress write."""
+    records, instead of a 409 every time; the admitted job stops at its first progress write.
+    The same bytes uploaded again (the file moves in the run's list) still replay it."""
     created = api.create_import(rt, SCOPE, _new())
     _upload(rt, created.import_id, FILES)
     admitted, submit, set_phase = [], rt.queue.submit, api.repo.set_phase
@@ -497,9 +498,11 @@ def test_other_input_after_a_lost_record_gets_its_own_job(rt, monkeypatch, chang
     as_of = date(2026, 11, 3) if change == "date" else date(2026, 11, 4)
     if change == "file":
         _upload(rt, created.import_id, {"products": FILES["products"] + "SALT,Salt,case\n"})
+    if change == "same file":
+        _upload(rt, created.import_id, {"locations": FILES["locations"]})
     retried = api.commit_import(rt, SCOPE, created.import_id, ImportCommit(as_of_date=as_of),
                                 "click-2")
-    assert retried.job_id != admitted[0]
+    assert (retried.job_id == admitted[0]) is (change == "same file")
     with rt.engine.connect() as conn:
         assert api.repo.get_run(conn, created.import_id).job_id == retried.job_id
     _cancel_queued(rt.engine, rt.queue)
