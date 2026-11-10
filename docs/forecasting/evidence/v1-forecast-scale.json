@@ -1,0 +1,208 @@
+{
+  "schema_version": "v1-forecast-scale-v1",
+  "task": "W3-F06 (V1-A17)",
+  "generated_at": "2026-11-09T09:37:33+00:00",
+  "scope": "timings and sizes on SYNTHETIC seeded history; never accuracy evidence",
+  "commit": "23c998d",
+  "machine": {
+    "cpu": "Intel(R) Core(TM) Ultra 9 285H",
+    "cpus": 16,
+    "os": "WSL2 Linux",
+    "python": "3.12.13",
+    "postgres": "pp-ci-postgres container, *_test database"
+  },
+  "commands": [
+    "uv run --frozen python scripts/bench_forecast.py --part built --series 50000",
+    "uv run --frozen python scripts/bench_forecast.py --part freeze --series 50000",
+    "uv run --frozen pytest tests/forecasting/test_forecast_scale.py"
+  ],
+  "series": 50000,
+  "history_days": 90,
+  "wall_s": 16.99,
+  "peak_rss_mb": 1094.5,
+  "forecast_job": {
+    "compute_s": 12.54,
+    "ceiling_s": 300,
+    "within_ceiling": true,
+    "how": "4 x validate_frozen (admission, step, publisher validate, publish) + compute + build_output",
+    "timings_s": {
+      "generate_s": 1.28,
+      "freeze_python_s": 1.04,
+      "validate_input_s": 0.84,
+      "step_compute_s": 5.79,
+      "publish_build_output_s": 3.39,
+      "danger_ranking_s": 4.04
+    },
+    "publish_in_lock_s_before_insert": 4.23,
+    "series_available": 50000,
+    "series_insufficient": 0
+  },
+  "sizes_mb": {
+    "frozen_input_synthetic": 11.93,
+    "frozen_input_worst_case": 20.6,
+    "worst_case_note": "test_worst_case_frozen_input_fits_the_registered_bound: 50,000 series, 64-character IDs, every day 100,000 units (20,602,900 bytes)",
+    "max_input": 24.0,
+    "step_output": 13.41,
+    "max_output": 32.0,
+    "stored_output_json": 106.42
+  },
+  "freeze_sql": {
+    "history_rows": 4500000,
+    "series_rows": 50000,
+    "history_aggregate_s": 3.13,
+    "note": "one unpartitioned scratch table holding only this version's rows"
+  },
+  "danger_ranking": {
+    "pure_s": 4.04,
+    "rows": 100,
+    "note": "project_lines + danger_ranking over one dated lot per series; the run read and the batch/inbound SQL are not timed"
+  },
+  "batching": "not needed: one step fits; test_batched_series_equal_unbatched_on_small_set pins series independence",
+  "verdict": "fits: 50,000 series in 12.5 s of the 300 s forecast ceiling at 1.1 GB peak (8 GiB worker), after raising forecast.v1 max_input_bytes 16 MB -> 24 MB for the worst-case input",
+  "publish_lock_with_backtest": {
+    "task": "W3-F03 remainder (forecast_runs.backtest, ppv1_0014)",
+    "commit": "3d03fd1",
+    "command": "uv run --frozen python scripts/bench_forecast.py --part built --series 50000 (run twice)",
+    "load_average_1min_before_runs": [
+      2.91,
+      2.45
+    ],
+    "note": "Other sessions' tests were running, so phases unchanged since 23c998d ran 20-50 % slower than the baseline above; build_backtest's own time is the new number.",
+    "runs": [
+      {
+        "timings": {
+          "generate_s": 1.54,
+          "freeze_python_s": 1.36,
+          "validate_input_s": 1.04,
+          "step_compute_s": 7.93,
+          "publish_build_output_s": 5.26,
+          "publish_build_backtest_s": 1.58,
+          "danger_ranking_s": 6.68
+        },
+        "forecast_job_compute_s": 18.93,
+        "publish_in_lock_s_before_insert": 7.88,
+        "stored_backtest_json_mb": 9.39,
+        "wall_s": 26.22,
+        "peak_rss_mb": 1147.9
+      },
+      {
+        "timings": {
+          "generate_s": 1.51,
+          "freeze_python_s": 1.33,
+          "validate_input_s": 1.02,
+          "step_compute_s": 7.65,
+          "publish_build_output_s": 4.73,
+          "publish_build_backtest_s": 1.55,
+          "danger_ranking_s": 6.07
+        },
+        "forecast_job_compute_s": 18.01,
+        "publish_in_lock_s_before_insert": 7.3,
+        "stored_backtest_json_mb": 9.39,
+        "wall_s": 24.66,
+        "peak_rss_mb": 1147.9
+      }
+    ],
+    "publish_build_backtest_s": [
+      1.58,
+      1.55
+    ],
+    "publish_in_lock_s_before_insert": [
+      7.88,
+      7.3
+    ],
+    "within_ceiling": true
+  },
+  "freeze_history_end": {
+    "task": "PR #127 review: windows end on the version's last history day",
+    "commit": "7961d1d",
+    "command": "uv run --frozen python scripts/bench_forecast.py --part freeze --series 50000",
+    "load_average_1_5_min_after_run": [
+      5.59,
+      11.47
+    ],
+    "history_end_s": 0.24,
+    "history_aggregate_s": 5.51,
+    "note": "The new max(day) query adds 0.24 s before the aggregate. The full backend suite ran just before on the same machine, so the unchanged aggregate took 5.51 s against 3.13 s quiet (freeze_sql above)."
+  },
+  "publish_lock_after_f1": {
+    "task": "#127 verifier F1: the network run is built in the publisher's prepare, outside the queue lock",
+    "commit": "6214126",
+    "command": "uv run --frozen python scripts/bench_forecast.py --part lock --series 50000; the before runs replace REGISTRATION.publisher.prepare with a pass-through, so publish builds the run inside the lock (the e12fdc1 behaviour) on the same harness",
+    "harness": "forecast.v1 through the real QueueRepository, Supervisor and ForecastPublisher (PRODUCTION_PROFILE) in a scratch schema of pantrypulse_forecast_test; the step runs in process through the integration tests' fake driver. lock_held_s ran from the return of the queue's _lock_claimed to COMMIT (see timing_caveat).",
+    "frozen_input_mb": 11.93,
+    "runs": [
+      {
+        "run": "after_1",
+        "build": "prepare, outside the lock",
+        "timings": {
+          "submit_s": 5.76,
+          "prepare_s": 6.44,
+          "publisher_publish_s": 3.93,
+          "queue_publish_s": 5.11,
+          "lock_held_s": 4.59,
+          "job_s": 31.0
+        },
+        "peak_rss_mb": 1100.8,
+        "load_1_5_15_start": "2.28 0.89 0.33",
+        "load_1_5_15_end": "3.08 1.26 0.48"
+      },
+      {
+        "run": "before_1",
+        "build": "inside the lock (prepare as a pass-through)",
+        "timings": {
+          "submit_s": 5.51,
+          "prepare_s": 0.0,
+          "publisher_publish_s": 9.23,
+          "queue_publish_s": 10.38,
+          "lock_held_s": 9.85,
+          "job_s": 29.76
+        },
+        "peak_rss_mb": 1119.6,
+        "load_1_5_15_start": "3.07 1.29 0.49",
+        "load_1_5_15_end": "3.27 1.50 0.59"
+      },
+      {
+        "run": "after_2",
+        "build": "prepare, outside the lock",
+        "timings": {
+          "submit_s": 4.96,
+          "prepare_s": 5.6,
+          "publisher_publish_s": 3.06,
+          "queue_publish_s": 4.19,
+          "lock_held_s": 3.68,
+          "job_s": 28.17
+        },
+        "peak_rss_mb": 1100.9,
+        "load_1_5_15_start": "3.16 1.51 0.60",
+        "load_1_5_15_end": "2.60 1.56 0.65"
+      },
+      {
+        "run": "before_2",
+        "build": "inside the lock (prepare as a pass-through)",
+        "timings": {
+          "submit_s": 4.83,
+          "prepare_s": 0.0,
+          "publisher_publish_s": 8.81,
+          "queue_publish_s": 9.98,
+          "lock_held_s": 9.44,
+          "job_s": 27.82
+        },
+        "peak_rss_mb": 1140.3,
+        "load_1_5_15_start": "2.60 1.56 0.65",
+        "load_1_5_15_end": "2.48 1.65 0.71"
+      }
+    ],
+    "lock_held_s": {
+      "after": [
+        4.59,
+        3.68
+      ],
+      "before": [
+        9.85,
+        9.44
+      ]
+    },
+    "note": "Run back to back, alternating, at load 2.3-3.3 while the web lane's full gate also ran. The lock still holds the INSERT of the run row (106 MB output, 12 MB frozen input, 9.4 MB backtest, JSONB-parsed and TOAST-compressed by PostgreSQL): 3.06-3.93 s of the 3.68-4.59 s, close to the queue's 5 s lock timeout. The worst-case frozen input (20.6 MB) would add to it.",
+    "timing_caveat": "Verifier N1: these lock_held_s figures start when _lock_claimed returns, so acquiring the lock and reading the job row (about 0.2 s at 50k) are not counted. The after figures are about 5 % low, the before figures about 2 %. The bench now starts the timer at the call and prints the load average itself; the 50k runs were not repeated."
+  }
+}
