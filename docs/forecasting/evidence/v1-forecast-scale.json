@@ -128,7 +128,7 @@
     "task": "#127 verifier F1: the network run is built in the publisher's prepare, outside the queue lock",
     "commit": "6214126",
     "command": "uv run --frozen python scripts/bench_forecast.py --part lock --series 50000; the before runs replace REGISTRATION.publisher.prepare with a pass-through, so publish builds the run inside the lock (the e12fdc1 behaviour) on the same harness",
-    "harness": "forecast.v1 through the real QueueRepository, Supervisor and ForecastPublisher (PRODUCTION_PROFILE) in a scratch schema of pantrypulse_forecast_test; the step runs in process through the integration tests' fake driver. lock_held_s runs from the queue's _lock_claimed to COMMIT.",
+    "harness": "forecast.v1 through the real QueueRepository, Supervisor and ForecastPublisher (PRODUCTION_PROFILE) in a scratch schema of pantrypulse_forecast_test; the step runs in process through the integration tests' fake driver. lock_held_s ran from the return of the queue's _lock_claimed to COMMIT (see timing_caveat).",
     "frozen_input_mb": 11.93,
     "runs": [
       {
@@ -202,6 +202,7 @@
         9.44
       ]
     },
-    "note": "Run back to back, alternating, at load 2.3-3.3 while the web lane's full gate also ran. The lock still holds the INSERT of the run row (106 MB output, 12 MB frozen input, 9.4 MB backtest, JSONB-parsed and TOAST-compressed by PostgreSQL): 3.06-3.93 s of the 3.68-4.59 s, close to the queue's 5 s lock timeout. The worst-case frozen input (20.6 MB) would add to it."
+    "note": "Run back to back, alternating, at load 2.3-3.3 while the web lane's full gate also ran. The lock still holds the INSERT of the run row (106 MB output, 12 MB frozen input, 9.4 MB backtest, JSONB-parsed and TOAST-compressed by PostgreSQL): 3.06-3.93 s of the 3.68-4.59 s, close to the queue's 5 s lock timeout. The worst-case frozen input (20.6 MB) would add to it.",
+    "timing_caveat": "Verifier N1: these lock_held_s figures start when _lock_claimed returns, so acquiring the lock and reading the job row (about 0.2 s at 50k) are not counted. The after figures are about 5 % low, the before figures about 2 %. The bench now starts the timer at the call and prints the load average itself; the 50k runs were not repeated."
   }
 }

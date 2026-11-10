@@ -34,6 +34,12 @@ The save point of 2026-11-09 (late) was `6214126`, pushed. Its steps 1–5 are d
   - Lock held, after: 4.59 s and 3.68 s. Before (the same harness with `prepare` as a pass-through): 9.85 s and 9.44 s.
   - The runs went back to back, alternating, at load 2.3–3.3.
   - What remains in the lock is the INSERT of the run row, 3.06–3.93 s. That is close to the queue's 5 s lock timeout (known limits).
+  - These figures leave out acquiring the lock and reading the job row, about 0.2 s (verifier N1): the after figures are about 5 % low. The bench now times from the call to `_lock_claimed`.
+- **Re-verification of `e12fdc1..f8cb92a`:** F1–F4 resolved; every mutant killed; 459 + 26 passed, 0 skipped. Small follow-ups, in the commit after `f8cb92a`:
+  - **N4, test-first:** `publish_network` keeps the prepared run until its INSERT has executed, so a publish retried after the INSERT failed reuses it. `test_publish_retried_after_a_failed_insert_reuses_the_prepared_run` was red with two builds; it now passes with one.
+  - **N1:** the bench times the lock from the call to `_lock_claimed`, prints the load average itself, and the evidence and S7 note the old figures' gap.
+  - **N2:** a `shortcut:` comment says `prepare` ignores `remaining_s`.
+  - **N3** (a passing DB error in `prepare` fails the attempt instead of retrying) is the lead's supervisor question for W4.
 - **Lead decisions (2026-11-09, Gabriel), no code change:**
   - `bias_pct` as a percentage is accepted, overriding V5 §7's unit bias for v1. `backtest.py`'s docstring says percent and unavailable when Σactual = 0, and `test_zero_denominator_reports_none` pins the null. The schema's own docstring (`app/schemas/v1_networks.py:71`, lead-owned) still says only "V5 §7 WAPE and bias".
   - The 24/32 MB limits are accepted.

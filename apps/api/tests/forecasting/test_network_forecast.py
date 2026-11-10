@@ -295,6 +295,39 @@ def test_publish_rebuilds_when_its_prepared_run_is_gone(stack, monkeypatch):
     assert get_backtest(stack, SESSION, job_id).series
 
 
+def test_publish_retried_after_a_failed_insert_reuses_the_prepared_run(stack, monkeypatch):
+    """Verifier N4: when the INSERT fails on storage (a statement timeout, a dropped connection)
+    the queue retries the publication. The retry INSERTs the run prepare built; building it
+    again would put the 50k build back inside the lock (F1)."""
+    builds, inserts = [], []
+
+    def counted(inputs, compact, run_id):
+        builds.append(run_id)
+        return build_output(inputs, compact, run_id)
+
+    class FirstInsertLost:  # the queue's locked connection; the first run INSERT fails
+        def __init__(self, connection):
+            self._connection = connection
+
+        def __getattr__(self, name):
+            return getattr(self._connection, name)
+
+        def execute(self, statement, *args, **kwargs):
+            if isinstance(statement, sa.Insert) and statement.table.name == "forecast_runs":
+                inserts.append(statement)
+                if len(inserts) == 1:
+                    raise sa.exc.OperationalError("INSERT", {}, Exception("connection lost"))
+            return self._connection.execute(statement, *args, **kwargs)
+
+    publish = REGISTRATION.publisher.publish
+    monkeypatch.setattr(worker, "build_output", counted)
+    monkeypatch.setattr(REGISTRATION.publisher, "publish", lambda connection, identity, package:
+                        publish(FirstInsertLost(connection), identity, package))
+    network = import_network(stack)
+    job_id = run(stack, network)
+    assert (len(inserts), builds) == (2, [job_id])
+
+
 def test_series_under_14_days_listed_ineligible_not_zero_filled(published, stack):
     short = series(published.run, "P2", "RICE")
     assert short.status == "INSUFFICIENT_DATA"

@@ -137,6 +137,8 @@ class ForecastPublisher:
         """Builds a network run here, outside the queue lock (verifier F1): at 50,000 series
         it takes 4-8 s, and held under the lock it would make submits, retries and cancels
         miss their 5 s lock timeout. `publish` then only INSERTs it. Site runs pass through."""
+        # shortcut: prepare ignores remaining_s; an overrun ends TIMED_OUT via the supervisor's
+        # deadline check. Bound the build if it can approach the 28 s left after the primary cutoff.
         if "network_output" in package:
             with engine.connect() as conn:
                 self._prepared[identity.attempt_id] = self.network_row(conn, identity, package)
@@ -338,9 +340,11 @@ class ForecastPublisher:
                 "backtest": json.dumps(backtest)}
 
     def publish_network(self, connection, identity, package):
-        """The INSERT of the run `prepare` built. A publish retried after a storage error finds
-        that run already taken and builds it again here, inside the lock: rare, slow, correct."""
-        row = self._prepared.pop(identity.attempt_id, None)
+        """The INSERT of the run `prepare` built. The run is dropped only once its INSERT has
+        executed, so a publish retried after the INSERT failed reuses it (verifier N4). One
+        retried after a later failure in the queue's transaction builds it again here, inside
+        the lock: rare, slow, correct."""
+        row = self._prepared.get(identity.attempt_id)
         if row is None:
             row = self.network_row(connection, identity, package)
         encoded = {k: sa.cast(sa.literal(row[k], sa.Text), JSONB)
@@ -356,6 +360,7 @@ class ForecastPublisher:
                 **encoded,
             )
         )
+        self._prepared.pop(identity.attempt_id, None)
         return {
             "result_ref": str(identity.job_id),
             "planning_ready": row["planning_ready"],

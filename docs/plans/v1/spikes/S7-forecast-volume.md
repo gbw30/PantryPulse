@@ -62,12 +62,14 @@ Rows written: 50,001, about 17 MB in total. No `forecast_series` or `forecast_po
 
 `forecast.v1` runs through the real queue, supervisor and publisher in a scratch schema. The step runs in process, through the integration tests' fake driver. "Before" is the same harness with the publisher's `prepare` turned into a pass-through, so `publish` builds the run inside the lock, as at `e12fdc1`. The runs went back to back, alternating, at load 2.3–3.3 while another lane's full gate ran. Evidence key: `publish_lock_after_f1`.
 
-| Run | Built | Lock held (`_lock_claimed` → COMMIT) | of which `publish` | `prepare`, outside the lock |
+| Run | Built | Lock held (`_lock_claimed` returns → COMMIT) | of which `publish` | `prepare`, outside the lock |
 |---|---|---|---|---|
 | after 1 | in `prepare` | 4.59 s | 3.93 s (the INSERT) | 6.44 s |
 | before 1 | in `publish` | 9.85 s | 9.23 s (build + INSERT) | — |
 | after 2 | in `prepare` | 3.68 s | 3.06 s (the INSERT) | 5.60 s |
 | before 2 | in `publish` | 9.44 s | 8.81 s (build + INSERT) | — |
+
+These lock times leave out acquiring the lock and reading the job row, about 0.2 s at 50k (verifier N1). So the after figures are about 5 % low and the before figures about 2 %. The bench now starts the timer at the call to `_lock_claimed` and prints the load average itself; the 50k runs were not repeated.
 
 The lock time halves. What remains is the INSERT of the run row: a 106 MB output, the frozen input (12 MB here, 20.6 MB at the worst case) and the 9.4 MB backtest. PostgreSQL parses that JSONB and TOAST-compresses it inside the transaction. That is 3–4 s, close to the queue's 5 s lock timeout, and it is not removable without changing what the row stores.
 

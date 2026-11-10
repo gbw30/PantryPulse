@@ -392,12 +392,11 @@ def lock(n: int, days: int) -> dict:
                 marks[name] = time.perf_counter() - t
         return wrapper
 
-    def locked(*args, **kwargs):
-        result = claimed(*args, **kwargs)
+    def locked(*args, **kwargs):  # from the lock request: acquiring it counts (verifier N1)
         marks["locked_at"] = time.perf_counter()
-        return result
+        return claimed(*args, **kwargs)
 
-    def publish(*args, **kwargs):  # the queue lock: from _lock_claimed to COMMIT
+    def publish(*args, **kwargs):  # the queue lock: from calling _lock_claimed to COMMIT
         queue._lock_claimed = locked
         try:
             return timed("queue_publish_s", type(queue).publish.__get__(queue))(*args, **kwargs)
@@ -436,8 +435,9 @@ def lock(n: int, days: int) -> dict:
             "errors": errors,
             "timings": {k: round(v, 2) for k, v in marks.items()},
             "input_mb": round(len(json.dumps(payload, separators=(",", ":"))) / 1e6, 2),
-            "note": "lock_held_s runs from the queue's _lock_claimed to COMMIT: its own checks "
-                    "(the job row and the input hash), the INSERT, the transitions and COMMIT"}
+            "note": "lock_held_s runs from the call to the queue's _lock_claimed to COMMIT: "
+                    "acquiring the lock, its own checks (the job row and the input hash), the "
+                    "INSERT, the transitions and COMMIT"}
 
 
 def freeze(n: int, days: int) -> dict:
@@ -493,7 +493,7 @@ def main() -> None:
     parser.add_argument("--days", type=int, default=90)
     parser.add_argument("--sample", type=int, default=500)
     args = parser.parse_args()
-    t = time.perf_counter()
+    load_start, t = os.getloadavg(), time.perf_counter()
     if args.part == "existing":
         result = existing(args.series, args.days, args.sample)
     elif args.part == "db":
@@ -510,7 +510,8 @@ def main() -> None:
                             text=True, check=False).stdout.strip()
     result.update(part=args.part, wall_s=round(time.perf_counter() - t, 2),
                   peak_rss_mb=peak_rss_mb(), commit=commit, python=platform.python_version(),
-                  cpus=os.cpu_count(), synthetic=True)
+                  cpus=os.cpu_count(), synthetic=True,
+                  load_1_5_15={"start": load_start, "end": os.getloadavg()})
     print(json.dumps(result, indent=2))
 
 
