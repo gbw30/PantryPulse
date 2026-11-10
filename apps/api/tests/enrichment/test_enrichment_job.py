@@ -151,6 +151,18 @@ def test_two_retries_racing_past_the_running_check_share_one_job(lane, network, 
     _settle(lane, network.network_id)
 
 
+def test_non_exact_match_stays_listed_for_review_after_a_retry(lane, network):
+    """W2-06 verifier: P4's Non_Exact match keeps its "unconfirmed address match" marker, so it
+    stays listed with the address Census matched, though the retry no longer sends it."""
+    retry_enrichment(lane.rt, SCOPE, network.network_id, str(uuid.uuid4()))
+    first = {u.location_id: u for u in _settle(lane, network.network_id).unmatched}
+    retry_enrichment(lane.rt, SCOPE, network.network_id, str(uuid.uuid4()))
+    status = _settle(lane, network.network_id)
+    assert lane.census.calls[-1] == ["99999 Nonexistent Pantry Rd"]  # P4 is not resent
+    assert {u.location_id: u for u in status.unmatched} == first
+    assert "100 N ANDREWS AVE" in first["P4"].hint
+
+
 def test_unknown_network_is_404(lane):
     with pytest.raises(AccessError) as error:
         enrichment_status(lane.rt, SCOPE, uuid.uuid4())

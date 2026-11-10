@@ -36,6 +36,7 @@ def enrichment_status(rt, scope, network_id: UUID) -> EnrichmentStatus:
         org, job_id = _latest_job(conn, network_id, version_id)
         locations = service.location_attributes(conn, version_id)
         found = service.blockers(conn, version_id)
+        unconfirmed = _unconfirmed(conn, org, version_id)
     state, last_error, unmatched = "not_started", None, []
     if job_id is not None:
         job = rt.queue.get_job(TrustedScope(org, "status"), job_id)
@@ -50,6 +51,8 @@ def enrichment_status(rt, scope, network_id: UUID) -> EnrichmentStatus:
             state = "failed"
             last_error = (f"The enrichment job ended {job.state.value.lower().replace('_', ' ')} "
                           "before saving anything. Retry it.")
+    listed = {u["location_id"] for u in unmatched}
+    unmatched = [*unmatched, *(u for i, u in unconfirmed.items() if i not in listed)]
     return EnrichmentStatus(
         network_id=network_id, dataset_version_id=version_id, state=state, job_id=job_id,
         last_error=last_error, locations=tuple(locations),
@@ -85,6 +88,27 @@ def _latest_job(conn: sa.Connection, network_id: UUID, version_id: UUID):
         "ORDER BY created_at DESC, job_id LIMIT 1"),
         {"org": org, "contract": CONTRACT, "v": str(version_id)})
     return org, job_id
+
+
+def _unconfirmed(conn: sa.Connection, org, version_id: UUID) -> dict[str, dict]:
+    """The review entry of each location still marked "unconfirmed address match" (W2-06 A7),
+    from the enrichment that matched it: a later retry doesn't resend it, so the latest
+    manifest no longer lists it. Manifests are never deleted, so the entry is always there."""
+    marked = set(conn.scalars(sa.text(
+        "SELECT external_id FROM net_locations WHERE dataset_version_id = :v AND acs_source "
+        "LIKE :m"), {"v": version_id, "m": f"%{service.UNCONFIRMED}%"}))
+    if not marked:
+        return {}
+    entries: dict[str, dict] = {}
+    for manifest in conn.scalars(sa.text(
+            "SELECT a.result_manifest FROM compute_jobs j JOIN compute_attempts a ON "
+            "a.attempt_id = j.current_attempt_id WHERE j.organization_id = :org AND "
+            "j.handler_contract = :contract AND j.input_package -> 'input' ->> "
+            "'dataset_version_id' = :v AND a.state = 'SUCCEEDED' ORDER BY j.created_at, j.job_id"),
+            {"org": org, "contract": CONTRACT, "v": str(version_id)}):
+        entries |= {u["location_id"]: u for u in (manifest or {}).get("unmatched", [])
+                    if u["location_id"] in marked}
+    return entries
 
 
 def set_location_attributes(
