@@ -25,7 +25,7 @@ The full gate passed 8/8 on `e3ca57e` (#124 and #125). #126 changes one test fil
 |---|---|---|---|
 | #127 forecast (`lane/w3-forecast`) | `6214126` (fixes pushed; 50k re-time and full gate still to do) | Verifier: no High findings. F1 (Medium): at 50k series the output and backtest are built inside the queue lock, 4–8 s against a 5 s lock timeout. F2–F4 are test gaps. Gabriel: fix F1 in W3 (move the build into `prepare`), and close F2–F4 | The lane pushes its fixes. Get a verifier re-check of the fix diff (worktree `verify-127`, DB `pantrypulse_verify_test`). Then Gabriel's OK, merge after CI, gate |
 | #128 samples follow-up (`lane/w3-samples`) | `a7a015c` | Verifier PASS at `c0fa3ef`: CR-3, CR-4, N1, the authorized edit and the guard. `e0e0414` only changes the G1 comment and status (lead checked the diff); `a7a015c` is status file only. Focused tests 341 passed, 0 skipped; quick 4/4 | **Merges only after the web PR** (Gabriel), then Gabriel's OK, merge after CI, gate |
-| web (`lane/w3-web`) | `75a2f71`, PR not open yet | W03 done (connected 208 passed, 0 skipped, no egress). Doing: CR-w3-web-2 (traces off when `PP_E2E_PRODUCTION=1`), the narrowed "Simulated network" label, `&mode=` on example links with the reason fetch dropped, and a clean rerun of the 3 tests that failed only under load | Lane opens the PR, then a verifier, then Gabriel's OK, merge after CI, gate. Then #128 |
+| web (`lane/w3-web`) | `4e52aaa` pushed, PR not open yet | W03 done (connected 208 passed, 0 skipped, no egress). Doing: CR-w3-web-2 (traces off when `PP_E2E_PRODUCTION=1`), the narrowed "Simulated network" label, `&mode=` on example links with the reason fetch dropped, and a clean rerun of the 3 tests that failed only under load | Lane opens the PR, then a verifier, then Gabriel's OK, merge after CI, gate. Then #128 |
 
 **Merge order (Gabriel):** #127 and the web PR as each is ready and verified, and #128 after the web PR.
 
@@ -42,7 +42,7 @@ The full gate passed 8/8 on `e3ca57e` (#124 and #125). #126 changes one test fil
 |---|---|---|
 | forecast | `pantrypulse-forecast-*` | Pushed `6214126`, quick PASS. F1–F4 are done test-first in `12e5dbf`: `prepare` builds outside the lock, `publish` only INSERTs, and `discard` drops the build. Lane suites plus test_supervisor: 557 passed, 0 skipped. Next, from its status-file save point: re-time the lock at 50k before and after the fix, update the evidence JSON, S7 and the known limits, run the full gate, update the PR body, push |
 | samples | `pantrypulse-samples-*` | Done; holding #128 at `e0e0414` |
-| web | `pantrypulse-web-*` | The CR-web-2, label and mode work above, then the full gate (one run at a time, waiting in-turn), then the PR |
+| web | `pantrypulse-web-*` | Pushed `4e52aaa`, green. Done: CR-w3-web-2 (`60aa4e6`; CI sets PP_E2E_PRODUCTION only in the connected step), the label (`9d373cb`; on a failed list, legacy screens keep "Simulated network" next to "Network list unavailable", which the lead accepted), the example probe removed (`6c703f6`), and the A06 e2e for today's backend (`4e52aaa`). Full gate 8/8 at `75a2f71`; the 3 load failures passed on a clean rerun (42/42). Next: merge v1-local if it moved, full gate, `gh pr create`, report |
 
 ## Next steps, in order
 
