@@ -101,7 +101,7 @@ class ImportPublisher:
         if package["job"]["organization_id"] != str(identity.organization_id):
             raise PublicationRejected("IMPORT_NOT_FOUND")
         load_staged(engine, identity.attempt_id, package["job"], package["step"],
-                    timeout_s=remaining_s)
+                    timeout_s=remaining_s, job_id=identity.job_id)
         return package
 
     def publish(self, connection, identity, package):

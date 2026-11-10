@@ -86,6 +86,20 @@ def set_phase(conn: sa.Connection, run_id: UUID, phase: str, *, job_id: UUID | N
          "progress": None if progress is None else json.dumps(progress)})
 
 
+def set_job_phase(conn: sa.Connection, run_id: UUID, job_id: UUID, phase: str, *,
+                  progress: dict[str, Any]) -> bool:
+    """A job's own progress. It records the job when the commit's record was lost (the commit key
+    is stable per run, so it is the run's only job), and never writes over a run that names
+    another job or has finished. False when the run is not this job's to move."""
+    return conn.execute(sa.text(
+        "UPDATE import_runs SET phase = :phase, job_id = :job, "
+        "progress = CAST(:progress AS jsonb), updated_at = clock_timestamp() "
+        "WHERE id = :id AND (job_id IS NULL OR job_id = :job) "
+        "AND phase NOT IN ('done', 'failed')"),
+        {"id": run_id, "job": job_id, "phase": phase,
+         "progress": json.dumps(progress)}).rowcount == 1
+
+
 def set_progress(conn: sa.Connection, run_id: UUID, unit: str, done: int,
                  total: int | None) -> None:
     conn.execute(sa.text(

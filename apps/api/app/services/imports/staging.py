@@ -157,15 +157,22 @@ def _data_lines(path: Path) -> int:
 
 
 class _Progress:
-    """Writes progress on its own short transactions, outside the import transaction."""
+    """Writes progress on its own short transactions, outside the import transaction. A queue
+    job (`job_id`) moves only a run that is its own; `run_import` has no job."""
 
-    def __init__(self, engine: sa.Engine, import_id: UUID):
-        self.engine, self.import_id = engine, import_id
+    def __init__(self, engine: sa.Engine, import_id: UUID, job_id: UUID | None = None):
+        self.engine, self.import_id, self.job_id = engine, import_id, job_id
 
     def phase(self, phase: str, unit: str, done: int, total: int | None) -> None:
+        progress = {"unit": unit, "done": done, "total": total}
         with self.engine.begin() as conn:
-            repo.set_phase(conn, self.import_id, phase,
-                           progress={"unit": unit, "done": done, "total": total})
+            if self.job_id is None:
+                repo.set_phase(conn, self.import_id, phase, progress=progress)
+            elif not repo.set_job_phase(conn, self.import_id, self.job_id, phase,
+                                        progress=progress):
+                finished = repo.get_run(conn, self.import_id).phase in ("done", "failed")
+                raise PublicationRejected("IMPORT_ALREADY_FINISHED" if finished
+                                          else "IMPORT_SUPERSEDED")
 
 
 def stage_table(attempt_id: UUID, suffix: str) -> str:
@@ -285,7 +292,7 @@ def _write_rows(folder: Path, org: UUID, version_id: UUID, rows: ParsedNetwork) 
 
 def load_staged(engine: sa.Engine, attempt_id: UUID, job: Mapping[str, Any],
                 step: Mapping[str, Any], *, timeout_s: float | None = None,
-                clock: Callable[[], float] = time.monotonic,
+                clock: Callable[[], float] = time.monotonic, job_id: UUID | None = None,
                 on_phase: Callable[[str], None] | None = None) -> None:
     base, import_id = Path(job["import_dir"]), UUID(job["import_id"])
     folder = attempt_dir(base, import_id, attempt_id)
@@ -304,7 +311,7 @@ def load_staged(engine: sa.Engine, attempt_id: UUID, job: Mapping[str, Any],
         _sweep(engine, base, attempt_id)
         if not step["ok"]:
             return
-        progress = _Progress(engine, import_id)
+        progress = _Progress(engine, import_id, job_id)
         checks = len(job["files"])
         for phase, unit, done, total in (("validating", "checks", checks, checks),
                                          ("committing", "rows", 0, step["rows"])):
@@ -455,7 +462,7 @@ def publish_staged(conn: sa.Connection, organization_id: UUID, attempt_id: UUID,
         raise PublicationRejected("IMPORT_NOT_FOUND")
     if run.phase in ("done", "failed"):  # never a second version, never over a final report
         raise PublicationRejected("IMPORT_ALREADY_FINISHED")
-    if job_id is not None and run.job_id != job_id:  # only the job the run records publishes
+    if job_id is not None and run.job_id not in (None, job_id):  # a later commit replaced it
         raise PublicationRejected("IMPORT_SUPERSEDED")
     if not step["ok"]:
         repo.fail_run(conn, run, [RowError.model_validate(e) for e in step["errors"]],
