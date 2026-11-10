@@ -399,3 +399,29 @@ def test_reimport_commit_does_not_block_writers_that_reference_the_network(rt, m
 
     monkeypatch.setattr(rt.queue, "submit", submit_while_a_writer_references_the_network)
     assert _commit(rt, again.import_id).job_id is not None
+
+
+def test_a_commit_retried_after_its_phase_write_failed_reuses_the_admitted_job(rt, monkeypatch):
+    """Import edge (W4): the queue admits the job in its own transaction, before the run records
+    it. If that record is lost, the user's Retry (a new Idempotency-Key) must get the same job,
+    not admit a second one."""
+    created = api.create_import(rt, SCOPE, _new())
+    _upload(rt, created.import_id, FILES)
+    admitted, submit, set_phase = [], rt.queue.submit, api.repo.set_phase
+
+    def recording_submit(*args, **kwargs):
+        accepted = submit(*args, **kwargs)
+        admitted.append(accepted.job_id)
+        return accepted
+
+    def lost(*args, **kwargs):
+        raise RuntimeError("connection lost after admission")
+
+    monkeypatch.setattr(rt.queue, "submit", recording_submit)
+    monkeypatch.setattr(api.repo, "set_phase", lost)
+    commit = ImportCommit(as_of_date=date(2026, 11, 4))
+    with pytest.raises(RuntimeError):
+        api.commit_import(rt, SCOPE, created.import_id, commit, "click-1")
+    monkeypatch.setattr(api.repo, "set_phase", set_phase)
+    retried = api.commit_import(rt, SCOPE, created.import_id, commit, "click-2")
+    assert admitted == [admitted[0], admitted[0]] and retried.job_id == admitted[0]

@@ -104,11 +104,14 @@ def commit_import(
                 {"n": run.network_id, "id": import_id}).all()
             if not all(_ended(rt, org, job_id) for org, job_id in running):
                 raise AccessError("IMPORT_IN_PROGRESS", 409)
+        # The queue admits in its own transaction, before this one records the job. A key per
+        # run and earlier job, not the caller's, lets a Retry after a lost record get the job
+        # already admitted; a commit after a failed job gets a new one (import edge, W4).
         accepted = rt.queue.submit(
             TrustedScope(run.organization_id, scope.actor_ref), CONTRACT,
             staging.job_input(conn, run, request.as_of_date, staging.import_dir(),
                               scope.actor_ref),
-            idempotency_key)
+            f"import-commit:{import_id}:{run.job_id or 'first'}")
         repo.set_phase(conn, import_id, "staging", job_id=accepted.job_id,
                        progress={"unit": "rows", "done": 0, "total": None})
     return ImportAccepted(import_id=import_id, job_id=accepted.job_id, status_url=status_url)
