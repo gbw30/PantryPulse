@@ -18,6 +18,8 @@ type Run =
   | { step: "uploading"; done: number; total: number }
   | { step: "tracking"; status: ImportStatus | null }
   | { step: "request_failed"; code: string }
+  /** The commit never started (the run still reads "uploading" with no job): the files are kept, so it can be sent again. */
+  | { step: "not_started"; importId: string; code: string | null }
   /** The commit may have been accepted, but no status could be read or understood: the import may still finish. */
   | { step: "lost"; importId: string; reason: string };
 
@@ -106,7 +108,7 @@ function ImportContent() {
     setProblems(missing);
     if (missing.length) return;
     const chosen = templates.filter((t) => files[t.name]).map((t) => [t.name, files[t.name]!] as const);
-    let importId: string | null = null;
+    let importId: string;
     try {
       setRun({ step: "uploading", done: 0, total: chosen.length });
       const created = await networkApi.createImport(reimport
@@ -117,25 +119,42 @@ function ImportContent() {
         if (alive.current) setRun({ step: "uploading", done: index + 1, total: chosen.length });
       }
       importId = created.import_id;
+    } catch (error) {
+      // Nothing is saved before the commit.
+      if (alive.current) setRun({ step: "request_failed", code: codeOf(error) });
+      return;
+    }
+    await commit(importId);
+  }
+
+  /** Commit the uploaded files; Retry after a commit that never started sends the same run again. */
+  async function commit(importId: string) {
+    setRun({ step: "tracking", status: null });
+    try {
       await networkApi.commitImport(importId, { as_of_date: asOfDateToSend(settings, lastHistory) });
     } catch (error) {
-      // Nothing is saved before the commit or when it is refused (4xx). A commit with no answer may have been accepted: read the run.
-      const refused = error instanceof ApiError && error.status >= 400 && error.status < 500;
-      if (importId === null || refused) {
+      // Nothing is saved when the commit is refused (4xx). A commit with no answer or a 5xx may have been accepted: read the run.
+      if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
         if (alive.current) setRun({ step: "request_failed", code: codeOf(error) });
         return;
       }
+      return track(importId, codeOf(error));
     }
     await track(importId);
   }
 
-  /** Poll an accepted import until it is done or failed. */
-  async function track(importId: string) {
+  /** Poll an accepted import until it is done or failed. `commitError`: the commit's own error, when it had one. */
+  async function track(importId: string, commitError: string | null = null) {
     setRun({ step: "tracking", status: null });
     try {
       for (;;) {
         const status = await networkApi.importStatus(importId);
         if (!alive.current) return;
+        // A commit sets the job and leaves "uploading" in one transaction: without a job, it never started.
+        if (status.phase === "uploading" && status.job_id === null) {
+          setRun({ step: "not_started", importId, code: commitError });
+          return;
+        }
         if (!Object.hasOwn(PHASE_LABEL, status.phase)) {
           setRun({ step: "lost", importId, reason: `The import reported a status this page doesn't know (${describe(status.phase)}).` });
           return;
@@ -231,6 +250,13 @@ function ImportContent() {
             {run.step === "request_failed" && (
               <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-pp-danger/40 bg-card px-4 py-3 text-sm">
                 Import request failed ({describe(run.code)}). Nothing was saved.
+                <Button variant="outline" size="sm" onClick={startOver}>Start a new import</Button>
+              </div>
+            )}
+            {run.step === "not_started" && (
+              <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-pp-warning bg-card px-4 py-3 text-sm">
+                The import didn&apos;t start{run.code ? ` (${describe(run.code)})` : ""}. Your files are kept and nothing was saved.
+                <Button variant="outline" size="sm" onClick={() => { const { importId } = run; void commit(importId); }}>Retry</Button>
                 <Button variant="outline" size="sm" onClick={startOver}>Start a new import</Button>
               </div>
             )}

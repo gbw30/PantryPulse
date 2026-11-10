@@ -355,3 +355,31 @@ test("every v1 route is forwarded; neighbours and stray queries are not", async 
   assert.equal(evil.status, 403);
   assert.equal(seen.length, forwarded.length);
 });
+
+test("plan export alone may send up to 1 MiB of action ids; other JSON routes keep the 64 KB cap (code-review #7)", async (t) => {
+  process.env.PANTRYPULSE_API_ORIGIN = "http://127.0.0.1:8000";
+  process.env.PP_TRUSTED_PROXY_TOKEN = "test-proxy-secret";
+  t.after(() => {
+    delete process.env.PANTRYPULSE_API_ORIGIN;
+    delete process.env.PP_TRUSTED_PROXY_TOKEN;
+  });
+  const id = "11111111-1111-4111-8111-111111111111";
+  const exportPath = `networks/${id}/comparisons/${id}/methods/CLASSICAL_GP/export`;
+  const fetchMock = t.mock.method(globalThis, "fetch", async (url, options) => {
+    assert.equal(url, `http://127.0.0.1:8000/api/v1/${exportPath}`);
+    return new Response(`bytes=${options.body.byteLength}`, { status: 200, headers: { "Content-Type": "text/csv" } });
+  });
+  const post = (path, bytes) => POST(new Request(`http://localhost:3000/api/v1/${path}`, {
+    method: "POST", body: "x".repeat(bytes), headers: { Origin: "http://localhost:3000", "Content-Type": "application/json" },
+  }));
+  const exported = await post(exportPath, MiB);
+  assert.equal(exported.status, 200);
+  assert.equal(await exported.text(), `bytes=${MiB}`);
+  assert.equal((await post(exportPath, MiB + 1)).status, 413);
+  for (const path of [`networks/${id}/scenarios`, `networks/${id}/comparisons`, "forecasts", "planning-assumptions"]) {
+    const response = await post(path, MiB);
+    assert.equal(response.status, 413, path);
+    assert.equal((await response.json()).error.code, "INPUT_TOO_LARGE");
+  }
+  assert.equal(fetchMock.mock.calls.length, 1);
+});

@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import { expectNoSeriousA11yViolations } from "./a11y";
-import { example, mockV1, type Schemas } from "./v1-mocks";
+import { envelope, example, mockV1, type Schemas } from "./v1-mocks";
 
 // Mocked against packages/contracts/examples/v1 (DecisionActions, SavedComparisonV3, NetworkList):
 // proves UI behavior, not the connected app. The example has one action; a second, inferred action is
@@ -108,7 +108,8 @@ test("@V1-A16 a method without a verified plan shows no actions and no export", 
   await mockV1(page, {
     "GET networks": { body: { networks: [network] } },
     [`GET ${base}`]: { body: saved },
-    [`GET ${base}/methods/EGP_PI_INSPIRED/actions`]: { body: { ...decisions(), method: "EGP_PI_INSPIRED" } },
+    // As the real API does (api_v3._method): an unverified result has no actions.
+    [`GET ${base}/methods/EGP_PI_INSPIRED/actions`]: { status: 409, body: envelope("RESULT_NOT_VERIFIED") },
   });
   await page.goto(`/decisions?comparison_id=${saved.id}&method=EGP_PI_INSPIRED`);
   const section = page.getByRole("region", { name: `Suggested actions · ${network.name}` });
@@ -125,10 +126,9 @@ test("@V1-A16 the print page of a method without a verified plan prints no actio
     "GET networks": { body: { networks: [network] } },
     [`GET networks/${network.id}`]: { body: network },
     [`GET ${base}`]: { body: saved },
-    // The actions endpoint still answers: the page itself must not print an unverified plan.
-    [`GET ${base}/methods/EGP_PI_INSPIRED/actions`]: { body: { ...decisions(), method: "EGP_PI_INSPIRED" } },
+    [`GET ${base}/methods/EGP_PI_INSPIRED/actions`]: { status: 409, body: envelope("RESULT_NOT_VERIFIED") },
   });
-  await page.goto(`/decisions/print?network_id=${network.id}&comparison_id=${saved.id}&method=EGP_PI_INSPIRED&actions=T-1`);
+  await page.goto(`/decisions/print?network_id=${network.id}&comparison_id=${saved.id}&method=EGP_PI_INSPIRED`);
   const main = page.getByRole("main");
   await expect(main).toContainText("EGP-PI-inspired has no verified plan in this comparison, so there are no suggested actions.");
   await expect(main).toContainText(egp.failure_reason!);
@@ -150,7 +150,7 @@ test("@V1-A16 ids that are not UUIDs are never sent to the API", async ({ page }
   const calls = await mockV1(page, { "GET networks": { body: { networks: [network] } } });
   await page.goto(`/decisions?comparison_id=..%2F..%2Fsettings&method=${METHOD}`);
   await expect(page.getByText("Open suggested actions from a verified method result in Scenario Lab.")).toBeVisible();
-  await page.goto(`/decisions/print?network_id=..&comparison_id=${saved.id}&method=${METHOD}&actions=T-1`);
+  await page.goto(`/decisions/print?network_id=..&comparison_id=${saved.id}&method=${METHOD}`);
   await expect(page.getByText("Open the print page from Decisions after selecting actions.")).toBeVisible();
   expect(calls.filter((c) => c.path.includes("comparisons"))).toEqual([]);
 });

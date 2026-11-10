@@ -130,7 +130,8 @@ async function proxy(request: Request) {
         const chunk = await reader.read();
         if (chunk.done) break;
         size += chunk.value.byteLength;
-        if (size > (path === "planning-assumptions" ? 524288 : 65536)) {
+        // A plan export carries up to 40,000 action ids (the API's ExportRequest cap), about 1 MiB of JSON.
+        if (size > (path === "planning-assumptions" ? 524288 : new RegExp(`^${comparison}/export$`).test(path) ? 1048576 : 65536)) {
           await reader.cancel();
           return failure("INPUT_TOO_LARGE", 413);
         }

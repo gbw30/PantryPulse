@@ -300,7 +300,7 @@ export function KeyTradeoffs({ comparison, rows, sites, products, methodology }:
 type V1Result = Schema["MethodResult"];
 type V1Names = { location: (id: string) => string; product: (id: string) => { name: string; unit: string } };
 
-const solverText = (status: V1Result["native_status"]) => (status ? `Solver status: ${status} (native)` : "No solver: rule-based method");
+export const solverText = (status: V1Result["native_status"]) => (status ? `Solver status: ${status} (native)` : "No solver: rule-based method");
 
 function EffectsTable({ result, label, retail, names }: { result: V1Result; label: string; retail: boolean; names: V1Names }) {
   if (!result.effects.length) return <p className="text-xs text-muted-foreground">No location effects reported.</p>;

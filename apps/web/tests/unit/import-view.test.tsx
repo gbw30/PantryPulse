@@ -112,6 +112,29 @@ it("a commit with no answer never claims nothing was saved: the run is read agai
   expect(screen.queryByText(/Nothing was saved/)).not.toBeInTheDocument();
 });
 
+it("a commit the queue turned away (503) says the import didn't start, stops polling, and Retry commits the same files again", async () => {
+  // The commit's transaction rolled back: the run still reads "uploading" with no job (imports/api.py commit_import).
+  const created = example("ImportCreated");
+  const commit = vi.spyOn(networkApi, "commitImport")
+    .mockRejectedValueOnce(new ApiError("COMPUTE_QUEUE_FULL", 503))
+    .mockResolvedValueOnce(example("ImportAccepted"));
+  const notStarted = { ...example("ImportStatus"), phase: "uploading" as const, job_id: null, progress: null, error_count: 0, errors: [], failure: null };
+  const status = vi.spyOn(networkApi, "importStatus").mockResolvedValueOnce(notStarted).mockResolvedValue(example("ImportStatus"));
+  await importAll();
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("The import didn't start (compute queue full). Your files are kept and nothing was saved.");
+  expect(screen.getByRole("button", { name: "Check and import" })).not.toHaveAttribute("aria-disabled");
+  await act(() => new Promise((resolve) => setTimeout(resolve, 1_500))); // longer than one poll interval
+  expect(status).toHaveBeenCalledTimes(1);
+
+  fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+  await screen.findByText(example("ImportStatus").failure!.message);
+  expect(commit).toHaveBeenCalledTimes(2);
+  expect(commit.mock.calls.map(([id]) => id)).toEqual([created.import_id, created.import_id]);
+  expect(networkApi.createImport).toHaveBeenCalledTimes(1);
+});
+
 it("a commit the server refused still says nothing was saved", async () => {
   vi.spyOn(networkApi, "commitImport").mockRejectedValue(new ApiError("AS_OF_DATE_INVALID", 422));
   const status = vi.spyOn(networkApi, "importStatus");
