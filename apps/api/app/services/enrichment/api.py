@@ -67,8 +67,9 @@ def retry_enrichment(rt, scope, network_id: UUID, idempotency_key: str) -> Forec
     if job_id is not None and rt.queue.get_job(
             TrustedScope(org, "status"), job_id).state not in TERMINAL_STATES:
         raise AccessError("ENRICHMENT_IN_PROGRESS", 409)
+    # The check above can race (two tabs, fresh keys); the queue's dedupe closes it (#10).
     accepted = rt.queue.submit(TrustedScope(org, scope.actor_ref), CONTRACT, payload,
-                               idempotency_key)
+                               idempotency_key, deduplicate=True)
     url = f"/api/v1/networks/{network_id}/enrichment"
     return ForecastAccepted(job_id=accepted.job_id, attempt_id=accepted.attempt_id,
                             state=accepted.state, replayed=accepted.replayed, status_url=url,
