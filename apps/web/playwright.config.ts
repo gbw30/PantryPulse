@@ -9,8 +9,9 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: "list",
-  // Connected runs sign in with the presenter password, which a trace would keep (CR-w3-web-2).
-  use: { baseURL, trace: process.env.PP_E2E_PRODUCTION === "1" ? "off" : "retain-on-failure" },
+  // Connected runs sign in with the presenter password, which a trace would keep (CR-w3-web-2). CI's
+  // connected step sets PP_E2E_PRODUCTION; the local runner (tests/e2e/connected/run-e2e.sh) sets PP_RUN_CONNECTED.
+  use: { baseURL, trace: process.env.PP_E2E_PRODUCTION === "1" || process.env.PP_RUN_CONNECTED === "1" ? "off" : "retain-on-failure" },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
     command: `npm run ${process.env.PP_E2E_PRODUCTION === "1" ? "start" : "dev"} -- --port ${port}`,
