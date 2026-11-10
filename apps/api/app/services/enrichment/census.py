@@ -110,13 +110,16 @@ def _parse(text: str, addresses: Sequence[Address]) -> dict[str, Geocode]:
 
 
 def _match(location_id: str, row: list[str]) -> Geocode:
-    """A Match row; one too short or with unreadable coordinates is Unreadable (#9): the
+    """A Match row; one too short, or with unreadable coordinates or tract, is Unreadable (#9): the
     location stays unlocated and is listed for review, and the rest of the batch stands."""
     try:
         lon, lat = (Decimal(v).quantize(COORDINATE) for v in row[5].split(","))
+        tract = "".join(row[8:11])  # state (2), county (3) and tract (6) digits
+        # a NaN coordinate raises InvalidOperation in the range comparison
         if len(row) >= 12 and row[3] in MATCH_STATUSES and -90 <= lat <= 90 and (
-                -180 <= lon <= 180):  # a NaN comparison raises InvalidOperation
-            return Geocode(location_id, row[3], row[4], lat, lon, row[8] + row[9] + row[10])
+                -180 <= lon <= 180) and [len(p) for p in row[8:11]] == [2, 3, 6] and (
+                tract.isascii() and tract.isdigit()):
+            return Geocode(location_id, row[3], row[4], lat, lon, tract)
     except (IndexError, ValueError, InvalidOperation):
         pass
     return Geocode(location_id, UNREADABLE)

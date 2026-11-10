@@ -145,6 +145,15 @@ def _corrupt(row_id: str, replacement: str) -> str:
     '"82850785","R","12","073","000200","3033"',  # empty coordinates
     '"1","301 S Monroe St, Tallahassee, FL, 32301","Match","Exact","301 S MONROE ST","x,y",'
     '"82850785","R","12","073","000200","3033"',  # garbled coordinates
+    *(f'"1","301 S Monroe St, Tallahassee, FL, 32301","Match","Exact","301 S MONROE ST",'
+      f'"-84.280588998653,30.439935478013","82850785","R",{tract},"3033"' for tract in (
+          '"","",""',  # empty tract parts
+          '"xy","073","000200"',  # garbled state
+          '"12","73","000200"',  # county one digit short (geoid 10 digits)
+          '"12","073","0002000"',  # tract one digit long (geoid 12 digits)
+          '"1","0730","002000"',  # 11 digits, parts of the wrong length
+          '"12","073","00020x"',  # garbled tract
+      )),
 ])
 def test_malformed_match_row_is_unreadable_and_other_rows_are_unaffected(bad_row):
     """#9: a Match row Census could not have meant never crashes and never reads as success."""
