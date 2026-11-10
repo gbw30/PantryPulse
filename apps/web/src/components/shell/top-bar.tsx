@@ -13,16 +13,19 @@ const snapshotDate = (iso: string) =>
 
 // Screens that show no network data, so the legacy demo's "simulated" pill would mislabel them (lead, 2026-11-09).
 const NO_NETWORK_DATA: ReadonlySet<NavKey> = new Set(["import", "settings"]);
+// Screens that never read the chosen network: they render the legacy fixture data whatever is chosen (L1).
+const ALWAYS_LEGACY: ReadonlySet<NavKey> = new Set(["data", "recommendations"]);
 
 /**
- * The data labels (W2-06 carry-in): a sample network is fictional sample data; a real import gets none;
- * with no v1 network chosen the other screens show the legacy simulated demo. A network list that failed
- * says so (the legacy demo still shows, so its pill stays). Nothing while loading.
+ * The data labels (W2-06 carry-in): a screen that renders the legacy demo says "Simulated network" (the data
+ * and recommendations screens always do); otherwise a sample network is fictional sample data and a real
+ * import gets none. A network list that failed says so. Nothing is guessed while the list loads.
  */
 function dataLabels(state: ReturnType<typeof useNetwork>["state"], network: ReturnType<typeof useNetwork>["network"], active?: NavKey) {
+  const unavailable = state.status === "error" ? ["Network list unavailable"] : [];
+  if (active && ALWAYS_LEGACY.has(active)) return [...unavailable, "Simulated network"];
   if (network) return network.is_sample ? [SAMPLE_LABEL] : [];
   if (state.status === "loading") return [];
-  const unavailable = state.status === "error" ? ["Network list unavailable"] : [];
   return active && NO_NETWORK_DATA.has(active) ? unavailable : [...unavailable, "Simulated network"];
 }
 

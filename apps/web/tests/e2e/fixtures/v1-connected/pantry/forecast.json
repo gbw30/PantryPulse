@@ -1,5 +1,5 @@
 {
-  "comment": "Fixture forecast run for the mini network (W1-D09): series by external id; tests/networks/test_build_scenario.py maps them to the imported net_locations/net_products ids. Providers are labeled fixture stand-ins.",
+  "comment": "Fixture forecast run for the mini network (W1-D09): series by external id; tests/networks/test_build_scenario.py maps them to the imported net_locations/net_products ids. The values are fixed, not computed: each series' provider (SEASONAL_NAIVE or MOVING_AVERAGE, null where the series is unavailable) only labels the baseline it stands in for. Never forecast evidence (E-1).",
   "data_cutoff_date": "2026-11-04",
   "series": [
     {"location": "P1", "product": "RICE", "target": "DEMAND", "status": "AVAILABLE", "basis": "REQUESTED",

@@ -79,3 +79,19 @@ it("a network list that failed to load says so; a screen showing the legacy demo
   expect(screen.getByRole("banner")).toHaveTextContent("Network list unavailable");
   expect(screen.getByRole("banner")).not.toHaveTextContent(/simulated/i);
 });
+
+// L1 (review of #129): /data and /recommendations render the legacy fixture data whatever network is chosen,
+// so they say "Simulated network" in every network state, never the chosen network's own label.
+it("a screen that always renders the legacy demo says simulated whatever network is chosen", () => {
+  const states: Ctx[] = [ready(imported), ready({ ...imported, is_sample: true }), ready(null),
+    { state: { status: "loading" }, network: null, select: vi.fn(), reload: vi.fn() }];
+  for (const active of ["data", "recommendations"] as const) {
+    for (const ctx of states) {
+      vi.mocked(useNetwork).mockReturnValue(ctx);
+      const { unmount } = render(<TopBar active={active} />);
+      expect(screen.getByRole("banner")).toHaveTextContent("Simulated network");
+      expect(screen.getByRole("banner")).not.toHaveTextContent("Sample data");
+      unmount();
+    }
+  }
+});
