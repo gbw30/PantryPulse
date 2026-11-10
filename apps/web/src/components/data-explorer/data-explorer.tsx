@@ -75,7 +75,7 @@ function Screen({ view, initialProductId }: { view: View; initialProductId: stri
         <span id="explorer-product-label" className="text-xs font-medium text-muted-foreground">Product</span>
         <Select value={product?.id ?? ""} onValueChange={setProductId}>
           <SelectTrigger aria-labelledby="explorer-product-label" className="h-10 w-full bg-card data-[size=default]:h-10 sm:w-[232px]">
-            <SelectValue placeholder="Loading products…" />
+            <SelectValue placeholder="No products" />
           </SelectTrigger>
           <SelectContent>
             {snapshot.products.map((item) => <SelectItem key={item.id} value={item.id}>{item.name} ({item.unitPlural})</SelectItem>)}
@@ -192,12 +192,12 @@ function Screen({ view, initialProductId }: { view: View; initialProductId: stri
 }
 
 /** Client root for /data, /data/pulse and /data/operations. */
-export function DataExplorerScreen({ view, initialProductId = null, forecastJobId }: { view: View; initialProductId?: string | null; forecastJobId?: string }) {
+export function DataExplorerScreen({ view, initialProductId = null, forecastRunId }: { view: View; initialProductId?: string | null; forecastRunId?: string }) {
   return (
     <MotionConfig reducedMotion="user">
       <AppShell active="data">
         <Screen view={view} initialProductId={initialProductId} />
-        {view === "dashboard" && <div className="px-4 pb-6 md:px-6"><ForecastTrustSection forecastJobId={forecastJobId} /></div>}
+        {view === "dashboard" && <div className="px-4 pb-6 md:px-6"><ForecastTrustSection forecastRunId={forecastRunId} /></div>}
       </AppShell>
     </MotionConfig>
   );

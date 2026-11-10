@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AppShell } from "@/components/shell/app-shell";
 import { SampleBadge, useNetwork } from "@/components/shell/network-switcher";
@@ -84,11 +84,19 @@ function NetworkSections({ network, configured }: { network: Network; configured
   const enrichment = useLoad(() => networkApi.enrichment(network.id), `enrichment:${network.id}`);
   const routes = useLoad(() => networkApi.routes(network.id), `routes:${network.id}`);
   const alive = useRef(true);
+  const followed = useRef(new Set<string>());
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
 
   /** Re-read now (the job's queued state), then again once `GET /jobs/{id}` says the v1 job has ended. */
   async function reloadWhenDone(jobId: string, reload: () => void) {
     reload();
+    await followJob(jobId, reload);
+  }
+
+  /** Re-read once `GET /jobs/{id}` says the v1 job has ended (or contact is lost). */
+  async function followJob(jobId: string, reload: () => void) {
+    if (followed.current.has(jobId)) return;
+    followed.current.add(jobId);
     try {
       while (JOB_ACTIVE.has((await networkApi.job(jobId)).state)) {
         await new Promise((resolve) => setTimeout(resolve, POLL_MS));
@@ -97,8 +105,15 @@ function NetworkSections({ network, configured }: { network: Network; configured
     } catch {
       // Lost contact with the job: re-read anyway, so the list shows whatever the server has now.
     }
+    followed.current.delete(jobId);
     if (alive.current) reload();
   }
+
+  // A status read while lookups still run (the import's own job, opened right after importing) follows
+  // that job too; otherwise the page would say "running" until reloaded.
+  const runningJob = enrichment.state.status === "ready" && enrichment.state.value.state === "running" ? enrichment.state.value.job_id : null;
+  const followRunning = useEffectEvent((jobId: string) => void followJob(jobId, enrichment.reload));
+  useEffect(() => { if (runningJob) followRunning(runningJob); }, [runningJob]);
 
   return (
     <>

@@ -1,0 +1,5 @@
+location_id,name,type,street,city,state,zip,latitude,longitude,receiving_capacity_per_day
+DC1,Central DC,distribution_center,400 S Orange Ave,Orlando,FL,32801,28.5383,-81.3792,
+S1,Store One,store,401 S Park Ave,Winter Park,FL,32789,28.5967,-81.3510,
+S2,Store Two,store,101 Church St,Kissimmee,FL,34741,28.2919,-81.4076,40
+S3,Store Three,store,300 N Park Ave,Sanford,FL,32771,28.8114,-81.2687,

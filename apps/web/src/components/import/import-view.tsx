@@ -30,7 +30,6 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 /** The template catalog for the chosen mode. A mode change keeps the previous catalog while it reloads. */
 function useTemplateCatalog(mode: NetworkSettingsValue["mode"]) {
   const [state, setState] = useState<CatalogState>({ status: "loading" });
-  const [reasons, setReasons] = useState<Partial<Record<TemplateName, string>>>({});
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let active = true;
@@ -38,12 +37,6 @@ function useTemplateCatalog(mode: NetworkSettingsValue["mode"]) {
       (catalog) => {
         if (!active) return;
         setState({ status: "ready", catalog });
-        for (const template of catalog.templates.filter((t) => !t.example_available)) {
-          networkApi.exampleUnavailableReason(template.name).then(
-            (reason) => { if (active && reason) setReasons((current) => ({ ...current, [template.name]: reason })); },
-            () => undefined, // The disabled button still says "not available yet" without a reason.
-          );
-        }
       },
       (error: unknown) => {
         if (!active) return;
@@ -53,7 +46,7 @@ function useTemplateCatalog(mode: NetworkSettingsValue["mode"]) {
     );
     return () => { active = false; };
   }, [mode, attempt]);
-  return { state, reasons, retry: () => { setState({ status: "loading" }); setAttempt((n) => n + 1); } };
+  return { state, retry: () => { setState({ status: "loading" }); setAttempt((n) => n + 1); } };
 }
 
 const defaultTimezone = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; } catch { return "UTC"; } };
@@ -68,7 +61,7 @@ function ImportContent() {
   const [target, setTarget] = useState<"new" | "existing">("new");
   const reimport = target === "existing" && network !== null && !network.is_sample ? network : null;
   const [settings, setSettings] = useState<NetworkSettingsValue>(() => ({ name: "", mode: null, timezone: defaultTimezone(), asOfDate: null }));
-  const { state, reasons, retry } = useTemplateCatalog(reimport?.mode ?? settings.mode);
+  const { state, retry } = useTemplateCatalog(reimport?.mode ?? settings.mode);
   const [files, setFiles] = useState<ChosenFiles>({});
   const [formKey, setFormKey] = useState(0); // remounts the file inputs on "Start a new import"
   const [lastHistory, setLastHistory] = useState<string | null>(null);
@@ -76,6 +69,7 @@ function ImportContent() {
   const [run, setRun] = useState<Run>({ step: "idle" });
   const alive = useRef(true);
   const scan = useRef(0); // only the latest demand_history scan may set the default date
+  const uploadHeading = useRef<HTMLHeadingElement>(null);
   // Set on mount too: Strict Mode runs the cleanup once before the real mount.
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
 
@@ -168,6 +162,8 @@ function ImportContent() {
     setLastHistory(null);
     setProblems([]);
     setFormKey((n) => n + 1);
+    // The button that called this goes away; keyboard focus continues at the files to choose again.
+    uploadHeading.current?.focus();
   }
 
   const status = run.step === "tracking" ? run.status : null;
@@ -179,6 +175,11 @@ function ImportContent() {
         <p className="max-w-3xl text-sm text-muted-foreground">
           Fill in the CSV templates with your locations, products, stock and daily history, then upload them together.
           Nothing is saved unless every file passes.
+        </p>
+        <p className="max-w-3xl text-sm text-muted-foreground">
+          Addresses without latitude and longitude are sent to the US Census Geocoder (a free public lookup, no key) after the import, to find their
+          coordinates and census tract. Locations with coordinates are never sent. If the lookup can&apos;t be reached, those values stay unknown and
+          Settings offers a retry.
         </p>
       </header>
 
@@ -192,7 +193,7 @@ function ImportContent() {
             <Button variant="outline" size="sm" onClick={retry}>Retry</Button>
           </div>
         )}
-        {state.status === "ready" && <TemplateGuide catalog={state.catalog} exampleReasons={reasons} />}
+        {state.status === "ready" && <TemplateGuide catalog={state.catalog} />}
       </section>
 
       {state.status === "ready" && (
@@ -215,7 +216,7 @@ function ImportContent() {
           </section>
 
           <section aria-labelledby="upload-heading" className="grid gap-3">
-            <h2 id="upload-heading" className="text-lg font-semibold">3. Upload your files</h2>
+            <h2 id="upload-heading" ref={uploadHeading} tabIndex={-1} className="text-lg font-semibold outline-none">3. Upload your files</h2>
             <UploadForm key={formKey} templates={templates} files={files} onChange={chooseFile} disabled={busy} />
             {problems.length > 0 && (
               <div role="alert" className="rounded-lg border border-pp-warning/50 bg-card px-4 py-3 text-sm">
@@ -223,7 +224,8 @@ function ImportContent() {
                 <ul className="ml-5 list-disc">{problems.map((p) => <li key={p}>{p}</li>)}</ul>
               </div>
             )}
-            <Button className="h-11 justify-self-start" onClick={submit} disabled={busy}>Check and import</Button>
+            {/* Busy stays focusable (aria-disabled): disabling the focused button would drop keyboard focus to the page. */}
+            <Button className="h-11 justify-self-start aria-disabled:opacity-50" onClick={busy ? undefined : submit} aria-disabled={busy || undefined}>Check and import</Button>
             {run.step === "uploading" && <p role="status" className="text-sm">Uploading files: {run.done} of {run.total}</p>}
             {run.step === "tracking" && !status && <p role="status" className="text-sm">Starting the checks…</p>}
             {run.step === "request_failed" && (

@@ -20,11 +20,14 @@ type PresenterContext = {
 
 const Context = createContext<PresenterContext | null>(null);
 
+const SIGN_IN_TIMEOUT_MS = 10_000;
+
 const hasCsrfCookie = () => document.cookie.split("; ").some((item) => item.startsWith("pp_csrf="));
 
 /** Plain-language copy for sign-in failures; the API only returns codes. */
 export function signInMessage(error: unknown) {
   if (!(error instanceof ApiError)) return "Sign-in failed. Try again.";
+  if (error.code === "TIMEOUT") return "Sign-in timed out. Try again.";
   if (error.status === 401) return "Username or password not recognized.";
   if (error.status === 429) return "Too many attempts. Wait a minute and try again.";
   if (error.status === 0) return "Could not reach the server. Check your connection and try again.";
@@ -48,9 +51,16 @@ export function PresenterProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // A full reload after sign-in/out makes every page (including ones that fetched as a visitor)
-  // re-read with the new session instead of mixing visitor and presenter data.
+  // re-read with the new session instead of mixing visitor and presenter data. A login the server never
+  // answers fails after SIGN_IN_TIMEOUT_MS, so the form says so and clears the password (N1).
   const signIn = useCallback(async (username: string, password: string) => {
-    await api("presenter/login", { username, password });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(new ApiError("TIMEOUT", 0)), SIGN_IN_TIMEOUT_MS);
+    try {
+      await api("presenter/login", { username, password }, undefined, controller.signal);
+    } finally {
+      clearTimeout(timer);
+    }
     window.location.reload();
   }, []);
   const signOut = useCallback(async () => {
@@ -61,6 +71,9 @@ export function PresenterProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo(() => ({ state, signIn, signOut, expired }), [state, signIn, signOut, expired]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
+
+/** The session when a provider is mounted above, else null (ShellProviders mounts one only when missing). */
+export const usePresenterOptional = () => useContext(Context);
 
 export function usePresenter(): PresenterContext {
   const value = useContext(Context);

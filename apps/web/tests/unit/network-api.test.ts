@@ -1,6 +1,6 @@
 // covers: V1-A16
 import { afterEach, expect, it, vi } from "vitest";
-import { networkApi } from "@/lib/network-api";
+import { exampleUrl, networkApi } from "@/lib/network-api";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -34,4 +34,9 @@ it('refuses "." and ".." ids, which the browser would resolve to another path', 
   await expect(networkApi.backtest("..")).rejects.toThrow();
   await expect(networkApi.comparison("n-1", ".")).rejects.toThrow();
   expect(urls).toEqual([]);
+});
+
+it("an example URL always names the network's mode (CR-w3-samples-3)", () => {
+  expect(exampleUrl("locations", "RETAIL")).toBe("/api/v1/templates/locations.csv?kind=example&mode=RETAIL");
+  expect(exampleUrl("inventory", "PANTRY")).toBe("/api/v1/templates/inventory.csv?kind=example&mode=PANTRY");
 });

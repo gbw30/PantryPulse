@@ -1,0 +1,5 @@
+location_id,name,type,street,city,state,zip,latitude,longitude,receiving_capacity_per_day,poverty_rate,snap_rate
+H1,North Hub,hub,301 S Monroe St,Tallahassee,FL,32301,30.4383,-84.2807,,,
+P1,Pantry One,pantry,201 E University Ave,Gainesville,FL,32601,29.6516,-82.3248,50,0.21,0.18
+P2,Pantry Two,pantry,100 N Marion Ave,Lake City,FL,32055,30.1897,-82.6393,,0.30,0.25
+P3,Pantry Three,pantry,200 Ohio Ave N,Live Oak,FL,32064,30.2949,-82.9840,,0.15,0.12

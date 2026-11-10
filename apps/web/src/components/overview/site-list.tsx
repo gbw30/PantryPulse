@@ -28,7 +28,7 @@ export function SiteList({ items, selectedId, query, onSelect }: { items: SiteLi
                   aria-describedby={`site-detail-${site.id}`}
                   onClick={(event) => onSelect(site.id, event.currentTarget)}
                   className={cn(
-                    "flex min-h-11 items-center gap-2 rounded-lg border bg-card px-2.5 py-1 text-left outline-none transition-[border-color,background-color,translate,box-shadow] duration-150 hover:-translate-y-px hover:border-foreground/40 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring md:min-h-10",
+                    "flex min-h-11 items-center gap-2 rounded-lg border bg-card px-2.5 py-1 text-left outline-none transition-[border-color,background-color,translate,box-shadow] motion-reduce:transition-none duration-150 hover:-translate-y-px hover:border-foreground/40 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring md:min-h-10",
                     selected ? "border-primary bg-pp-teal-soft" : "border-border",
                   )}
                 >

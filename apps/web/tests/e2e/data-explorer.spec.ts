@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page, type Route } from "@playwright/test";
+import { signInThroughForm } from "./sign-in";
 import type { components } from "../../../../packages/contracts/src/schema";
 import { expectNoSeriousA11yViolations } from "./a11y";
 
@@ -515,13 +516,7 @@ test("loading shows stable skeletons with both flips disabled", async ({ page })
 test("connected: a signed-in presenter reads the live dashboard from the seeded backend", async ({ page }) => {
   test.skip(process.env.PP_RUN_CONNECTED !== "1", "Requires isolated seeded PostgreSQL, API and Linux worker");
   await page.goto("/overview");
-  const footer = page.getByRole("button", { name: "Presenter sign in" });
-  if (!(await footer.isVisible())) await page.getByRole("button", { name: "Open navigation" }).click();
-  await footer.click();
-  const dialog = page.getByRole("dialog", { name: "Presenter sign in" });
-  await dialog.getByLabel("Username").fill(process.env.PP_E2E_USERNAME ?? "presenter");
-  await dialog.getByLabel("Password").fill(process.env.PP_E2E_PASSWORD ?? "pantry-local-demo");
-  await Promise.all([page.waitForEvent("load"), dialog.getByRole("button", { name: "Sign in", exact: true }).click()]);
+  await signInThroughForm(page);
   await page.goto("/data");
   await expect(page.locator("[data-explorer-source]")).toHaveAttribute("data-explorer-source", "live", { timeout: 30_000 });
   await expect(page.getByText(FIXTURE_LABEL)).toHaveCount(0);

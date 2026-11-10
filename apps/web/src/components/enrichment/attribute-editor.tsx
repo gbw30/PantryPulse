@@ -10,7 +10,8 @@ type Update = Schema["LocationAttributesUpdate"];
 const SHARE = /^(0(\.\d+)?|1(\.0+)?|\.\d+)$/;
 
 export function sourceLine(location: Attributes) {
-  if (location.state === "manual") return "Source: entered by you";
+  // A sample network's pre-filled rates are manual-state but say so (V1-SPEC §8, CR-w3-samples-1).
+  if (location.state === "manual") return location.source === "sample values" ? "Source: sample values" : "Source: entered by you";
   if (location.state === "excluded") return "Excluded from EGP";
   if (location.state === "unknown" || !location.source) return "Source: unknown (lookup failed or not run yet)";
   return `Source: ${location.source}`;

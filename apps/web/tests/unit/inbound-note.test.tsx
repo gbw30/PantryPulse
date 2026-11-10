@@ -17,11 +17,12 @@ const never = <T,>() => new Promise<T>(() => {});
 beforeEach(() => {
   vi.restoreAllMocks();
   vi.spyOn(networkApi, "backtest").mockImplementation(never);
+  vi.spyOn(networkApi, "forecastRun").mockImplementation(never);
   vi.spyOn(networkApi, "danger").mockImplementation(never);
   vi.spyOn(networkApi, "locations").mockImplementation(never);
 });
 
-const views = () => render(<><DangerRankingSection forecastRunId="run" /><ForecastTrustSection forecastJobId="job" /></>);
+const views = () => render(<><DangerRankingSection forecastRunId="run" /><ForecastTrustSection forecastRunId="run" /></>);
 
 it("the atlas and forecast views say when the network has no inbound.csv", () => {
   current = { ...example("NetworkList").networks[0], inbound_file_provided: false };

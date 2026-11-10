@@ -1,0 +1,319 @@
+# Status — `w3-web`
+
+**Lane:** `w3-web` · **Branch:** `lane/w3-web` · **Base SHA:** `0a4959359a447233e8ca5eea87b1917d70bd7de8` (checked: `git merge-base HEAD origin/v1-local` equals it) · **Last update:** `2026-11-09` · **Head:** see `git log`
+
+Connected runs only count as evidence when the lane's connected stack runs (below). Mocked e2e runs prove UI behavior against the contract examples, not the connected app.
+
+## Tasks
+
+| Task | Status | Commit | Evidence (command → result) |
+|---|---|---|---|
+| W3-W01 | done | see `git log` (W3-W01) | Connected (schema `ppor_demo_w3web_1109014243`, API and worker with no egress): `RUN=/tmp/claude-1000/pw3 apps/web/tests/e2e/connected/run-e2e.sh tests/e2e/v1-connected-import.spec.ts --workers=1` → 4 passed (A06/A23, A07, A10, A11). Carry-in units RED first (6 failed for the expected reasons), then `npx vitest run` → 23 files, 126 passed; `node --test tests/*.test.mjs` → 12 passed; tsc and eslint exit 0; mocked e2e overview, design-lab, presenter-session, import-upload, import-templates, v1-shell, enrichment → 46 passed. |
+| W3-W02 | done | see `git log` (W3-W02); carry-in `55fbdc9` | Connected, whole suite as in CI's connected step (production build, API and worker with no egress, schema `ppor_demo_w3web_1109024125` already holding v1 networks): `PP_E2E_PRODUCTION=1 RUN=/tmp/claude-1000/pw4 apps/web/tests/e2e/connected/run-e2e.sh --workers=1` → 192 passed, 0 failed, 0 skipped, including A14, A15 and A16 (journey) and A06/A23, A07, A10, A11 (import). The forecast run in A14–A16 is a FIXTURE (E-1), not forecast evidence. Units RED first, then `npx vitest run` → 23 files, 134 passed; `node --test tests/*.test.mjs` → 12 passed; tsc and eslint exit 0; `node scripts/quality/run.cjs quick` → exit 0 (web typecheck, web lint, api lint, api tests PASS). |
+| W3-W03 | done | see `git log` (W3-W03) | Connected, whole suite as in CI's connected step (production build, API and worker with no egress through `scripts/quality/netns-bridge.py`, schema `ppor_demo_w3web_1109170453`, which already held the first run's v1 networks): `PP_E2E_PRODUCTION=1 RUN=/tmp/claude-1000/pw5 apps/web/tests/e2e/connected/run-e2e.sh --workers=1` → 208 passed, 0 failed, 0 skipped, including the 13 `@V1-A20` tests in `v1-a11y.spec.ts` and the new `@V1-A10` sample-values test. `npx vitest run` → 24 files, 138 passed; `node scripts/quality/run.cjs quick` → exit 0 (web typecheck, web lint, api lint, api tests PASS). |
+
+### W3-W01 RED run (2026-11-08, connected stack, schema `ppor_demo_w3web_1108182844`)
+
+- `@V1-A06 @V1-A23 good template set …` — FAIL for the expected reason: the import page has no Census-geocoder notice (W2-06 carry-in). The later assertions (column-guide note on rates, `Snapshot Nov 4, 2026` in the banner, no "simulated" wording) are carry-ins too and are expected to fail next.
+- `@V1-A07 bad file rejected …` — FAIL, test-side: the `bad` fixture's only demand_history row had a non-ISO date, so the UI sent no `as_of_date`, and the import stopped at "no valid history date, so the as-of date can't be set" with **one** error listed. Fixed in the fixture (a valid row first, the non-ISO row on line 3). Not yet re-run.
+- `@V1-A10 offline enrichment marks unknown with retry` — PASS against the real stack on the first run (the W1 settings screen already shows the outage, the blocker and Retry). Not a RED; it pins the existing behavior on the connected path.
+- `@V1-A11 route labels` — FAIL, test-side: rows were matched on `textContent`, where cells join without spaces ("H1P1167.688…"). Now matched on the row's accessible name. The page itself was right: `H1 P1 … 1 day from routes.csv`, `H1 P3 … straight-line estimate · disabled by routes.csv`, the rest straight-line estimates. Not yet re-run.
+
+### Next step on resume (exact) — superseded 2026-11-09, kept for the record
+
+1. `git fetch && git merge-base HEAD origin/v1-local` (expect `0a49593…` unless the orchestrator asked for an update).
+2. Start the stack: `RUN=/tmp/claude-1000/pw3 apps/web/tests/e2e/connected/stack-up.sh` (RUN must be a short path; it can be a symlink into the scratchpad).
+3. Re-run the spec (command above) and confirm A07 and A11 now fail only for real reasons or pass, and A06 fails on the carry-ins.
+4. Implement the W3-W01 carry-ins test-first, each with a unit test run RED first:
+   - `template-guide.tsx`: on `locations.csv` (when it has `poverty_rate`), say a pantry given latitude and longitude is never looked up, so it needs both `poverty_rate` and `snap_rate`, or an exclusion in Settings.
+   - `import-view.tsx`: say that addresses without latitude and longitude are sent to the US Census Geocoder after the import (V1-SPEC §2, §6.3).
+   - `top-bar.tsx`: no "Simulated network" pill for a real import; "Sample data — fictional" for a sample (`Network.is_sample`); the legacy pill only when no v1 network is chosen. Show `Snapshot <as_of_date>` from the chosen network.
+   - `presenter-footer.tsx`: "Presenter session" without "· simulated demo"; update the four e2e specs that pin the old text (presenter-session, overview-live, operations-api, scenario-lab).
+5. Re-run the connected spec to PASS, then `npx vitest run`, tsc, eslint, and commit W3-W01 with this file.
+6. Then W3-W02. The connected journey needs a forecast run, and `POST /networks/{id}/forecasts` is a 501 until W3-F03 merges in W4. Plan: seed a fixture forecast run from the test (as the W2-05 backend journey does with `FIXTURE_FORECAST`), keep `?forecast_run_id=` for it, and disclose that the forecast input is a fixture. See Escalations E-1.
+
+### W3-W01 GREEN (2026-11-09)
+
+- Re-run after the two test fixes: A11 passed; A07 passed every per-row and database check, then timed out on the switcher combobox, which a fresh schema with no networks doesn't render ("No network yet"). It now checks `GET /api/v1/networks` through the browser session and the "Current network" region instead.
+- Carry-ins, each unit-tested RED first (`template-guide.test.tsx`, `import-view.test.tsx`, new `shell-labels.test.tsx`):
+  - the import page says addresses without latitude and longitude go to the US Census Geocoder after the import, located rows never do, and an unreachable lookup stays unknown with a retry;
+  - the locations guide (Pantry, or mode not chosen yet) says a pantry given coordinates needs both rates or an exclusion;
+  - the top bar shows `Snapshot <as_of_date>` of the chosen network; its pill reads "Sample data — fictional" for a sample, nothing for a real import, "Simulated network" only when no v1 network is chosen (the legacy demo), and nothing while networks load;
+  - the session footer reads "Presenter session" (four specs that pinned the old text updated).
+- Still open from the carry-ins, planned with W3-W02: the overview (Live chip, atlas subtitle, product picker, legacy atlas above the ranking), names in the trust panel and Decisions, and CR-w1-web-4 in the trust panel. Done in W3-W02 (below).
+
+### W3-W02 (2026-11-09)
+
+- **Fixture forecast (E-1):** `connected/seed_forecast.py` runs the W2-05 journey's `FIXTURE_FORECAST` job on its own queue lane (`e2e_fixture`, a `compute_control` row it adds), so the production worker keeps the `default` lane, and prints the `forecast_run_id`. The series come from each set's `forecast.json` (copied from the backend fixtures). The journeys pass it as `?forecast_run_id=`. It is never forecast evidence; import, scenario, comparison, decisions and export are real.
+- **RED → GREEN, connected (`v1-connected-journey.spec.ts`):** A14 and A15 passed on the first run, since the W1/W2 wiring already held. A16 failed for a test-side reason: it expected the mocked decisions spec's illustrative CSV header, but the server writes the W1-S07 columns (`scenario_id,scenario_hash,method,network_mode,product,unit,quantity,from,to,ship_date,arrival_date,why,effect,note`). A16 now pins that header; the mocked spec's comment says its columns are illustrative.
+- **Carry-ins, each RED first:**
+  - overview: a chosen v1 network shows its own header and danger ranking. The legacy demo atlas (its fixture/live snapshot, "Live · simulated network" chip, "simulated network" subtitle and pickers) shows only when no v1 network is chosen. `ShellProviders` mounts the session/network providers once, so the overview can read the network above its `AppShell` (unit tests RED, then GREEN). The connected A06 test now checks `/overview` after a real import, and it fails on the previous atlas (`[data-overview-source]` count 1).
+  - the product and day pickers no longer say "Loading…" after a failed snapshot or with no products ("No products (snapshot unavailable)", "No products"); same for the data explorer's product picker.
+  - names: Decisions already names locations (the server writes names into the action and why texts, `apps/api/app/services/optimization/actions.py:155-185`); A14 now asserts every action names locations and the effects tables use names. The trust panel uses `LocationList` names.
+  - CR-w1-web-4: the data page takes `?forecast_run_id=`. The trust section reads `GET /networks/{id}/forecasts/{run}` (new client method, and a proxy GET route with its node test) for each series' method, fallback, missing days, band and the donation forecast. It reads the backtest by the run's `job_id`, and shows one "Accuracy by location and unit" row per `BacktestResult.locations` entry, never pooled across units. Mocked from the contract examples until W4.
+  - lead carry-in (CR-w3-samples-1): `sourceLine` shows "Source: sample values" for sample-valued manual rates (commit `55fbdc9`).
+- **Legacy connected overview test:** `overview-live.spec.ts` "connected: a signed-in presenter sees live data" now expects the network's ranking when the presenter has v1 networks and the legacy live atlas only when there are none; its old expectation depended on spec order and fails once samples are seeded.
+- **Layout test race (`overview-layout.spec.ts`, "drops are clamped"):** in the full connected run it failed once. Over repeats it failed on the third repeat each time (1 in 3, then 1 in 5). The old atlas passed 3 of 3 repeats. The snapshot showed Pine Ridge's card open instead of Willow Creek's. After Escape, Radix returns focus to the opening marker when the card unmounts (`onCloseAutoFocus`), which can land after the dialog role is gone, so the test's next `focus()` was taken back. A keyboard user can't act inside that window. The test now waits for focus to return to the marker that opened the card (the intended behavior) before moving on: 175 of 175 over 5 repeats. My change moved the legacy atlas's first mount after the network list loads (client-side), which shifted the timing.
+- **Legacy connected specs with v1 networks present:** a second full connected run on the same schema (v1 networks left by the first) failed `operations-api` (line 78), `recommendations` (line 320) and `scenario-lab` (line 450): strict-mode violations on "Compare methods". With a v1 network chosen, `/scenarios` shows both the legacy "Scenario builder" and the v1 "Comparison setup", and each has that button. This was already on the base, and CI's fresh schema avoids it only because those specs run before the v1 imports; seeded samples would trigger it there too. The locators are now scoped to the legacy "Scenario builder" form, and the three tests pass with v1 networks present. **For the lead:** `/scenarios` showing two builders for a v1 network is the same pattern as the overview carry-in. Resolved by lead item 1 below.
+
+## Connected run (how the evidence is produced)
+
+Mirrors the CI connected step (`.github/workflows/pantrypulse-ci.yml:86-108`), with the lane's ports and database, and **no egress** for the API and the worker:
+
+- `apps/web/tests/e2e/connected/stack-up.sh` loads `.env.lane`, creates a NEW `ppor_demo_w3web_*` schema in `pantrypulse_web_test` with `load_optimization_demo.py`, writes presenter credentials with `scripts/quality/demo-ci-env.py` to a 0600 file (read line by line, never `eval`ed: the hash contains `$`), and starts:
+  - the API (`uvicorn --uds`) and the production-registry worker, each under `unshare -rn` (own network namespace, loopback only, so no outbound network);
+  - `scripts/quality/netns-bridge.py` (the lead's copy of the former lane `bridge.py`, CR-w3-web-1) twice on the host: a unix socket `.s.PGSQL.<port>` → the shared `pp-ci-postgres`, and `127.0.0.1:8003` → the API socket.
+  - It waits with `scripts/quality/wait-demo.py`.
+- `run-e2e.sh` runs Playwright on 3003 with `PP_RUN_CONNECTED=1`, `PP_E2E_NO_EGRESS=1`, the presenter credentials and `DATABASE_URL`/`PP_DATABASE_SCHEMA` for the read-only probe (`connected/db_probe.py`).
+- `stack-down.sh` stops it. Each `stack-up.sh` makes a new schema; earlier ones stay in `pantrypulse_web_test` (`ppor_demo_w3web_1108182844`, `…_1109014243`, `…_1109024125` so far). The W3-W02 stack was restarted on a new schema after a failure snapshot recorded that run's generated password (Gotchas).
+
+## Gates
+
+| Gate | Commit | Result |
+|---|---|---|
+| `npx tsc --noEmit -p apps/web`, `eslint` on the new spec files | save point | exit 0 / exit 0 |
+| `node scripts/quality/run.cjs quick` | W3-W02 | exit 0: web typecheck, web lint, api lint, api tests PASS |
+| `node scripts/quality/run.cjs full` (`.env.lane`, `PP19_TEST_SCHEMA_ISOLATION=1`) | `ed046c1` | exit 1. `api tests`: 1 failed, 2031 passed, 0 skipped. The failure was `test_supervisor.py::test_unexpected_publication_error_fails_the_attempt_and_the_loop_runs_on[_quote_user_data-ValueError]`, the known heartbeat race: the supervisor's 0.2 s heartbeat briefly locks `compute_control`, and the test's `FOR UPDATE NOWAIT` probe can land in that window. The lead logged it and owns the fix. That test alone passed 5 of 5, and its file passed 71 of 71. |
+| same | `717b208` (merge of v1-local `f82edac`) | exit 0: web typecheck, web lint, api lint, api tests, web unit tests, web build, contract drift, database migrations PASS |
+| same, then `uv run --frozen pytest -q` for counts | `f33132f` | exit 0, all 8 PASS; API 2071 passed, 0 skipped |
+| `pytest tests/integration/test_supervisor.py` (after merging #126) | `15a3456` | 73 passed |
+| full gate, then API counts | `a555cb0` | exit 0, all 8 PASS; API 2073 passed, 0 skipped |
+| full gate, then API counts | `75a2f71` | exit 0, all 8 PASS; API 2073 passed, 0 skipped. Since then: only `import-templates.spec.ts` (test-only; eslint and tsc exit 0; 3 of 3 passed). |
+| full gate, then API counts (after the #129 review fixes) | `c065884` | exit 0, all 8 PASS; API 2073 passed, 0 skipped |
+| full gate, then API counts | `2901a4e` (merge of v1-local `aa4bc2d`: #127, #130, #131) | exit 0, all 8 PASS; API 2124 passed, 0 skipped. Before the gate: tsc exit 0, vitest 146 passed, node 13 passed. |
+| full gate, then API counts (after N1) | `12528d2` | exit 0, all 8 PASS; API 2124 passed, 0 skipped |
+| `/devkit:ship-check` | `15a3456` | step 1: the gates above. Step 2: verifier, findings and dispositions in "Ship-check step 2". Step 3: no security-guidance plugin. Steps 4-5: the PR. |
+
+### Lead items (approved 2026-11-09)
+
+- **Item 1, `/scenarios` with a v1 network:** a chosen v1 network shows only its "Method comparison" (header, then the v1 section); the legacy "Scenario builder", its saved-work pickers and its planning-catalog load appear only when no v1 network is chosen, and "Loading networks…" shows meanwhile (same pattern as the overview). Unit tests RED first (`tests/unit/scenario-lab.test.tsx`: 3 failed, both builders rendered), then GREEN. The mocked `v1-comparison.spec.ts` (A14) asserts no "Scenario builder" form and no `planning-catalog` call; the connected journey asserts no "Scenario builder" form for a real imported network.
+- **Legacy specs that drive the legacy builder:** the network provider picks the first v1 network whenever one exists (at W4 the seeded samples always do), so the legacy builder is reachable only with no v1 network. The three connected specs (`operations-api`, `recommendations`, `scenario-lab`) now start with `withoutV1Networks(page)` (`tests/e2e/v1-mocks.ts`): only `GET /api/v1/networks` is answered (`{networks: []}`), and every other request reaches the real API. Their "Compare methods" locators are back to the unscoped originals, so a second builder on that view fails strict mode. The mocked `forecasting-integration.spec.ts` returned the example network list for the shell and now returns none, for the same reason (6 RED after item 1, then 6 passed). Showing two builders for a chosen v1 network is caught by the unit test, the mocked A14 test and the connected journey.
+- **Item 3, one sign-in helper:** `tests/e2e/sign-in.ts` `signInThroughForm(page)` is the only form sign-in in the connected specs (`data-explorer`, `operations-api`, `overview-live`, `recommendations`, `scenario-lab`, and `connected.ts`'s per-worker `signIn`). A rejected login fails in 30 s and empties the password field first, so no password reaches `error-context.md` or the uploaded `test-results/`. `presenter-session.spec.ts` keeps its own form steps: it is mocked and types the fixed strings "wrong" and "right" to test the form itself.
+- **Evidence:** `npx vitest run` → 24 files, 137 passed; tsc and eslint exit 0. Mocked e2e: v1-comparison, scenario-lab, recommendations, operations-api, overview-live, data-explorer, forecasting-integration, presenter-session → 89 passed, 0 failed (connected-only tests skip in mocked mode); one presenter-session 390×844 failure in the first parallel run did not recur in 15 of 15 repeats (the "Open navigation" click can land before hydration; `/overview` is unchanged by these items). Connected (production build, no egress, schema `ppor_demo_w3web_1109024125` already holding v1 networks): `PP_E2E_PRODUCTION=1 RUN=/tmp/claude-1000/pw4 apps/web/tests/e2e/connected/run-e2e.sh` with the specs above plus v1-connected-import and v1-connected-journey, `--workers=1` → 99 passed, 0 failed, 0 skipped.
+
+### Save point 2026-11-09 (superseded by W3-W03 below; kept for the record)
+
+- **Head:** the commit that adds this section, on top of `85e1561` (pushed to `origin/lane/w3-web`, no PR yet). Merged `origin/v1-local` at `5c5fbe7` (lead PR #122) in `298b24a`, no rebase.
+- **Done:** W3-W01 and W3-W02 (evidence in the table above). Lead items 1 and 3 (`0932747`, evidence under "Lead items" above; connected 99 passed on the pre-merge stack). CR-w3-web-1 follow-up (`694d2d2`): `stack-up.sh` runs `scripts/quality/netns-bridge.py` and waits for the PG bridge socket like CI. `connected/bridge.py` was deleted.
+- **Written, never run (no RED or GREEN yet):**
+  - `8897020`: a connected `@V1-A10` test in `v1-connected-import.spec.ts`. It checks that a sample network's pre-filled rates read "Source: sample values" and a normal import's read "Source: entered by you". The sample is seeded with `connected/seed_sample.py`, the importer run with the internal seed's `is_sample` flag, until the W4 samples exist.
+  - `85e1561`: W3-W03 `v1-a11y.spec.ts` covers import, decisions and atlas ranking at 3 viewports. Each runs a keyboard-only path (no click, fill or `focus()`), axe with zero violations of any impact, and a recorder of every CSS animation, transition, `animate()` and inline transform change under reduced motion. The import mocks moved to `v1-import-mocks.ts` (`import-upload.spec.ts` imports them; tsc and eslint pass, the e2e is not re-run).
+- **Known RED tests:** none. The two specs above have not run.
+- **Expected findings when W3-W03 runs (unverified):** Radix select, dialog, popover and sheet keep their `zoom-in-95` and slide `animate-in` keyframes under reduced motion. `tw-animate-css` has no reduced-motion rule, and the one in `shadcn/tailwind.css` covers only `shimmer`; the fix belongs in `src/components/ui/*` (`motion-reduce:` classes), not `globals.css`. Focus may fall to `<body>` after "Check and import" or "Start a new import" replaces the focused button.
+- **Stack:** `RUN=/tmp/claude-1000/pw4` was stopped (`stack-down.sh`; ports 8003 and 3003 free). Its schema `ppor_demo_w3web_1109024125` stays in `pantrypulse_web_test`.
+- **Gates since the merge:** none re-run. The merge brought no web changes. Before the merge: vitest 24 files and 137 passed; tsc and eslint exit 0.
+- **Exact next step:**
+  1. Run `RUN=/tmp/claude-1000/pw5 apps/web/tests/e2e/connected/stack-up.sh`, then `npm run build` in `apps/web`, then `PP_E2E_PRODUCTION=1 RUN=/tmp/claude-1000/pw5 apps/web/tests/e2e/connected/run-e2e.sh --workers=1`. This is the whole suite on the new bridge, including the new A10 sample-values test. Load `.env.lane` in every shell.
+  2. W3-W03: `npx playwright test tests/e2e/v1-a11y.spec.ts tests/e2e/import-upload.spec.ts --workers=1` (mocked) → RED → fix in `apps/web/src/**` → GREEN. Then update this file, commit, push.
+  3. Finish: quick and full gates (`PP19_TEST_SCHEMA_ISOLATION=1`), `/devkit:ship-check` with the verifier, then the PR into `v1-local`.
+
+### W3-W03 (2026-11-09)
+
+- **Spec (`tests/e2e/v1-a11y.spec.ts`, `@V1-A20`):** the import, decisions and atlas ranking screens, plus the shell controls on them (the network switcher, and the navigation drawer on a phone), at 1440×900, 1280×720 and 390×844.
+  - Each test drives its screen with the keyboard only, with no `click`, `fill`, `check` or `focus()`.
+  - axe must report zero violations of any impact: the shared helper's serious/critical gate, and no `a11y-advisory` annotation for the label.
+  - Motion: with `prefers-reduced-motion: reduce`, a recorder installed before the page's scripts sees no CSS animation, transition, `animate()` call or inline-transform sequence that moves, scales or resizes anything, and nothing infinite.
+  - A live check proves the recorder works: with motion allowed, it records the switcher opening.
+- **RED:** the first connected run had 194 passed and 8 failed. The import and decisions tests failed at every viewport. Probes showed the cause:
+  - focus dropped to `<body>` when the focused "Check and import" or "Export CSV" button became `disabled` while busy;
+  - focus also dropped when "Start a new import" removed itself.
+
+  The shell test then failed in two ways. axe reported `aria-hidden-focus` (serious) with the switcher open: Radix Select hides the app with `aria-hidden` only, and axe excuses that only under a modal dialog (`focusable-modal-open`), not a listbox. The Radix enter/exit animations (`zoom-in-95`, slides) also ran under reduced motion: no rule in `tw-animate-css` or `globals.css` covers them.
+- **Fixes:**
+  - Busy buttons keep focus: they get `aria-disabled` and ignore activation. The unit test now checks that a second press creates no second import.
+  - "Start a new import" moves focus to the "3. Upload your files" heading (`tabIndex={-1}`, the `location-inspector` convention).
+  - `ui/select.tsx` `InertOutside` marks the elements Radix hid as `inert` while a list is open, and focus still returns to the trigger.
+  - `motion-reduce:animate-none!` on dialog, popover, select, sheet and tooltip. It needs `!`, because the `data-[state=open]:animate-in` selector outranks it.
+- **Connected-run failures fixed on the way, each RED first:**
+  - **Sign-in dialog closed by itself.** This failed `data-explorer`'s connected sign-in, and caused the earlier "flaky" presenter-session 390×844 test. The W3-W02 overview returned a different shell for "loading networks", the v1 overview and the legacy atlas, so React remounted the whole shell when the network list settled. That closed an open sign-in dialog or phone drawer. Two fixes:
+    - `NetworkProvider` derives "signed out" from the presenter session in the same render, and no longer requests the list for a visitor, who would only get a 401.
+    - The overview renders every state through one shell: `LegacyAtlas` takes a `body`.
+    - New mocked tests: the dialog and its typed username survive the list settling, and a presenter's phone drawer stays open. Both went RED, then GREEN; presenter-session is 50/50 over 10 repeats.
+  - **`@V1-A10` offline enrichment stayed "running".** Settings followed a lookup job only after "Retry lookups". A status read during the import's own job, which ends about 1.5 s after the import, never refreshed; earlier runs passed only because the job usually ended first. Settings now follows any running job it reads, and a job is never followed twice. Unit test RED, then GREEN.
+- **CR-w3-samples-1 end to end:** the `@V1-A10` sample-values test (`8897020`) passed in both connected runs. A seeded sample network's P1–P3 read "Source: sample values"; a normal import's read "Source: entered by you".
+- **Quick gate during the first connected run:** the Stop hook's run failed `api tests` with 2 failures while the 14-minute connected e2e run shared the machine and `pantrypulse_web_test`. A rerun alone gave 1955 passed, 77 skipped, exit 0. That rerun had no DB env, so the 77 queue and Postgres tests skipped and it is not evidence (lead, 2026-11-09). The gates below ran with `.env.lane` loaded. Gates and the connected suite now run one at a time, and a turn never ends while a gate runs.
+- One `overview-layout` "grip handles" failure appeared once in a 13-file parallel mocked run; it passed 5 of 5 alone and 27 of 27 over 3 parallel repeats.
+
+### CR-w3-samples-3 follow-up (2026-11-09, lead-approved after #125)
+
+- **Example requests now always name the network's mode.** `exampleUrl(name, mode)` in `src/lib/network-api.ts` requires a mode; without one, the API serves the Pantry set. The guide's example link and the "why unavailable" request both use the catalog's mode. `templateUrl(name)` is now the blank download only.
+- **Before a network type is chosen,** no example is offered or requested. The guide says "Choose Pantry or Retail under 2. Network settings to get an example."
+- **Retail** asks with `mode=RETAIL` and shows the 404 `TEMPLATE_EXAMPLE_UNAVAILABLE` message ("template example unavailable"). A Retail catalog with examples available links to `mode=RETAIL`, ready for the samples follow-up.
+- **Tests:**
+  - Unit tests went RED first (4 failed), then GREEN: `network-api`, `template-guide` (Pantry and Retail links, the no-mode note) and `import-view` (no request before a mode is chosen; Retail requests carry `RETAIL`).
+  - Mocked e2e `import-templates.spec.ts` (`@V1-A06`) now covers no mode, Pantry downloads and Retail reasons, and asserts every example request the page made named its mode. It passed 3 of 3.
+  - `npx vitest run` → 24 files, 142 passed.
+
+### Ship-check step 2: verifier review of `15a3456` (2026-11-09)
+
+The project `verifier` agent reviewed the whole lane diff (`a2c725827..15a3456`) without the builder's rationale. Its results:
+- **Checks:** tsc exit 0; vitest 142 passed. Ten mocked specs together: 41 passed, 5 failed, 8 skipped (the connected-only tests). The 3 failing specs each passed alone.
+- **Acceptance:** connected IDs are UNVERIFIED by the verifier, because it was not allowed to start the stack; CI runs them. A20 was FAIL (intermittent).
+
+What was done about each finding:
+1. **A20 intermittent (major), reproduced, FIXED.**
+   - The cause: `ui/button.tsx` (`transition-all`) and nine more layout transitions (sidebar, sheet, tabs, the overview site list) had no reduced-motion guard. The motion recorder sees one only when a size change lands after the first style pass, which depends on load. The verifier caught a `padding` transition on the presenter sign-in button at 1280×720.
+   - The spec now also reads computed styles. Every A20 test fails on any element whose transition covers a layout property, or `all`, with a non-zero duration. The live control test proves the check finds them when motion is allowed.
+   - RED: 12 of 13 failed, listing `button[button]: all`, `a[sidebar-menu-button]: padding`, sidebar `left/right/width`, and the drawer's `transform`.
+   - Fix: `motion-reduce:transition-none` on all 11 class strings. GREEN: 26 of 26 (13 tests, 2 repeats).
+2. **Parallel-load timeouts (minor), environmental, not changed. Clean rerun at normal load:** at `a555cb0` with load average 5 on 16 cores, `design-lab.spec.ts` and `overview-layout.spec.ts` with `--repeat-each=3` gave 42 passed, 0 failed. That covers both design-lab axe scans and the grip-handle test, 3 times each.
+   - Whole mocked suite after the fix: 191 passed, 3 failed, 14 skipped (connected-only tests).
+   - The failures were two `design-lab` axe scans that hit the 30 s test timeout, plus `overview-layout` "grip handles" waiting for map markers just after "Error creating WebGL context".
+   - Machine load average was 28 on 16 cores, from other lanes' suites. `design-lab` passed when rerun with overview-layout. The grip-handle test fails only under load; its rerun is in the gates table.
+3. **Full gate not run on `15a3456` (process).** The final gate is run on the PR head; see the gates table.
+4. **Password in uploaded traces (minor security), reproduced.** It can't be fixed in lane paths; raised as CR-w3-web-2. The `sign-in.ts` comment no longer overclaims.
+5. **Recorder could miss a short CSS animation (minor), FIXED.** An animation that ended before it could be read now counts as motion ("unknown"), so the check fails closed.
+6. **"Simulated network" pill (minor): narrowed per the lead's decision (Gabriel, 2026-11-09), in `9d373cb`.**
+   - /import and /settings no longer show it. A failed network list shows "Network list unavailable", and the legacy screens keep "Simulated network" beside it, because they still render the fictional demo.
+   - Tests: `tests/e2e/data-label.spec.ts` enumerates the eight legacy-data routes (/overview, /data, /data/pulse, /data/inputs, /data/inventory, /data/operations, /recommendations, /scenarios) and the two without network data. `shell-labels.test.tsx` covers the error state. Unit 2 and e2e 2 went RED first.
+   - Not in the legacy list: /decisions renders nothing without a network (`decisions-view.tsx:46`), and /methodology is static text. Both keep the pill, which over-labels and is the safe direction.
+   - The original finding:
+   - `top-bar.tsx:17-20` (W3-W01, the W2-06 carry-in) labels every screen "Simulated network" when no v1 network is chosen, including /import and /settings for a presenter with no networks or whose list failed.
+   - It over-labels and never under-labels. Narrowing it is a labeling decision for the lead.
+7. **Confirmed safe:** InertOutside cleanup (no leak; fails open), aria-disabled busy buttons (no second request), every example URL names a mode, and Settings follows each job once.
+8. **Stale reasons on a mode change (minor): gone.** The lead had the "why unavailable" fetch removed, in `6c703f6`, so nothing is left to go stale.
+
+### Lead follow-ups after ship-check (2026-11-09; PR held until these landed)
+
+- `60aa4e6` CR-w3-web-2: traces off for connected runs (see CR-w3-web-2).
+- `9d373cb` data label narrowed (see ship-check item 6).
+- `6c703f6` no "why unavailable" example probe. The catalog's `example_available` decides, and an unavailable example reads "Example not available yet."
+  - With no mode, the probe had downloaded all seven Pantry examples to get null.
+  - Every example URL is built by `exampleUrl(name, mode)` with a required mode.
+  - Merge order (Gabriel, 2026-11-09): this PR merges before samples #128, against today's backend, where Retail's `example_available` is false. The A06 e2e models that:
+    - no mode: disabled, with "Choose Pantry or Retail…", and nothing requested;
+    - Pantry: each link and the actual download URL carry `mode=PANTRY`;
+    - Retail: disabled with "Example not available yet.", and nothing fetched to learn why;
+    - the page requests no example itself.
+
+    It passed 3 of 3. The unit tests cover an available Retail example linking `mode=RETAIL` (`template-guide.test.tsx`).
+  - **W4 carry-in (after #128 merges into v1-local):** a connected check that a Retail import downloads the Retail example file, with `mode=RETAIL` on the request and Retail content in the body.
+- **Evidence at `6c703f6`:**
+  - `node --test tests/*.test.mjs` → 13 passed, 0 skipped.
+  - `npx vitest run` → 24 files, 144 passed.
+  - Mocked e2e, whole suite → 196 passed, 0 failed, 14 skipped (connected-only, not evidence); exit 0.
+
+### Save point 2026-11-09 (late) (done: PR #129 opened at `4e52aaa`; kept for the record)
+
+- **Head:** this commit, pushed. The branch is green:
+  - full gate at `75a2f71`: exit 0, API 2073 passed, 0 skipped;
+  - vitest 144 passed;
+  - node tests 13 passed;
+  - mocked e2e whole suite: 196 passed, 0 failed at `6c703f6`;
+  - the one later edit, `import-templates.spec.ts`: 3 of 3 passed, lint and types clean.
+- **No stack or gate is running.** v1-local was `a2c7258` when checked, already merged.
+- **Exact next step on resume:**
+  1. `git fetch origin`. If `origin/v1-local` moved, `git merge origin/v1-local` (no rebase).
+  2. Run the full gate on the head, one at a time and waiting in-turn: `set -a; . ./.env.lane; set +a; PP19_TEST_SCHEMA_ISOLATION=1 node scripts/quality/run.cjs full`, then `(cd apps/api && uv run --frozen pytest -q)` for the 0-skipped count.
+  3. Open the PR, which the lead approved, with the merge held by the lead:
+     `gh pr create --base v1-local --head lane/w3-web --title "w3-web: wire the screens to the real API, connected journeys, accessibility"`.
+     The body lists:
+     - tasks W3-W01–W03 and the follow-ups;
+     - acceptance IDs V1-A06, A07, A10, A11, A14, A15, A16, A20, A23, connected;
+     - commands and results from the gates table;
+     - limitations: the connected suite was last run at `ed046c1` (208 passed), and CI reruns it;
+     - open CRs: none open (CR-w3-web-1 and -2 landed); the W4 carry-in above;
+     - the fixture-forecast disclosure (E-1).
+
+     It ends with "🤖 Generated with [Claude Code](https://claude.com/claude-code)".
+  4. Report the PR URL to the lead and wait.
+
+### Review of PR #129 at `4e52aaa` (lead's verifier, 2026-11-09): FAIL on H1; fixes
+
+Everything else passed: §1, §6, §9, ownership, 4a, vitest 144, node 13, tsc, lint, a11y 13/13, and 14 mocked specs. Each fix below went RED first.
+
+- **H1 (High), fixed in `f48e6d9`: the password reached error-context.md.**
+  - What happened: a rejected login (429 or a wrong password) under a spec's default 30 s timeout outlived the helper's 30 s `waitForEvent("load")`. The helper's clearing `catch` never ran. The form kept the typed value, and Playwright's page snapshot in `error-context.md` records input values, even with trace off.
+  - Fixes:
+    - The form (`presenter-footer.tsx`) empties and focuses the password field after any failed sign-in. Test: `tests/unit/presenter-footer.test.tsx`.
+    - The helper (`sign-in.ts`) waits at most half the test's timeout (15 s cap) and empties the field in `finally`. Its comment now states exactly what is covered.
+  - Canary: `tests/e2e/sign-in-canary.spec.ts` (`@V1-A04`, trace off, as connected runs are) fails a sign-in two ways, as expected failures: rejected (429) and never answered. A serial test then asserts that no file under either failure's output dir contains the canary password, and that each dir has its `error-context.md`, so the check is not vacuous.
+    - RED: the 429 test hit the 20 s test timeout inside the helper's 30 s wait, and its `error-context.md` held the canary.
+    - GREEN: 3 passed. 0 files under the whole mocked run's output contain the canary. The snapshot reads `textbox "Password" [active]` with no value.
+- **M1 (Medium), fixed in `ff588ee`:** local connected runs record no trace either; see CR-w3-web-2.
+- **L1 (Low), fixed in `f72c98a`: /data and /recommendations under-labelled.**
+  - They never read the chosen network (`data-explorer.tsx`, `recommendations-screen.tsx`, `inputs-view.tsx` and `inventory-view.tsx` have no `useNetwork`), so they always render the legacy fixture data. With a real network chosen, the pill was gone.
+  - Now the `data` and `recommendations` screens always say "Simulated network", plus "Network list unavailable" when the list failed. Overview and Scenarios say it only with no network chosen, and /import and /settings never do.
+  - `data-label.spec.ts` now checks every listed page in all three states: no network, a real network, a failed list.
+  - The connected forecast fixtures (pantry, retail and retail-noprice `forecast.json`) no longer call their SEASONAL_NAIVE and MOVING_AVERAGE providers "fixture stand-ins". The values are fixed, and the provider only labels the baseline each stands in for (E-1).
+  - The API's `tests/networks/fixtures/{mini-network,retail-twin}/forecast.json` carry the same sentence. They are lead paths, reported, not changed.
+- **Item 4, RED evidence for two earlier fixes.** Method: no throwaway commits. Each fix's diff was reverse-applied in the working tree (`git show <fix> -- <src files> > p.patch; git apply -R p.patch`), the spec run, and the diff re-applied (`git apply p.patch`). `git status` was clean before and after, and nothing was committed or pushed.
+  - Motion guard (`a555cb0`, `ui/button.tsx` only reverted): `npx playwright test tests/e2e/v1-a11y.spec.ts` gave **12 failed, 1 passed** (the live control). Each failure is at `> 87 | expect(await movingTransitions(page)).toEqual([]);`, listing for example `"a\"Download blank demand_history.csv\": all"`: Button-styled links still had `transition: all`.
+  - Shell remount (`235e30e`, `network-switcher.tsx` and `network-atlas.tsx` reverted): `npx playwright test tests/e2e/presenter-session.spec.ts:97 …:117` gave **2 failed**.
+    - `:97`, the visitor's dialog: `Locator: getByRole('dialog', { name: 'Presenter sign in' })`, `> 113 | await expect(dialog).toBeVisible();`, element(s) not found.
+    - `:117`, the phone navigation: `Locator: getByRole('combobox', { name: 'Network', exact: true })`, `> 139 | ...toBeVisible();`, element(s) not found.
+- **Evidence after the fixes:**
+  - tsc and `npm run lint` exit 0.
+  - `npx vitest run`: 25 files, 146 passed.
+  - `node --test tests/*.test.mjs`: 13 passed, 0 skipped.
+  - Mocked e2e, whole suite: 200 passed, 0 failed, 14 skipped (connected-only, not evidence); exit 0.
+
+### Re-verify at `4a88177` (lead's verifier, 2026-11-10): H1, M1 and L1 resolved; N1 fixed in `12528d2`
+
+- **N1 (Low): a login that never answers could still leak the password.** The form cleared the field only when the login failed, and a hung request never fails. The helper waited `min(15 s, timeout/2)` of the test's *total* timeout, so a sign-in that started late in a test could be cut off by the test timeout with the password typed. Fixes, test-first:
+  - The presenter sign-in (`presenter-session.tsx`) aborts the login after 10 s with `ApiError("TIMEOUT")`. The form then says "Sign-in timed out. Try again." and empties the field. `planning-api.ts`: `api` takes an optional `signal`, and an abort whose reason is an `ApiError` passes through as that error.
+    - Unit test: `tests/unit/presenter-sign-in.test.tsx` (real provider and form, fake timers, a fetch that settles only on abort). RED: at 10 s there was no alert. GREEN.
+    - Why not `AbortSignal.timeout`: fake timers do not drive it, and in the test environment its reason is not an `instanceof DOMException`.
+  - The helper (`sign-in.ts`) adds its own 15 s wait plus 5 s cleanup to the test's timeout, just before typing the password. However late the sign-in starts, the test outlasts the wait and the cleanup.
+    - This differs from the lead's "time left" wording on purpose. Playwright 1.64's `TestInfo` exposes no elapsed time or start time (`duration` is 0 until the test ends), so time left cannot be measured. Extending the timeout is the documented `testInfo.setTimeout(testInfo.timeout + n)` pattern.
+  - Canary: the verifier's case D, "a late, never answered form sign-in". It hangs the login and starts the sign-in after 12 s of a 20 s test.
+    - RED: test timeout inside the helper's 10 s wait, and its `error-context.md` held the canary.
+    - GREEN: 4 of 4 passed, with 0 files containing the canary across 3 `error-context.md`. Both never-answered snapshots show the alert "Sign-in timed out. Try again."
+- **Which change each presenter-session test guards (`235e30e`)**, checked by reverting each half in the working tree and running `:97` and `:117`:
+  - `network-atlas.tsx` (one shell) reverted: `:117` fails (`getByRole('combobox', { name: 'Network' })` not found at `:139`); `:97` passes.
+  - `network-switcher.tsx` (a visitor is signed out in the same render, with no `/networks` request) reverted: both pass.
+  - Both reverted (item 4 above): both fail.
+  - So `:117` guards the atlas half. `:97` guards the visitor's dialog, which either half keeps open, and fails only if both are lost. With the switcher half in place a visitor never requests `/networks`, so `:97`'s held request is never made.
+  - Nothing tests the switcher half on its own: the unit tests that use `signed_out` mock `useNetwork`. A one-line assertion in `:97` that a visitor makes no `/networks` request would cover it; offered to the lead, not added.
+- **Evidence at `12528d2`:**
+  - tsc and `npm run lint` exit 0.
+  - `npx vitest run`: 26 files, 147 passed.
+  - `node --test tests/*.test.mjs`: 13 passed, 0 skipped.
+  - `sign-in-canary.spec.ts` and `presenter-session.spec.ts`: 9 of 9 passed.
+  - Full gate: exit 0, all 8 PASS; API 2124 passed, 0 skipped.
+
+## Decisions made inside the lane
+
+- Connected fixtures are lane-owned CSV sets in `apps/web/tests/e2e/fixtures/v1-connected/` (`pantry`, `bad`, `unlocated`), fictional, with fixed dates (as_of 2026-11-04). `pantry` follows the backend `mini-network` fixture and adds routes, inbound and donation files. — W3-W01
+- "Nothing saved" in A07 is checked in the database, not only in the UI: a read-only digest of every row of `networks`, `dataset_versions`, `net_locations`, `net_products`, `net_batches` before and after (`connected/db_probe.py`, same idea as the W2-05 journey's stock snapshot). — W3-W01
+- The A10 test requires `PP_E2E_NO_EGRESS=1` and fails loudly without it, instead of skipping (CI rejects skips) or calling the real Census geocoder. — W3-W01
+
+## Gotchas
+
+- AF_UNIX socket paths are capped at 107 bytes; the session scratchpad path is too long, so `RUN` must be short (a symlink works). — W3-W01
+- The worker's step children get an allowlisted environment (`process_driver.py:26`), so proxy variables can't make enrichment offline; only a network namespace (or a firewall) does. — W3-W01
+- The API allows 5 presenter logins per minute per address (`apps/api/app/services/presenter_access.py:91-106`). A rejected login never reloads the page, so a helper waiting for "load" hangs until the test timeout (15 min here). The connected helper now signs in once per worker, reuses the cookies and fails in 30 s. CI's connected step runs every spec, so other specs' logins count toward the same limit. — W3-W02
+- A failed sign-in's Playwright `error-context.md` records the password textbox value, and CI uploads `apps/web/test-results/` as an artifact. The credentials are generated per run, but every connected spec now signs in through `tests/e2e/sign-in.ts`, which clears the field on failure (lead item 3). — W3-W02
+- When demand_history.csv has no valid date and no `as_of_date` is sent, the import fails with that single error and lists no other row errors. A user with several bad rows sees only this one first. Not changed (server behavior, data lane/lead); worth a look in W4 hardening. — W3-W01
+
+## Change requests
+
+### CR-w3-web-1 — run the CI connected step's API and worker with no egress
+- **File(s):** `.github/workflows/pantrypulse-ci.yml` (lead-only)
+- **Exact change:** in "Real browser, proxy, database and worker journey", run the API and the worker without outbound network and export `PP_E2E_NO_EGRESS=1` for Playwright. Options: (a) the lane's launcher approach (`unshare -rn` plus a unix-socket bridge to PostgreSQL; on GitHub's Ubuntu 24.04 runners this needs `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0` first); (b) run the worker as a separate user and drop its outbound traffic with an `iptables -m owner` rule (sudo is available on hosted runners). Recommend (a): it is the same setup as the lane evidence.
+- **Why:** wave-3 W3-W01 requires `@V1-A10 offline enrichment marks unknown with retry` with "the API runs with no egress". CI runs every connected spec and rejects skips (`require-test-evidence.py`). Without this change, CI either calls the real Census geocoder with a fictional address (not offline, and flaky) or the test fails on its precondition. The test now fails loudly in CI until this lands.
+- **Unblocks:** W3-W01 in CI (V1-A10 connected evidence); the lane PR's CI.
+- **Status:** approved (Gabriel via the lead, 2026-11-09), option (a). The lead lands the CI change on v1-local with a lead-owned copy of `bridge.py` at `scripts/quality/netns-bridge.py`. When that PR merges: `git merge origin/v1-local`, point `stack-up.sh` at `scripts/quality/netns-bridge.py`, delete `connected/bridge.py`. **Landed:** lead PR #122 (`5c5fbe7`), merged into the lane in `298b24a`; the lane switched in `694d2d2`, verified by the 208-test connected run on pw5.
+
+### CR-w3-web-2 — keep the presenter password out of uploaded Playwright traces
+- **File(s):** `apps/web/playwright.config.ts` and/or `.github/workflows/pantrypulse-ci.yml` (lead-only).
+- **Finding (verifier, ship-check step 2; reproduced by the lane on 2026-11-09):** `trace: "retain-on-failure"` (`playwright.config.ts:12`) keeps a failed test's `trace.zip` in `test-results/`, and CI uploads `apps/web/test-results/` (`pantrypulse-ci.yml:131-134`). Probe in the scratchpad with the secret passed through the environment:
+  - The value given to `fill` appears in `test.trace` and `1-trace.trace`.
+  - A value set through `exposeBinding` (never a `fill` argument) still appears in `1-trace.trace` and an attachment, because DOM snapshots record input values.
+  - The login request's body is in the trace's network log too. So no change to how `sign-in.ts` types the password keeps it out. The connected CI password is generated per run, which limits the damage.
+- **Exact change, one of:**
+  - (a) for connected runs (`PP_E2E_PRODUCTION=1`), set `trace: "off"` in `playwright.config.ts`. Recommended: smallest, and screenshots and error-context.md stay.
+  - (b) upload `test-results/` without `**/trace.zip`.
+- **Status:** approved, option (a) (Gabriel via the lead, 2026-11-09). **Landed in `60aa4e6`.**
+  - **Authorization:** the lead authorized one bounded edit to the lead-owned `apps/web/playwright.config.ts`, the `trace` line only.
+  - **Change:** trace is "off" when `PP_E2E_PRODUCTION=1`; mocked runs keep "retain-on-failure".
+  - **CI:** the connected step sets it (`.github/workflows/pantrypulse-ci.yml:103`, "Real browser, proxy, database and worker journey"), and no other step does. The workflow is unchanged.
+  - **Test:** `tests/playwright-config.test.mjs` loads the config under `1`, `0` and empty. RED (`retain-on-failure` for `1`), then GREEN.
+  - The lane also corrected `sign-in.ts`'s comment, which had claimed the password never reaches uploaded test-results.
+  - **Extended in `ff588ee` (#129 review M1):** the local runner `connected/run-e2e.sh` sets `PP_RUN_CONNECTED=1` but not `PP_E2E_PRODUCTION`, so local connected runs still traced. Trace is now off when either is `1`, under the same bounded authorization; the config test covers both variables.
+
+
+## Escalations
+
+- 2026-11-08 — W3-W02 — E-1, plan gap (ORCHESTRATION §5 item 4): the connected Pantry/Retail journeys need a forecast run to freeze a scenario (`ScenarioOptions.forecast_run_id` is required), but `POST /networks/{id}/forecasts` and `GET /networks/{id}/forecasts` are 501 stubs until W3-F03 merges in W4. Proposed (not yet done): the test seeds a fixture forecast run, as the W2-05 backend journey does (`test_v1_backend_journey.py:176`, `FIXTURE_FORECAST`), keeps the `?forecast_run_id=` stopgap for it, and the PR states that the forecast input is a fixture while import, scenario, comparison, decisions and export are real. Orchestrator: confirm or redirect before W3-W02 starts.
+  - **Decision (Gabriel via the lead, 2026-11-09): approved.** Seed the fixture forecast run as `test_v1_backend_journey.py` does (`FIXTURE_FORECAST`), keep `?forecast_run_id=`, disclose it in the PR and here, and never count it as forecast evidence. At W4 the journeys switch to a real forecast run (lead's W4 task).

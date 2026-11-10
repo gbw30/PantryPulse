@@ -1,4 +1,6 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { signInThroughForm } from "./sign-in";
+import { withoutV1Networks } from "./v1-mocks";
 import type { components } from "../../../../packages/contracts/src/schema";
 import { expectNoSeriousA11yViolations } from "./a11y";
 
@@ -433,13 +435,10 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
 test("connected: freeze → compare → verified results end to end", async ({ page }) => {
   test.skip(process.env.PP_RUN_CONNECTED !== "1", "Requires isolated seeded PostgreSQL, API and Linux worker");
   test.setTimeout(600_000);
+  await withoutV1Networks(page);
   await page.goto("/overview");
-  await page.getByRole("button", { name: "Presenter sign in" }).click();
-  const dialog = page.getByRole("dialog", { name: "Presenter sign in" });
-  await dialog.getByLabel("Username").fill(process.env.PP_E2E_USERNAME ?? "presenter");
-  await dialog.getByLabel("Password").fill(process.env.PP_E2E_PASSWORD ?? "pantry-local-demo");
-  await Promise.all([page.waitForEvent("load"), dialog.getByRole("button", { name: "Sign in", exact: true }).click()]);
-  await expect(page.getByText("Presenter session · simulated demo")).toBeVisible();
+  await signInThroughForm(page);
+  await expect(page.getByText("Presenter session", { exact: true })).toBeVisible();
   await page.goto("/scenarios");
   await page.getByRole("button", { name: "Generate forecast", exact: true }).click();
   await expect(page.locator("[data-job-state]")).toHaveAttribute("data-job-state", "SUCCEEDED", { timeout: 90_000 });
