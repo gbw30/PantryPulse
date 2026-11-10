@@ -78,6 +78,7 @@ Mirrors the CI connected step (`.github/workflows/pantrypulse-ci.yml:86-108`), w
 | same, then `uv run --frozen pytest -q` for counts | `f33132f` | exit 0, all 8 PASS; API 2071 passed, 0 skipped |
 | `pytest tests/integration/test_supervisor.py` (after merging #126) | `15a3456` | 73 passed |
 | full gate, then API counts | `a555cb0` | exit 0, all 8 PASS; API 2073 passed, 0 skipped |
+| full gate, then API counts | `75a2f71` | exit 0, all 8 PASS; API 2073 passed, 0 skipped. Since then: only `import-templates.spec.ts` (test-only; eslint and tsc exit 0; 3 of 3 passed). |
 | `/devkit:ship-check` | `15a3456` | step 1: the gates above. Step 2: verifier, findings and dispositions in "Ship-check step 2". Step 3: no security-guidance plugin. Steps 4-5: the PR. |
 
 ### Lead items (approved 2026-11-09)
@@ -176,12 +177,43 @@ What was done about each finding:
 - `6c703f6` no "why unavailable" example probe. The catalog's `example_available` decides, and an unavailable example reads "Example not available yet."
   - With no mode, the probe had downloaded all seven Pantry examples to get null.
   - Every example URL is built by `exampleUrl(name, mode)` with a required mode.
-  - The A06 e2e models PR #128 (Retail examples served) and checks each download's actual URL names its mode, `PANTRY` or `RETAIL`. It also checks that the page requests no example itself.
-  - The connected Retail download check waits for #128 to merge into v1-local.
+  - Merge order (Gabriel, 2026-11-09): this PR merges before samples #128, against today's backend, where Retail's `example_available` is false. The A06 e2e models that:
+    - no mode: disabled, with "Choose Pantry or Retail…", and nothing requested;
+    - Pantry: each link and the actual download URL carry `mode=PANTRY`;
+    - Retail: disabled with "Example not available yet.", and nothing fetched to learn why;
+    - the page requests no example itself.
+
+    It passed 3 of 3. The unit tests cover an available Retail example linking `mode=RETAIL` (`template-guide.test.tsx`).
+  - **W4 carry-in (after #128 merges into v1-local):** a connected check that a Retail import downloads the Retail example file, with `mode=RETAIL` on the request and Retail content in the body.
 - **Evidence at `6c703f6`:**
   - `node --test tests/*.test.mjs` → 13 passed, 0 skipped.
   - `npx vitest run` → 24 files, 144 passed.
   - Mocked e2e, whole suite → 196 passed, 0 failed, 14 skipped (connected-only, not evidence); exit 0.
+
+### Save point 2026-11-09 (late)
+
+- **Head:** this commit, pushed. The branch is green:
+  - full gate at `75a2f71`: exit 0, API 2073 passed, 0 skipped;
+  - vitest 144 passed;
+  - node tests 13 passed;
+  - mocked e2e whole suite: 196 passed, 0 failed at `6c703f6`;
+  - the one later edit, `import-templates.spec.ts`: 3 of 3 passed, lint and types clean.
+- **No stack or gate is running.** v1-local was `a2c7258` when checked, already merged.
+- **Exact next step on resume:**
+  1. `git fetch origin`. If `origin/v1-local` moved, `git merge origin/v1-local` (no rebase).
+  2. Run the full gate on the head, one at a time and waiting in-turn: `set -a; . ./.env.lane; set +a; PP19_TEST_SCHEMA_ISOLATION=1 node scripts/quality/run.cjs full`, then `(cd apps/api && uv run --frozen pytest -q)` for the 0-skipped count.
+  3. Open the PR, which the lead approved, with the merge held by the lead:
+     `gh pr create --base v1-local --head lane/w3-web --title "w3-web: wire the screens to the real API, connected journeys, accessibility"`.
+     The body lists:
+     - tasks W3-W01–W03 and the follow-ups;
+     - acceptance IDs V1-A06, A07, A10, A11, A14, A15, A16, A20, A23, connected;
+     - commands and results from the gates table;
+     - limitations: the connected suite was last run at `ed046c1` (208 passed), and CI reruns it;
+     - open CRs: none open (CR-w3-web-1 and -2 landed); the W4 carry-in above;
+     - the fixture-forecast disclosure (E-1).
+
+     It ends with "🤖 Generated with [Claude Code](https://claude.com/claude-code)".
+  4. Report the PR URL to the lead and wait.
 
 ## Decisions made inside the lane
 
