@@ -14,7 +14,7 @@ vi.mock("@/components/shell/app-shell", () => ({ AppShell: ({ children }: { chil
   ShellProviders: ({ children }: { children: ReactNode }) => children }));
 // The mocked shell has no NetworkProvider; the v1 danger ranking has its own tests (danger-ranking.test.tsx).
 vi.mock("@/components/overview/danger-ranking", async (load) => ({ ...(await load<typeof import("@/components/overview/danger-ranking")>()),
-  DangerRankingSection: ({ forecastRunId }: { forecastRunId?: string }) => <p>v1 danger ranking {forecastRunId}</p> }));
+  DangerRankingSection: () => <p>v1 danger ranking</p> }));
 // No v1 network unless a test chooses one: the legacy atlas is the signed-out/visitor view.
 type NetworkValue = Pick<ReturnType<typeof import("@/components/shell/network-switcher").useNetwork>, "state" | "network">;
 let networks: NetworkValue = { state: { status: "signed_out" }, network: null };
@@ -96,9 +96,9 @@ it("W2-06 carry-in: a chosen v1 network shows its own ranking, never the legacy 
   vi.spyOn(sources, "overviewSourceFor").mockReturnValue({ source: { id: "legacy", load }, preview: null });
   const network = example("NetworkList").networks.find((n) => !n.is_sample)!;
   networks = { state: { status: "ready", networks: [network] }, network };
-  render(<NetworkAtlas forecastRunId="run-7" />);
+  render(<NetworkAtlas />);
   expect(screen.getByRole("heading", { level: 1, name: "Network Atlas" })).toBeVisible();
-  expect(screen.getByText("v1 danger ranking run-7")).toBeVisible();
+  expect(screen.getByText("v1 danger ranking")).toBeVisible();
   await act(async () => {});
   expect(load).not.toHaveBeenCalled();
   expect(screen.queryByTestId("loaded-map")).not.toBeInTheDocument();

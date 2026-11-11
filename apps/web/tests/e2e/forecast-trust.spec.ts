@@ -1,10 +1,10 @@
 // covers: V1-A12, V1-A08
 import { expect, test } from "@playwright/test";
-import { example, mockV1 } from "./v1-mocks";
+import { example, mockV1, publishedRun } from "./v1-mocks";
 
 // Mocked against packages/contracts/examples/v1 (NetworkForecastRun, BacktestResult, LocationList, NetworkList):
-// proves UI behavior, not the connected app; the forecast routes ship in W4 (CR-w1-web-4). The forecast run
-// comes from the URL until runs can be listed (CR-w1-web-2); its job names the backtest.
+// proves UI behavior, not the connected app. The forecast run is the network's newest published run (W4-02);
+// its job names the backtest.
 const backtest = example("BacktestResult");
 const run = example("NetworkForecastRun");
 const network = example("NetworkList").networks.find((n) => n.id === backtest.network_id)!;
@@ -12,12 +12,13 @@ const network = example("NetworkList").networks.find((n) => n.id === backtest.ne
 test("@V1-A12 @V1-A08 trust panel with mocked BacktestResult", async ({ page }) => {
   await mockV1(page, {
     "GET networks": { body: { networks: [network] } },
+    ...publishedRun(network, run.forecast_run_id),
     [`GET networks/${network.id}/forecasts/${run.forecast_run_id}`]: { body: run },
     [`GET forecasts/${run.job_id}/backtest`]: { body: backtest },
     [`GET networks/${network.id}/locations`]: { body: example("LocationList") },
   });
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto(`/data?forecast_run_id=${run.forecast_run_id}`);
+  await page.goto("/data");
   const section = page.getByRole("region", { name: `Forecast trust · ${network.name}` });
 
   const good = section.getByRole("region", { name: "Forecast trust: Archer Road Pantry (P-12) · WATER-24" });

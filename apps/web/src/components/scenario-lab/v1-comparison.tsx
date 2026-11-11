@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { currentRunId, ForecastRunsNote, useForecastRun } from "@/components/forecast/forecast-run";
 import { SampleBadge, useNetwork } from "@/components/shell/network-switcher";
 import { Button } from "@/components/ui/button";
 import { modeSummary } from "@/lib/mode-vocabulary";
@@ -20,14 +21,16 @@ type Status = { kind: "idle" } | { kind: "busy"; text: string } | { kind: "error
 const words = (code: string) => code.replaceAll("_", " ").toLowerCase();
 const failure = (error: unknown) => (error instanceof ApiError ? `${error.message} (${error.code})` : "the request failed");
 
-/** v1 method comparison for the chosen network (V1-SPEC §6.2), on the forecast run named in the URL (CR-w1-web-2). */
-export function MethodComparisonSection({ forecastRunId }: { forecastRunId?: string }) {
+/** v1 method comparison for the chosen network (V1-SPEC §6.2), on the network's newest forecast run (W4-02). */
+export function MethodComparisonSection() {
   const { network } = useNetwork();
   // A new network starts a new comparison: nothing chosen for one network carries over to another.
-  return network ? <Comparison key={network.id} network={network} forecastRunId={forecastRunId} /> : null;
+  return network ? <Comparison key={network.id} network={network} /> : null;
 }
 
-function Comparison({ network, forecastRunId }: { network: Network; forecastRunId?: string }) {
+function Comparison({ network }: { network: Network }) {
+  const { runs, reload } = useForecastRun(network);
+  const forecastRunId = currentRunId(runs);
   const [scenario, setScenario] = useState<Schema["ScenarioV3"] | null>(null);
   const [shown, setShown] = useState<Shown | null>(null);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
@@ -36,7 +39,7 @@ function Comparison({ network, forecastRunId }: { network: Network; forecastRunI
 
   const datasetId = network.dataset_version_id;
   const blocked = !datasetId ? "Import data for this network before planning."
-    : !forecastRunId ? "No forecast run chosen. Open this page from a finished forecast for this network." : null;
+    : !forecastRunId ? "A forecast run is needed before freezing a scenario." : null;
 
   async function freeze({ transferMode, retailWeights, planningDays, policy }: FreezeOptions) {
     if (!datasetId || !forecastRunId) return;
@@ -105,6 +108,7 @@ function Comparison({ network, forecastRunId }: { network: Network; forecastRunI
         </div>
         <p className="text-xs text-muted-foreground">{modeSummary(network.mode)}. All methods share one frozen scenario and one feasible region.</p>
       </div>
+      {datasetId && <ForecastRunsNote runs={runs} onRetry={reload} />}
       <div className="grid min-w-0 gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]">
         <ComparisonSetup mode={network.mode} busy={status.kind === "busy" || status.kind === "lost"} scenario={scenario} blocked={blocked}
           onFreeze={(options) => void freeze(options)} onCompare={(measure) => void compare(measure)} />

@@ -192,12 +192,12 @@ function Screen({ view, initialProductId }: { view: View; initialProductId: stri
 }
 
 /** Client root for /data, /data/pulse and /data/operations. */
-export function DataExplorerScreen({ view, initialProductId = null, forecastRunId }: { view: View; initialProductId?: string | null; forecastRunId?: string }) {
+export function DataExplorerScreen({ view, initialProductId = null }: { view: View; initialProductId?: string | null }) {
   return (
     <MotionConfig reducedMotion="user">
       <AppShell active="data">
         <Screen view={view} initialProductId={initialProductId} />
-        {view === "dashboard" && <div className="px-4 pb-6 md:px-6"><ForecastTrustSection forecastRunId={forecastRunId} /></div>}
+        {view === "dashboard" && <div className="px-4 pb-6 md:px-6"><ForecastTrustSection /></div>}
       </AppShell>
     </MotionConfig>
   );

@@ -1,7 +1,7 @@
 // covers: V1-A14, V1-A15
 import { expect, test, type Page } from "@playwright/test";
 import { expectNoSeriousA11yViolations } from "./a11y";
-import { example, mockV1, type Call, type Schemas } from "./v1-mocks";
+import { example, mockV1, publishedRun, type Call, type Schemas } from "./v1-mocks";
 
 // Mocked against packages/contracts/examples/v1 (ScenarioV3, SavedComparisonV3, ForecastAccepted,
 // NetworkList, Network): proves UI behavior, not the connected app. The examples are a Pantry
@@ -52,6 +52,7 @@ async function open(page: Page, network: Schemas["Network"], scenarioFor: (body:
   let last: Saved | null = null;
   const calls = await mockV1(page, {
     "GET networks": { body: { networks: [network] } },
+    ...publishedRun(network, RUN),
     [`POST networks/${network.id}/scenarios`]: (call: Call) => ({ status: 201, body: scenarioFor(JSON.parse(call.body!)) }),
     [`POST networks/${network.id}/comparisons`]: (call: Call) => {
       last = comparisonFor(JSON.parse(call.body!));
@@ -61,7 +62,7 @@ async function open(page: Page, network: Schemas["Network"], scenarioFor: (body:
     [`GET networks/${network.id}/comparisons/${example("SavedComparisonV3").id}`]: () => ({ body: last }),
   });
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto(`/scenarios?forecast_run_id=${RUN}`);
+  await page.goto("/scenarios");
   return { calls, section: page.getByRole("region", { name: `Method comparison · ${network.name}` }) };
 }
 

@@ -42,25 +42,24 @@ function describe(error: unknown, action: string): Notice {
 
 const frozenMultiplier = (s: Scenario, key: string) => s.payload.modifiers.find((m) => modifierKey(m.site_id, m.product_id) === key)?.multiplier ?? "1";
 
-/** `forecastRunId` names the v1 forecast run the method comparison freezes (CR-w1-web-2). */
-export function ScenarioLab({ forecastRunId }: { forecastRunId?: string } = {}) {
+export function ScenarioLab() {
   return (
     <MotionConfig reducedMotion="user">
       <AppShell active="scenarios" horizonLabel="7-day projection · 1–3 day window">
-        <LabForNetwork forecastRunId={forecastRunId} />
+        <LabForNetwork />
       </AppShell>
     </MotionConfig>
   );
 }
 
 /** A chosen v1 network gets only its method comparison; the legacy builder is the view with no v1 network (as on the overview). */
-function LabForNetwork({ forecastRunId }: { forecastRunId?: string }) {
+function LabForNetwork() {
   const { state, network } = useNetwork();
   if (network) {
     return (
       <div className="flex flex-1 flex-col gap-4 px-4 pt-3 pb-6 md:px-6 md:py-5">
         <LabHeader eyebrow="Scenario planning" />
-        <MethodComparisonSection forecastRunId={forecastRunId} />
+        <MethodComparisonSection />
       </div>
     );
   }

@@ -2,7 +2,7 @@
 import { expect, test, type Locator, type Page, type TestInfo } from "@playwright/test";
 import { expectNoSeriousA11yViolations } from "./a11y";
 import { REQUIRED, csv, failedStatus, mockImport } from "./v1-import-mocks";
-import { envelope, example, mockV1 } from "./v1-mocks";
+import { envelope, example, mockV1, publishedRun } from "./v1-mocks";
 
 // W3-W03: the import, decisions and atlas ranking screens at three viewports. Each one is driven by the
 // keyboard only (no click, fill, check or focus() call), scanned by axe with no violation of any impact,
@@ -234,13 +234,14 @@ for (const [width, height] of VIEWPORTS) {
     test(`@V1-A20 atlas ranking: keyboard only, axe clean, no motion at ${width}x${height}`, async ({ page }, testInfo) => {
       await mockV1(page, {
         "GET networks": { body: { networks: [atlasNetwork] } },
+        ...publishedRun(atlasNetwork, ranking.forecast_run_id),
         [`GET networks/${atlasNetwork.id}/danger`]: { body: ranking },
         [`GET networks/${atlasNetwork.id}/locations`]: { body: example("LocationList") },
         [`GET networks/${atlasNetwork.id}/projection`]: (call) => call.query.get("location_id") === "P-12"
           ? { body: example("LocationProjection") } : { status: 404, body: envelope("NOT_FOUND") },
       });
       await page.emulateMedia({ reducedMotion: "reduce" });
-      await page.goto(`/overview?forecast_run_id=${ranking.forecast_run_id}`);
+      await page.goto("/overview");
       const section = page.getByRole("region", { name: `Danger ranking · ${atlasNetwork.name}` });
       await expect(section.getByRole("list", { name: "Locations by danger" })).toBeVisible();
       await expectAxeClean(page, testInfo, `atlas ranking ${width}`);

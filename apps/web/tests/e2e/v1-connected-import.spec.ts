@@ -1,7 +1,7 @@
 // covers: V1-A06, V1-A07, V1-A10, V1-A11, V1-A23
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
-import { CONNECTED, NEEDS_BACKEND, REQUIRED, fixtureText, importNetwork, probe, seedSample, signIn, startImport, uniqueName, type TemplateFile } from "./connected";
+import { CONNECTED, NEEDS_BACKEND, REQUIRED, fixtureText, dbNow, importNetwork, probeExcept, seedSample, signIn, startImport, uniqueName, type TemplateFile } from "./connected";
 
 // W3-W01, connected only: these import fictional CSV sets (fixtures/v1-connected) through the real
 // proxy, API, PostgreSQL and import.v1/enrichment.v1 worker. They count as evidence only in the
@@ -80,8 +80,10 @@ test("@V1-A06 @V1-A23 good template set with inbound and donation_history import
 test("@V1-A07 bad file rejected: failure message and per-row fixes shown, and no network or dataset version created", async ({ page }) => {
   await signIn(page);
   const tables = ["networks", "dataset_versions", "net_locations", "net_products", "net_batches"];
-  const before = probe(tables);
   const name = uniqueName("Rejected Pantry");
+  // Another worker may import meanwhile: its networks are left out, never this one or a row with no network.
+  const since = dbNow();
+  const before = probeExcept(tables, since, name);
   await startImport(page, { name, mode: "Pantry", set: "bad", files: REQUIRED });
 
   const failure = page.getByRole("alert").filter({ hasText: /^Import failed/ });
@@ -102,7 +104,7 @@ test("@V1-A07 bad file rejected: failure message and per-row fixes shown, and no
   }
 
   // Nothing was saved: no network, dataset version or data row, and the switcher doesn't list it.
-  expect(probe(tables)).toEqual(before);
+  expect(probeExcept(tables, since, name)).toEqual(before);
   const listed = await page.request.get("/api/v1/networks");
   expect(listed.status()).toBe(200);
   expect(((await listed.json()) as { networks: { name: string }[] }).networks.map((n) => n.name)).not.toContain(name);

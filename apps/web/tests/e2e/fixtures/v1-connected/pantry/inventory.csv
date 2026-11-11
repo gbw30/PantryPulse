@@ -1,5 +1,5 @@
 location_id,product_id,batch_id,quantity,expiry_date,non_expiring,received_date
 H1,RICE,B1,120,2026-11-20,,2026-10-01
 H1,BEANS,B1,60,,true,
-P1,RICE,B1,4,2026-11-08,,
+P1,RICE,B1,1,2026-11-08,,
 P2,BEANS,B1,0,,true,

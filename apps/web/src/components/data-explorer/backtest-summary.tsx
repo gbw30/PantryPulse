@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { currentRunId, ForecastRunsNote, useForecastRun } from "@/components/forecast/forecast-run";
 import { InboundNote, SampleBadge, useNetwork } from "@/components/shell/network-switcher";
 import { networkApi, type Network } from "@/lib/network-api";
 import { ApiError, type Schema } from "@/lib/planning-api";
@@ -87,19 +88,35 @@ function BacktestSummary({ backtest, run, label }: { backtest: Backtest; run: Ru
 type Load = { status: "loading" } | { status: "error"; code: string } | { status: "other_network" } | { status: "ready"; run: Run; backtest: Backtest };
 type Names = { status: "loading" } | { status: "error"; code: string } | { status: "ready"; byId: Map<string, string> };
 
-/** The chosen v1 network's forecast trust for one forecast run (from the URL until runs can be listed, CR-w1-web-2). */
-export function ForecastTrustSection({ forecastRunId }: { forecastRunId?: string }) {
+/** The chosen v1 network's forecast trust, for the newest forecast run of its current data (W4-02). */
+export function ForecastTrustSection() {
   const { network } = useNetwork();
-  // A new run starts from "loading": the previous run's accuracy is never shown under it.
-  return network ? <Trust key={`${network.id}:${forecastRunId ?? ""}`} network={network} forecastRunId={forecastRunId} /> : null;
+  return network ? <TrustSection key={network.id} network={network} /> : null;
 }
 
-function Trust({ network, forecastRunId }: { network: Network; forecastRunId?: string }) {
+function TrustSection({ network }: { network: Network }) {
+  const { runs, reload } = useForecastRun(network);
+  const forecastRunId = currentRunId(runs);
+  return (
+    <section aria-labelledby="trust-heading" className="grid gap-3 rounded-xl border border-border bg-card p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 id="trust-heading" className="text-lg font-semibold">Forecast trust · {network.name}</h2>
+        {network.is_sample && <SampleBadge />}
+      </div>
+      <InboundNote provided={network.inbound_file_provided} />
+      <p className="text-xs text-muted-foreground">Forecasts are projections. Accuracy is measured over the last 4 weekly origins of your own history (needs 35+ days).</p>
+      <ForecastRunsNote runs={runs} onRetry={reload} />
+      {/* A new run starts from "loading": the previous run's accuracy is never shown under it. */}
+      {forecastRunId && <Trust key={forecastRunId} network={network} forecastRunId={forecastRunId} />}
+    </section>
+  );
+}
+
+function Trust({ network, forecastRunId }: { network: Network; forecastRunId: string }) {
   const [load, setLoad] = useState<Load>({ status: "loading" });
   const [names, setNames] = useState<Names>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
-    if (!forecastRunId) return;
     let active = true;
     // The run names its forecast job, whose backtest scores the same series.
     networkApi.forecastRun(network.id, forecastRunId).then(async (run) => {
@@ -113,42 +130,34 @@ function Trust({ network, forecastRunId }: { network: Network; forecastRunId?: s
     return () => { active = false; };
   }, [network.id, forecastRunId, attempt]);
   useEffect(() => {
-    if (!forecastRunId) return;
     let active = true;
     networkApi.locations(network.id).then(
       (list) => { if (active) setNames({ status: "ready", byId: new Map(list.locations.map((l) => [l.location_id, l.name])) }); },
       (error: unknown) => { if (active) setNames({ status: "error", code: error instanceof ApiError ? error.code : "REQUEST_FAILED" }); },
     );
     return () => { active = false; };
-  }, [network.id, forecastRunId]);
+  }, [network.id]);
   const label: Label = (id) => {
     const name = names.status === "ready" ? names.byId.get(id) : undefined;
     return name ? `${name} (${id})` : id;
   };
 
   return (
-    <section aria-labelledby="trust-heading" className="grid gap-3 rounded-xl border border-border bg-card p-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <h2 id="trust-heading" className="text-lg font-semibold">Forecast trust · {network.name}</h2>
-        {network.is_sample && <SampleBadge />}
-      </div>
-      <InboundNote provided={network.inbound_file_provided} />
-      <p className="text-xs text-muted-foreground">Forecasts are projections. Accuracy is measured over the last 4 weekly origins of your own history (needs 35+ days).</p>
-      {!forecastRunId && <p className="text-sm text-muted-foreground">Run a forecast for this network to see how far to trust it.</p>}
-      {forecastRunId && names.status === "error" && (
+    <>
+      {names.status === "error" && (
         <p className="text-xs text-muted-foreground">Location names unavailable ({words(names.code)}). Locations are shown by ID.</p>
       )}
-      {forecastRunId && load.status === "loading" && <p role="status" className="text-sm text-muted-foreground">Loading forecast accuracy…</p>}
-      {forecastRunId && load.status === "error" && (
+      {load.status === "loading" && <p role="status" className="text-sm text-muted-foreground">Loading forecast accuracy…</p>}
+      {load.status === "error" && (
         <div role="alert" className="flex flex-wrap items-center gap-3 text-sm">
           Forecast accuracy unavailable ({words(load.code)}).
           <Button variant="outline" size="sm" onClick={() => { setLoad({ status: "loading" }); setAttempt((n) => n + 1); }}>Retry</Button>
         </div>
       )}
-      {forecastRunId && load.status === "ready" && <BacktestSummary backtest={load.backtest} run={load.run} label={label} />}
-      {forecastRunId && load.status === "other_network" && (
+      {load.status === "ready" && <BacktestSummary backtest={load.backtest} run={load.run} label={label} />}
+      {load.status === "other_network" && (
         <p className="text-sm text-muted-foreground">This forecast belongs to another network. Choose that network in the sidebar.</p>
       )}
-    </section>
+    </>
   );
 }

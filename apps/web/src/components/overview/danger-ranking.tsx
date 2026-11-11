@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { currentRunId, ForecastRunsNote, RunForecast, useForecastRun } from "@/components/forecast/forecast-run";
 import { InboundNote, SampleBadge, useNetwork } from "@/components/shell/network-switcher";
 import { networkApi, type Network } from "@/lib/network-api";
 import { ApiError, type Schema } from "@/lib/planning-api";
@@ -112,23 +113,40 @@ const codeOf = (error: unknown) => (error instanceof ApiError ? error.code : "RE
 const words = (code: string) => code.replaceAll("_", " ").toLowerCase();
 
 /**
- * The chosen v1 network's danger ranking for one forecast run, its locations placed by coordinates, and the site
- * inspector. Kept apart from the demo atlas snapshot so fixture and v1 data never mix.
+ * The chosen v1 network's danger ranking for its current forecast run, its locations placed by coordinates, and
+ * the site inspector, with the presenter's "Run forecast" control (W4-02). Kept apart from the demo atlas snapshot
+ * so fixture and v1 data never mix.
  */
-export function DangerRankingSection({ forecastRunId }: { forecastRunId?: string }) {
+export function DangerRankingSection() {
   const { network } = useNetwork();
-  // A new network or forecast run starts from loading, with nothing selected.
-  return network ? <RankingSection key={`${network.id}:${forecastRunId ?? ""}`} network={network} forecastRunId={forecastRunId} /> : null;
+  return network ? <RankingSection key={network.id} network={network} /> : null;
 }
 
-function RankingSection({ network, forecastRunId }: { network: Network; forecastRunId?: string }) {
+function RankingSection({ network }: { network: Network }) {
+  const { runs, reload } = useForecastRun(network);
+  const forecastRunId = currentRunId(runs);
+  return (
+    <section aria-labelledby="danger-heading" className="grid gap-3 rounded-xl border border-border bg-card p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 id="danger-heading" className="text-lg font-semibold">Danger ranking · {network.name}</h2>
+        {network.is_sample && <SampleBadge />}
+      </div>
+      <InboundNote provided={network.inbound_file_provided} />
+      {runs.status === "ready" && <RunForecast network={network} latest={runs.latest} onDone={reload} />}
+      <ForecastRunsNote runs={runs} onRetry={reload} none="Run a forecast for this network to rank its locations by danger." />
+      {/* A new forecast run starts from loading, with nothing selected. */}
+      {forecastRunId && <RankingBody key={forecastRunId} network={network} forecastRunId={forecastRunId} />}
+    </section>
+  );
+}
+
+function RankingBody({ network, forecastRunId }: { network: Network; forecastRunId: string }) {
   const [load, setLoad] = useState<Load>({ status: "loading" });
   const [places, setPlaces] = useState<Places>({ status: "loading" });
   const [attempt, setAttempt] = useState({ ranking: 0, places: 0 });
   const [selected, setSelected] = useState<string | null>(null);
   const opener = useRef<HTMLElement | null>(null);
   useEffect(() => {
-    if (!forecastRunId) return;
     let active = true;
     networkApi.danger(network.id, forecastRunId).then(
       (ranking) => { if (active) setLoad({ status: "ready", ranking }); },
@@ -137,7 +155,6 @@ function RankingSection({ network, forecastRunId }: { network: Network; forecast
     return () => { active = false; };
   }, [network.id, forecastRunId, attempt.ranking]);
   useEffect(() => {
-    if (!forecastRunId) return;
     let active = true;
     networkApi.locations(network.id).then(
       (list) => { if (active) setPlaces({ status: "ready", list }); },
@@ -156,48 +173,38 @@ function RankingSection({ network, forecastRunId }: { network: Network; forecast
   const close = () => { setSelected(null); opener.current?.focus(); };
 
   return (
-    <section aria-labelledby="danger-heading" className="grid gap-3 rounded-xl border border-border bg-card p-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <h2 id="danger-heading" className="text-lg font-semibold">Danger ranking · {network.name}</h2>
-        {network.is_sample && <SampleBadge />}
-      </div>
-      <InboundNote provided={network.inbound_file_provided} />
-      {!forecastRunId && <p className="text-sm text-muted-foreground">Run a forecast for this network to rank its locations by danger.</p>}
-      {forecastRunId && (
-        <div className={cn("grid min-w-0 gap-4", location && "lg:grid-cols-[minmax(0,1fr)_24rem]")}>
-          <div className="grid min-w-0 content-start gap-3">
-            {places.status === "loading" && <p role="status" className="text-sm text-muted-foreground">Loading locations…</p>}
-            {places.status === "error" && (
-              <div role="alert" className="flex flex-wrap items-center gap-3 text-sm">
-                Location names and map unavailable ({words(places.code)}). The ranking below uses location IDs.
-                <Button variant="outline" size="sm" onClick={() => { setPlaces({ status: "loading" }); setAttempt((a) => ({ ...a, places: a.places + 1 })); }}>Retry</Button>
-              </div>
-            )}
-            {placed.length > 0 && <LocationMap name={network.name} placed={placed} label={label} bandOf={(id) => bands.get(id) ?? null} onSelect={select} />}
-            {unplaced.length > 0 && (
-              <div className="grid gap-1 text-xs">
-                <p id="unplaced-heading" className="font-medium">Not on the map (no coordinates)</p>
-                <ul aria-labelledby="unplaced-heading" className="flex flex-wrap gap-x-3 gap-y-1">{unplaced.map((l) => <li key={l.location_id}>{label(l.location_id)}</li>)}</ul>
-              </div>
-            )}
-            {load.status === "loading" && <p role="status" className="text-sm text-muted-foreground">Loading the danger ranking…</p>}
-            {load.status === "error" && (
-              <div role="alert" className="flex flex-wrap items-center gap-3 text-sm">
-                Danger ranking unavailable ({words(load.code)}).
-                <Button variant="outline" size="sm" onClick={() => { setLoad({ status: "loading" }); setAttempt((a) => ({ ...a, ranking: a.ranking + 1 })); }}>Retry</Button>
-              </div>
-            )}
-            {load.status === "ready" && (
-              load.ranking.rows.length === 0
-                ? <p className="text-sm">{load.ranking.mode === "RETAIL"
-                  ? "No location is projected to lose sales or to have stock expire unsold in this forecast."
-                  : "No location is projected to run short in this forecast."}</p>
-                : <DangerRanking ranking={load.ranking} label={label} onSelect={select} canSelect={(id) => byId.has(id)} />
-            )}
+    <div className={cn("grid min-w-0 gap-4", location && "lg:grid-cols-[minmax(0,1fr)_24rem]")}>
+      <div className="grid min-w-0 content-start gap-3">
+        {places.status === "loading" && <p role="status" className="text-sm text-muted-foreground">Loading locations…</p>}
+        {places.status === "error" && (
+          <div role="alert" className="flex flex-wrap items-center gap-3 text-sm">
+            Location names and map unavailable ({words(places.code)}). The ranking below uses location IDs.
+            <Button variant="outline" size="sm" onClick={() => { setPlaces({ status: "loading" }); setAttempt((a) => ({ ...a, places: a.places + 1 })); }}>Retry</Button>
           </div>
-          {location && forecastRunId && <LocationInspector key={location.location_id} network={network} forecastRunId={forecastRunId} location={location} onClose={close} />}
-        </div>
-      )}
-    </section>
+        )}
+        {placed.length > 0 && <LocationMap name={network.name} placed={placed} label={label} bandOf={(id) => bands.get(id) ?? null} onSelect={select} />}
+        {unplaced.length > 0 && (
+          <div className="grid gap-1 text-xs">
+            <p id="unplaced-heading" className="font-medium">Not on the map (no coordinates)</p>
+            <ul aria-labelledby="unplaced-heading" className="flex flex-wrap gap-x-3 gap-y-1">{unplaced.map((l) => <li key={l.location_id}>{label(l.location_id)}</li>)}</ul>
+          </div>
+        )}
+        {load.status === "loading" && <p role="status" className="text-sm text-muted-foreground">Loading the danger ranking…</p>}
+        {load.status === "error" && (
+          <div role="alert" className="flex flex-wrap items-center gap-3 text-sm">
+            Danger ranking unavailable ({words(load.code)}).
+            <Button variant="outline" size="sm" onClick={() => { setLoad({ status: "loading" }); setAttempt((a) => ({ ...a, ranking: a.ranking + 1 })); }}>Retry</Button>
+          </div>
+        )}
+        {load.status === "ready" && (
+          load.ranking.rows.length === 0
+            ? <p className="text-sm">{load.ranking.mode === "RETAIL"
+              ? "No location is projected to lose sales or to have stock expire unsold in this forecast."
+              : "No location is projected to run short in this forecast."}</p>
+            : <DangerRanking ranking={load.ranking} label={label} onSelect={select} canSelect={(id) => byId.has(id)} />
+        )}
+      </div>
+      {location && <LocationInspector key={location.location_id} network={network} forecastRunId={forecastRunId} location={location} onClose={close} />}
+    </div>
   );
 }
