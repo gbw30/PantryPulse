@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
@@ -29,10 +30,35 @@ test('anything else runs the full job', () => {
   for (const file of TEST_READ) assert.equal(isDocsOnly([file]), false, file);
 });
 
-test('the CLI reads one path per line on stdin and prints true or false', () => {
-  const run = (input) => spawnSync(process.execPath, [script], { input, encoding: 'utf8' });
-  assert.deepEqual([run('docs/a.md\nCLAUDE.md\n').stdout, run('docs/a.md\napps/api/app/main.py\n').stdout, run('').stdout],
-    ['true\n', 'false\n', 'false\n']);
+// The CLI diffs BASE..HEAD itself. A rename must count its old path: moving a file a test reads
+// (docs/plans/v1/README.md) to a new docs/ name is not docs-only.
+test('the CLI classifies BASE..HEAD from git, counting both sides of a rename', () => {
+  const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-only-'));
+  const git = (...args) => {
+    const r = spawnSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.invalid', ...args], { cwd: repo, encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    return r.stdout.trim();
+  };
+  const write = (rel, text) => {
+    fs.mkdirSync(path.dirname(path.join(repo, rel)), { recursive: true });
+    fs.writeFileSync(path.join(repo, rel), text);
+  };
+  const run = (...args) => spawnSync(process.execPath, [script, ...args], { cwd: repo, encoding: 'utf8' });
+  git('init', '-q');
+  write('docs/plans/v1/README.md', 'Wave plan\n'.repeat(20));
+  write('docs/notes.md', 'notes\n');
+  git('add', '.');
+  git('commit', '-qm', 'base');
+  const base = git('rev-parse', 'HEAD');
+  write('docs/notes.md', 'more notes\n');
+  git('commit', '-qam', 'docs edit');
+  assert.equal(run(base, 'HEAD').stdout, 'true\n');
+  git('mv', 'docs/plans/v1/README.md', 'docs/plans/v1/OVERVIEW.md');
+  git('commit', '-qm', 'rename a file a test reads');
+  assert.equal(run('HEAD^1', 'HEAD').stdout, 'false\n');
+  // Missing arguments or a bad revision fail, so the workflow step fails and `full` runs.
+  assert.notEqual(run().status, 0);
+  assert.notEqual(run(base, 'no-such-rev').status, 0);
 });
 
 // A test or script that starts reading a docs/ Markdown file must list it in TEST_READ, or a PR
@@ -53,6 +79,7 @@ test('every docs/ Markdown path quoted in code is in TEST_READ', () => {
     }
   };
   for (const dir of dirs) if (fs.existsSync(path.join(ROOT, dir))) walk(path.join(ROOT, dir));
-  assert.ok(found.size > 0, 'the scan found no docs/ reads at all, so it is not scanning');
+  // A known reader (apps/api/tests/test_v1_contract.py) proves the scan reaches the test trees.
+  assert.ok(found.has('docs/plans/v1/README.md'), 'the scan missed a known reader, so it is not scanning');
   assert.deepEqual([...found].filter((file) => !TEST_READ.includes(file)), []);
 });

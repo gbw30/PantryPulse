@@ -44,8 +44,9 @@ jobs:
       - id: classify
         run: |
           docs_only=false
-          if [ "$GITHUB_EVENT_NAME" = pull_request ] && files=$(git diff --name-only HEAD^1 HEAD); then
-            docs_only=$(printf '%s\n' "$files" | node scripts/quality/docs-only.cjs)
+          # If the script fails, this step fails, and `full` runs (see its `if`).
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            docs_only=$(node scripts/quality/docs-only.cjs HEAD^1 HEAD)
           fi
           echo "Docs-only: $docs_only"
           echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
