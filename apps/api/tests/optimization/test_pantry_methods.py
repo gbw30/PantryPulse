@@ -332,9 +332,13 @@ def test_bd51_relaxed_retail_only():
 
 
 def with_spare_pantry(s, mode):
-    """P4 holds 5 spare cases and has no demand; only HUB_AND_PANTRY may ship from it."""
+    """P4 holds 5 spare cases and a known all-zero forecast; only HUB_AND_PANTRY may ship from
+    it. (Without a demand row its demand would be unknown, and it would never send: W4-03.)"""
     p4 = s.locations[1].model_copy(update={"id": "P4", "name": "Pantry 4"})
     batch = s.batches[0].model_copy(update={"id": "p4b", "location_id": "P4", "quantity": 5})
+    zero = s.demand[0].model_copy(
+        update={"location_id": "P4", "central_literals": ("0",) * 7, "targets": (0,) * 7}
+    )
     routes = tuple(
         s.routes[0].model_copy(update={"from_location_id": "P4", "to_location_id": p})
         for p in ("P1", "P2", "P3")
@@ -344,6 +348,7 @@ def with_spare_pantry(s, mode):
             "transfer_mode": mode,
             "locations": (*s.locations, p4),
             "batches": (*s.batches, batch),
+            "demand": (*s.demand, zero),
             "routes": (*s.routes, *routes),
         }
     )

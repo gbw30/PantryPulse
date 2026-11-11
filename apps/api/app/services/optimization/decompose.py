@@ -17,7 +17,7 @@ from fractions import Fraction
 from math import lcm
 
 from app.services.optimization.product_model import _unit_cost, one_unit_protected
-from app.services.optimization.v3 import Candidate, Shares, dates, window_days
+from app.services.optimization.v3 import HUB_ROLES, Candidate, Shares, dates, window_days
 
 
 def floor_shares(cap: int, weights) -> dict:
@@ -78,13 +78,21 @@ def at_risk(s, baseline) -> set[str]:
 
 
 def protected_senders(s, baseline, product_id) -> set[str]:
-    """Locations that serve their whole seven-day forecast and keep their reserve with no plan."""
+    """Locations that serve their whole seven-day forecast and keep their reserve with no plan.
+
+    A pantry or store with no demand row has unknown demand (no available forecast; never zero),
+    so it has no provable surplus and never sends (W4-03). Hubs/DCs have no demand of their own.
+    """
     floors = {r.location_id: r.floor for r in s.reserves if r.product_id == product_id}
+    roles = {loc.id: loc.role for loc in s.locations}
+    known = {d.location_id for d in s.demand if d.product_id == product_id}
     ok = defaultdict(lambda: True)
     for d in baseline:
         if d.product_id == product_id:
             ok[d.location_id] &= not d.unmet and d.on_hand >= floors.get(d.location_id, 0)
-    return {loc for loc, good in ok.items() if good}
+    return {
+        loc for loc, good in ok.items() if good and (loc in known or roles[loc] in HUB_ROLES)
+    }
 
 
 @dataclass(frozen=True)
