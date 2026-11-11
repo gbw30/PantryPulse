@@ -83,7 +83,7 @@ function ScrollCue({ className }: { className?: string }) {
   );
 }
 
-type AtlasProps = { statePreview?: string; forecastRunId?: string };
+type AtlasProps = { statePreview?: string };
 
 /**
  * A chosen v1 network gets its own header and danger ranking; the legacy demo atlas (its fixture or live
@@ -97,13 +97,13 @@ function AtlasForNetwork(props: AtlasProps) {
   const { state, network } = useNetwork();
   // Every state renders through LegacyAtlas's one shell: swapping shells when the network list settles
   // would remount the navigation and close a drawer or sign-in dialog opened meanwhile.
-  const body = network ? <NetworkOverview network={network} forecastRunId={props.forecastRunId} />
+  const body = network ? <NetworkOverview network={network} />
     : state.status === "loading" ? <p role="status" className="px-4 py-5 text-sm text-muted-foreground md:px-6">Loading networks…</p>
     : undefined;
   return <LegacyAtlas {...props} body={body} />;
 }
 
-function NetworkOverview({ network, forecastRunId }: { network: Network; forecastRunId?: string }) {
+function NetworkOverview({ network }: { network: Network }) {
   return (
     <div className="flex flex-1 flex-col gap-3 px-4 pt-3 pb-4 md:gap-4 md:px-6 md:py-5 lg:gap-6">
       <header data-atlas-header className="min-w-0">
@@ -114,7 +114,7 @@ function NetworkOverview({ network, forecastRunId }: { network: Network; forecas
         </div>
         <p className="text-sm text-muted-foreground">Which locations in {network.name} are projected to run short, ranked by danger.</p>
       </header>
-      <DangerRankingSection forecastRunId={forecastRunId} />
+      <DangerRankingSection />
     </div>
   );
 }

@@ -7,8 +7,9 @@ import { example } from "./contract-examples";
 
 // CR-w1-web-4, mocked from the contract examples until the forecast routes ship (W4): the section reads the
 // run (NetworkForecastRun), its backtest (BacktestResult, by the run's job) and the network's location names.
-const network = example("NetworkList").networks[0];
-const run = { ...example("NetworkForecastRun"), network_id: network.id };
+const run = example("NetworkForecastRun");
+let network = { ...example("NetworkList").networks[0], id: run.network_id };
+const published = (forecastRunId: string) => ({ ...example("ForecastRunList").runs[1], forecast_run_id: forecastRunId, dataset_version_id: network.dataset_version_id! });
 const backtest = { ...example("BacktestResult"), network_id: network.id };
 vi.mock("motion/react", async (load) => ({ ...(await load<typeof import("motion/react")>()), useReducedMotion: () => true }));
 vi.mock("@/components/shell/network-switcher", async (load) => ({
@@ -18,13 +19,15 @@ vi.mock("@/components/shell/network-switcher", async (load) => ({
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  network = { ...example("NetworkList").networks[0], id: run.network_id };
+  vi.spyOn(networkApi, "forecastRuns").mockImplementation(async (id) => ({ network_id: id, runs: [published(run.forecast_run_id)] }));
   vi.spyOn(networkApi, "locations").mockResolvedValue({ ...example("LocationList"), network_id: network.id });
   vi.spyOn(networkApi, "forecastRun").mockImplementation((_, id) => (id === run.forecast_run_id ? Promise.resolve(run) : new Promise(() => {})));
   vi.spyOn(networkApi, "backtest").mockImplementation((job) => (job === run.job_id ? Promise.resolve(backtest) : new Promise(() => {})));
 });
 
 it("each series shows its run's method, missing days, band and donation forecast, under the location's name", async () => {
-  render(<ForecastTrustSection forecastRunId={run.forecast_run_id} />);
+  render(<ForecastTrustSection />);
   const panel = await screen.findByRole("region", { name: "Forecast trust: Archer Road Pantry (P-12) · WATER-24" });
   expect(panel).toHaveTextContent("Method: Seasonal-naive baseline · no fallback");
   expect(panel).toHaveTextContent("4 missing days in the history, kept as missing (never zero)");
@@ -36,7 +39,7 @@ it("each series shows its run's method, missing days, band and donation forecast
 });
 
 it("accuracy by location: one row per location and unit, never pooled across units", async () => {
-  render(<ForecastTrustSection forecastRunId={run.forecast_run_id} />);
+  render(<ForecastTrustSection />);
   const table = await screen.findByRole("table", { name: "Accuracy by location and unit" });
   const rows = within(table).getAllByRole("row").slice(1);
   expect(rows).toHaveLength(backtest.locations.length);
@@ -46,19 +49,30 @@ it("accuracy by location: one row per location and unit, never pooled across uni
   expect(p07).toHaveTextContent("accuracy not evaluated: needs 35+ days");
 });
 
-it("a different forecast run never shows the previous run's accuracy while it loads", async () => {
-  const { rerender } = render(<ForecastTrustSection forecastRunId={run.forecast_run_id} />);
+it("a newer forecast of re-imported data never shows the previous run's accuracy while it loads", async () => {
+  const { rerender } = render(<ForecastTrustSection />);
   const label = "Forecast trust: Archer Road Pantry (P-12) · WATER-24";
   expect(await screen.findByRole("region", { name: label })).toBeVisible();
 
-  rerender(<ForecastTrustSection forecastRunId="another-run" />);
-  expect(screen.getByText("Loading forecast accuracy…")).toBeVisible();
+  network = { ...network, dataset_version_id: "00000000-0000-4000-8000-0000000000bb" };
+  vi.mocked(networkApi.forecastRuns).mockResolvedValue({ network_id: network.id, runs: [published("another-run")] });
+  rerender(<ForecastTrustSection />);
   expect(screen.queryByRole("region", { name: label })).not.toBeInTheDocument();
+  expect(await screen.findByText("Loading forecast accuracy…")).toBeVisible();
+  expect(networkApi.forecastRun).toHaveBeenLastCalledWith(network.id, "another-run");
+});
+
+it("with no forecast for the network's data, it says so and links to the Overview to run one", async () => {
+  vi.mocked(networkApi.forecastRuns).mockResolvedValue({ network_id: network.id, runs: [] });
+  render(<ForecastTrustSection />);
+  expect(await screen.findByText(/No forecast for this network yet/)).toBeVisible();
+  expect(screen.getByRole("link", { name: "Run one on the Overview" })).toHaveAttribute("href", "/overview");
+  expect(networkApi.forecastRun).not.toHaveBeenCalled();
 });
 
 it("a run of another network says so and shows no accuracy", async () => {
   vi.spyOn(networkApi, "forecastRun").mockResolvedValue({ ...run, network_id: "someone-else" });
-  render(<ForecastTrustSection forecastRunId={run.forecast_run_id} />);
+  render(<ForecastTrustSection />);
   expect(await screen.findByText("This forecast belongs to another network. Choose that network in the sidebar.")).toBeVisible();
   expect(networkApi.backtest).not.toHaveBeenCalled();
 });

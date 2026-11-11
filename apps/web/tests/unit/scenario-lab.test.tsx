@@ -11,7 +11,7 @@ import { example } from "./contract-examples";
 vi.mock("@/components/shell/app-shell", () => ({ AppShell: ({ children }: { children: ReactNode }) => <main>{children}</main>,
   ShellProviders: ({ children }: { children: ReactNode }) => children }));
 vi.mock("@/components/scenario-lab/v1-comparison", () => ({
-  MethodComparisonSection: ({ forecastRunId }: { forecastRunId?: string }) => <p>v1 comparison {forecastRunId}</p> }));
+  MethodComparisonSection: () => <p>v1 comparison</p> }));
 vi.mock("@/components/shell/presenter-session", async (load) => ({ ...(await load<typeof import("@/components/shell/presenter-session")>()),
   usePresenter: () => ({ state: "visitor", signIn: vi.fn(), signOut: vi.fn(), expired: vi.fn() }) }));
 type NetworkValue = Pick<ReturnType<typeof import("@/components/shell/network-switcher").useNetwork>, "state" | "network">;
@@ -30,9 +30,9 @@ afterEach(() => {
 it("a chosen v1 network shows only its method comparison: no legacy builder and no legacy load", async () => {
   const network = example("NetworkList").networks[0];
   networks = { state: { status: "ready", networks: [network] }, network };
-  render(<ScenarioLab forecastRunId="run-1" />);
+  render(<ScenarioLab />);
   expect(screen.getByRole("heading", { level: 1, name: "Scenario Lab" })).toBeVisible();
-  expect(screen.getByText("v1 comparison run-1")).toBeVisible();
+  expect(screen.getByText("v1 comparison")).toBeVisible();
   expect(screen.queryByRole("form", { name: "Scenario builder" })).not.toBeInTheDocument();
   expect(screen.queryByText("Saved comparison")).not.toBeInTheDocument();
   expect(planningApi.planningCatalog).not.toHaveBeenCalled();

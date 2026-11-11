@@ -38,6 +38,9 @@ export const networkApi = {
   danger: (networkId: string, forecastRunId: string) =>
     api<Schema["DangerRanking"]>(`networks/${seg(networkId)}/danger?forecast_run_id=${encodeURIComponent(forecastRunId)}`),
   backtest: (forecastJobId: string) => api<Schema["BacktestResult"]>(`forecasts/${encodeURIComponent(forecastJobId)}/backtest`),
+  /** The network's forecast runs, newest first; `forecast_run_id` stays null until the job publishes (W0-08 §6). */
+  forecastRuns: (networkId: string) => api<Schema["ForecastRunList"]>(`networks/${seg(networkId)}/forecasts`),
+  submitForecast: (networkId: string, body: Schema["NetworkForecastRequest"]) => api<Schema["ForecastAccepted"]>(`networks/${seg(networkId)}/forecasts`, body),
   /** A published run's series (CR-w1-web-4): method, fallback, missing days, points; demand and donation. */
   forecastRun: (networkId: string, forecastRunId: string) =>
     api<Schema["NetworkForecastRun"]>(`networks/${seg(networkId)}/forecasts/${encodeURIComponent(forecastRunId)}`),

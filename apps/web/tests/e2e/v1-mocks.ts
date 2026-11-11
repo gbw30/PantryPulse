@@ -22,7 +22,7 @@ export const envelope = (code: string, message = code.toLowerCase().replaceAll("
 
 export type Reply = { status?: number; body?: unknown; contentType?: string; headers?: Record<string, string> };
 export type Call = { method: string; path: string; query: URLSearchParams; body: string | null };
-type Routes = Record<string, Reply | ((call: Call) => Reply)>;
+export type Routes = Record<string, Reply | ((call: Call) => Reply)>;
 
 /**
  * Answers every `/api/v1/**` request from `routes`, keyed `"<METHOD> <path>"` (path without the
@@ -48,6 +48,13 @@ export async function mockV1(page: Page, routes: Routes, { presenter = true } = 
   });
   return calls;
 }
+
+/** GET networks/{id}/forecasts with one published run of the network's current data: the run every v1 view uses (W4-02). */
+export const publishedRun = (network: Schemas["Network"], forecastRunId: string): Routes => ({
+  [`GET networks/${network.id}/forecasts`]: { body: { network_id: network.id, runs: [
+    { ...example("ForecastRunList").runs[1], forecast_run_id: forecastRunId, dataset_version_id: network.dataset_version_id! },
+  ] } },
+});
 
 /**
  * For the legacy connected specs: the browser sees no v1 network, so /scenarios keeps the legacy builder

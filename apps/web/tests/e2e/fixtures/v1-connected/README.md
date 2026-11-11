@@ -17,7 +17,18 @@ city-level points in Florida. `pantry` follows the backend `mini-network` fixtur
   every product priced), so a Retail comparison runs in units and in USD (V1-A15).
 - `retail-noprice`: `retail` with `unit_value_usd` blank for every product, so USD is unavailable
   with its reason.
-- `forecast.json` (in `pantry`, `retail`, `retail-noprice`): a FIXTURE forecast run keyed by external
-  IDs, copied from the backend fixtures. `connected/seed_forecast.py` inserts it for an imported
-  network because the v1 forecast routes are 501 until W4 (Escalation E-1). It is never forecast
-  evidence; import, scenario, comparison, decisions and export stay real.
+- History (W4-02): `pantry`, `retail` and `retail-noprice` hold 42 days of demand (2026-09-23 to
+  2026-11-03) in a weekly pattern, and `pantry` 42 days of P1 donations, so the journeys run a real
+  forecast.v1 from the app with a backtest (35+ days). Every series keeps its own basis, and the earlier
+  blank (missing) days stay blank. P3 BEANS has only a blank day, so it is never forecast. The last date
+  is still 2026-11-03, so the default `as_of_date` stays 2026-11-04.
+- P1 holds 1 case of Rice (W4-02, lead ruling): a plan acts only on need inside its planning window
+  (`candidates.py` caps each lane at the destination's in-window unmet need), so P1 must be short by
+  2026-11-06, the first day a hub transfer (shipped 11-05, 1 day) can arrive. P1's weekly Rice pattern
+  has no zero day; nothing is forecast or planned for the as-of date itself (both start on 11-05). Its
+  seasonal-naive forecast is 2 cases on 11-05 and 3 on 11-06, so the 1 case on hand leaves P1 short by 1
+  on 11-05 and by 3 on 11-06, and the methods can suggest a transfer to P1.
+
+Known limits:
+- With `--workers=2`, two specs can both seed the samples at once and race; the race fails loudly
+  (it never passes wrongly). CI runs `--workers=1`.
