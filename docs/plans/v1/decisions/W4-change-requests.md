@@ -125,7 +125,7 @@ The web lane builds W4-02: the new `apps/web/tests/e2e/v1-full-journey.spec.ts`,
 
 **Evidence:** the lead captured the connected app on v1-local `60ccf17` (real API and database, both samples) at 1440×900, 1280×720 and 390×844: import, the Overview atlas and ranking, the live site inspector, forecast trust, a Scenario Lab comparison, Decisions, a reduced-motion card, and a keyboard walkthrough with its Tab order. The critic reviewed the screenshots and the code; it ran nothing.
 
-**Findings, ranked** (each is a W5 polish task, W5-UI02.1–.5):
+**Findings, ranked** (each is a W5 task, W5-UI02.1–.5; Gabriel split the web work the same day, so findings 1–3 go to the new lane `w5-screens` and 4–5 stay with `w5-polish`):
 1. **High — Data Explorer mixes networks.** With a v1 network selected, `/data` shows the legacy summary block (other sites, other units, another run) above that network's Forecast trust. A reader takes its fill rate and unmet totals as their own. The lead confirmed it in code: `data-explorer.tsx:201` renders the legacy `Screen` above `ForecastTrustSection`.
 2. **High — Scenario Lab comparison is clipped.** Two method cards per row clip the quantity columns at 1440 and 1280, every card lists all its rows (even "No transfers"), and "Open suggested actions" sits below them.
 3. **High — Decisions effects don't name their period.** The Overview shows 7-day unmet need; a 2-day plan says "Receiver unmet need: 7 cases lower" with no dates, so a reader can think the plan clears the week.
@@ -139,7 +139,7 @@ The web lane builds W4-02: the new `apps/web/tests/e2e/v1-full-journey.spec.ts`,
 - "Already up to date": clear as written; no change.
 - A card stays open when focus moves to another marker (#143): correct; Escape is covered by finding 5.
 
-**Notes** (W5-UI05):
+**Notes** (W5-UI05 and W5-SC01):
 - The sidebar network selector is wider than the sidebar and covers page titles at 1440 and 1280.
 - Import step 1 opens all seven column guides, so the page runs about 5,800 px; collapse them by default. The routes and inbound hints read "Optional. Optional.".
 - The unit plural writes "boxs".
