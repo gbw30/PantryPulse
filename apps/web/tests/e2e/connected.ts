@@ -147,7 +147,8 @@ export async function runForecast(page: Page, name: string) {
   await expect(button).toBeVisible();
   await expect(button).not.toHaveAttribute("aria-disabled", "true");
   await button.click();
-  const finished = section.getByText("Forecast finished. The views below use the new run.");
+  // A new run, or the API replayed the finished run of the same input (a database where this forecast already ran).
+  const finished = section.getByText(/^(Forecast finished\. The views below use the new run\.|The forecast is already up to date with the current data\.)$/);
   const full = section.getByRole("alert").filter({ hasText: "Forecast not started: compute queue full (COMPUTE_QUEUE_FULL)." });
   await untilQueued(page, finished, full, () => button.click(), FORECAST_TIMEOUT);
   const networks = (await (await page.request.get("/api/v1/networks")).json()) as { networks: { id: string; name: string; dataset_version_id: string | null }[] };
