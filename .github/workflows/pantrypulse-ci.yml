@@ -29,9 +29,35 @@ jobs:
       - run: uvx ruff@0.17.2 check .
         working-directory: apps/api
 
-  # Full gates (backend, PostgreSQL, build, browser journey). Runs on every PR and main push in
-  # parallel with verify, but no longer gates merges (user decision 2026-10-25: verify capped at 2 min).
+  # Docs-only PRs skip `full` (user decision 2026-11-11): every changed file is Markdown under docs/ or
+  # at the root that no test reads (scripts/quality/docs-only.cjs). Main pushes always run `full`.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      docs_only: ${{ steps.classify.outputs.docs_only }}
+    steps:
+      # The PR merge commit's first parent is the base branch, so HEAD^1..HEAD is what the PR changes.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - id: classify
+        run: |
+          docs_only=false
+          # If the script fails, this step fails, and `full` runs (see its `if`).
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            docs_only=$(node scripts/quality/docs-only.cjs HEAD^1 HEAD)
+          fi
+          echo "Docs-only: $docs_only"
+          echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
+
+  # Full gates (backend, PostgreSQL, build, browser journey). Runs on every PR except docs-only ones and
+  # on every main push, in parallel with verify, but no longer gates merges (user decision 2026-10-25:
+  # verify capped at 2 min).
   full:
+    needs: changes
+    # !cancelled(): if the classifier itself fails, `full` still runs rather than being skipped.
+    if: ${{ !cancelled() && needs.changes.outputs.docs_only != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     services:
