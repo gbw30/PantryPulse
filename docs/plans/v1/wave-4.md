@@ -4,7 +4,7 @@
 
 ### W4-01: Review and merge the three lane PRs · S each · depends on: each lane's PR · V1-A22
 
-- [ ] **Step 1:** for each PR in order:
+- [x] **Step 1:** for each PR in order (done in W3: each lane PR was verified independently and merged after green CI with 0 skipped, and the full gate passed 8/8 on `caa5010`; [decisions/W4-change-requests.md](decisions/W4-change-requests.md)):
   1. The verifier gets requirements + diff + tests first, and uses the `verify-forecast` skill for `w3-forecast`.
   2. Run `/code-review`.
   3. CI is green with 0 skipped.
@@ -16,7 +16,7 @@
 
 **Files:** create `apps/web/tests/e2e/v1-full-journey.spec.ts`. In W4 the orchestrator owns it; `w5-polish` owns it in W5.
 
-- [ ] **Step 1:** write the failing connected tests:
+- [x] **Step 1:** write the failing connected tests:
   - `@V1-A05 both samples present and labeled after first start`.
   - `@V1-A06 example downloads equal data/templates/examples`.
   - `@V1-A12 forecast with backtest or "accuracy not evaluated"`.
@@ -24,8 +24,8 @@
   - `@V1-A14 @V1-A15 @V1-A16 compare → decisions → export on both samples`.
   - `@V1-A23 donation forecast shown "not confirmed", danger unchanged with and without it`.
   - W3 carry-in (E-1, 2026-11-09): the web lane's connected Pantry and Retail journeys use a fixture forecast run through `?forecast_run_id=`. Switch them to a real `forecast.v1` run from W3-F03 and remove the stopgap ([decisions/W3-change-requests.md](decisions/W3-change-requests.md) §4).
-- [ ] **Step 2:** run with `PP_RUN_CONNECTED=1 PP_E2E_PRODUCTION=1 node scripts/quality/run.cjs e2e`. Send each failure to an `integration-fixer` packet.
-- [ ] **Step 3:** PASS, 0 skipped. Commit on `w4/integration`, open the PR, and merge with Gabriel's OK.
+- [x] **Step 2:** run with `PP_RUN_CONNECTED=1 PP_E2E_PRODUCTION=1 node scripts/quality/run.cjs e2e`. Send each failure to an `integration-fixer` packet.
+- [x] **Step 3:** PASS, 0 skipped. Commit on `w4/integration`, open the PR, and merge with Gabriel's OK. Done as #140 (`8cad9ee`, branch `w4/full-journey`, built by the web lane; decisions §5, §8).
 
 ### W2-06 deferrals (schedule at W4-02/W4-03)
 
@@ -39,18 +39,18 @@ Hardening items decided at W2-06 ([decisions/W2-06-change-requests.md](decisions
 
 ### W4-03: Review gates · M · depends on: W4-02 · V1-A20, V1-A13
 
-- [ ] **Step 1:** `adversarial-reviewer` on the `v1-local` head. Seed cases:
+- [x] **Step 1:** `adversarial-reviewer` on the `v1-local` head (outcome: decisions §10; fix #144). Seed cases:
   - a series with only blank days;
   - inbound on the last horizon day;
   - a sample re-seed on day 8;
   - a backtest with a zero denominator;
   - a danger tie;
   - a Retail store with all stock expiring tomorrow.
-- [ ] **Step 2:** `ux-critic`. Give it screenshots at 1440×900, 1280×720 and 390×844 of the import, atlas ranking, forecast trust, comparison and decisions screens, plus a keyboard walkthrough and a reduced-motion capture, all taken by the orchestrator. Its findings (at most five) become W5 polish tasks.
-- [ ] **Step 3:** run `research-claims-check` on all new UI copy and docs that mention the research, fairness, forecasts or impact. Fix through small PRs.
+- [x] **Step 2:** `ux-critic`. Give it screenshots at 1440×900, 1280×720 and 390×844 of the import, atlas ranking, forecast trust, comparison and decisions screens, plus a keyboard walkthrough and a reduced-motion capture, all taken by the orchestrator. Its findings (at most five) become W5 polish tasks. Done: decisions §11; W5-UI02.1–.5.
+- [x] **Step 3:** run `research-claims-check` on all new UI copy and docs that mention the research, fairness, forecasts or impact. Fix through small PRs. Done: #145, #146 (decisions §10).
 
 ### W4-04: Re-plan and launch W5 · S · depends on: W4-03
 
-- [ ] **Step 1:** decide the open CRs with Gabriel. Add the ux-critic findings to `wave-5.md` as W5-UI02 items, then update `prompts/w5-*.md`.
-- [ ] **Step 2:** confirm that `/jmo-workflow:better-ui` and `/jmo-workflow:animate` load in a new session; `stack-web@devkit` was installed 2026-11-04. If they don't, tell Gabriel before W5 starts.
+- [x] **Step 1:** decide the open CRs with Gabriel. Add the ux-critic findings to `wave-5.md` as W5-UI02 items, then update `prompts/w5-*.md`.
+- [x] **Step 2:** confirm that `/jmo-workflow:better-ui` and `/jmo-workflow:animate` load in a new session; `stack-web@devkit` was installed 2026-11-04. If they don't, tell Gabriel before W5 starts. Confirmed 2026-11-11: both are listed in the orchestrator session's available skills.
 - [ ] **Step 3:** wave-end report, consolidate the lanes' "Gotchas", W5 worktrees, then the wave-start report. **Gabriel approves the wave 5 start.**

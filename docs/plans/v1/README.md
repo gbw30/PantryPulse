@@ -68,7 +68,7 @@ These are the inputs V1-SPEC implies but doesn't name, most likely to bite a rea
 | [wave-2.md](wave-2.md) | Integration of wave 1 (orchestrator) |
 | [wave-3.md](wave-3.md) | Lanes `w3-forecast`, `w3-samples`, `w3-web` |
 | [wave-4.md](wave-4.md) | Integration of wave 3 (orchestrator) |
-| [wave-5.md](wave-5.md) | Lanes `w5-polish`, `w5-packaging` |
+| [wave-5.md](wave-5.md) | Lead contract CR W5-L01, then lanes `w5-polish`, `w5-screens`, `w5-packaging`, `w5-data` |
 | [wave-6.md](wave-6.md) | Release and acceptance (orchestrator + Gabriel) |
 | [prompts/](prompts/) | Ready-to-paste orchestrator prompt and one prompt per lane per wave |
 | [status/](status/) | One status file per lane, written only on that lane's branch ([template](status/TEMPLATE.md)) |
@@ -94,9 +94,11 @@ flowchart LR
     WB3[w3-web<br/>real API]
   end
   W4["W4 Integrate W3<br/>forecast → samples → web"]
-  subgraph W5["W5 — 2 lanes (multi-session)"]
+  subgraph W5["W5 — 4 lanes (multi-session)"]
     PO[w5-polish]
+    SC[w5-screens]
     PK[w5-packaging]
+    DA[w5-data]
   end
   W6["W6 Release & acceptance<br/>orchestrator + Gabriel"]
   W0 --> G0 --> W1 --> W2 --> W3 --> W4 --> W5 --> W6
@@ -135,10 +137,16 @@ flowchart TD
   P01 --> W4
   WB31 --> W4
 
-  W4 --> PO1[W5-UI01..UI03 polish]
-  W4 --> PK1[W5-PK01..PK05 packaging]
+  W4 --> L01[W5-L01 contract]
+  L01 --> PO1[W5-UI01..UI05 polish]
+  L01 --> SC1[W5-UI02.1..3, SC01..02 screens]
+  L01 --> PK1[W5-PK01..PK05 packaging]
+  L01 --> DA1[W5-D01..D04 data]
+  DA1 --> PO1
+  SC1 --> PO1
   PO1 --> W6[W6-01..W6-06 release]
   PK1 --> W6
+  DA1 --> W6
 ```
 
 Cross-lane needs inside a wave are met only through the frozen contract, never through another lane's unmerged code:
@@ -165,8 +173,10 @@ Paths are relative to the repo root. `api/` = `apps/api/`, `web/` = `apps/web/`.
 | W3 | `w3-samples` | `api/app/services/samples/**`, `api/app/services/imports/templates.py` (the `example` branch only), `data/samples/**`, `data/templates/examples/**`, `api/tests/samples/**`, `api/scripts/generate_samples.py`, `docs/plans/v1/status/w3-samples.md` |
 | W3 | `w3-web` | same paths as `w1-web`, plus `docs/plans/v1/status/w3-web.md` |
 | W4 | orchestrator | merges; `api/tests/integration/test_v1_*.py`; `web/tests/e2e/v1-full-journey.spec.ts` (moves to `w5-polish` in W5); fixes via `integration-fixer` |
-| W5 | `w5-polish` | `web/src/**` **including** `web/src/app/globals.css` (tokens), `web/tests/e2e/**`, `docs/pantrypulse/visual-evidence/**`, `docs/plans/v1/status/w5-polish.md` |
+| W5 | `w5-polish` | `web/src/**` **including** `web/src/app/globals.css` (tokens), except the `w5-screens` paths; `web/tests/e2e/**` except the `w5-screens` specs, `web/playwright.config.ts`, `docs/pantrypulse/visual-evidence/**`, `docs/plans/v1/status/w5-polish.md` |
+| W5 | `w5-screens` | `web/src/components/data-explorer/**`, `web/src/components/scenario-lab/**`, `web/src/components/decisions/**`, `web/src/app/data/page.tsx`, `web/src/app/scenarios/**`, `web/src/app/decisions/**`, `web/tests/unit/decisions-view.test.tsx`, `web/tests/unit/scenario-lab.test.tsx`, `web/tests/e2e/{data-explorer,scenario-lab,decisions,v1-comparison}.spec.ts`, new `web/tests/e2e/v1-screens-*.spec.ts`, `docs/pantrypulse/visual-evidence/w5-screens/**`, `docs/plans/v1/status/w5-screens.md` (split from `w5-polish` 2026-11-11) |
 | W5 | `w5-packaging` | `README.md`, `INSTALLATION.md`, `docs/testing/**`, `scripts/testing/**`, `scripts/bench/**`, `compose.test.yaml`, `docs/pantrypulse/HARDWARE.md`, `docs/plans/v1/status/w5-packaging.md` |
+| W5 | `w5-data` | `api/app/services/networks/**`, `api/app/services/optimization/**`, `api/app/services/danger/**`, `api/app/services/forecasting/backtest.py`, `api/app/services/imports/**`, `api/tests/**`, regenerated golden fixtures, `docs/plans/v1/status/w5-data.md` (added 2026-11-11; the lead lands contract CR W5-L01 first) |
 | W6 | orchestrator | everything, with Gabriel's approval for release actions |
 
 Ownership moves between waves, never within one. For example, `scripts/testing/story-coverage.cjs` is created by the orchestrator in W0-09 and owned by `w5-packaging` in W5.
@@ -186,6 +196,8 @@ All lanes share the existing CI-style PostgreSQL container `pp-ci-postgres` (`12
 | `w3-web` | `~/code/PantryPulse-web` (recreated at the W3 base) | `lane/w3-web` | 8003 | 3003 | 3103 | `pantrypulse_web_test` | `pp-web` |
 | `w5-polish` | `~/code/PantryPulse-polish` | `lane/w5-polish` | 8001 | 3001 | 3101 | `pantrypulse_polish_test` | `pp-polish` |
 | `w5-packaging` | `~/code/PantryPulse-packaging` | `lane/w5-packaging` | 8002 | 3002 | 3102 | `pantrypulse_packaging_test` | `pp-packaging` |
+| `w5-data` | `~/code/PantryPulse-data` | `lane/w5-data` | 8003 | 3003 | 3103 | `pantrypulse_data_test` | `pp-data` |
+| `w5-screens` | `~/code/PantryPulse-screens` | `lane/w5-screens` | 8005 | 3005 | 3105 | `pantrypulse_screens_test` | `pp-screens` |
 
 **Untracked files copied into every worktree** by the orchestrator (with `cp`, never printed). These files are gitignored or excluded, so `git worktree add` does not bring them:
 
@@ -202,7 +214,7 @@ All lanes share the existing CI-style PostgreSQL container `pp-ci-postgres` (`12
 
 ## Integration order and update policy
 
-- **W2:** `w1-data` → `w1-solver` → `w1-web`. **W4:** `w3-forecast` → `w3-samples` → `w3-web`. **W6:** `w5-packaging` → `w5-polish`.
+- **W2:** `w1-data` → `w1-solver` → `w1-web`. **W4:** `w3-forecast` → `w3-samples` → `w3-web`. **W5 (mid-wave):** `w5-data`'s W5-D01 merges first, so `w5-polish` can build W5-UI04; `w5-screens` merges when its PR passes review, before `w5-polish` takes its after-screenshots. **W6:** `w5-data` → `w5-packaging` → `w5-polish`.
   - Backend lanes merge first, ordered by how many later lanes read their code.
   - Web always merges last, because it replaces mocks with the real API.
 - **No rebasing of pushed branches.** The PreToolUse hook blocks `git push --force`/`-f`, including `--force-with-lease` (`.claude/hooks/pre-tool.cjs`). After each merge into `v1-local`, the next lane runs `git fetch && git merge origin/v1-local`, re-runs its focused tests and the quick gate, and pushes normally.
