@@ -32,8 +32,9 @@ test('anything else runs the full job', () => {
 
 // The CLI diffs BASE..HEAD itself. A rename must count its old path: moving a file a test reads
 // (docs/plans/v1/README.md) to a new docs/ name is not docs-only.
-test('the CLI classifies BASE..HEAD from git, counting both sides of a rename', () => {
+test('the CLI classifies BASE..HEAD from git, counting both sides of a rename', (t) => {
   const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-only-'));
+  t.after(() => fs.rmSync(repo, { recursive: true, force: true }));
   const git = (...args) => {
     const r = spawnSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.invalid', ...args], { cwd: repo, encoding: 'utf8' });
     assert.equal(r.status, 0, r.stderr);
@@ -73,7 +74,8 @@ test('every docs/ Markdown path quoted in code is in TEST_READ', () => {
       if (entry.name === 'node_modules' || entry.name === '.venv' || entry.name === '.next') continue;
       const full = path.join(dir, entry.name);
       if (entry.isDirectory()) walk(full);
-      else if (code.test(entry.name) && full !== __filename) {
+      // The classifier's own TEST_READ list is not a reader.
+      else if (code.test(entry.name) && full !== __filename && full !== script) {
         for (const match of fs.readFileSync(full, 'utf8').matchAll(quoted)) found.add(match[1].replace(/^.*?(?=docs\/)/, ''));
       }
     }
