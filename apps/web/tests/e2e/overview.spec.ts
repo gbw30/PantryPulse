@@ -381,6 +381,38 @@ test("Escape with focus outside the inspector clears the selection at 1280x720",
   expect(pageErrors).toEqual([]);
 });
 
+// CI flake (#133, #140): on a slow runner a frame can land after the next keys. Inspect site moved focus to the
+// inspector heading one frame later, so a late frame took focus out of the next site's card, which closed it.
+test("slow frames: inspecting a site never closes the card of the site opened next at 1440x900", async ({ page }) => {
+  // Main-world frames only (Playwright's own checks run in an isolated world); slowed once window.slowFrames is set.
+  await page.addInitScript(() => {
+    const w = window as typeof window & { slowFrames?: number };
+    const raf = w.requestAnimationFrame.bind(w);
+    w.requestAnimationFrame = (callback) => (w.slowFrames ? w.setTimeout(() => raf(callback), w.slowFrames) : raf(callback));
+    const caf = w.cancelAnimationFrame.bind(w);
+    w.cancelAnimationFrame = (id) => { w.clearTimeout(id); caf(id); };
+  });
+  const pageErrors = await openAtlas(page, 1440, 900);
+  const riverbend = marker(page, "Riverbend Pantry");
+  await riverbend.focus();
+  await page.keyboard.press("Enter");
+  await page.evaluate(() => { (window as typeof window & { slowFrames?: number }).slowFrames = 1_500; });
+  await page.getByRole("dialog", { name: "Riverbend Pantry" }).getByRole("button", { name: "Inspect site" }).click();
+  await page.keyboard.press("Escape");
+  await expect(riverbend).toHaveAttribute("aria-pressed", "false");
+  const oak = marker(page, "Oak Terrace Pantry");
+  await oak.focus();
+  await page.keyboard.press("Enter");
+  const card = page.getByRole("dialog", { name: "Oak Terrace Pantry" });
+  await expect(card).toBeVisible();
+  // Let every frame requested so far run, then the card must still be open.
+  await page.evaluate(() => new Promise((done) => requestAnimationFrame(done)));
+  await expect(card).toBeVisible();
+  await card.getByRole("button", { name: "Inspect site" }).click();
+  await expect(page.getByTestId("site-inspector").getByRole("heading", { name: "Oak Terrace Pantry" })).toBeVisible();
+  expect(pageErrors).toEqual([]);
+});
+
 // Unknown or inherited preview keys fall back to the static fixture instead of crashing.
 for (const key of ["toString", "__proto__", "constructor", "hasOwnProperty"]) {
   test(`?state=${key} shows the normal atlas without errors`, async ({ page }) => {

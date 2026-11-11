@@ -280,7 +280,8 @@ function LegacyAtlas({ statePreview, body }: AtlasProps & { body?: React.ReactNo
     if (isDesktop) {
       afterPopoverClose.current = "inspector";
       setPopoverOpen(false);
-      requestAnimationFrame(() => inspectorHeadingRef.current?.focus());
+      // Now, not on a later frame: a slow frame could land after the next site's card opened and close it.
+      inspectorHeadingRef.current?.focus();
     } else {
       afterPopoverClose.current = "none";
       setPopoverOpen(false);
