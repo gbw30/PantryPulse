@@ -1347,19 +1347,24 @@ export interface components {
          *     wape_pct = 100 × Σ|prediction − actual| / Σactual; bias_pct = 100 × Σ(prediction − actual) /
          *     Σactual, positive = over-forecast. Both are null when Σactual is 0. bias_pct replaces V5 §7's
          *     bias in units for v1 (W3 decisions §10), because units differ per product.
+         *
+         *     A not-evaluated status carries no metrics; `reason` is an optional machine code for it
+         *     (W5-L01), e.g. not_evaluated_zero_actual when Σactual is 0.
          */
         BacktestScore: {
             /** Bias Pct */
             bias_pct: string | null;
             /** Origins Evaluated */
             origins_evaluated: number;
+            /** Reason */
+            reason?: string | null;
             /** Scored Points */
             scored_points: number;
             /**
              * Status
              * @enum {string}
              */
-            status: "evaluated" | "not_evaluated_insufficient_history";
+            status: "evaluated" | "not_evaluated_insufficient_history" | "not_evaluated_zero_actual";
             /** Wape Pct */
             wape_pct: string | null;
         };
@@ -1637,6 +1642,8 @@ export interface components {
              * @enum {string}
              */
             band: "high" | "medium" | "low";
+            /** Basis */
+            basis?: ("demand" | "sales") | null;
             /** Driving Product Id */
             driving_product_id: string;
             /** Driving Units */
@@ -1848,6 +1855,24 @@ export interface components {
             reference_weekday_count: number;
             /** Trailing Sample Count */
             trailing_sample_count: number;
+        };
+        /**
+         * DonationForecastV3
+         * @description Seven planning days of expected donations at one receiving location × product.
+         *
+         *     Display only (V1-SPEC §6.1, V1-A23): forecast, not confirmed; never supply.
+         */
+        DonationForecastV3: {
+            /** Actual Provider */
+            actual_provider: string;
+            /** Central Literals */
+            central_literals: string[];
+            /** Fallback Reason */
+            fallback_reason: string | null;
+            /** Location Id */
+            location_id: string;
+            /** Product Id */
+            product_id: string;
         };
         /** EgpBlocker */
         EgpBlocker: {
@@ -3343,6 +3368,11 @@ export interface components {
             /** Demand */
             demand: components["schemas"]["DemandSeriesV3"][];
             /**
+             * Donations
+             * @description Expected donations (forecast, not confirmed) for display only: never supply, never an allocation, projection or danger-score input.
+             */
+            donations?: components["schemas"]["DonationForecastV3"][];
+            /**
              * First Planning Date
              * Format: date
              */
@@ -3610,6 +3640,8 @@ export interface components {
          * @description One product at one location over the projection dates, in the product's own unit.
          */
         ProductProjection: {
+            /** Basis */
+            basis?: ("demand" | "sales") | null;
             /** Dates */
             dates: string[];
             /** Donation Forecast */

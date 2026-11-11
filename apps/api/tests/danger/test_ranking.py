@@ -226,7 +226,7 @@ def test_unknown_demand_is_not_scored_and_projection_shows_unknown(nets):
 def test_never_sums_units_across_products(nets):
     assert set(DangerRow.model_fields) == {  # no cross-product total in the contract
         "location_id", "rank", "score_ratio", "band", "reason", "driving_product_id",
-        "driving_units", "unit", "first_deficit_date"}
+        "driving_units", "unit", "first_deficit_date", "basis"}  # basis: a label (W5-L01)
     for mode in ("PANTRY", "RETAIL"):
         for row in danger(nets, mode).rows:
             own = projection(nets, mode, row.location_id)

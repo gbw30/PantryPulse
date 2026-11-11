@@ -72,13 +72,28 @@ class BacktestScore(ORContract):
 
     wape_pct = 100 × Σ|prediction − actual| / Σactual; bias_pct = 100 × Σ(prediction − actual) /
     Σactual, positive = over-forecast. Both are null when Σactual is 0. bias_pct replaces V5 §7's
-    bias in units for v1 (W3 decisions §10), because units differ per product."""
+    bias in units for v1 (W3 decisions §10), because units differ per product.
+
+    A not-evaluated status carries no metrics; `reason` is an optional machine code for it
+    (W5-L01), e.g. not_evaluated_zero_actual when Σactual is 0."""
 
     origins_evaluated: int = Field(ge=0)
     wape_pct: Decimal | None
     bias_pct: Decimal | None
-    status: Literal["evaluated", "not_evaluated_insufficient_history"]
+    status: Literal[
+        "evaluated", "not_evaluated_insufficient_history", "not_evaluated_zero_actual"
+    ]
     scored_points: int = Field(ge=0)
+    reason: Annotated[str, Field(pattern=r"^[a-z][a-z0-9_]*$", max_length=80)] | None = None
+
+    @model_validator(mode="after")
+    def metrics_only_when_evaluated(self) -> Self:
+        if self.status == "evaluated":
+            if self.reason is not None:
+                raise ValueError("REASON_ONLY_WHEN_NOT_EVALUATED")
+        elif self.wape_pct is not None or self.bias_pct is not None:
+            raise ValueError("NOT_EVALUATED_HAS_NO_METRICS")
+        return self
 
 
 class SeriesBacktest(ORContract):
@@ -131,6 +146,7 @@ class DangerRow(ORContract):
     driving_units: int = Field(ge=0)
     unit: str  # the driving product's own unit; no cross-product total
     first_deficit_date: date | None
+    basis: Basis | None = None  # the driving series' basis; None = unknown or not applicable
 
 
 class DangerRanking(ORContract):
@@ -258,6 +274,7 @@ class ProductProjection(ORContract):
     eligible_stock_now: int = Field(ge=0)
     expiring_unsold: Daily | None  # None = no expiry data for this product
     donation_forecast: Daily | None  # None = no donation history for this location
+    basis: Basis | None = None  # the demand series' basis; None = unknown or not applicable (hubs)
 
 
 class LocationProjection(ORContract):

@@ -142,6 +142,23 @@ class DemandSeriesV3(ORContract):
         return tuple(decimal_literal(x) for x in value)
 
 
+class DonationForecastV3(ORContract):
+    """Seven planning days of expected donations at one receiving location × product.
+
+    Display only (V1-SPEC §6.1, V1-A23): forecast, not confirmed; never supply."""
+
+    location_id: Id
+    product_id: Id
+    actual_provider: str = Field(min_length=1)
+    fallback_reason: str | None = Field(min_length=1)  # set = a fallback ran, and why
+    central_literals: tuple[str, ...] = Field(min_length=7, max_length=7)
+
+    @field_validator("central_literals")
+    @classmethod
+    def central(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        return tuple(decimal_literal(x) for x in value)
+
+
 class InboundV3(ORContract):
     """A scheduled delivery inside the horizon; counted once, never also as on-hand stock."""
 
@@ -244,6 +261,14 @@ class ORInputV3(ORContract):
     products: tuple[ProductV3, ...] = Field(min_length=1, max_length=MAX_PRODUCTS)
     batches: tuple[BatchV3, ...] = Field(max_length=MAX_BATCHES)
     demand: tuple[DemandSeriesV3, ...] = Field(max_length=MAX_FORECAST_SERIES)
+    # Omitted from dumps when empty, so scenarios frozen before W5-L01 keep their hash.
+    # The schema drops its default too, so the generated TS type marks it optional.
+    donations: tuple[DonationForecastV3, ...] = Field(
+        default=(), max_length=MAX_FORECAST_SERIES, exclude_if=lambda rows: not rows,
+        json_schema_extra=lambda schema: schema.pop("default", None),
+        description="Expected donations (forecast, not confirmed) for display only: never "
+        "supply, never an allocation, projection or danger-score input.",
+    )
     inbound: tuple[InboundV3, ...]
     inbound_file_provided: Bool  # False → "no scheduled deliveries provided"
     routes: tuple[RouteV3, ...]
@@ -276,7 +301,7 @@ class ORInputV3(ORContract):
         products = {p.id for p in self.products}
         if len(locations) != len(self.locations) or len(products) != len(self.products):
             raise ValueError("DUPLICATE_ID")
-        rows = (*self.batches, *self.demand, *self.inbound, *self.reserves)
+        rows = (*self.batches, *self.demand, *self.donations, *self.inbound, *self.reserves)
         if any(r.location_id not in locations or r.product_id not in products for r in rows):
             raise ValueError("UNKNOWN_REFERENCE")
         if any({r.from_location_id, r.to_location_id} - locations for r in self.routes):
@@ -287,6 +312,7 @@ class ORInputV3(ORContract):
         keys = (
             [b.id for b in self.batches], [i.id for i in self.inbound],
             [(d.location_id, d.product_id) for d in self.demand],
+            [(d.location_id, d.product_id) for d in self.donations],
             [(r.from_location_id, r.to_location_id) for r in self.routes],
             [(r.location_id, r.product_id) for r in self.reserves],
             [c.location_id for c in self.capacities], [v.location_id for v in self.vulnerability],
