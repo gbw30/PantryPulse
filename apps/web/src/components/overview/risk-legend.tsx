@@ -54,7 +54,8 @@ export type DangerBand = "high" | "medium" | "low";
 export const DANGER_BANDS: { band: DangerBand; label: string; meaning: string }[] = [
   { band: "high", label: "High danger", meaning: "a large share projected short" },
   { band: "medium", label: "Medium danger", meaning: "a moderate share projected short" },
-  { band: "low", label: "Low danger", meaning: "a small share projected short" },
+  // The API's band() (apps/api/app/services/danger/ranking.py) puts every score under MEDIUM (0.20) in low, 0 included.
+  { band: "low", label: "Low danger", meaning: "under 20% projected short (may be none)" },
 ];
 
 const BAND_SHAPE: Record<DangerBand, "diamond" | "triangle" | "circle"> = { high: "diamond", medium: "triangle", low: "circle" };

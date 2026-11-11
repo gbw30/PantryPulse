@@ -6,10 +6,12 @@ import { envelope, example, mockV1 } from "./v1-mocks";
 // the legacy fictional demo says "Simulated network", whatever network is chosen; /import and /settings show
 // no network data and never do (lead decisions 2026-11-09, and L1 of the #129 review).
 /** Render the legacy demo whatever network is chosen: they never read the network. */
-const ALWAYS_LEGACY = ["/data", "/data/pulse", "/data/inputs", "/data/inventory", "/data/operations", "/recommendations"];
+const ALWAYS_LEGACY = ["/data/pulse", "/data/inputs", "/data/inventory", "/data/operations", "/recommendations"];
 /** Render the legacy demo only while no v1 network is chosen; a chosen network replaces it. */
 const LEGACY_WITHOUT_NETWORK = ["/overview", "/scenarios"];
 const NO_NETWORK_DATA = ["/import", "/settings"];
+/** Render the legacy demo beside the chosen network's forecast trust (W4-03 #1): the legacy block labels itself. */
+const LEGACY_BESIDE_NETWORK = ["/data"];
 
 const banner = (page: Page) => page.getByRole("banner");
 const pill = (page: Page, text: string) => banner(page).getByText(text, { exact: true });
@@ -17,7 +19,7 @@ const imported = example("Network"); // a real import: is_sample false
 
 test("@V1-A05 with no v1 network, every screen that renders the legacy demo says simulated; /import and /settings don't", async ({ page }) => {
   await mockV1(page, { "GET networks": { body: { networks: [] } } });
-  for (const path of [...ALWAYS_LEGACY, ...LEGACY_WITHOUT_NETWORK]) {
+  for (const path of [...ALWAYS_LEGACY, ...LEGACY_BESIDE_NETWORK, ...LEGACY_WITHOUT_NETWORK]) {
     await page.goto(path);
     await expect(pill(page, "Simulated network"), path).toBeVisible();
   }
@@ -45,7 +47,7 @@ test("@V1-A05 with a real network chosen, the screens that still render the lega
 
 test("@V1-A05 a network list that fails to load says so on every screen, and the legacy screens still say simulated", async ({ page }) => {
   await mockV1(page, { "GET networks": { status: 500, body: envelope("INTERNAL_ERROR") } });
-  for (const path of [...ALWAYS_LEGACY, ...LEGACY_WITHOUT_NETWORK]) {
+  for (const path of [...ALWAYS_LEGACY, ...LEGACY_BESIDE_NETWORK, ...LEGACY_WITHOUT_NETWORK]) {
     await page.goto(path);
     await expect(pill(page, "Network list unavailable"), path).toBeVisible();
     await expect(pill(page, "Simulated network"), path).toBeVisible();
@@ -56,3 +58,17 @@ test("@V1-A05 a network list that fails to load says so on every screen, and the
     await expect(banner(page), path).not.toContainText("Simulated network");
   }
 });
+
+// W4-03 #1: /data shows the chosen network's forecast trust under the legacy demo, so the top bar labels the chosen
+// network (sample data, or nothing for a real import) and the legacy block carries "Simulated network" itself.
+const LEGACY_FIXTURE = { "GET dashboard/summary": { status: 403, body: envelope("FORBIDDEN") }, "GET forecast-catalog": { status: 403, body: envelope("FORBIDDEN") } };
+for (const [kind, network, label] of [["real import", imported, null], ["sample network", { ...imported, is_sample: true }, "Sample data — fictional"]] as const) {
+  test(`@V1-A05 /data with a ${kind} chosen labels that network in the top bar and the legacy block as simulated`, async ({ page }) => {
+    await mockV1(page, { "GET networks": { body: { networks: [network] } }, ...LEGACY_FIXTURE });
+    await page.goto("/data");
+    await expect(page.getByRole("combobox", { name: "Network", exact: true }).first()).toContainText(network.name);
+    await expect(page.locator("[data-explorer-source]")).toContainText(/simulated network/i);
+    if (label) await expect(pill(page, label)).toBeVisible();
+    await expect(banner(page)).not.toContainText(label ? "Simulated network" : /Simulated network|Sample data/);
+  });
+}

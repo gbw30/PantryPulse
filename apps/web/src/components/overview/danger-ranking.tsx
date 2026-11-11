@@ -199,8 +199,10 @@ function RankingBody({ network, forecastRunId }: { network: Network; forecastRun
         {load.status === "ready" && (
           load.ranking.rows.length === 0
             ? <p className="text-sm">{load.ranking.mode === "RETAIL"
-              ? "No location is projected to lose sales or to have stock expire unsold in this forecast."
-              : "No location is projected to run short in this forecast."}</p>
+              // Any location with a 7-day target above zero gets a row, even at 0% (ranking.py), so an empty ranking means
+              // nothing could be scored, never an all-clear (W4-03 #4, D1).
+              ? "No location could be ranked: none has forecast sales above zero for the next 7 days, and no stock expiry could be projected."
+              : "No location could be ranked: none has forecast demand above zero for the next 7 days."}</p>
             : <DangerRanking ranking={load.ranking} label={label} onSelect={select} canSelect={(id) => byId.has(id)} />
         )}
       </div>

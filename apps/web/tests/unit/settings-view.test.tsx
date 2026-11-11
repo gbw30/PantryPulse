@@ -110,6 +110,17 @@ it("a sample network's pre-filled rates say they are sample values; a real manua
   expect(sourceLine({ ...location, source: "manual" })).toBe("Source: entered by you");
 });
 
+// W4-03 #2: one rate entered, the other looked up. The API names each rate's source; the Census one must read
+// "ACS 5-year YYYY, tract NNNN" (V1-SPEC §6.3), never "entered by you" for both.
+it("a location with one rate entered and one looked up names each rate's source", async () => {
+  const { sourceLine } = await import("@/components/enrichment/attribute-editor");
+  const location = { ...example("LocationAttributes"), state: "manual" as const };
+  expect(sourceLine({ ...location, source: "snap_rate: manual; poverty_rate: ACS 5-year 2024, tract 06001400100" }))
+    .toBe("Source: SNAP rate entered by you; poverty rate from ACS 5-year 2024, tract 06001400100");
+  expect(sourceLine({ ...location, source: "poverty_rate: manual; snap_rate: ACS 5-year 2024, tract 06001400100 (unconfirmed address match)" }))
+    .toBe("Source: poverty rate entered by you; SNAP rate from ACS 5-year 2024, tract 06001400100 (unconfirmed address match)");
+});
+
 // W4 web hardening (lead, 2026-11-10): an import whose lookups were refused by a full queue says so, and Retry starts them.
 it("lookups that did not start say why and offer Retry, which queues them", async () => {
   const message = "Address lookups did not start: the job queue was full when the import finished. Use Retry to start them.";

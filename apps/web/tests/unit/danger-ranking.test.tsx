@@ -1,7 +1,10 @@
 // covers: V1-A13
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { DangerRanking, DangerRankingSection } from "@/components/overview/danger-ranking";
+import { DangerLegend } from "@/components/overview/risk-legend";
 import { networkApi } from "@/lib/network-api";
 import { example } from "./contract-examples";
 
@@ -74,14 +77,36 @@ it("the table alternative lists the same rows in the same order", () => {
   expect(rows[0]).toHaveTextContent("55 cases");
 });
 
-it("a Retail forecast with nothing at risk names both risks: lost sales and stock expiring unsold", async () => {
+// W4-03 #4 and D1: a location with a known 7-day target above zero gets a row even at 0% (ranking.py), so an empty
+// ranking means no location could be scored (no available forecast, or one of zero), never an all-clear.
+it("an empty Retail ranking says no location could be ranked, in sales and expiry terms", async () => {
   vi.spyOn(networkApi, "danger").mockResolvedValue({ ...retail(), rows: [] });
   vi.spyOn(networkApi, "locations").mockResolvedValue(example("LocationList"));
   vi.spyOn(networkApi, "forecastRuns").mockResolvedValue({ ...runs, runs: [published] });
   render(<DangerRankingSection />);
-  expect(await screen.findByText("No location is projected to lose sales or to have stock expire unsold in this forecast.")).toBeVisible();
+  expect(await screen.findByText("No location could be ranked: none has forecast sales above zero for the next 7 days, and no stock expiry could be projected.")).toBeVisible();
   expect(networkApi.danger).toHaveBeenCalledWith(retailNetwork.id, pantry.forecast_run_id);
   vi.restoreAllMocks();
+});
+
+it("an empty Pantry ranking says no location could be ranked, not that none runs short", async () => {
+  vi.spyOn(networkApi, "danger").mockResolvedValue({ ...pantry, rows: [] });
+  vi.spyOn(networkApi, "locations").mockResolvedValue(example("LocationList"));
+  vi.spyOn(networkApi, "forecastRuns").mockResolvedValue({ ...runs, runs: [published] });
+  render(<DangerRankingSection />);
+  expect(await screen.findByText("No location could be ranked: none has forecast demand above zero for the next 7 days.")).toBeVisible();
+  vi.restoreAllMocks();
+});
+
+// W4-03 #5: the API's band() puts every score under its MEDIUM threshold into "low", 0% included.
+it("the low band names the API's real threshold and that it may mean nothing is short", () => {
+  const ranking = readFileSync(join(__dirname, "../../../api/app/services/danger/ranking.py"), "utf8");
+  const match = /^MEDIUM\s*=\s*Decimal\(\s*["']([\d.]+)["']\s*\)/m.exec(ranking);
+  expect(match, 'ranking.py no longer defines MEDIUM = Decimal("…"); update this test').not.toBeNull();
+  const medium = Number((Number(match![1]) * 100).toFixed(6)); // 0.07 → 7, not 7.000000000000001
+  render(<DangerLegend mode="PANTRY" />);
+  const low = within(screen.getByRole("list", { name: "Danger bands" })).getByText("Low danger").parentElement!;
+  expect(within(low).getByText(`under ${medium}% projected short (may be none)`)).toBeVisible();
 });
 
 it("with no forecast yet, the presenter runs one from the ranking and the ranking then uses it (W4-02)", async () => {

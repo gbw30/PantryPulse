@@ -65,6 +65,8 @@ function Screen({ view, initialProductId }: { view: View; initialProductId: stri
   const meta = snapshot && (
     <p data-explorer-source={snapshot.source.kind} className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-foreground">
       <ProvenancePill tone={live ? "live" : "fixture"}>{live ? LIVE_LABEL : VISITOR_LABEL}</ProvenancePill>
+      {/* The top bar labels the chosen network on the dashboard, so this legacy block says what it is (LIVE_LABEL already does). */}
+      {!live && <span className="text-muted-foreground">Simulated network</span>}
       {live && <span className="text-muted-foreground">Observed {formatInstant(live.observedAt, snapshot.timezone)}</span>}
     </p>
   );
@@ -195,7 +197,7 @@ function Screen({ view, initialProductId }: { view: View; initialProductId: stri
 export function DataExplorerScreen({ view, initialProductId = null }: { view: View; initialProductId?: string | null }) {
   return (
     <MotionConfig reducedMotion="user">
-      <AppShell active="data">
+      <AppShell active="data" legacyOnly={view !== "dashboard"}>
         <Screen view={view} initialProductId={initialProductId} />
         {view === "dashboard" && <div className="px-4 pb-6 md:px-6"><ForecastTrustSection /></div>}
       </AppShell>

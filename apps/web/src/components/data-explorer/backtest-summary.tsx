@@ -69,7 +69,7 @@ function BacktestSummary({ backtest, run, label }: { backtest: Backtest; run: Ru
               </tbody>
             </table>
           </div>
-          <p className="text-xs text-muted-foreground">Each row pools that location&apos;s scored demand series in one unit; different units are never pooled. Measured on your own past days; no claim about future accuracy.</p>
+          <p className="text-xs text-muted-foreground">Each row pools that location&apos;s scored demand series in one unit; different units are never pooled. Measured on this network&apos;s past days; no claim about future accuracy.</p>
         </div>
       )}
       {backtest.ineligible.length > 0 && (
@@ -104,7 +104,7 @@ function TrustSection({ network }: { network: Network }) {
         {network.is_sample && <SampleBadge />}
       </div>
       <InboundNote provided={network.inbound_file_provided} />
-      <p className="text-xs text-muted-foreground">Forecasts are projections. Accuracy is measured over the last 4 weekly origins of your own history (needs 35+ days).</p>
+      <p className="text-xs text-muted-foreground">Forecasts are projections. Accuracy is measured over the last 4 weekly origins of this network&apos;s history (needs 35+ days).</p>
       <ForecastRunsNote runs={runs} onRetry={reload} />
       {/* A new run starts from "loading": the previous run's accuracy is never shown under it. */}
       {forecastRunId && <Trust key={forecastRunId} network={network} forecastRunId={forecastRunId} />}

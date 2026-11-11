@@ -60,7 +60,8 @@ it('"on your last 4 weeks, this forecast was off by about X%" plus over/under bi
   expect(screen.getByText("on your last 4 weeks, this forecast was off by about 18%")).toBeVisible();
   // bias_pct -3.1: negative error means under-forecast (V5 §7, error = prediction − actual).
   expect(screen.getByText("It forecast too low by about 3% on average.")).toBeVisible();
-  expect(screen.getByText(/No claim is made about future accuracy/)).toBeVisible();
+  // W4-03 #9: a sample network's history is not the user's own.
+  expect(screen.getByText(`Measured on ${evaluated.score.scored_points} past days of this network's history. No claim is made about future accuracy.`)).toBeVisible();
   unmount();
   panel({ score: { ...evaluated.score, bias_pct: "4.6" } });
   expect(screen.getByText("It forecast too high by about 5% on average.")).toBeVisible();
