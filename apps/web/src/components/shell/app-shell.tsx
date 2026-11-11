@@ -10,6 +10,8 @@ type Props = {
   search?: TopBarSearch;
   /** "div" when the page content provides its own <main> landmark. */
   contentElement?: "main" | "div";
+  /** Whether the screen shows only the legacy demo; defaults by `active` (see the top bar). */
+  legacyOnly?: boolean;
   children: React.ReactNode;
 };
 
@@ -28,7 +30,7 @@ export function ShellProviders({ children }: { children: React.ReactNode }) {
  * Rendered by each page's client root; identical geometry on every main page. Pages read the shared
  * presenter session with usePresenter().
  */
-export function AppShell({ active, horizonLabel, search, contentElement = "main", children }: Props) {
+export function AppShell({ active, horizonLabel, search, contentElement = "main", legacyOnly, children }: Props) {
   const Content = contentElement;
   return (
     <ShellProviders>
@@ -41,7 +43,7 @@ export function AppShell({ active, horizonLabel, search, contentElement = "main"
         </a>
         <AppSidebar active={active} />
         <div className="flex min-h-svh min-w-0 flex-1 flex-col bg-background">
-          <TopBar search={search} horizonLabel={horizonLabel} active={active} />
+          <TopBar search={search} horizonLabel={horizonLabel} active={active} legacyOnly={legacyOnly} />
           <Content id="main-content" tabIndex={-1} className="flex min-w-0 flex-1 flex-col outline-none">
             {children}
           </Content>

@@ -1,7 +1,10 @@
 // covers: V1-A13
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { DangerRanking, DangerRankingSection } from "@/components/overview/danger-ranking";
+import { DangerLegend } from "@/components/overview/risk-legend";
 import { networkApi } from "@/lib/network-api";
 import { example } from "./contract-examples";
 
@@ -74,14 +77,33 @@ it("the table alternative lists the same rows in the same order", () => {
   expect(rows[0]).toHaveTextContent("55 cases");
 });
 
-it("a Retail forecast with nothing at risk names both risks: lost sales and stock expiring unsold", async () => {
+// W4-03 #4: a location without an available demand forecast gets no row, so an empty ranking claims nothing about it.
+it("a Retail forecast with nothing at risk names both risks, among the locations with a forecast", async () => {
   vi.spyOn(networkApi, "danger").mockResolvedValue({ ...retail(), rows: [] });
   vi.spyOn(networkApi, "locations").mockResolvedValue(example("LocationList"));
   vi.spyOn(networkApi, "forecastRuns").mockResolvedValue({ ...runs, runs: [published] });
   render(<DangerRankingSection />);
-  expect(await screen.findByText("No location is projected to lose sales or to have stock expire unsold in this forecast.")).toBeVisible();
+  expect(await screen.findByText("No location has projected lost sales or stock expiring unsold among those with a forecast.")).toBeVisible();
   expect(networkApi.danger).toHaveBeenCalledWith(retailNetwork.id, pantry.forecast_run_id);
   vi.restoreAllMocks();
+});
+
+it("a Pantry forecast with nothing at risk claims no shortage only among the locations with a forecast", async () => {
+  vi.spyOn(networkApi, "danger").mockResolvedValue({ ...pantry, rows: [] });
+  vi.spyOn(networkApi, "locations").mockResolvedValue(example("LocationList"));
+  vi.spyOn(networkApi, "forecastRuns").mockResolvedValue({ ...runs, runs: [published] });
+  render(<DangerRankingSection />);
+  expect(await screen.findByText("No location has a projected shortage among those with a forecast.")).toBeVisible();
+  vi.restoreAllMocks();
+});
+
+// W4-03 #5: the API's band() puts every score under its MEDIUM threshold into "low", 0% included.
+it("the low band names the API's real threshold and that it may mean nothing is short", () => {
+  const ranking = readFileSync(join(__dirname, "../../../api/app/services/danger/ranking.py"), "utf8");
+  const medium = Number(/^MEDIUM = Decimal\("([\d.]+)"\)/m.exec(ranking)![1]) * 100;
+  render(<DangerLegend mode="PANTRY" />);
+  const low = within(screen.getByRole("list", { name: "Danger bands" })).getByText("Low danger").parentElement!;
+  expect(within(low).getByText(`under ${medium}% projected short (may be none)`)).toBeVisible();
 });
 
 it("with no forecast yet, the presenter runs one from the ranking and the ranking then uses it (W4-02)", async () => {

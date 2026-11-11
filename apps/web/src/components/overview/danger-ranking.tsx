@@ -199,8 +199,9 @@ function RankingBody({ network, forecastRunId }: { network: Network; forecastRun
         {load.status === "ready" && (
           load.ranking.rows.length === 0
             ? <p className="text-sm">{load.ranking.mode === "RETAIL"
-              ? "No location is projected to lose sales or to have stock expire unsold in this forecast."
-              : "No location is projected to run short in this forecast."}</p>
+              // A location without an available demand forecast gets no row (W4-03 #4), so claim nothing about it.
+              ? "No location has projected lost sales or stock expiring unsold among those with a forecast."
+              : "No location has a projected shortage among those with a forecast."}</p>
             : <DangerRanking ranking={load.ranking} label={label} onSelect={select} canSelect={(id) => byId.has(id)} />
         )}
       </div>

@@ -8,10 +8,18 @@ type Attributes = Schema["LocationAttributes"];
 type Update = Schema["LocationAttributesUpdate"];
 
 const SHARE = /^(0(\.\d+)?|1(\.0+)?|\.\d+)$/;
+const RATE_SOURCE = /\b(poverty|snap)_rate: (manual\b)?/g;
 
 export function sourceLine(location: Attributes) {
-  // A sample network's pre-filled rates are manual-state but say so (V1-SPEC §8, CR-w3-samples-1).
-  if (location.state === "manual") return location.source === "sample values" ? "Source: sample values" : "Source: entered by you";
+  if (location.state === "manual") {
+    // A sample network's pre-filled rates are manual-state but say so (V1-SPEC §8, CR-w3-samples-1).
+    if (location.source === "sample values") return "Source: sample values";
+    if (!location.source || location.source === "manual") return "Source: entered by you";
+    // One rate entered, one looked up (W4-03 #2): "snap_rate: manual; poverty_rate: ACS 5-year 2024, tract N" →
+    // "SNAP rate entered by you; poverty rate from ACS 5-year 2024, tract N" (V1-SPEC §6.3).
+    return `Source: ${location.source.replace(RATE_SOURCE, (_, rate: string, manual?: string) =>
+      `${rate === "snap" ? "SNAP" : "poverty"} rate ${manual ? "entered by you" : "from "}`)}`;
+  }
   if (location.state === "excluded") return "Excluded from EGP";
   if (location.state === "unknown" || !location.source) return "Source: unknown (lookup failed or not run yet)";
   return `Source: ${location.source}`;

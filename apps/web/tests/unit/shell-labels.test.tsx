@@ -95,3 +95,16 @@ it("a screen that always renders the legacy demo says simulated whatever network
     }
   }
 });
+
+// W4-03 #1: the Data dashboard also renders the chosen network's forecast trust, so its top bar labels that network
+// (sample data, or nothing for a real import); the legacy block below labels itself "Simulated network".
+it("a legacy screen that also shows the chosen network's data labels that network, not the legacy demo", () => {
+  vi.mocked(useNetwork).mockReturnValue(ready(imported));
+  const { unmount } = render(<TopBar active="data" legacyOnly={false} />);
+  expect(screen.getByRole("banner")).not.toHaveTextContent(/simulated|sample/i);
+  unmount();
+  vi.mocked(useNetwork).mockReturnValue(ready({ ...imported, is_sample: true }));
+  render(<TopBar active="data" legacyOnly={false} />);
+  expect(screen.getByRole("banner")).toHaveTextContent("Sample data — fictional");
+  expect(screen.getByRole("banner")).not.toHaveTextContent(/simulated/i);
+});

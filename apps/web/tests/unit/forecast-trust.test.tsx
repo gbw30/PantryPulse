@@ -47,6 +47,9 @@ it("accuracy by location: one row per location and unit, never pooled across uni
   expect(p12).toHaveTextContent(/case.*1 series.*off by about 18%/);
   const p07 = rows.find((r) => r.textContent?.includes("Eastside Pantry (P-07)"))!;
   expect(p07).toHaveTextContent("accuracy not evaluated: needs 35+ days");
+  // W4-03 #9: the history is the network's, which for a sample network is not the user's own.
+  expect(screen.getByText(/^Forecasts are projections\. Accuracy is measured over the last 4 weekly origins/)).toHaveTextContent("of this network's history (needs 35+ days).");
+  expect(screen.getByText(/^Each row pools/)).toHaveTextContent("Measured on this network's past days; no claim about future accuracy.");
 });
 
 it("a newer forecast of re-imported data never shows the previous run's accuracy while it loads", async () => {

@@ -13,7 +13,8 @@ const snapshotDate = (iso: string) =>
 
 // Screens that show no network data, so the legacy demo's "simulated" pill would mislabel them (lead, 2026-11-09).
 const NO_NETWORK_DATA: ReadonlySet<NavKey> = new Set(["import", "settings"]);
-// Screens that never read the chosen network: they render the legacy fixture data whatever is chosen (L1).
+// Screens that never read the chosen network: they render the legacy fixture data whatever is chosen (L1). The Data
+// dashboard also renders the chosen network's forecast trust, so it passes legacyOnly={false} (W4-03 #1).
 const ALWAYS_LEGACY: ReadonlySet<NavKey> = new Set(["data", "recommendations"]);
 
 /**
@@ -21,9 +22,10 @@ const ALWAYS_LEGACY: ReadonlySet<NavKey> = new Set(["data", "recommendations"]);
  * and recommendations screens always do); otherwise a sample network is fictional sample data and a real
  * import gets none. A network list that failed says so. Nothing is guessed while the list loads.
  */
-function dataLabels(state: ReturnType<typeof useNetwork>["state"], network: ReturnType<typeof useNetwork>["network"], active?: NavKey) {
+function dataLabels(state: ReturnType<typeof useNetwork>["state"], network: ReturnType<typeof useNetwork>["network"], active?: NavKey,
+  legacyOnly = !!active && ALWAYS_LEGACY.has(active)) {
   const unavailable = state.status === "error" ? ["Network list unavailable"] : [];
-  if (active && ALWAYS_LEGACY.has(active)) return [...unavailable, "Simulated network"];
+  if (legacyOnly) return [...unavailable, "Simulated network"];
   if (network) return network.is_sample ? [SAMPLE_LABEL] : [];
   if (state.status === "loading") return [];
   return active && NO_NETWORK_DATA.has(active) ? unavailable : [...unavailable, "Simulated network"];
@@ -39,11 +41,11 @@ export type TopBarSearch = {
 const SEARCH_LABEL = "Search sites or products";
 
 /** Shared top bar (blueprint §2): search left; data label, snapshot date, horizon and theme toggle right. No identity here. */
-export function TopBar({ search, horizonLabel, active }: { search?: TopBarSearch; horizonLabel?: string; active?: NavKey }) {
+export function TopBar({ search, horizonLabel, active, legacyOnly }: { search?: TopBarSearch; horizonLabel?: string; active?: NavKey; legacyOnly?: boolean }) {
   const { toggleSidebar } = useSidebar();
   const { state, network } = useNetwork();
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-  const labels = dataLabels(state, network, active);
+  const labels = dataLabels(state, network, active, legacyOnly);
 
   return (
     <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-card px-3 md:gap-4 md:px-6">
