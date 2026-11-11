@@ -25,8 +25,9 @@ city-level points in Florida. `pantry` follows the backend `mini-network` fixtur
 - P1 holds 1 case of Rice (W4-02, lead ruling): a plan acts only on need inside its planning window
   (`candidates.py` caps each lane at the destination's in-window unmet need), so P1 must be short by
   2026-11-06, the first day a hub transfer (shipped 11-05, 1 day) can arrive. P1's weekly Rice pattern
-  has no zero day; its seasonal-naive forecast is 3 cases on 11-04 and 3 on 11-06, so the 1 case on hand
-  leaves P1 short on 11-04 and on 11-06, and the methods can suggest a transfer to P1.
+  has no zero day; nothing is forecast or planned for the as-of date itself (both start on 11-05). Its
+  seasonal-naive forecast is 2 cases on 11-05 and 3 on 11-06, so the 1 case on hand leaves P1 short by 1
+  on 11-05 and by 3 on 11-06, and the methods can suggest a transfer to P1.
 
 Known limits:
 - With `--workers=2`, two specs can both seed the samples at once and race; the race fails loudly
