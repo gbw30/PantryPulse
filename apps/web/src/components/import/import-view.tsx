@@ -22,8 +22,9 @@ type Run =
   | { step: "not_started"; importId: string; code: string | null }
   /** The commit got no answer and the run has no job yet: it may still be waiting for the queue, so the run is read again. */
   | { step: "maybe_starting" }
-  /** The commit may have been accepted, but no status could be read or understood: the import may still finish. */
-  | { step: "lost"; importId: string; reason: string };
+  /** The commit may have been accepted, but no status could be read or understood: the import may still finish.
+   * `commitError`/`checks`: what was left of a commit's check window, so Check again resumes it. */
+  | { step: "lost"; importId: string; reason: string; commitError: string | null; checks: number };
 
 const POLL_MS = 1000;
 // After a commit with no answer, read a run with no job this many times (one per POLL_MS) before offering Retry: the
@@ -173,7 +174,7 @@ function ImportContent() {
           continue;
         }
         if (!Object.hasOwn(PHASE_LABEL, status.phase)) {
-          setRun({ step: "lost", importId, reason: `The import reported a status this page doesn't know (${describe(status.phase)}).` });
+          setRun({ step: "lost", importId, reason: `The import reported a status this page doesn't know (${describe(status.phase)}).`, commitError, checks });
           return;
         }
         setRun({ step: "tracking", status });
@@ -187,7 +188,7 @@ function ImportContent() {
         await sleep(POLL_MS);
       }
     } catch (error) {
-      if (alive.current) setRun({ step: "lost", importId, reason: `Lost contact with the import (${describe(codeOf(error))}).` });
+      if (alive.current) setRun({ step: "lost", importId, reason: `Lost contact with the import (${describe(codeOf(error))}).`, commitError, checks });
     }
   }
 
@@ -283,7 +284,7 @@ function ImportContent() {
             {run.step === "lost" && (
               <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-pp-warning bg-card px-4 py-3 text-sm">
                 {run.reason} It may still finish; nothing is known yet about what was saved.
-                <Button variant="outline" size="sm" onClick={() => { const { importId } = run; void track(importId); }}>Check again</Button>
+                <Button variant="outline" size="sm" onClick={() => { const { importId, commitError, checks } = run; void track(importId, commitError, checks); }}>Check again</Button>
               </div>
             )}
             {status && <ImportProgress status={status} />}

@@ -189,6 +189,35 @@ it("a commit with no answer whose run still has no job after the checks offers R
   expect(commit.mock.calls.map(([id]) => id)).toEqual([created.import_id, created.import_id]);
 });
 
+it("after a commit with no answer and a lost status read, Check again keeps checking for the rest of the window (F1)", async () => {
+  let answer: (error: unknown) => void = () => {};
+  vi.spyOn(networkApi, "commitImport").mockImplementation(() => new Promise((_, reject) => { answer = reject; }));
+  const status = vi.spyOn(networkApi, "importStatus").mockResolvedValueOnce(uploadingNoJob())
+    .mockRejectedValueOnce(new ApiError("BACKEND_UNAVAILABLE", 503)).mockResolvedValue(uploadingNoJob());
+  await importAll();
+  await waitFor(() => expect(networkApi.commitImport).toHaveBeenCalled());
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  try {
+    await act(async () => { answer(new ApiError("BACKEND_UNAVAILABLE", 503)); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_000); });
+    expect(screen.getByRole("alert")).toHaveTextContent("Lost contact with the import");
+    await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
+    fireEvent.click(screen.getByRole("button", { name: "Check again" }));
+    await act(async () => {});
+    // One of the 30 checks was used before contact was lost: 29 remain, one read per second.
+    expect(screen.getByRole("status")).toHaveTextContent("the import may still be starting. Checking again…");
+    await act(async () => { await vi.advanceTimersByTimeAsync(28_000); });
+    expect(screen.queryByText(/didn't start/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Start a new import" })).not.toBeInTheDocument();
+    await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
+    expect(screen.getByRole("alert")).toHaveTextContent("The import didn't start (backend unavailable). Your files are kept and nothing was saved.");
+    expect(status).toHaveBeenCalledTimes(2 + 30);
+    expect(networkApi.commitImport).toHaveBeenCalledTimes(1);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 it("a commit the server refused still says nothing was saved", async () => {
   vi.spyOn(networkApi, "commitImport").mockRejectedValue(new ApiError("AS_OF_DATE_INVALID", 422));
   const status = vi.spyOn(networkApi, "importStatus");
