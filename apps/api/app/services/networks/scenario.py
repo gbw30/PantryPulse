@@ -182,7 +182,8 @@ def _demand(forecast: ForecastOutput, location_ids: dict, product_ids: dict,
                 fallback_reason=series.fallback_reason, central_literals=literals,
                 targets=tuple(p.target for p in rounded.points)))
     if missing:
-        assumptions.append("No available forecast, so no demand target (not zero): "
+        assumptions.append("No available forecast, so no demand target (not zero), and a pantry "
+                           "or store listed here sends none of that product: "
                            + ", ".join(sorted(missing)))
     if donations:
         assumptions.append(f"Expected donations (forecast, not confirmed) for {donations} "

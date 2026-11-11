@@ -11,7 +11,7 @@ from app.services.optimization.canonical import operational_hash
 from app.services.optimization.metrics import evaluate
 from app.services.optimization.packing import pack
 from app.services.optimization.projection import DayV3, SublotV3, project_v3, simulate
-from app.services.optimization.v3 import Packed, Shares, quantities_of, window_days
+from app.services.optimization.v3 import HUB_ROLES, Packed, Shares, quantities_of, window_days
 from app.services.optimization.v3 import pack as pack_v3
 
 
@@ -218,6 +218,12 @@ def verify_plan(scenario, transfers) -> PlanReport:
         key = (d.location_id, d.product_id)
         if key in senders and (d.unmet or d.on_hand < floors.get(key, 0)):
             violations.append("DONOR_PROTECTION")  # BD-49
+    # Null demand is never zero (V1-SPEC §4, W4-03): straight from the raw rows, a pantry/store
+    # without a demand row for the product has no provable surplus of it.
+    roles = {loc.id: loc.role for loc in s.locations}
+    demand = {(d.location_id, d.product_id) for d in s.demand}
+    if any(roles[loc] not in HUB_ROLES and (loc, p) not in demand for loc, p in senders):
+        violations.append("UNKNOWN_DEMAND_SENDER")
     route_load, dispatch, receiving = defaultdict(int), defaultdict(int), defaultdict(int)
     handling_total, cost = 0, Fraction(0)
     for p in packed:
