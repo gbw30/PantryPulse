@@ -5600,7 +5600,6 @@
             "type": "array"
           },
           "donations": {
-            "default": [],
             "description": "Expected donations (forecast, not confirmed) for display only: never supply, never an allocation, projection or danger-score input.",
             "items": {
               "$ref": "#/components/schemas/DonationForecastV3"

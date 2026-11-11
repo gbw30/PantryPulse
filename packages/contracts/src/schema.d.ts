@@ -3370,9 +3370,8 @@ export interface components {
             /**
              * Donations
              * @description Expected donations (forecast, not confirmed) for display only: never supply, never an allocation, projection or danger-score input.
-             * @default []
              */
-            donations: components["schemas"]["DonationForecastV3"][];
+            donations?: components["schemas"]["DonationForecastV3"][];
             /**
              * First Planning Date
              * Format: date

@@ -262,8 +262,10 @@ class ORInputV3(ORContract):
     batches: tuple[BatchV3, ...] = Field(max_length=MAX_BATCHES)
     demand: tuple[DemandSeriesV3, ...] = Field(max_length=MAX_FORECAST_SERIES)
     # Omitted from dumps when empty, so scenarios frozen before W5-L01 keep their hash.
+    # The schema drops its default too, so the generated TS type marks it optional.
     donations: tuple[DonationForecastV3, ...] = Field(
         default=(), max_length=MAX_FORECAST_SERIES, exclude_if=lambda rows: not rows,
+        json_schema_extra=lambda schema: schema.pop("default", None),
         description="Expected donations (forecast, not confirmed) for display only: never "
         "supply, never an allocation, projection or danger-score input.",
     )

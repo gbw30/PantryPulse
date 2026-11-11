@@ -43,6 +43,14 @@ def test_donations_default_to_empty_and_stay_out_of_the_canonical_form():
     assert operational_hash(bare) == operational_hash(explicit)
 
 
+@pytest.mark.parametrize("mode", ["validation", "serialization"])
+def test_published_schema_does_not_promise_donations(mode):
+    # The API omits empty donations, so a client type must treat the field as optional.
+    schema = ORInputV3.model_json_schema(mode=mode)
+    assert "donations" not in schema.get("required", [])
+    assert "default" not in schema["properties"]["donations"]
+
+
 def test_stored_mini_network_scenario_keeps_its_golden_hash():
     stored = json.loads((MINI / "expected-scenario.json").read_text())
     assert "donations" not in stored  # frozen before W5-L01
