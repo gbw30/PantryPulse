@@ -72,6 +72,9 @@ def test_guide_states_single_timezone_and_blank_capacity_rule():
     basis = next(c for t in catalog.templates if t.name == "demand_history"
                  for c in t.columns if c.name == "basis")
     assert "sales (undercounts demand when shelves were empty)" in basis.meaning
+    # W4 stopgap: promise only where the label shows today (trust-panel.tsx), not "everywhere"
+    assert "everywhere" not in basis.meaning
+    assert "Data Explorer's Forecast trust panels" in basis.meaning
 
 
 def test_template_routes_answer_through_the_api():

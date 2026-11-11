@@ -86,7 +86,7 @@ GUIDE: dict[str, tuple[str | None, str, str]] = {
     "date": ("date (YYYY-MM-DD)", "The day the row describes, on or before the as-of date.",
              "History dated after the as-of date is rejected (no future data)."),
     "basis": (None, f"demand (requests or need) or sales. Rows with sales are labeled "
-              f"\"{SALES_LABEL}\" everywhere.",
+              f"\"{SALES_LABEL}\" in the Data Explorer's Forecast trust panels.",
               "Forecasts are built from this history; sales can understate demand."),
     "from_location_id": (None, "The sending location.", "The route starts here."),
     "to_location_id": (None, "The receiving location (a pantry or store).",
