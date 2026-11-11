@@ -413,6 +413,97 @@ test("slow frames: inspecting a site never closes the card of the site opened ne
   expect(pageErrors).toEqual([]);
 });
 
+// The card is one Radix popover shared by every site; work left over from the previous site's card must not close
+// the next one. Main-world short timers can be slowed (window.slowTimers, in ms) to stand in for a starved CI runner,
+// where Chromium runs input and DevTools tasks before them.
+async function openAtlasSlowable(page: Page, motion: "reduce" | "no-preference") {
+  await page.addInitScript(() => {
+    const w = window as typeof window & { slowTimers?: number };
+    const timeout = w.setTimeout.bind(w);
+    w.setTimeout = ((handler: TimerHandler, ms?: number, ...args: unknown[]) =>
+      timeout(handler, w.slowTimers && (ms ?? 0) < 5 ? w.slowTimers : ms, ...args)) as typeof w.setTimeout;
+  });
+  await asVisitor(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: motion });
+  await page.goto("/overview");
+  await expect(page.locator("[data-marker-role]")).toHaveCount(7, { timeout: 15_000 });
+}
+const slowTimers = (page: Page, ms: number) => page.evaluate((slowTimers) => Object.assign(window, { slowTimers }), ms);
+// Resolves after every short timer requested so far (same delay, first in, first out) and two frames.
+const settle = (page: Page) =>
+  page.evaluate(() => new Promise((done) => setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(done)), 0)));
+
+// CI flake (#133, #140, #142, water/hub at 1440x900): the closed card's focus return (Radix runs it in a 0 ms timer)
+// ran after the next site was selected, read that selection's "return focus to the marker", and took focus out of
+// the new card, which closed it.
+test("a late focus return from the closed card never closes the next site's card (reduced motion)", async ({ page }) => {
+  await openAtlasSlowable(page, "reduce");
+  const cedar = marker(page, "Cedar Grove Pantry");
+  await cedar.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("dialog", { name: "Cedar Grove Pantry" })).toBeVisible();
+  await slowTimers(page, 2_000); // outlasts the keys below, so the old card's focus return lands after Enter
+  await page.getByRole("button", { name: "Inspect site" }).click();
+  await page.keyboard.press("Escape");
+  await expect(cedar).toHaveAttribute("aria-pressed", "false");
+  const hub = marker(page, "Gator Distribution Hub");
+  await hub.focus();
+  await page.keyboard.press("Enter");
+  await settle(page);
+  const card = page.getByRole("dialog", { name: "Gator Distribution Hub" });
+  await expect(card).toBeVisible();
+  expect(await card.evaluate((element) => element.contains(document.activeElement)), "focus stays in the new card").toBe(true);
+  await card.getByRole("button", { name: "Inspect site" }).click({ timeout: 5_000 });
+  await expect(page.getByTestId("site-inspector").getByRole("heading", { name: "Gator Distribution Hub" })).toBeVisible();
+});
+
+// Verifier finding: clicking another site while a card is open (or still animating out) left no card. The old
+// card's outside-click dismissal arrived after that site's click had selected it, and closed the shared card.
+for (const motion of ["reduce", "no-preference"] as const) {
+  test(`clicking another site while a card is open switches the card (${motion})`, async ({ page }) => {
+    await openAtlasSlowable(page, motion);
+    await marker(page, "Maple Crossing Pantry").click();
+    await expect(page.getByRole("dialog", { name: "Maple Crossing Pantry" })).toBeVisible();
+    await marker(page, "Willow Creek Pantry").click();
+    await settle(page);
+    const card = page.getByRole("dialog", { name: "Willow Creek Pantry" });
+    // Radix marks a dismissed card closed at once, while it may still be visible animating out.
+    await expect(card).toHaveAttribute("data-state", "open");
+    await expect(card.getByRole("button", { name: "Inspect site" })).toHaveCount(1); // the site crossfade has ended
+    await card.getByRole("button", { name: "Inspect site" }).click({ timeout: 5_000 });
+    await expect(page.getByTestId("site-inspector").getByRole("heading", { name: "Willow Creek Pantry" })).toBeVisible();
+  });
+}
+
+test("choosing another site from the site list while a card is open switches the card", async ({ page }) => {
+  await openAtlasSlowable(page, "reduce");
+  await marker(page, "Maple Crossing Pantry").click();
+  await expect(page.getByRole("dialog", { name: "Maple Crossing Pantry" })).toBeVisible();
+  await page.getByRole("list", { name: "All sites" }).getByRole("button", { name: /^Willow Creek\b/ }).click();
+  await settle(page);
+  const card = page.getByRole("dialog", { name: "Willow Creek Pantry" });
+  await expect(card).toHaveAttribute("data-state", "open");
+  await expect(marker(page, "Willow Creek Pantry")).toHaveAttribute("aria-pressed", "true");
+});
+
+test("clicking another site while the closed card still animates out opens that site's card (full motion)", async ({ page }) => {
+  await openAtlasSlowable(page, "no-preference");
+  const maple = page.getByRole("dialog", { name: "Maple Crossing Pantry" });
+  await marker(page, "Maple Crossing Pantry").click();
+  await expect(maple).toBeVisible();
+  // A quick user: click the next marker within the card's 150 ms exit, with no waiting in between.
+  const willow = (await marker(page, "Willow Creek Pantry").boundingBox())!;
+  await maple.getByRole("button", { name: "Inspect site" }).click();
+  await page.mouse.click(willow.x + willow.width / 2, willow.y + willow.height / 2);
+  await settle(page);
+  const card = page.getByRole("dialog", { name: "Willow Creek Pantry" });
+  await expect(card).toHaveAttribute("data-state", "open");
+  await expect(card.getByRole("button", { name: "Inspect site" })).toHaveCount(1);
+  await card.getByRole("button", { name: "Inspect site" }).click({ timeout: 5_000 });
+  await expect(page.getByTestId("site-inspector").getByRole("heading", { name: "Willow Creek Pantry" })).toBeVisible();
+});
+
 // Unknown or inherited preview keys fall back to the static fixture instead of crashing.
 for (const key of ["toString", "__proto__", "constructor", "hasOwnProperty"]) {
   test(`?state=${key} shows the normal atlas without errors`, async ({ page }) => {

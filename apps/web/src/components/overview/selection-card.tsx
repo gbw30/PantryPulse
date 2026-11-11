@@ -42,6 +42,11 @@ export function SelectionCard({ open, onClose, dock, offset, contentKey, label, 
               avoidCollisions={false}
               aria-label={label}
               onCloseAutoFocus={onCloseAutoFocus}
+              // Choosing another site (a marker or a site chip) switches this shared card. Radix reports that click
+              // as an outside interaction after the site was selected, so dismissing would close the new site's card.
+              onInteractOutside={(event) => {
+                if (event.target instanceof Element && event.target.closest("[data-site-id], [data-site-strip] button")) event.preventDefault();
+              }}
             >
               <motion.div
                 data-selection-card
