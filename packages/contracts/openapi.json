@@ -455,7 +455,7 @@
       },
       "BacktestScore": {
         "additionalProperties": false,
-        "description": "WAPE and bias as percentages of total actual demand, on one shared scored set (W3-F02).\n\nwape_pct = 100 × Σ|prediction − actual| / Σactual; bias_pct = 100 × Σ(prediction − actual) /\nΣactual, positive = over-forecast. Both are null when Σactual is 0. bias_pct replaces V5 §7's\nbias in units for v1 (W3 decisions §10), because units differ per product.",
+        "description": "WAPE and bias as percentages of total actual demand, on one shared scored set (W3-F02).\n\nwape_pct = 100 × Σ|prediction − actual| / Σactual; bias_pct = 100 × Σ(prediction − actual) /\nΣactual, positive = over-forecast. Both are null when Σactual is 0. bias_pct replaces V5 §7's\nbias in units for v1 (W3 decisions §10), because units differ per product.\n\nA not-evaluated status carries no metrics; `reason` is an optional machine code for it\n(W5-L01), e.g. not_evaluated_zero_actual when Σactual is 0.",
         "properties": {
           "bias_pct": {
             "anyOf": [
@@ -473,6 +473,19 @@
             "title": "Origins Evaluated",
             "type": "integer"
           },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "pattern": "^[a-z][a-z0-9_]*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
           "scored_points": {
             "minimum": 0.0,
             "title": "Scored Points",
@@ -481,7 +494,8 @@
           "status": {
             "enum": [
               "evaluated",
-              "not_evaluated_insufficient_history"
+              "not_evaluated_insufficient_history",
+              "not_evaluated_zero_actual"
             ],
             "title": "Status",
             "type": "string"
@@ -1165,6 +1179,21 @@
             "title": "Band",
             "type": "string"
           },
+          "basis": {
+            "anyOf": [
+              {
+                "enum": [
+                  "demand",
+                  "sales"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Basis"
+          },
           "driving_product_id": {
             "maxLength": 64,
             "minLength": 1,
@@ -1723,6 +1752,59 @@
           "trailing_sample_count"
         ],
         "title": "Diagnostics",
+        "type": "object"
+      },
+      "DonationForecastV3": {
+        "additionalProperties": false,
+        "description": "Seven planning days of expected donations at one receiving location × product.\n\nDisplay only (V1-SPEC §6.1, V1-A23): forecast, not confirmed; never supply.",
+        "properties": {
+          "actual_provider": {
+            "minLength": 1,
+            "title": "Actual Provider",
+            "type": "string"
+          },
+          "central_literals": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 7,
+            "minItems": 7,
+            "title": "Central Literals",
+            "type": "array"
+          },
+          "fallback_reason": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fallback Reason"
+          },
+          "location_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Location Id",
+            "type": "string"
+          },
+          "product_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Product Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "location_id",
+          "product_id",
+          "actual_provider",
+          "fallback_reason",
+          "central_literals"
+        ],
+        "title": "DonationForecastV3",
         "type": "object"
       },
       "EgpBlocker": {
@@ -5517,6 +5599,16 @@
             "title": "Demand",
             "type": "array"
           },
+          "donations": {
+            "default": [],
+            "description": "Expected donations (forecast, not confirmed) for display only: never supply, never an allocation, projection or danger-score input.",
+            "items": {
+              "$ref": "#/components/schemas/DonationForecastV3"
+            },
+            "maxItems": 50000,
+            "title": "Donations",
+            "type": "array"
+          },
           "first_planning_date": {
             "format": "date",
             "title": "First Planning Date",
@@ -6244,6 +6336,21 @@
         "additionalProperties": false,
         "description": "One product at one location over the projection dates, in the product's own unit.",
         "properties": {
+          "basis": {
+            "anyOf": [
+              {
+                "enum": [
+                  "demand",
+                  "sales"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Basis"
+          },
           "dates": {
             "items": {
               "format": "date",
