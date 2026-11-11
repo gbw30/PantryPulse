@@ -20,10 +20,18 @@ type Run =
   | { step: "request_failed"; code: string }
   /** The commit never started (the run still reads "uploading" with no job): the files are kept, so it can be sent again. */
   | { step: "not_started"; importId: string; code: string | null }
-  /** The commit may have been accepted, but no status could be read or understood: the import may still finish. */
-  | { step: "lost"; importId: string; reason: string };
+  /** The commit got no answer and the run has no job yet: it may still be waiting for the queue, so the run is read again. */
+  | { step: "maybe_starting" }
+  /** The commit may have been accepted, but no status could be read or understood: the import may still finish.
+   * `commitError`/`checks`: what was left of a commit's check window, so Check again resumes it. */
+  | { step: "lost"; importId: string; reason: string; commitError: string | null; checks: number };
 
 const POLL_MS = 1000;
+// After a commit with no answer, read a run with no job this many times (one per POLL_MS) before offering Retry: the
+// commit can outlast the proxy's 20 s while it waits up to 15 s for the queue lock.
+const UNANSWERED_CHECKS = 30;
+/** No answer from the API: the network failed, or the proxy gave up waiting (BACKEND_UNAVAILABLE) or the page did (TIMEOUT). */
+const unanswered = (error: unknown) => !(error instanceof ApiError) || error.status === 0 || ["BACKEND_UNAVAILABLE", "TIMEOUT"].includes(error.code);
 const TERMINAL = new Set<ImportStatus["phase"]>(["done", "failed"]);
 const describe = (code: string) => code.replaceAll("_", " ").toLowerCase();
 const codeOf = (error: unknown) => (error instanceof ApiError ? error.code : "REQUEST_FAILED");
@@ -77,7 +85,7 @@ function ImportContent() {
 
   const templates = state.status === "ready" ? state.catalog.templates : [];
   // "lost": the accepted import may still commit, so a second submit could save a second copy.
-  const busy = run.step === "uploading" || run.step === "lost" || (run.step === "tracking" && (!run.status || !TERMINAL.has(run.status.phase)));
+  const busy = run.step === "uploading" || run.step === "lost" || run.step === "maybe_starting" || (run.step === "tracking" && (!run.status || !TERMINAL.has(run.status.phase)));
 
   function chooseFile(name: TemplateName, file: File | null) {
     setFiles((current) => {
@@ -138,25 +146,35 @@ function ImportContent() {
         if (alive.current) setRun({ step: "request_failed", code: codeOf(error) });
         return;
       }
-      return track(importId, codeOf(error));
+      return track(importId, codeOf(error), unanswered(error) ? UNANSWERED_CHECKS : 0);
     }
     await track(importId);
   }
 
-  /** Poll an accepted import until it is done or failed. `commitError`: the commit's own error, when it had one. */
-  async function track(importId: string, commitError: string | null = null) {
+  /**
+   * Poll an accepted import until it is done or failed. `commitError`: the commit's own error, when it had one;
+   * `checks`: how many more times a run with no job is read before it counts as not started.
+   */
+  async function track(importId: string, commitError: string | null = null, checks = 0) {
     setRun({ step: "tracking", status: null });
     try {
       for (;;) {
         const status = await networkApi.importStatus(importId);
         if (!alive.current) return;
-        // A commit sets the job and leaves "uploading" in one transaction: without a job, it never started.
+        // A commit sets the job and leaves "uploading" in one transaction: without a job, it never started, unless
+        // a commit that got no answer is still waiting to.
         if (status.phase === "uploading" && status.job_id === null) {
-          setRun({ step: "not_started", importId, code: commitError });
-          return;
+          if (checks <= 0) {
+            setRun({ step: "not_started", importId, code: commitError });
+            return;
+          }
+          checks -= 1;
+          setRun({ step: "maybe_starting" });
+          await sleep(POLL_MS);
+          continue;
         }
         if (!Object.hasOwn(PHASE_LABEL, status.phase)) {
-          setRun({ step: "lost", importId, reason: `The import reported a status this page doesn't know (${describe(status.phase)}).` });
+          setRun({ step: "lost", importId, reason: `The import reported a status this page doesn't know (${describe(status.phase)}).`, commitError, checks });
           return;
         }
         setRun({ step: "tracking", status });
@@ -170,7 +188,7 @@ function ImportContent() {
         await sleep(POLL_MS);
       }
     } catch (error) {
-      if (alive.current) setRun({ step: "lost", importId, reason: `Lost contact with the import (${describe(codeOf(error))}).` });
+      if (alive.current) setRun({ step: "lost", importId, reason: `Lost contact with the import (${describe(codeOf(error))}).`, commitError, checks });
     }
   }
 
@@ -246,6 +264,9 @@ function ImportContent() {
             {/* Busy stays focusable (aria-disabled): disabling the focused button would drop keyboard focus to the page. */}
             <Button className="h-11 justify-self-start aria-disabled:opacity-50" onClick={busy ? undefined : submit} aria-disabled={busy || undefined}>Check and import</Button>
             {run.step === "uploading" && <p role="status" className="text-sm">Uploading files: {run.done} of {run.total}</p>}
+            {run.step === "maybe_starting" && (
+              <p role="status" className="text-sm">The server didn&apos;t answer in time, so the import may still be starting. Checking again…</p>
+            )}
             {run.step === "tracking" && !status && <p role="status" className="text-sm">Starting the checks…</p>}
             {run.step === "request_failed" && (
               <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-pp-danger/40 bg-card px-4 py-3 text-sm">
@@ -263,7 +284,7 @@ function ImportContent() {
             {run.step === "lost" && (
               <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-pp-warning bg-card px-4 py-3 text-sm">
                 {run.reason} It may still finish; nothing is known yet about what was saved.
-                <Button variant="outline" size="sm" onClick={() => { const { importId } = run; void track(importId); }}>Check again</Button>
+                <Button variant="outline" size="sm" onClick={() => { const { importId, commitError, checks } = run; void track(importId, commitError, checks); }}>Check again</Button>
               </div>
             )}
             {status && <ImportProgress status={status} />}

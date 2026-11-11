@@ -28,12 +28,28 @@ export function EnrichmentStatusPanel({ status, onRetry, onSaveAttributes }: Pro
     }
   }
 
+  // Lookups that never started (a full queue when the import finished) carry their reason; a sample's carry none.
+  const notStarted = status.state === "not_started" && status.last_error ? status.last_error : null;
+  const retryControls = (
+    <>
+      <Button variant="outline" className="h-10 justify-self-start" disabled={retry.busy || status.state === "running"} onClick={retryLookups}>Retry lookups</Button>
+      {retry.message && <p role="status">{retry.message}</p>}
+    </>
+  );
+
   return (
     <div className="grid gap-4">
       <p className="text-sm">
         Address and Census lookups: <span className="font-medium">{STATE_LABEL[status.state]}</span>
-        {status.last_error && <span className="text-muted-foreground"> · last error: {status.last_error}</span>}
+        {status.last_error && !notStarted && <span className="text-muted-foreground"> · last error: {status.last_error}</span>}
       </p>
+
+      {notStarted && (
+        <section aria-label="Lookups not started" className="grid gap-2 rounded-xl border border-pp-warning/60 bg-card p-4 text-sm">
+          <p>{notStarted}</p>
+          {retryControls}
+        </section>
+      )}
 
       {status.egp_blockers.length > 0 && (
         <div role="alert" className="grid gap-1 rounded-xl border border-pp-warning/60 bg-card px-4 py-3 text-sm">
@@ -59,8 +75,7 @@ export function EnrichmentStatusPanel({ status, onRetry, onSaveAttributes }: Pro
             </ul>
           ) : <p>The lookup service could not be reached. Affected values stay unknown until a retry succeeds.</p>}
           <p className="text-xs text-muted-foreground">Fix the address or add latitude and longitude in locations.csv and re-import, or retry if the lookup service was unreachable.</p>
-          <Button variant="outline" className="h-10 justify-self-start" disabled={retry.busy || status.state === "running"} onClick={retryLookups}>Retry lookups</Button>
-          {retry.message && <p role="status">{retry.message}</p>}
+          {retryControls}
         </section>
       )}
 

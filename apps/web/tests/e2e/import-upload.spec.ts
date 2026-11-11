@@ -89,12 +89,19 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]] as const) {
     await tabTo(/^Pantry network/);
     await page.keyboard.press("Space");
     await expect(page.getByRole("radio", { name: /^Pantry network/ })).toBeChecked();
+    // One listener for the whole loop: Playwright turns chooser interception off when the last listener goes and back on,
+    // without waiting, for the next waitForEvent. A candidate cause of the rare A20 chooser timeouts (never reproduced).
+    const keepIntercepting = () => {};
+    page.on("filechooser", keepIntercepting);
     for (const file of REQUIRED) {
       await tabTo(new RegExp(`^${file}\\.csv \\(required\\)`));
       const chooser = page.waitForEvent("filechooser");
       await page.keyboard.press("Space");
       await (await chooser).setFiles(csv(file));
+      // The page took the file before the next input is opened.
+      await expect(page.getByText(new RegExp(`^${file}\\.csv · \\d+ bytes$`))).toBeVisible();
     }
+    page.off("filechooser", keepIntercepting);
     await tabTo(/^Check and import$/);
     await page.keyboard.press("Enter");
     await expect(page.getByRole("button", { name: "Start a new import" })).toBeVisible();

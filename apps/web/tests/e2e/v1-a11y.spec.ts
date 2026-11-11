@@ -159,12 +159,18 @@ for (const [width, height] of VIEWPORTS) {
       await tabTo(page, pantry);
       await page.keyboard.press("Space");
       await expect(pantry).toBeChecked();
+      // As in import-upload.spec.ts A20: one listener keeps chooser interception on for the whole loop (Playwright
+      // otherwise turns it off and back on, without waiting, around each waitForEvent), and each file lands first.
+      const keepIntercepting = () => {};
+      page.on("filechooser", keepIntercepting);
       for (const file of REQUIRED) {
         await tabTo(page, page.getByLabel(`${file}.csv (required)`));
         const chooser = page.waitForEvent("filechooser");
         await page.keyboard.press("Space");
         await (await chooser).setFiles(csv(file));
+        await expect(page.getByText(new RegExp(`^${file}\\.csv · \\d+ bytes$`))).toBeVisible();
       }
+      page.off("filechooser", keepIntercepting);
       await tabTo(page, page.getByRole("button", { name: "Check and import" }));
       await page.keyboard.press("Enter");
       const again = page.getByRole("button", { name: "Start a new import" });

@@ -135,6 +135,116 @@ it("a commit the queue turned away (503) says the import didn't start, stops pol
   expect(networkApi.createImport).toHaveBeenCalledTimes(1);
 });
 
+// W4 web hardening (lead, 2026-11-10): a commit can outlast the proxy's 20 s while it waits for the queue lock. With no
+// answer, a run still "uploading" may yet start, so the page checks again before offering Retry (safe: the API gives
+// each run's commit a stable key, so a second commit gets the same job).
+const uploadingNoJob = () => ({ ...example("ImportStatus"), phase: "uploading" as const, job_id: null, progress: null, error_count: 0, errors: [], failure: null });
+
+it("a commit the proxy timed out on may still be starting: the page checks again and carries on when its job appears", async () => {
+  let answer: (error: unknown) => void = () => {};
+  vi.spyOn(networkApi, "commitImport").mockImplementation(() => new Promise((_, reject) => { answer = reject; }));
+  const status = vi.spyOn(networkApi, "importStatus").mockResolvedValueOnce(uploadingNoJob()).mockResolvedValueOnce(uploadingNoJob())
+    .mockResolvedValue(example("ImportStatus"));
+  await importAll();
+  await waitFor(() => expect(networkApi.commitImport).toHaveBeenCalled());
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  try {
+    await act(async () => { answer(new ApiError("BACKEND_UNAVAILABLE", 503)); });
+    expect(screen.getByRole("status")).toHaveTextContent("The server didn't answer in time, so the import may still be starting. Checking again…");
+    expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/didn't start/)).not.toBeInTheDocument();
+    await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
+    expect(status).toHaveBeenCalledTimes(3);
+    expect(screen.getByText(example("ImportStatus").failure!.message)).toBeVisible();
+    expect(networkApi.commitImport).toHaveBeenCalledTimes(1);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("a commit with no answer whose run still has no job after the checks offers Retry, which sends the same run", async () => {
+  const created = example("ImportCreated");
+  let answer: (error: unknown) => void = () => {};
+  const commit = vi.spyOn(networkApi, "commitImport").mockImplementationOnce(() => new Promise((_, reject) => { answer = reject; }))
+    .mockResolvedValueOnce(example("ImportAccepted"));
+  const status = vi.spyOn(networkApi, "importStatus").mockResolvedValue(uploadingNoJob());
+  await importAll();
+  await waitFor(() => expect(commit).toHaveBeenCalled());
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  try {
+    await act(async () => { answer(new ApiError("BACKEND_UNAVAILABLE", 503)); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(29_000); });
+    expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
+    await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
+    expect(screen.getByRole("alert")).toHaveTextContent("The import didn't start (backend unavailable). Your files are kept and nothing was saved.");
+    const checks = status.mock.calls.length;
+    await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
+    expect(status).toHaveBeenCalledTimes(checks); // the checks stop with the alert
+  } finally {
+    vi.useRealTimers();
+  }
+  status.mockResolvedValue(example("ImportStatus"));
+  fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+  await screen.findByText(example("ImportStatus").failure!.message);
+  expect(commit.mock.calls.map(([id]) => id)).toEqual([created.import_id, created.import_id]);
+});
+
+it("after a commit with no answer and a lost status read, Check again keeps checking for the rest of the window (F1)", async () => {
+  let answer: (error: unknown) => void = () => {};
+  vi.spyOn(networkApi, "commitImport").mockImplementation(() => new Promise((_, reject) => { answer = reject; }));
+  const status = vi.spyOn(networkApi, "importStatus").mockResolvedValueOnce(uploadingNoJob())
+    .mockRejectedValueOnce(new ApiError("BACKEND_UNAVAILABLE", 503)).mockResolvedValue(uploadingNoJob());
+  await importAll();
+  await waitFor(() => expect(networkApi.commitImport).toHaveBeenCalled());
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  try {
+    await act(async () => { answer(new ApiError("BACKEND_UNAVAILABLE", 503)); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_000); });
+    expect(screen.getByRole("alert")).toHaveTextContent("Lost contact with the import");
+    await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
+    fireEvent.click(screen.getByRole("button", { name: "Check again" }));
+    await act(async () => {});
+    // One of the 30 checks was used before contact was lost: 29 remain, one read per second.
+    expect(screen.getByRole("status")).toHaveTextContent("the import may still be starting. Checking again…");
+    await act(async () => { await vi.advanceTimersByTimeAsync(28_000); });
+    expect(screen.queryByText(/didn't start/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Start a new import" })).not.toBeInTheDocument();
+    await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
+    expect(screen.getByRole("alert")).toHaveTextContent("The import didn't start (backend unavailable). Your files are kept and nothing was saved.");
+    expect(status).toHaveBeenCalledTimes(2 + 30);
+    expect(networkApi.commitImport).toHaveBeenCalledTimes(1);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("losing contact again inside the resumed window keeps the remaining checks (F1 review)", async () => {
+  let answer: (error: unknown) => void = () => {};
+  vi.spyOn(networkApi, "commitImport").mockImplementation(() => new Promise((_, reject) => { answer = reject; }));
+  const lost = new ApiError("BACKEND_UNAVAILABLE", 503);
+  const status = vi.spyOn(networkApi, "importStatus").mockResolvedValueOnce(uploadingNoJob()).mockRejectedValueOnce(lost);
+  for (let i = 0; i < 5; i++) status.mockResolvedValueOnce(uploadingNoJob());
+  status.mockRejectedValueOnce(lost).mockResolvedValue(uploadingNoJob());
+  await importAll();
+  await waitFor(() => expect(networkApi.commitImport).toHaveBeenCalled());
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  try {
+    await act(async () => { answer(lost); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_000); });
+    fireEvent.click(screen.getByRole("button", { name: "Check again" })); // 29 checks left
+    await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
+    expect(screen.getByRole("alert")).toHaveTextContent("Lost contact with the import");
+    fireEvent.click(screen.getByRole("button", { name: "Check again" })); // 24 checks left, one read per second
+    await act(async () => { await vi.advanceTimersByTimeAsync(23_000); });
+    expect(screen.queryByText(/didn't start/)).not.toBeInTheDocument();
+    await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
+    expect(screen.getByRole("alert")).toHaveTextContent("The import didn't start (backend unavailable).");
+    expect(status).toHaveBeenCalledTimes(2 + 6 + 25);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 it("a commit the server refused still says nothing was saved", async () => {
   vi.spyOn(networkApi, "commitImport").mockRejectedValue(new ApiError("AS_OF_DATE_INVALID", 422));
   const status = vi.spyOn(networkApi, "importStatus");
