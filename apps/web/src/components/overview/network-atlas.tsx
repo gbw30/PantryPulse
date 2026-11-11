@@ -529,7 +529,10 @@ function LegacyAtlas({ statePreview, body }: AtlasProps & { body?: React.ReactNo
                     lifted={liftedPanel === "card"}
                     onCloseAutoFocus={(event) => {
                       event.preventDefault();
-                      if (afterPopoverClose.current === "invoker") restoreFocus();
+                      // Radix runs this in a timer after the card unmounts, when a newer selection may already own
+                      // focus (and the intent ref is that selection's). Only return focus that was lost with the card.
+                      const lost = !document.activeElement || document.activeElement === document.body;
+                      if (afterPopoverClose.current === "invoker" && lost) restoreFocus();
                     }}
                   >
                     <PopoverSummary
