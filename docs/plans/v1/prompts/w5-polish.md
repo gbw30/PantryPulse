@@ -33,8 +33,10 @@ You are the PantryPulse lane agent for **`w5-polish`** (UI polish with devkit st
 ## Your tasks (full steps and test names in the wave file)
 
 - [ ] **W5-UI01**: Visual baseline screenshots (3 viewports × light/dark) in `docs/pantrypulse/visual-evidence/v1-before/`
-- [ ] **W5-UI02**: Fix each ux-critic finding listed in wave-5.md (filled at W4-04), each pinned by a test
+- [ ] **W5-UI02**: Fix the five ux-critic findings W5-UI02.1–.5 in wave-5.md (Data Explorer network mix, Scenario Lab clipping, Decisions period, Retail expiry wording, the Overview's first view), each pinned by a test
 - [ ] **W5-UI03**: Purposeful finite motion, after screenshots, and fix the flaky `overview-layout.spec.ts:216` at its root
+- [ ] **W5-UI04**: The sales label on the ranking and inspector, after `w5-data`'s W5-D01 merges (merge `origin/v1-local` first)
+- [ ] **W5-UI05**: W4 follow-ups: the product picker's late focus return, the e2e port check and no server reuse, the 700-action unit-test timeout, the unit plural, the network selector width, collapsed import guides, and the print selection saved only on print
 
 Do them in this order unless the wave file's "depends on" allows otherwise.
 
@@ -42,6 +44,7 @@ Do them in this order unless the wave file's "depends on" allows otherwise.
 
 - `apps/web/src/** (including apps/web/src/app/globals.css)`
 - `apps/web/tests/e2e/**`
+- `apps/web/playwright.config.ts` (W5-UI05 only)
 - `docs/pantrypulse/visual-evidence/**`
 - `docs/plans/v1/status/w5-polish.md`
 
