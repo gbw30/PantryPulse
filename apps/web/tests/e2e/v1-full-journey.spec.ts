@@ -201,9 +201,11 @@ test.describe("Pantry sample", () => {
     await signIn(page, "/overview");
     const { id, name } = samples.PANTRY;
     await chooseNetwork(page, name);
-    const before = probe(STOCK, await datasetOf(page, id));
+    const dataset = await datasetOf(page, id);
+    const before = probe(STOCK, dataset);
     await planAndExport(page, { id, name }, { transfer: "Hub → pantries only", days: "2 days", methods: PANTRY_METHODS });
-    expect(probe(STOCK, await datasetOf(page, id))).toEqual(before);
+    expect(await datasetOf(page, id), "a decision creates no dataset version").toBe(dataset);
+    expect(probe(STOCK, dataset)).toEqual(before);
   });
 });
 
@@ -212,9 +214,11 @@ test("@V1-A15 @V1-A16 Retail sample: forecast, compare → decisions → export 
   const { id, name } = samples.RETAIL;
   await chooseNetwork(page, name);
   await runForecast(page, name);
-  const before = probe(STOCK, await datasetOf(page, id));
+  const dataset = await datasetOf(page, id);
+  const before = probe(STOCK, dataset);
   await planAndExport(page, { id, name }, { transfer: "DC → stores only", methods: RETAIL_METHODS, measure: "Units" });
-  expect(probe(STOCK, await datasetOf(page, id))).toEqual(before);
+  expect(await datasetOf(page, id), "a decision creates no dataset version").toBe(dataset);
+  expect(probe(STOCK, dataset)).toEqual(before);
 });
 
 test("@V1-A23 the donation forecast is shown not confirmed, and danger is the same with and without it", async ({ page }) => {

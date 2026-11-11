@@ -67,7 +67,7 @@ export function ForecastRunsNote({ runs, onRetry, none }: { runs: ForecastRuns; 
 }
 
 type Phase = { kind: "idle" } | { kind: "starting" } | { kind: "following"; jobId: string; state: State }
-  | { kind: "ended"; state: State } | { kind: "error"; text: string };
+  | { kind: "ended"; state: State } | { kind: "current" } | { kind: "error"; text: string };
 
 function initial(latest: Summary | null): Phase {
   if (!latest) return { kind: "idle" };
@@ -118,6 +118,12 @@ export function RunForecast({ network, latest, onDone }: { network: Network; lat
     setPhase({ kind: "starting" });
     try {
       const accepted = await networkApi.submitForecast(network.id, { dataset_version_id: datasetVersionId });
+      // The API reuses a finished run with the same input (jobs.py, `replayed`): nothing new was run.
+      if (accepted.replayed && accepted.state === "SUCCEEDED") {
+        setPhase({ kind: "current" });
+        onDone();
+        return;
+      }
       setPhase({ kind: "following", jobId: accepted.job_id, state: accepted.state });
     } catch (error) {
       setPhase({ kind: "error", text: `Forecast not started: ${failure(error)}.` });
@@ -132,6 +138,7 @@ export function RunForecast({ network, latest, onDone }: { network: Network; lat
       {phase.kind === "starting" && <p role="status" className="text-sm">Starting the forecast…</p>}
       {phase.kind === "following" && <p role="status" className="text-sm">{following[phase.state] ?? `Forecast ${words(phase.state)}…`}</p>}
       {phase.kind === "ended" && phase.state === "SUCCEEDED" && <p role="status" className="text-sm">Forecast finished. The views below use the new run.</p>}
+      {phase.kind === "current" && <p role="status" className="text-sm">The forecast is already up to date with the current data.</p>}
       {phase.kind === "ended" && phase.state !== "SUCCEEDED" && (
         <p role="alert" className="text-sm">The forecast did not finish ({words(phase.state)}). Nothing changed; run it again.</p>
       )}

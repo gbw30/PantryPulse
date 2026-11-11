@@ -23,7 +23,11 @@ city-level points in Florida. `pantry` follows the backend `mini-network` fixtur
   blank (missing) days stay blank. P3 BEANS has only a blank day, so it is never forecast. The last date
   is still 2026-11-03, so the default `as_of_date` stays 2026-11-04.
 - P1 holds 1 case of Rice (W4-02, lead ruling): a plan acts only on need inside its planning window
-  (`candidates.py` caps each lane at the destination's in-window unmet need), so P1 must already be
-  short on 2026-11-06, the first day a hub transfer (shipped 11-05, 1 day) can arrive. So P1's weekly
-  Rice pattern has no zero day, and its seasonal-naive forecast for 11-06 is 3 cases. With 4 cases on hand,
-  or a zero forecast on 11-06, every method suggested no transfer to P1.
+  (`candidates.py` caps each lane at the destination's in-window unmet need), so P1 must be short by
+  2026-11-06, the first day a hub transfer (shipped 11-05, 1 day) can arrive. P1's weekly Rice pattern
+  has no zero day; its seasonal-naive forecast is 3 cases on 11-04 and 3 on 11-06, so the 1 case on hand
+  leaves P1 short on 11-04 and on 11-06, and the methods can suggest a transfer to P1.
+
+Known limits:
+- With `--workers=2`, two specs can both seed the samples at once and race; the race fails loudly
+  (it never passes wrongly). CI runs `--workers=1`.

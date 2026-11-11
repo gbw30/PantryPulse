@@ -114,6 +114,8 @@ test("@V1-A16 export CSV contains hash and simulated text; stock tables unchange
   await expect(page.getByText(new RegExp(`· hash ${hash}$`))).toBeVisible();
   await expect(page.getByText(SIMULATED)).toBeVisible();
 
-  // Freezing, comparing, deciding, exporting and printing changed no stock row (W1-S07; no reservation, no dispatch).
+  // Freezing, comparing, deciding, exporting and printing changed no stock row and wrote no new dataset
+  // version (W1-S07; no reservation, no dispatch).
+  expect(await datasetOf(page, opened.id), "a decision creates no dataset version").toBe(dataset);
   expect(probe(STOCK, dataset)).toEqual(before);
 });

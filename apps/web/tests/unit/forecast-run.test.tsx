@@ -80,6 +80,19 @@ it("a forecast still running after a reload shows as running and is followed, wi
   expect(networkApi.submitForecast).not.toHaveBeenCalled();
 });
 
+it("a replayed, already finished forecast of the same input says the forecast is already up to date, not that a new run is used", async () => {
+  // jobs.py reuses a SUCCEEDED forecast.v1 job with the same input hash and sets `replayed`.
+  vi.spyOn(networkApi, "submitForecast").mockResolvedValue({ ...example("ForecastAccepted"), job_id: running.job_id, state: "SUCCEEDED", replayed: true });
+  vi.spyOn(networkApi, "job").mockResolvedValue(job("SUCCEEDED"));
+  const onDone = vi.fn();
+  render(<RunForecast network={network} latest={null} onDone={onDone} />);
+  fireEvent.click(screen.getByRole("button", { name: "Run forecast" }));
+  await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("The forecast is already up to date with the current data."));
+  expect(screen.getByRole("status")).not.toHaveTextContent("new run");
+  expect(onDone).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole("button", { name: "Run forecast" })).not.toHaveAttribute("aria-disabled");
+});
+
 it("a forecast that did not finish says so, and can be run again", async () => {
   vi.spyOn(networkApi, "submitForecast").mockResolvedValue({ ...example("ForecastAccepted"), job_id: running.job_id, state: "QUEUED" });
   vi.spyOn(networkApi, "job").mockResolvedValue(job("TIMED_OUT"));
