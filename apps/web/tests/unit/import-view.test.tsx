@@ -218,6 +218,33 @@ it("after a commit with no answer and a lost status read, Check again keeps chec
   }
 });
 
+it("losing contact again inside the resumed window keeps the remaining checks (F1 review)", async () => {
+  let answer: (error: unknown) => void = () => {};
+  vi.spyOn(networkApi, "commitImport").mockImplementation(() => new Promise((_, reject) => { answer = reject; }));
+  const lost = new ApiError("BACKEND_UNAVAILABLE", 503);
+  const status = vi.spyOn(networkApi, "importStatus").mockResolvedValueOnce(uploadingNoJob()).mockRejectedValueOnce(lost);
+  for (let i = 0; i < 5; i++) status.mockResolvedValueOnce(uploadingNoJob());
+  status.mockRejectedValueOnce(lost).mockResolvedValue(uploadingNoJob());
+  await importAll();
+  await waitFor(() => expect(networkApi.commitImport).toHaveBeenCalled());
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  try {
+    await act(async () => { answer(lost); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_000); });
+    fireEvent.click(screen.getByRole("button", { name: "Check again" })); // 29 checks left
+    await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
+    expect(screen.getByRole("alert")).toHaveTextContent("Lost contact with the import");
+    fireEvent.click(screen.getByRole("button", { name: "Check again" })); // 24 checks left, one read per second
+    await act(async () => { await vi.advanceTimersByTimeAsync(23_000); });
+    expect(screen.queryByText(/didn't start/)).not.toBeInTheDocument();
+    await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
+    expect(screen.getByRole("alert")).toHaveTextContent("The import didn't start (backend unavailable).");
+    expect(status).toHaveBeenCalledTimes(2 + 6 + 25);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 it("a commit the server refused still says nothing was saved", async () => {
   vi.spyOn(networkApi, "commitImport").mockRejectedValue(new ApiError("AS_OF_DATE_INVALID", 422));
   const status = vi.spyOn(networkApi, "importStatus");
