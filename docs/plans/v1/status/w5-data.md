@@ -42,6 +42,13 @@
 
 ## Gotchas
 
+- **Replay flake `test_actions.py::test_actions_equal_the_full_network_replay[bench-retail-RETAIL_OPTIMIZED-receiving-None]` (seen once by w5-screens at load ~27): not reproduced, no fix made.**
+  - The solve is CP-SAT with 1 worker, seed 0 and a **wall-clock** limit of 5 s per product (`retail.py:40-42`, `methods.py:47`). The whole bench 14×10 method takes 0.23 s here.
+  - Forcing a short limit does give the suspected failure: 0.05 s still verifies (some products FEASIBLE), but ≤ 0.005 s returns UNKNOWN with `NO_SOLUTION:P002,P006,P007,P009`, no plan, and the assert at line 282 fails.
+  - Reaching that from 5 s needs a slowdown of more than 20×. Under 32 busy loops on 16 cores (load ~29), all 30 bench-retail replay cases passed twice, at about 150 s a run, and once more after the load stopped.
+  - Not changed: a deterministic limit (`max_deterministic_time`) isn't exposed by `run_method`, so it would need a production solver change, which is out of scope. Raising the test's `search_seconds` would only hide an unconfirmed cause.
+  - The assert already prints `result.failure_reason`. A `NO_SOLUTION:…` there confirms a timeout; anything else points elsewhere (for example a FEASIBLE plan that `saturated(…, "receiving")` doesn't expect). The captured failure output is the next step.
+
 - **Donation literals share demand's 100,000-per-day cap (verifier F2, note only):** `scenario.py` parses donation points with `decimal_literal`, so a donation forecast over 100,000 per day blocks freezing the scenario, the same limit demand has. The why's **sum** is not capped (F1 fixed in `f698843`).
 
 - `tests/networks/test_build_scenario.py`'s fixture forecast job capped its output at 10,000 bytes; six series exceed it (`OUTPUT_TOO_LARGE`). Raised to 100,000 for the donation tests.
