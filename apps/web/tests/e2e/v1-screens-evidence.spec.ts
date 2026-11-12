@@ -42,7 +42,7 @@ test("@V1-A12 @V1-A20 evidence: /data shows only the Pantry sample", async ({ pa
   await expectNoSeriousA11yViolations(page, testInfo, "w5-screens /data");
 });
 
-test("@V1-A14 @V1-A20 evidence: the Scenario Lab comparison, rows collapsed and open", async ({ page }, testInfo) => {
+test("@V1-A14 @V1-A16 @V1-A20 evidence: the Scenario Lab comparison, rows collapsed and open, then its Decisions", async ({ page }, testInfo) => {
   await page.goto("/scenarios");
   const section = page.getByRole("region", { name: `Method comparison · ${PANTRY}` });
   const transfer = "Hub → pantries only";
@@ -51,4 +51,12 @@ test("@V1-A14 @V1-A20 evidence: the Scenario Lab comparison, rows collapsed and 
   await results.getByRole("region", { name: "Classical GP", exact: true }).getByText("Show rows").click();
   await shoot(page, "comparison-rows-open");
   await expectNoSeriousA11yViolations(page, testInfo, "w5-screens comparison");
+
+  // Decisions for the same plan: every effect names its period, and the plan says what it doesn't cover.
+  await results.getByRole("link", { name: "Open suggested actions for Classical GP" }).click();
+  const decisions = page.getByRole("region", { name: `Suggested actions · ${PANTRY}` });
+  await expect(decisions.getByText(/^Plan covers .* only; unmet need after .* is not planned\.$/)).toBeVisible({ timeout: 60_000 });
+  await expect(decisions.getByRole("article").first()).toContainText(/over \w{3} \d+–/);
+  await shoot(page, "decisions");
+  await expectNoSeriousA11yViolations(page, testInfo, "w5-screens decisions");
 });

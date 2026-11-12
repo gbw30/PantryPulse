@@ -7,8 +7,10 @@ Connected captures of the lane's own isolated stack (`COMPOSE_PROJECT_NAME=pp-sc
 
 | Files | Screen | Built from |
 |---|---|---|
-| `data-*` | `/data` with the Pantry sample chosen (W5-UI02.1) | `abba32a` |
-| `comparison-*` | Scenario Lab comparison, Hub → pantries only, 3 days, rows collapsed (W5-UI02.2) | `abba32a` |
+| `data-*` | `/data` with the Pantry sample chosen (W5-UI02.1) | `d6834e0` |
+| `comparison-*` | Scenario Lab comparison, Hub → pantries only, 3 days, rows collapsed (W5-UI02.2) | `d6834e0` |
+| `comparison-rows-open-*` | The same comparison with Classical GP's rows open; the setup column stays at the top | `d6834e0` |
+| `decisions-*` | Decisions for that Classical GP plan: each effect names its period, and the plan says the days after its window are not planned (W5-UI02.3) | `d6834e0` |
 
 Known, outside this lane (reported to the orchestrator):
 - At 390×844 the page is 481 px wide on every screen: the top bar's right cluster (`top-bar.tsx:83`, `ml-auto flex shrink-0`) overflows. w5-polish's file.
