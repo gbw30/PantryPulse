@@ -10,6 +10,7 @@
 | W5-D02 | done | `3741685` | RED seen: hub/DC rows accepted, guide silent, bench bound 4,500,000. `uv run --frozen pytest -q tests/imports/` → 202 passed, 0 skipped (incl. `test_bench_import.py`: `test_small_bench_writes_phase_seconds_and_peak_rss` and the new `test_rows_stop_at_what_the_generator_can_write`). Whole API suite `uv run --frozen pytest -q` (`.env.lane`, `PP19_TEST_SCHEMA_ISOLATION=1`) → 2263 passed, 0 skipped, 0 failed |
 | W5-D03 | done | `cc9c46b` | RED seen (`evaluated` with null WAPE). `uv run --frozen pytest -q tests/forecasting/test_backtest.py tests/imports/` → 211 passed, 0 skipped |
 | W5-D04 | done | `fea2ec0` | RED seen (`DID NOT RAISE AccessError` for done and failed). Same command → 211 passed, 0 skipped |
+| W5-UI04 (data side) | done | `8691c72` | Gabriel's decision (2026-11-12, via orchestrator): the `basis` guide names the three places the sales label shows after polish's UI04 ("the Forecast trust panels, the danger ranking and the site inspector"), never "everywhere". RED seen (`test_guide_states_single_timezone_and_blank_capacity_rule`, old wording). `uv run --frozen pytest -q tests/imports/` → 202 passed, 0 skipped |
 
 ## Gates
 
