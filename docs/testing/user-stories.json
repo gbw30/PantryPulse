@@ -1,12 +1,14 @@
 {
   "source": "docs/pantrypulse/V1-SPEC.md §13",
-  "note": "Coverage comes from @V1-Axx e2e title tags and # covers: / // covers: test headers (scripts/testing/story-coverage.cjs). Put non-test evidence (recorded runs) in tests.",
+  "note": "Coverage comes from @V1-Axx e2e title tags and # covers: / // covers: test headers (scripts/testing/story-coverage.cjs). tests lists only evidence checks that carry no tag, as \"<path> [args]\"; --enforce fails if the path does not exist. See docs/testing/README.md.",
   "stories": [
     {
       "id": "V1-A01",
       "criterion": "Clean install: on a clean Windows 11 and Ubuntu 24.04 machine with only Docker and git, `git clone` + `docker compose up` reaches a working login page with no other step",
       "evidence": "Recorded run per OS: commit, Docker version, elapsed time, screenshot",
-      "tests": []
+      "tests": [
+        "scripts/testing/check-recorded-runs.cjs V1-A01"
+      ]
     },
     {
       "id": "V1-A02",
@@ -108,7 +110,9 @@
       "id": "V1-A18",
       "criterion": "README: a person who has never seen the repo follows only the README on Windows 11 and on Linux and completes install → sample → import own template (including `inbound.csv` and `donation_history.csv`) → forecast → compare → export",
       "evidence": "Observed run notes per OS",
-      "tests": []
+      "tests": [
+        "scripts/testing/check-recorded-runs.cjs V1-A18"
+      ]
     },
     {
       "id": "V1-A19",
@@ -144,7 +148,9 @@
       "id": "V1-A24",
       "criterion": "Images: `docker compose up --build` works from a clean clone. After the user-authorized release, plain `docker compose up` on a clean Windows 11 and Ubuntu machine pulls the published images and needs no local build. First-run time is recorded for both paths in the README",
       "evidence": "Release workflow run + clean-machine runs for both paths",
-      "tests": []
+      "tests": [
+        "scripts/testing/check-recorded-runs.cjs V1-A24"
+      ]
     }
   ]
 }

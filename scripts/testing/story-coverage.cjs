@@ -43,7 +43,11 @@ for (const base of ['apps', 'scripts'].map((d) => path.join(root, d)).filter((d)
   }
 }
 
+// Under --enforce, a listed evidence check ("<path> [args]") must name a file that exists.
+const stale = mode !== 'enforce' ? [] : stories.flatMap((s) => (s.tests ?? [])
+  .map((t) => t.split(' ')[0]).filter((file) => !fs.existsSync(path.join(root, file))).map((file) => `stale ${s.id}: ${file} does not exist`));
 const uncovered = [...coverage].filter(([, tests]) => tests.length === 0).map(([id]) => id);
 for (const [id, tests] of coverage) console.log(tests.length ? `ok ${id}: ${tests.join(', ')}` : `uncovered ${id}`);
+for (const line of stale) console.log(line);
 console.log(`covered ${coverage.size - uncovered.length}/${coverage.size}`);
-process.exit(mode === 'enforce' && uncovered.length ? 1 : 0);
+process.exit(mode === 'enforce' && (uncovered.length || stale.length) ? 1 : 0);
