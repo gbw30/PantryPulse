@@ -184,6 +184,18 @@ it("the selection is saved only when the print link is used, so another tab's se
   expect(within(await screen.findByRole("table", { name: "Selected actions" })).getAllByRole("row")).toHaveLength(4);
 });
 
+it("a middle-click or the link's context menu (open in a new tab) saves the selection too; neither fires click", async () => {
+  vi.spyOn(networkApi, "actions").mockResolvedValue(actions(3));
+  render(<DecisionsView comparisonId={saved.id} method="CLASSICAL_GP" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Select all" }));
+  const link = screen.getByRole("link", { name: "Print page (3 actions)" });
+  fireEvent.mouseDown(link, { button: 1 });
+  expect(window.localStorage.length).toBe(1);
+  window.localStorage.clear();
+  fireEvent.mouseDown(link, { button: 2 });
+  expect(window.localStorage.length).toBe(1);
+});
+
 // W5-UI02.3: effect periods and the plan window are named in local calendar days.
 it("names a period across months, a single day, and the Retail wording after the plan's window", () => {
   expect(periodText("2026-10-30", "2026-11-05")).toBe("Oct 30–Nov 5 (7 days)");

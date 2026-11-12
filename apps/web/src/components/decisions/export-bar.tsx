@@ -26,7 +26,7 @@ type Props = {
   count: number;
   busy: boolean;
   printHref: string;
-  /** Saves the selection for the print page; runs before the link navigates. */
+  /** Saves the selection for the print page before the link navigates: on click, and on a middle or right mousedown (a new tab fires no click). */
   onPrint: () => void;
   onExport: () => void;
   onSelectAll: () => void;
@@ -43,7 +43,7 @@ export function ExportBar({ total, count, busy, printHref, onPrint, onExport, on
       <Button type="button" size="sm" disabled={count === 0} aria-disabled={busy || undefined} className="aria-disabled:opacity-50"
         onClick={busy ? undefined : onExport}>Export CSV ({actions(count)})</Button>
       {count > 0
-        ? <Link href={printHref} onClick={onPrint} className="text-sm font-medium underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm">Print page ({actions(count)})</Link>
+        ? <Link href={printHref} onClick={onPrint} onMouseDown={(e) => { if (e.button !== 0) onPrint(); }} className="text-sm font-medium underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm">Print page ({actions(count)})</Link>
         : <span className="text-xs text-muted-foreground">Select actions to export or print.</span>}
       <span className="text-xs text-muted-foreground sm:ml-auto">{SIMULATED_NOTE}</span>
     </div>

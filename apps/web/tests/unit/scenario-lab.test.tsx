@@ -57,7 +57,7 @@ it("while the networks load, neither builder is shown", () => {
 // W5-SC01 (W4-03 ux-critic note): the builder's unit headers (wizard.tsx) and the Data Explorer's product
 // names use this plural. "boxs" read as a typo.
 it("pluralize writes -es after s-like endings, -ies after a consonant y, keeps each and an existing plural", () => {
-  const cases = { box: "boxes", bunch: "bunches", dish: "dishes", glass: "glasses", case: "cases", bottle: "bottles",
+  const cases = { oz: "oz", g: "g", kg: "kg", ml: "ml", box: "boxes", bunch: "bunches", dish: "dishes", glass: "glasses", case: "cases", bottle: "bottles",
     berry: "berries", tray: "trays", each: "each", lbs: "lbs", meals: "meals" };
   expect(Object.fromEntries(Object.keys(cases).map((unit) => [unit, pluralize(unit)]))).toEqual(cases);
 });
