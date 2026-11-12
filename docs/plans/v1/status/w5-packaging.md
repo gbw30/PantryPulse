@@ -50,6 +50,15 @@ Order: PK01 → PK03 → PK04 → PK02 → PK05. PK02's `--enforce` can reach ex
 | F4 (Low): the bench artifact lacks `bench_versions`; the runner was uncommitted when it ran | Disclosed in HARDWARE.md's limits; the post-D02 re-measurement uses the committed runner |
 | F5 (Low): README said every published result passes the verifier, but failed methods are returned unverified | "Every plan shown passes an independent verifier; a method that fails verification is shown as failed, never replaced or turned into suggested actions" (`results.tsx:286`, `decisions-view.tsx:18-20`) |
 
+## Next, on the orchestrator's go (after the w5-data merge, PR #151)
+
+Agreed with the orchestrator on 2026-11-12. Nothing is running now.
+1. `git fetch && git merge origin/v1-local`, then commit the merge.
+2. Read the merged `apps/api/scripts/bench_import.py`. The data lane's revision `09b6aba` (not pushed at the time of writing) has 100 pantries, no hub and 4,500,000 rows. #151 at `e4d8b05` still had one hub and 4,455,000 rows. Record what the merged bench actually generates, with its commit.
+3. With a clean tree and no commits during the run, run the whole `node scripts/bench/run-all.cjs` (about 22 min) on that committed head with `.env.lane`. Regenerate HARDWARE.md from the new artifact, and replace the "predates D02" and "uncommitted runner" notes with the new run's commit and bench version. Commit.
+4. Run the focused tests, then the quick gate with `PP19_TEST_SCHEMA_ISOLATION=1` exported by hand.
+5. Push and open the PR, both after Gabriel approves in the terminal. Run `/code-review` locally only: its findings go to this file and to the orchestrator, never as GitHub comments. The orchestrator runs its own verifier before the merge.
+
 ## Decisions made inside the lane
 
 - `compose.test.yaml` runs the suite with `pytest --junitxml` and then `scripts/quality/require-test-evidence.py` on the same file (the CI skip check). The backup's `--require-no-skips` flag is not a pytest option in this tree. — W5-PK01.
