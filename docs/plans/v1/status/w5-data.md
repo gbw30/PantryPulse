@@ -7,7 +7,7 @@
 | Task | Status | Commit | Evidence (command → result) |
 |---|---|---|---|
 | W5-D01 | done | `cb3fd6f`, fix `f698843` | `uv run --frozen pytest -q tests/optimization/test_scenario_donations.py tests/networks/test_build_scenario.py tests/danger/test_ranking.py tests/optimization/test_actions.py tests/optimization/test_export.py tests/test_w5_contract.py` (`.env.lane`, `PP19_TEST_SCHEMA_ISOLATION=1`) → 200 passed, 0 skipped; whole API suite `uv run --frozen pytest -q` (same env) → 2228 passed, 0 skipped |
-| W5-D02 | done | see the `W5-D02` commit | RED seen: hub/DC rows accepted, guide silent, bench bound 4,500,000. `uv run --frozen pytest -q tests/imports/` → 202 passed, 0 skipped (incl. `test_bench_import.py`: `test_small_bench_writes_phase_seconds_and_peak_rss` and the new `test_rows_stop_at_what_the_generator_can_write`). Whole API suite `uv run --frozen pytest -q` (`.env.lane`, `PP19_TEST_SCHEMA_ISOLATION=1`) → 2263 passed, 0 skipped, 0 failed |
+| W5-D02 | done | `3741685` | RED seen: hub/DC rows accepted, guide silent, bench bound 4,500,000. `uv run --frozen pytest -q tests/imports/` → 202 passed, 0 skipped (incl. `test_bench_import.py`: `test_small_bench_writes_phase_seconds_and_peak_rss` and the new `test_rows_stop_at_what_the_generator_can_write`). Whole API suite `uv run --frozen pytest -q` (`.env.lane`, `PP19_TEST_SCHEMA_ISOLATION=1`) → 2263 passed, 0 skipped, 0 failed |
 | W5-D03 | done | `cc9c46b` | RED seen (`evaluated` with null WAPE). `uv run --frozen pytest -q tests/forecasting/test_backtest.py tests/imports/` → 211 passed, 0 skipped |
 | W5-D04 | done | `fea2ec0` | RED seen (`DID NOT RAISE AccessError` for done and failed). Same command → 211 passed, 0 skipped |
 
@@ -15,9 +15,19 @@
 
 | Gate | Commit | Result |
 |---|---|---|
-| `node scripts/quality/run.cjs quick` | | |
-| `node scripts/quality/run.cjs full` (with `.env.lane`) | | |
-| `/devkit:ship-check` | | |
+| `node scripts/quality/run.cjs quick` | `c63d436` | PASS (web typecheck, web lint, api lint, api tests) |
+| `node scripts/quality/run.cjs full` (`.env.lane` + `PP19_TEST_SCHEMA_ISOLATION=1`) | `f75da9a` | PASS 8/8 (`.claude/state/quality/full.json`: pass true, source unchanged). The gate prints no counts; the API suite on the same code (`3741685`, which differs only in this file) gave 2263 passed, 0 skipped, 0 failed. |
+| `/devkit:ship-check` | `f75da9a` | Step 1: the full gate above. Step 2: project `verifier` on D02–D04, PASS WITH NOTES (below). Step 3: security-guidance isn't installed in this session, skipped. Steps 4–5: the PR waits until D01 merges into v1-local (orchestrator); `/code-review` runs once the PR exists. Step 6: no auth, payment, migration or permission change, skipped. |
+
+Earlier runs that don't count: a full gate on `f75da9a` failed once at web unit tests. `decisions-view.test.tsx` "selecting 700 actions …" timed out at 5 s with machine load ~25 from other sessions. This lane doesn't touch `apps/web`, and the test passed 3/3 alone. A second run without `PP19_TEST_SCHEMA_ISOLATION` passed but doesn't count (PP19 suites skipped).
+
+### Verifier on D02–D04 (`f75da9a`): PASS WITH NOTES
+- Revert checks: D02 reverted gives 5 failed; D03, 2 failed; D04, 2 failed. The guard tests (hub donations, insufficient history, Retry) pass either way.
+- Its own edge cases held: mixed-case `Hub`/`DISTRIBUTION_CENTER`, a hub row with other errors too, an unknown ID (only `UNKNOWN_ID`), pooled zero plus nonzero, units kept apart, a blank window staying `insufficient_history`. No in-repo producer writes hub/DC demand (10 fixture folders, both sample generators).
+- Medium (web, not this lane): the D03 copy in `trust-panel.tsx`; already routed to w5-screens.
+- Low (by design): a same-key replay on a done run is now 409, not 202. The web shows Retry only for `uploading` with no job.
+- Info, left as is: in Pantry mode a `distribution_center` row, already refused for its type, also gets the hub/DC demand error. That file is already rejected, so it's only extra noise.
+- Command: `uv run --frozen pytest -q -rs tests/imports/test_validation.py tests/imports/test_templates.py tests/imports/test_bench_import.py tests/forecasting/test_backtest.py tests/imports/test_import_job.py` → 156 passed, 0 skipped.
 
 ## D01 verification (orchestrator, 2026-11-12): PASS WITH NOTES
 
