@@ -8,7 +8,7 @@
 |---|---|---|---|
 | W5-UI02.1 | done (CI needs CR-w5-screens-1) | see W5-UI02.1 commit | RED: `npx playwright test tests/e2e/v1-screens-data.spec.ts` → 3 failed (`legacy content "Riverbend"`). GREEN: `npx playwright test tests/e2e/v1-screens-data.spec.ts tests/e2e/data-explorer.spec.ts tests/e2e/forecast-trust.spec.ts` → 27 passed, 1 skipped (the connected test, `PP_RUN_CONNECTED` unset; not counted). `data-label.spec.ts:66` → 2 failed before CR-w5-screens-1; 5 passed after it (`0790cf1`) |
 | W5-UI02.2 | done (connected check needs CR-w5-screens-2) | see W5-UI02.2 commit | RED: `npx playwright test tests/e2e/v1-comparison.spec.ts -g "fit at 1280"` → 1 failed (`one card per row`). GREEN: `npx playwright test tests/e2e/v1-comparison.spec.ts tests/e2e/scenario-lab.spec.ts --repeat-each=2` → 30 passed, 2 skipped (the connected test ×2, `PP_RUN_CONNECTED` unset; not counted). `npx vitest run tests/unit/method-comparison.test.tsx tests/unit/v1-comparison.test.tsx tests/unit/scenario-lab.test.tsx` → 19 passed |
-| W5-UI02.3 | todo | — | — |
+| W5-UI02.3 | blocked (CR-w5-screens-3) | — | The dates are not in anything Decisions can read; see the CR |
 | W5-SC01 | todo | — | — |
 | W5-SC02 | todo | — | — |
 
@@ -45,6 +45,17 @@
 - **Exact change:** before line 51 (`const effects = results!.getByRole("region", { name: /^Effects table for EGP-PI-inspired/ })…`), add `await results!.getByRole("region", { name: "EGP-PI-inspired", exact: true }).getByText("Show rows").click();`, and after reading the headers add `expect(await effects.count()).toBeGreaterThan(0);` so the name check can't pass on zero rows.
 - **Why:** W5-UI02.2 puts each card's rows behind a "Show rows" disclosure. Playwright's `getByRole` skips hidden elements, so without the click `allTextContents()` returns `[]` and the "locations are named" check passes vacuously.
 - **Unblocks:** keeps the connected journey's location-name check meaningful (W5-UI02.2). Not run locally (connected).
+- **Status:** open
+
+### CR-w5-screens-3 — Decisions needs the plan window and the effect period
+- **File(s):** `apps/api/app/schemas/v1_planning.py` (`DecisionActions`), `apps/api/app/services/optimization/actions.py` (`decision_actions`), regenerated `packages/contracts` (OpenAPI, `schema.d.ts`, `examples/v1/DecisionActions.json`). All lead-only.
+- **Exact change:** add four required dates (inclusive, local days in the scenario's timezone) to `DecisionActions`, filled in `decision_actions` from the frozen scenario:
+  - `plan_window_start = dates(s)[0]` and `plan_window_end = dates(s)[window_days(s) - 1]`: the days the plan is built for (Pantry: `planning_days`, 1–3; Retail: all 7, `v3.py:43-45`).
+  - `effect_window_start = dates(s)[0]` and `effect_window_end = dates(s)[-1]`: the days every remove-one effect is summed over. `_effect` (`actions.py:129-139`) sums `project_v3(...).days`, and `project_v3` runs over `dates(scenario)`, all 7 forecast days (`projection.py:190-193`), in both modes.
+  - Optional, lead's call: the same four in the export CSV header, so an exported plan names its period too.
+- **Why:** W5-UI02.3 must state each effect's dates and window length, and that the plan covers only its window ("Plan covers Nov 6–8 only; unmet need after Nov 8 is not planned"). Decisions reads only `SavedComparisonV3` (no dates; `result` has `scenario_id`, `scenario_hash`, `mode`, `measure`, `methods`) and `DecisionActions` (no dates). There is no GET for a frozen v1 scenario (`/networks/{id}/scenarios` is POST only), and `/networks/{id}/projection` is the current data, not the frozen scenario. Parsing `action_text`/`why_text` or carrying dates in the Decisions URL would show dates that aren't the frozen plan's.
+- **Note for the lead:** in a Pantry plan the effect period (7 days) is longer than the plan window (1–3 days). The UI will say both: e.g. "Receiver unmet need, Nov 6–12 (7 days): 40 cases lower" and "Plan covers Nov 6–8 (3 days) only; unmet need after Nov 8 is not planned."
+- **Unblocks:** W5-UI02.3 (Decisions and its print page).
 - **Status:** open
 
 ## Escalations
