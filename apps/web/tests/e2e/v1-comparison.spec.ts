@@ -190,4 +190,8 @@ test("@V1-A14 @V1-A20 comparison cards fit at 1280x720: one per row, action link
     }
     expect(await scroller.evaluate((el) => el.scrollWidth - el.clientWidth), `${name}: no horizontal scroll`).toBeLessThanOrEqual(0);
   }
+  // With every card's rows open, the setup column keeps its own height: its controls never spread apart.
+  const first = (await section.getByRole("radio", { name: "Hub → pantries only" }).boundingBox())!;
+  const second = (await section.getByRole("radio", { name: "Hub and pantries → pantries" }).boundingBox())!;
+  expect(second.y - first.y, "transfer-mode options stay together").toBeLessThan(48);
 });

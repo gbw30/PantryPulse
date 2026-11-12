@@ -9,8 +9,8 @@
 | W5-UI02.1 | done (CI needs CR-w5-screens-1) | see W5-UI02.1 commit | RED: `npx playwright test tests/e2e/v1-screens-data.spec.ts` → 3 failed (`legacy content "Riverbend"`). GREEN: `npx playwright test tests/e2e/v1-screens-data.spec.ts tests/e2e/data-explorer.spec.ts tests/e2e/forecast-trust.spec.ts` → 27 passed, 1 skipped (the connected test, `PP_RUN_CONNECTED` unset; not counted). `data-label.spec.ts:66` → 2 failed before CR-w5-screens-1; 5 passed after it (`0790cf1`) |
 | W5-UI02.2 | done (connected check needs CR-w5-screens-2) | see W5-UI02.2 commit | RED: `npx playwright test tests/e2e/v1-comparison.spec.ts -g "fit at 1280"` → 1 failed (`one card per row`). GREEN: `npx playwright test tests/e2e/v1-comparison.spec.ts tests/e2e/scenario-lab.spec.ts --repeat-each=2` → 30 passed, 2 skipped (the connected test ×2, `PP_RUN_CONNECTED` unset; not counted). `npx vitest run tests/unit/method-comparison.test.tsx tests/unit/v1-comparison.test.tsx tests/unit/scenario-lab.test.tsx` → 19 passed |
 | W5-UI02.3 | blocked (CR-w5-screens-3, lead W5-L02 in progress) | — | The dates are not in anything Decisions can read; see the CR |
-| W5-SC01 | done (Overview plural needs CR-w5-screens-4) | see W5-SC01 commit | Plural — RED: `npx vitest run tests/unit/scenario-lab.test.tsx` → 1 failed (`box: "boxs"`, `each: "eachs"`, `glass: "glass"`); GREEN → 4 passed. Print selection — RED: `npx vitest run tests/unit/decisions-view.test.tsx` → 1 failed (`expected 1 to be +0`: selecting already saved); GREEN with the three older selection tests updated to follow the print link → `npx vitest run tests/unit/decisions-view.test.tsx tests/unit/action-card.test.tsx` 15 passed. `npx playwright test tests/e2e/decisions.spec.ts` → 10 passed (the print link saves before it navigates). 700-action test: explicit 20 s timeout (a timeout can't be shown RED on demand; it exceeded 5 s once under load on `977f7c6`) |
-| W5-SC02 | todo | — | — |
+| W5-SC01 | done (Overview plural: CR-w5-screens-4, w5-polish after the screens merge) | see W5-SC01 commit | Plural — RED: `npx vitest run tests/unit/scenario-lab.test.tsx` → 1 failed (`box: "boxs"`, `each: "eachs"`, `glass: "glass"`); GREEN → 4 passed. Print selection — RED: `npx vitest run tests/unit/decisions-view.test.tsx` → 1 failed (`expected 1 to be +0`: selecting already saved); GREEN with the three older selection tests updated to follow the print link → `npx vitest run tests/unit/decisions-view.test.tsx tests/unit/action-card.test.tsx` 15 passed. `npx playwright test tests/e2e/decisions.spec.ts` → 10 passed (the print link saves before it navigates). 700-action test: explicit 20 s timeout (a timeout can't be shown RED on demand; it exceeded 5 s once under load on `977f7c6`) |
+| W5-SC02 | in progress (Decisions shots wait for W5-L02) | see the SC02 evidence commit | Connected capture on the lane stack (`pp-screens`, 3105): `PP_RUN_CONNECTED=1 PLAYWRIGHT_PORT=3105 npx playwright test tests/e2e/v1-screens-evidence.spec.ts` → 2 passed (axe included) on `abba32a`. `/data` and comparison shots in `docs/pantrypulse/visual-evidence/w5-screens/`. The capture found the setup column stretching once a card's rows are open (fixed test-first: RED `transfer-mode options stay together` 105.6 px; GREEN `npx playwright test tests/e2e/v1-comparison.spec.ts tests/e2e/scenario-lab.spec.ts --repeat-each=2` → 30 passed, 2 skipped = connected test ×2) |
 
 ## Gates
 
@@ -30,6 +30,9 @@
 - W5-SC01 print: the selection is saved in the print link's `onClick`, before Next navigates. Selecting alone writes nothing, so another tab's Decisions can't replace it; a failed save still removes the stored one.
 
 ## Gotchas
+
+- Under heavy machine load (load average 37 with four lanes and a compose stack up), legacy `scenario-lab.spec.ts` tests time out at 5 s with the page still on "Loading networks…" (:350, :361). They passed 5/5 alone and 30/30 with the lane stack stopped. Local e2e numbers are only meaningful on a quiet machine.
+- At 390×844 every screen is 481 px wide: the top bar's right cluster (`top-bar.tsx:83`, `ml-auto flex shrink-0 items-center gap-3`) overflows. Found by the W5-SC02 capture; w5-polish's file, reported to the orchestrator.
 
 - `textContent()` of `body` includes the Next dev RSC payload script; use `innerText()` for "page contains no X" checks.
 - A 401 from a legacy read calls `onUnauthorized` and ends the presenter session in the browser; a mock that only wants the legacy fixture should answer 403.
@@ -66,7 +69,7 @@
 - **Exact change:** replace the local `pluralize` (lines 10-15) with `export { pluralize } from "@/components/data-explorer/format";` and import it there for `formatUnits` (`import { pluralize } from "@/components/data-explorer/format";`). Nothing else changes.
 - **Why:** W5-SC01 fixed `data-explorer/format.ts` ("boxes", "bunches", "dishes", "glasses"; "each" kept), pinned by `tests/unit/scenario-lab.test.tsx`. The Overview inspector (`location-inspector.tsx:7,38`) and every `formatUnits` caller (the danger ranking, the comparison effects tables, Decisions effect lines) use the duplicate in `overview/live-source.ts`, which still writes "boxs".
 - **Unblocks:** the rest of the W5-SC01 plural fix (the ux-critic's "boxs" note).
-- **Status:** open
+- **Status:** approved (Gabriel, 2026-11-12), w5-polish after the screens merge.
 
 ## Escalations
 
