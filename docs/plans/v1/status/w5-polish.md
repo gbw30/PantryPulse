@@ -19,7 +19,7 @@ Skills check (2026-11-12): `/jmo-workflow:better-ui` loaded; `/jmo-workflow:anim
 | Gate | Commit | Result |
 |---|---|---|
 | `node scripts/quality/run.cjs quick` (with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1`) | `7f23051` (interim, after merging `a6d08a1`) | PASS (exit 0). The final run comes after the post-screens batch |
-| `uv run --frozen pytest` in `apps/api` (with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1`) | `10552c7` (interim, before the `a6d08a1` merge) | 2220 passed, 0 skipped (404 s) |
+| `uv run --frozen pytest` in `apps/api` (with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1`) | `c7d6872` (interim, before the `a6d08a1` merge; `apps/api` identical through `10552c7`) | 2220 passed, 0 skipped (404 s) |
 | `node scripts/quality/run.cjs full` (with `.env.lane`) | | |
 | `/devkit:ship-check` | | |
 
