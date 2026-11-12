@@ -77,6 +77,14 @@ def test_guide_states_single_timezone_and_blank_capacity_rule():
     assert "Data Explorer's Forecast trust panels" in basis.meaning
 
 
+@pytest.mark.parametrize(("mode", "senders"), [
+    ("PANTRY", "hubs"), ("RETAIL", "distribution centers"), (None, "hubs")])
+def test_demand_history_guide_says_senders_have_no_demand(mode, senders):
+    catalog = {t.name: t for t in template_catalog(mode).templates}
+    location = next(c for c in catalog["demand_history"].columns if c.name == "location_id")
+    assert senders in location.meaning.lower() and "refused" in location.meaning
+
+
 def test_template_routes_answer_through_the_api():
     from types import SimpleNamespace
     from uuid import UUID

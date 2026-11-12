@@ -1,7 +1,7 @@
 """Time the import.v1 job on a generated network (W1-D05): the DB-less `validate` step, `prepare`
 (outside the queue lock) and `publish` (inside it), plus the process's peak RSS.
 
-    uv run --frozen python scripts/bench_import.py --rows 4500000
+    uv run --frozen python scripts/bench_import.py --rows 4455000
 
 Writes artifacts/bench/import.json. Uses PP_TEST_DATABASE_URL (or --database-url; a *_test
 database only) and its own schema, dropped afterwards. Files go to a temporary folder inside
@@ -50,7 +50,9 @@ from app.services.imports.staging import (  # noqa: E402
 )
 
 AS_OF = date(2026, 11, 4)
-LOCATIONS, PRODUCTS, DAYS = 100, 500, 90  # the v1 envelope: 4.5 M demand rows at most
+LOCATIONS, PRODUCTS, DAYS = 100, 500, 90  # the v1 envelope
+# One hub, which has no demand history (W5-D02): 99 pantries × 500 × 90 = 4,455,000 rows at most.
+MAX_ROWS = (LOCATIONS - 1) * PRODUCTS * DAYS
 HEADERS = {
     "locations": "location_id,name,type,street,city,state,zip,latitude,longitude",
     "products": "product_id,name,unit",
@@ -63,7 +65,7 @@ HEADERS = {
 def _rows(name: str, rows: int, batches: int):
     if name == "locations":
         for i in range(LOCATIONS):
-            yield (f"L{i:03},Site {i},{'hub' if i < 5 else 'pantry'},{i + 1} Main St,"
+            yield (f"L{i:03},Site {i},{'hub' if i == 0 else 'pantry'},{i + 1} Main St,"
                    f"Tallahassee,FL,32301,{27 + i % 10 * 0.3:.4f},{-82 - i // 10 * 0.3:.4f}")
     elif name == "products":
         yield from (f"P{p:03},Product {p},case" for p in range(PRODUCTS))
@@ -73,7 +75,7 @@ def _rows(name: str, rows: int, batches: int):
                     for b in range(batches))
     else:
         days = [AS_OF - timedelta(days=d) for d in range(DAYS, 0, -1)]
-        pairs = ((i, p) for i in range(LOCATIONS) for p in range(PRODUCTS))
+        pairs = ((i, p) for i in range(1, LOCATIONS) for p in range(PRODUCTS))
         cells = ((i, p, day) for i, p in pairs for day in days)
         for _, (i, p, day) in zip(range(rows), cells, strict=False):
             yield f"L{i:03},P{p:03},{day},{(i + p + day.day) % 7},demand"
@@ -110,8 +112,8 @@ def _reset(url: str, schema: str, *, create: bool) -> None:
 def main(argv=None) -> dict:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--rows", type=int, default=LOCATIONS * PRODUCTS * DAYS,
-                        help="demand_history rows (at most 4,500,000)")
+    parser.add_argument("--rows", type=int, default=MAX_ROWS,
+                        help="demand_history rows (at most 4,455,000)")
     parser.add_argument("--batches", type=int, default=200_000, help="inventory rows")
     parser.add_argument("--schema", default="w1_data_bench")
     parser.add_argument("--database-url", default=os.environ.get("PP_TEST_DATABASE_URL"),
@@ -122,8 +124,8 @@ def main(argv=None) -> dict:
     parser.add_argument("--out", type=Path,
                         default=API_ROOT.parent.parent / "artifacts" / "bench" / "import.json")
     args = parser.parse_args(argv)
-    if not 0 < args.rows <= LOCATIONS * PRODUCTS * DAYS or not 0 < args.batches <= 200_000:
-        parser.error("--rows must be 1..4,500,000 and --batches 1..200,000 (the v1 envelope)")
+    if not 0 < args.rows <= MAX_ROWS or not 0 < args.batches <= 200_000:
+        parser.error("--rows must be 1..4,455,000 and --batches 1..200,000 (the v1 envelope)")
     url = args.database_url or parser.error("set PP_TEST_DATABASE_URL or --database-url")
     _reset(url, args.schema, create=True)
     engine = create_queue_engine(url, schema=args.schema)

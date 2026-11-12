@@ -473,6 +473,13 @@ class Validator:
             quantity = row.quantity("quantity", blank_ok=True)
             basis = None
             if name == "demand_history":
+                role = self.location_roles.get(location_id or "")
+                if role in ("hub", "distribution_center"):  # senders never have demand (W5-D02)
+                    row.fail("location_id", "MALFORMED",
+                             f"{location_id} is a {role.replace('_', ' ')}, and hubs and "
+                             "distribution centers have no demand history of their own",
+                             "Remove this row; demand history is only for "
+                             + ("pantries" if role == "hub" else "stores"), location_id)
                 basis = cells["basis"].lower()
                 if basis not in ("demand", "sales"):
                     row.fail("basis", "MALFORMED", "basis must be demand or sales",

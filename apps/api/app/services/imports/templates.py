@@ -114,6 +114,9 @@ OVERRIDES: dict[tuple[TemplateName, str], tuple[str | None, str, str]] = {
     ("demand_history", "quantity"): (
         "product units", f"Units requested (demand) or sold (sales) that day. {BLANK_UNKNOWN}",
         "Forecasts are built from this history."),
+    ("demand_history", "location_id"): (
+        None, "A pantry or store. Hubs and distribution centers have no demand of their own, so "
+        "a row for one is refused.", "Links the history to this location."),
     ("donation_history", "quantity"): (
         "product units", f"Units received that day; 0 means nothing was received. "
         f"{BLANK_UNKNOWN} Several rows for one day are added up.",
