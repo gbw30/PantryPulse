@@ -6,7 +6,7 @@ import { currentRunId, ForecastRunsNote, useForecastRun } from "@/components/for
 import { InboundNote, SampleBadge, useNetwork } from "@/components/shell/network-switcher";
 import { networkApi, type Network } from "@/lib/network-api";
 import { ApiError, type Schema } from "@/lib/planning-api";
-import { NOT_EVALUATED, NOT_MEASURABLE, TrustPanel } from "./trust-panel";
+import { NOT_EVALUATED, NOT_MEASURABLE, TrustPanel, ZERO_ACTUAL } from "./trust-panel";
 
 type Run = Schema["NetworkForecastRun"];
 type Backtest = Schema["BacktestResult"];
@@ -17,6 +17,7 @@ const words = (code: string) => code.replaceAll("_", " ").toLowerCase();
 
 /** A location's pooled score in one unit, in the trust panel's words. */
 function locationScore(score: Schema["BacktestScore"]) {
+  if (score.status === "not_evaluated_zero_actual") return ZERO_ACTUAL;
   if (score.status !== "evaluated") return NOT_EVALUATED;
   if (score.wape_pct === null) return NOT_MEASURABLE;
   const weeks = score.origins_evaluated === 1 ? "the last week" : `the last ${score.origins_evaluated} weeks`;

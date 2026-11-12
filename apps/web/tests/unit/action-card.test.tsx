@@ -14,7 +14,7 @@ const second: Schema["DecisionAction"] = { ...action, id: "T-2", explanation_kin
   why_text: "Pantry 7 is likely short on Nov 9.", effect: { ...action.effect, receiver_unmet_delta: -10 } };
 
 const card = (props: Partial<React.ComponentProps<typeof ActionCard>> = {}) =>
-  render(<ActionCard action={action} mode="PANTRY" usdUnavailableReason={null} selected={false} onSelectedChange={vi.fn()} {...props} />);
+  render(<ActionCard action={action} mode="PANTRY" usdUnavailableReason={null} period="Nov 6–12 (7 days)" selected={false} onSelectedChange={vi.fn()} {...props} />);
 
 it("action/why/effect three parts", () => {
   card();
