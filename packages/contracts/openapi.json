@@ -1346,6 +1346,16 @@
             "title": "Comparison Id",
             "type": "string"
           },
+          "effect_window_end": {
+            "format": "date",
+            "title": "Effect Window End",
+            "type": "string"
+          },
+          "effect_window_start": {
+            "format": "date",
+            "title": "Effect Window Start",
+            "type": "string"
+          },
           "method": {
             "enum": [
               "NO_TRANSFERS",
@@ -1364,11 +1374,25 @@
             "default": "effect of this action given the rest of the plan; effects don't add up across actions",
             "title": "Non Additive Label",
             "type": "string"
+          },
+          "plan_window_end": {
+            "format": "date",
+            "title": "Plan Window End",
+            "type": "string"
+          },
+          "plan_window_start": {
+            "format": "date",
+            "title": "Plan Window Start",
+            "type": "string"
           }
         },
         "required": [
           "comparison_id",
           "method",
+          "plan_window_start",
+          "plan_window_end",
+          "effect_window_start",
+          "effect_window_end",
           "actions"
         ],
         "title": "DecisionActions",
