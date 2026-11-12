@@ -18,7 +18,8 @@
 | Gate | Commit | Result |
 |---|---|---|
 | `node scripts/quality/run.cjs quick` | `7e94d4c` | PASS (web typecheck, web lint, api lint, api tests); standard env, so the PostgreSQL suites skip (458) and are not counted. The Stop hook's run just before failed once on `test_actions.py::test_actions_equal_the_full_network_replay[bench-retail-RETAIL_OPTIMIZED-receiving-None]` (see Gotchas) |
-| `node scripts/quality/run.cjs full` (with `.env.lane`) | | |
+| `node scripts/quality/run.cjs quick` (with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1` exported by hand) | `3a62ca6` | PASS (web typecheck, web lint, api lint, api tests) |
+| `node scripts/quality/run.cjs full` (with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1` exported by hand) | `3a62ca6` | PASS, exit 0 (typecheck, lint, api lint, api tests, web unit tests, web build, contract drift, database migrations). The gate prints no counts, so its commands were rerun in the same env with `-rs`: `uv run --frozen pytest -q -rs` → 2222 passed, 0 skipped; `uv run --frozen pytest -q -rs tests/integration/test_job_migrations.py tests/integration/test_operational_postgres.py` → 36 passed, 0 skipped; `npx vitest run` → 184 passed (28 files), 0 skipped. e2e is CI's |
 | `/devkit:ship-check` | | |
 
 ## Decisions made inside the lane
