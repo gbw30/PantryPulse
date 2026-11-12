@@ -1,6 +1,6 @@
 # Status — `w5-polish`
 
-**Lane:** `w5-polish` · **Branch:** `lane/w5-polish` · **Base SHA:** `81c551bc2e232362f0e63a7a00126ef1ca863fb8` · **Last update:** `2026-11-12` · **Head:** see `git log`
+**Lane:** `w5-polish` · **Branch:** `lane/w5-polish` · **Base SHA:** `81c551bc2e232362f0e63a7a00126ef1ca863fb8` · **Last update:** `2026-11-12` · **Head:** `8726dfd` + this status commit (paused for the `w5-screens` merge; last code commit `7f23051`, which includes the `a6d08a1` merge)
 
 Skills check (2026-11-12): `/jmo-workflow:better-ui` loaded; `/jmo-workflow:animate` listed in this session. `visual-review` loaded.
 
@@ -19,6 +19,7 @@ Skills check (2026-11-12): `/jmo-workflow:better-ui` loaded; `/jmo-workflow:anim
 | Gate | Commit | Result |
 |---|---|---|
 | `node scripts/quality/run.cjs quick` (with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1`) | `7f23051` (interim, after merging `a6d08a1`) | PASS (exit 0). The final run comes after the post-screens batch |
+| `uv run --frozen pytest` in `apps/api` (with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1`) | `10552c7` (interim, before the `a6d08a1` merge) | 2220 passed, 0 skipped (404 s) |
 | `node scripts/quality/run.cjs full` (with `.env.lane`) | | |
 | `/devkit:ship-check` | | |
 
@@ -44,6 +45,7 @@ Skills check (2026-11-12): `/jmo-workflow:better-ui` loaded; `/jmo-workflow:anim
 - **Do not edit** `apps/web/tests/e2e/data-label.spec.ts` (CR-w5-screens-1) or `apps/web/tests/e2e/v1-connected-journey.spec.ts` (CR-w5-screens-2); both arrive with the post-screens `origin/v1-local` merge.
 - **W5-UI05 network selector, accessible-name part:** the full network name joins the switcher's accessible name only after that merge, in the same commit as the update to `data-label.spec.ts:43,69` (they find the switcher as `{ name: "Network", exact: true }`). The truncation lands now.
 - **Do not edit** `apps/web/tests/unit/action-card.test.tsx` (CR-w5-screens-5: screens adds a `period` prop to its `card()` helper).
+- **W5-UI03 Step 3:** merge `origin/v1-local`, rebuild, capture `v1-after/` (connected stack, `PP_EVIDENCE_DIR=v1-after`), then run `v1-a11y.spec.ts` and `v1-full-journey.spec.ts`.
 - **CR-w5-screens-4 (approved, Gabriel 2026-11-12):** after that merge, delete `overview/live-source.ts`'s own `pluralize` (it writes "boxs"), re-export `pluralize` from `data-explorer/format`, and pin "boxes" on an Overview path (inspector or ranking). Same batch as the accessible-name change.
 
 ## Change requests
