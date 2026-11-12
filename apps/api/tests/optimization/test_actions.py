@@ -4,6 +4,7 @@
 Hand values come from data/demo/or-v3/README.md.
 """
 
+from datetime import timedelta
 from decimal import Decimal
 from uuid import UUID
 
@@ -355,3 +356,25 @@ def test_pantry_actions_explain_the_window():
     )
     assert p1.explanation_kind == "proven_binding"
     assert (p1.effect.receiver_unmet_delta, p1.effect.usd_delta) == (-2, None)
+
+
+@pytest.mark.parametrize(
+    ("name", "method", "plan_days"),
+    [
+        ("pantry-four-methods", "EGP_PI_INSPIRED", 2),
+        ("retail-expiry-transfer", "RETAIL_OPTIMIZED", 7),
+    ],
+)
+def test_actions_name_the_plan_window_and_the_effect_period(name, method, plan_days):
+    """CR-w5-screens-3: the plan covers its window (Pantry planning_days, Retail all 7); every
+    remove-one effect is summed over all 7 forecast days, in both modes."""
+    s, _, actions = actions_for(name, method=method)
+    first = s.first_planning_date
+    assert (actions.plan_window_start, actions.plan_window_end) == (
+        first,
+        first + timedelta(days=plan_days - 1),
+    )
+    assert (actions.effect_window_start, actions.effect_window_end) == (
+        first,
+        first + timedelta(days=6),
+    )
