@@ -352,6 +352,7 @@ def test_pantry_actions_explain_the_window():
     assert p1.why_text == (
         "Pantry 1 runs out on Nov 3 (projected unmet 3 cases over 2 days); "
         "Central Hub has 4 cases beyond its protected need. "
+        "Pantry 1 has no donation forecast. "
         "One more unit is infeasible: the sender has no more eligible stock."
     )
     assert p1.explanation_kind == "proven_binding"
