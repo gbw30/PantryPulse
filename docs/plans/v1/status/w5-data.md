@@ -80,7 +80,7 @@ Earlier runs that don't count: a full gate on `f75da9a` failed once at web unit 
   - One path does change. A commit that got no answer is admitted, but its phase write is lost. After 30 checks the page shows "didn't start" with Retry. The admitted job later records itself (`repositories/imports.py:87-91`, `set_job_phase`) and finishes. A Retry clicked on that stale page used to get 202 with the same job and be tracked to its real end. Now it gets 409 and the page wrongly says nothing was saved.
 - **Why keep the 409 (not 202 for a finished run):** the decision (W4 §7, wave-5 W5-D04) is that a done or failed run is refused, admits no job and keeps its phase. A 202 would have to name the run's old job, which for a failed run may be the cancelled job, and would still read as "accepted". The 409 with its own code tells the client exactly what happened, and reading the run gives it the outcome. The fix belongs in the client's handling of that code.
 - **Unblocks:** nothing in this lane; it closes a W5-D04 integration edge before release.
-- **Status:** open
+- **Status:** approved (Gabriel, 2026-11-12); w5-polish implements it (`import-view.tsx`, with a unit test keyed on `IMPORT_ALREADY_FINISHED`). v1-local carries the edge briefly, between this lane's merge and polish's, and it is fixed before the W6 release candidate.
 
 ## Notes for other lanes (read-only for me)
 
