@@ -120,6 +120,7 @@ test("@V1-A15 retail comparison mocked in units and USD", async ({ page }) => {
   await section.getByRole("button", { name: "Compare methods" }).click();
   const results = section.getByRole("region", { name: "Comparison results" });
   const optimized = results.getByRole("region", { name: "Optimized (minimize expired + lost sales)", exact: true });
+  await optimized.getByText("Show rows").click();
   await expect(optimized.getByRole("table", { name: /effects by location/ }).getByRole("columnheader", { name: "Lost sales with plan" })).toBeVisible();
   await expect(optimized).toContainText("Weights: expired ×1, lost sales ×1");
   await expect(results).toContainText("Measure: units · USD unavailable: no unit values in products.csv");
@@ -139,4 +140,54 @@ test("@V1-A15 retail comparison mocked in units and USD", async ({ page }) => {
   await expect(results).toContainText("Measure: USD");
   await expect(results).not.toContainText("USD unavailable");
   expect(posted(calls, "/comparisons").at(-1)).toMatchObject({ methods: RETAIL_METHODS, measure: "USD" });
+});
+
+// W5-UI02.2 (W4-03 ux-critic finding 2): every method verified, with a row per location × product, so the cards
+// carry real length. One card per row, its transfer count and action link first, its rows behind "Show rows".
+function fullComparison(): Saved {
+  const saved = example("SavedComparisonV3");
+  const [none, classical] = saved.result.methods;
+  const { locations, products } = example("ScenarioV3").payload;
+  const effects = locations.flatMap((l) => products.map((p) => ({ ...classical.effects[0], location_id: l.id, product_id: p.id })));
+  saved.result = { ...saved.result, methods: [
+    { ...none, effects },
+    ...(["EQUAL_SHARE", "MOST_URGENT_FIRST", "CLASSICAL_GP", "EGP_PI_INSPIRED"] as const).map((method) => ({ ...classical, method, effects })),
+  ] };
+  return saved;
+}
+
+test("@V1-A14 @V1-A20 comparison cards fit at 1280x720: one per row, action link first, rows behind Show rows", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  const network = example("NetworkList").networks.find((n) => n.mode === "PANTRY")!;
+  const { section } = await open(page, network, () => example("ScenarioV3"), () => fullComparison());
+  await section.getByRole("radio", { name: "3 days" }).click();
+  await section.getByRole("radio", { name: "Hub → pantries only" }).click();
+  await section.getByRole("button", { name: "Freeze scenario" }).click();
+  await section.getByRole("button", { name: "Compare methods" }).click();
+  const cards = section.getByRole("region", { name: "Comparison results" }).locator("[data-method]");
+  await expect(cards).toHaveCount(5);
+
+  const boxes = await Promise.all((await cards.all()).map(async (card) => (await card.boundingBox())!));
+  for (const b of boxes) expect([b.x, b.width], "one card per row").toEqual([boxes[0].x, boxes[0].width]);
+
+  for (const card of await cards.all()) {
+    const name = (await card.getByRole("heading").textContent())!;
+    const top = (await card.boundingBox())!.y;
+    if (name !== "No transfers") {
+      for (const target of [card.getByRole("link", { name: `Open suggested actions for ${name}` }), card.getByText("1 transfer suggested")]) {
+        expect((await target.boundingBox())!.y - top, `${name}: ${await target.textContent()} within the card's first 200 px`).toBeLessThan(200);
+      }
+    }
+    const table = card.getByRole("table");
+    await expect(table, `${name}: rows start collapsed`).toBeHidden();
+    await card.getByText("Show rows").click();
+    await expect(table).toBeVisible();
+    const scroller = card.getByRole("region", { name: /^Effects table for/ });
+    const frame = (await scroller.boundingBox())!;
+    for (const header of await table.getByRole("columnheader").all()) {
+      const b = (await header.boundingBox())!;
+      expect(b.x + b.width, `${name}: "${await header.textContent()}" visible without scrolling`).toBeLessThanOrEqual(frame.x + frame.width + 1);
+    }
+    expect(await scroller.evaluate((el) => el.scrollWidth - el.clientWidth), `${name}: no horizontal scroll`).toBeLessThanOrEqual(0);
+  }
 });
