@@ -32,6 +32,17 @@ Earlier runs that don't count: a full gate on `f75da9a` failed once at web unit 
 - Info, left as is: in Pantry mode a `distribution_center` row, already refused for its type, also gets the hub/DC demand error. That file is already rejected, so it's only extra noise.
 - Command: `uv run --frozen pytest -q -rs tests/imports/test_validation.py tests/imports/test_templates.py tests/imports/test_bench_import.py tests/forecasting/test_backtest.py tests/imports/test_import_job.py` → 156 passed, 0 skipped.
 
+### `/code-review` on PR #151 (`e4d8b05`, ship-check step 5, local only, nothing posted): 8 findings
+Run with no tests. My check of each against the code:
+1. **Medium, known, merge order:** the trust panel and `backtest-summary.tsx:20` show "needs 35+ days" for `not_evaluated_zero_actual`. The fix lives on `lane/w5-screens`; #151 merges after it (see Notes for other lanes).
+2. **Medium, known, merge order:** the `basis` guide (`8691c72`, Gabriel's wording) names the danger ranking and site inspector. Until w5-polish's UI04 merges, `v1-local` shows the sales label only in `trust-panel.tsx`. Either #151 merges after polish too, or `v1-local` carries a short window where the guide promises more than the screens show. **Lead decision.**
+3. **Low, by design:** a same-key repeat of a commit on a done/failed run gets 409 instead of the original 202. Already in the verifier notes; the web side is CR-w5-data-2.
+4. **Low, lead-only file:** `bench_import.py` assumes one hub, so it no longer reaches the 4,500,000-row envelope a hubless 100-pantry import can still reach (validation doesn't require a hub). Alternative: make all 100 sites pantries (keeps 4.5 M). The approved CR-w5-data-1 change was used once already. **Lead decision.**
+5. **Low, confirmed:** the D02 fix text picks "pantries" or "stores" from the location's role, not the network mode (`validate.py:482`). This only matters when the row's type is already wrong for the mode (a DC in a Pantry import, a hub in Retail); that file is already refused with a type error. The fix is one line (`self.settings.mode`) plus a test. **Not fixed yet; waiting for the orchestrator** so the verifier's target doesn't move.
+6. **Cleanup, confirmed:** `("hub", "distribution_center")` is now written twice in `validate.py` (`:477` new, `:554` existing). `HUB_ROLES` (`optimization/v3.py:20`) and `SENDERS` (`forecasting/network.py:58`) hold the same set. Could share with 5.
+7. **Low, not changed:** the new `demand_history.location_id` guide text names both modes. Every `OVERRIDES` entry is mode-agnostic today (e.g. `type`), and the catalog can be built without a mode.
+8. **Lead-only (schemas):** `v1_networks.py` still allows `evaluated` with null WAPE, and its docstring says "Both are null when Σactual is 0". Runs stored before D03 read `evaluated` + null, new ones `not_evaluated_zero_actual`, so the web keeps both branches. A contract change plus backfill is the lead's call.
+
 ## D01 verification (orchestrator, 2026-11-12): PASS WITH NOTES
 
 - F1 (Medium), fixed in `f698843`: a window donation sum above 100,000 raised in `decimal_literal` (500 on actions/export). The failing test came first; the total is now formatted as the exact Decimal.
