@@ -1,4 +1,4 @@
-import { Download } from "lucide-react";
+import { ChevronRight, Download } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { exampleUrl, templateUrl, type TemplateCatalog } from "@/lib/network-api";
 import { cn } from "@/lib/utils";
@@ -57,7 +57,13 @@ export function TemplateGuide({ catalog }: Props) {
                 )}
               </div>
             </div>
-            <div className="overflow-x-auto rounded-lg border border-border" role="group" aria-label={`Columns of ${file}`} tabIndex={0}>
+            {/* Collapsed by default: seven open guides ran import step 1 to ~5,800 px (W4-03 ux-critic). */}
+            <details className="group/guide grid gap-2">
+              <summary className="flex w-fit cursor-pointer list-none items-center gap-1.5 rounded-md text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+                <ChevronRight aria-hidden="true" className="size-4 transition-transform duration-150 ease-out group-open/guide:rotate-90 motion-reduce:transition-none" />
+                Column guide ({template.columns.length} columns)
+              </summary>
+            <div className="mt-2 overflow-x-auto rounded-lg border border-border" role="group" aria-label={`Columns of ${file}`} tabIndex={0}>
               <table className="w-full min-w-[44rem] border-collapse text-left text-sm">
                 <thead className="bg-muted/60 text-xs text-muted-foreground">
                   <tr>
@@ -89,6 +95,7 @@ export function TemplateGuide({ catalog }: Props) {
                 </tbody>
               </table>
             </div>
+            </details>
           </section>
         );
       })}

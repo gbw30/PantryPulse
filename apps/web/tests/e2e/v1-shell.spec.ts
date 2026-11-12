@@ -50,3 +50,38 @@ test("switching network updates vocabulary", async ({ page }) => {
   await page.reload();
   await expect(page.getByRole("combobox", { name: "Network", exact: true })).toContainText(sample.name);
 });
+
+// W5-UI05 (W4-03 ux-critic notes): a long network name widened the selector past the sidebar, over page titles.
+for (const [width, height] of [[1440, 900], [1280, 720]] as const) {
+  test(`@V1-A20 the network selector stays inside the sidebar at ${width}x${height}`, async ({ page }) => {
+    const long = { ...sample, name: "Heronfield Market and Partner Stores of the Greater North Central Region — sample retail network" };
+    await page.unrouteAll();
+    await mockV1(page, { "GET networks": { body: { networks: [long] } } });
+    await page.setViewportSize({ width, height });
+    await page.goto("/settings");
+    // shortcut: the full name joins the accessible name after w5-screens merges (data-label.spec.ts finds "Network" exactly).
+    const trigger = page.getByRole("combobox", { name: "Network", exact: true });
+    await expect(trigger).toContainText("Heronfield Market");
+    const sidebar = (await page.locator("[data-sidebar='sidebar']").first().boundingBox())!;
+    const box = (await trigger.boundingBox())!;
+    expect(box.x + box.width, "the trigger ends inside the sidebar").toBeLessThanOrEqual(sidebar.x + sidebar.width);
+    const title = (await page.getByRole("heading", { level: 1 }).boundingBox())!;
+    expect(box.x + box.width <= title.x || box.y + box.height <= title.y || title.y + title.height <= box.y, "the trigger never covers the page title").toBe(true);
+  });
+}
+
+// W5-UI05 (orchestrator, from w5-screens' connected captures): at 390 the top bar's right-hand group (sample
+// label, snapshot date, theme toggle) refused to shrink, so every v1 screen was 481 px wide and scrolled sideways.
+for (const path of ["/overview", "/data", "/scenarios", "/import", "/settings"]) {
+  test(`@V1-A20 ${path} at 390x844 with a sample network chosen never scrolls sideways`, async ({ page }) => {
+    const chosen = { ...sample, name: "Heronfield Market — sample retail network", as_of_date: "2026-11-12" };
+    await page.unrouteAll();
+    await mockV1(page, { "GET networks": { body: { networks: [chosen] } } });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(path);
+    const banner = page.getByRole("banner");
+    await expect(banner).toContainText("Sample data — fictional");
+    await expect(banner).toContainText("Snapshot Nov 12, 2026");
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  });
+}

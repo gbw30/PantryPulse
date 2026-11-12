@@ -24,7 +24,8 @@ export function UploadForm({ templates, files, onChange, disabled = false }: Pro
       <legend className="sr-only">Files to upload</legend>
       {templates.map((template) => {
         const id = `import-file-${template.name}`;
-        const hint = [template.description, OPTIONAL_HINTS[template.name]].filter(Boolean).join(" ");
+        // The API's own descriptions of optional files start "Optional."; the hint says it once, below.
+        const hint = [template.description.replace(/^(Optional|Required)\.\s*/, ""), OPTIONAL_HINTS[template.name]].filter(Boolean).join(" ");
         const file = files[template.name];
         return (
           <div key={template.name} className="grid content-start gap-1.5">

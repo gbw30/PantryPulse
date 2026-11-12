@@ -1,5 +1,5 @@
 // covers: V1-A06
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, it } from "vitest";
 import { CHOOSE_MODE_NOTE, TemplateGuide } from "@/components/import/template-guide";
 import { example } from "./contract-examples";
@@ -13,6 +13,7 @@ function columnRow(template: string, column: string) {
 
 it("every column renders required/optional, unit, meaning and effect on plan", () => {
   render(<TemplateGuide catalog={catalog} />);
+  for (const summary of screen.getAllByText(/^Column guide \(/)) fireEvent.click(summary); // collapsed by default (W5-UI05)
   for (const template of catalog.templates) {
     for (const column of template.columns) {
       const row = columnRow(template.name, column.name);
@@ -83,5 +84,19 @@ it("with no network type chosen, an example asks for one instead of offering a d
     const section = screen.getByRole("region", { name: new RegExp(`^${t.name}\\.csv`) });
     expect(within(section).getByRole("button", { name: `Download example ${t.name}.csv` })).toBeDisabled();
     expect(section).toHaveTextContent(CHOOSE_MODE);
+  }
+});
+
+// W5-UI05 (W4-03 ux-critic notes): seven open guides ran import step 1 to ~5,800 px, so each starts collapsed.
+it("each template's column guide starts collapsed and opens from its summary", () => {
+  render(<TemplateGuide catalog={catalog} />);
+  for (const template of catalog.templates) {
+    const section = screen.getByRole("region", { name: new RegExp(`^${template.name}\\.csv`) });
+    const first = within(section).getByRole("row", { name: new RegExp(`^${template.columns[0].name}\\b`) });
+    expect(first).not.toBeVisible();
+    fireEvent.click(within(section).getByText(`Column guide (${template.columns.length} columns)`));
+    expect(first).toBeVisible();
+    // The downloads stay outside the guide.
+    expect(within(section).getByRole("link", { name: `Download blank ${template.name}.csv` })).toBeVisible();
   }
 });
