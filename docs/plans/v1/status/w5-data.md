@@ -11,6 +11,8 @@
 | W5-D03 | done | `cc9c46b` | RED seen (`evaluated` with null WAPE). `uv run --frozen pytest -q tests/forecasting/test_backtest.py tests/imports/` → 211 passed, 0 skipped |
 | W5-D04 | done | `fea2ec0` | RED seen (`DID NOT RAISE AccessError` for done and failed). Same command → 211 passed, 0 skipped |
 | W5-UI04 (data side) | done | `8691c72` | Gabriel's decision (2026-11-12, via orchestrator): the `basis` guide names the three places the sales label shows after polish's UI04 ("the Forecast trust panels, the danger ranking and the site inspector"), never "everywhere". RED seen (`test_guide_states_single_timezone_and_blank_capacity_rule`, old wording). `uv run --frozen pytest -q tests/imports/` → 202 passed, 0 skipped |
+| W5-D02 follow-up (code-review #5, #6) | done | `3bd1cde` | Gabriel's decision (2026-11-12): the fix text names the receivers of the network's mode (pantries / stores), not of the row's sender type; `validate.py` uses `HUB_ROLES` (`optimization/v3.py:20`) for both hub/DC checks. RED seen: `test_hub_or_dc_demand_fix_names_the_receivers_of_the_network_mode[PANTRY-distribution_center-pantries]` got "stores", the RETAIL case "pantries". `uv run --frozen pytest -q tests/imports/` → 204 passed, 0 skipped |
+| CR-w5-data-1 (revised, code-review #4) | done | `09b6aba` | Gabriel's decision (2026-11-12): the bench writes 100 pantries and no hub, `MAX_ROWS = 4,500,000` again. RED seen: 3 failed (bound and message still 4,455,000). `uv run --frozen pytest -q tests/imports/test_bench_import.py` → 4 passed (incl. the small bench importing the hubless network through PostgreSQL) |
 
 ## Gates
 
@@ -32,7 +34,12 @@ Earlier runs that don't count: a full gate on `f75da9a` failed once at web unit 
 - Info, left as is: in Pantry mode a `distribution_center` row, already refused for its type, also gets the hub/DC demand error. That file is already rejected, so it's only extra noise.
 - Command: `uv run --frozen pytest -q -rs tests/imports/test_validation.py tests/imports/test_templates.py tests/imports/test_bench_import.py tests/forecasting/test_backtest.py tests/imports/test_import_job.py` → 156 passed, 0 skipped.
 
+### Orchestrator's verifier on PR #151 (`e4d8b05`): PASS WITH NOTES
+Whole API suite 2265 passed, 0 skipped; revert checks for D02–D04 fail as they should; D04's check and admission share `get_run(lock=True)` with `publish_staged`; a failed run's errors survive a refused commit; no in-repo producer writes hub/DC demand; clean merge, no migration. N3 (cancelled imports): see Known limitations.
+
 ### `/code-review` on PR #151 (`e4d8b05`, ship-check step 5, local only, nothing posted): 8 findings
+**Decisions (Gabriel, 2026-11-12):** #2 accept the window (v1-local may briefly name labels polish's PR adds; the W6 candidate is chosen after polish merges; order data, packaging, polish). #4 revise CR-w5-data-1: done in `09b6aba`. #5 and #6 fix: done in `3bd1cde`. #8 no backfill; the lead updates the `v1_networks.py` docstring in the W5 close PR.
+
 Run with no tests. My check of each against the code:
 1. **Medium, known, merge order:** the trust panel and `backtest-summary.tsx:20` show "needs 35+ days" for `not_evaluated_zero_actual`. The fix lives on `lane/w5-screens`; #151 merges after it (see Notes for other lanes).
 2. **Medium, known, merge order:** the `basis` guide (`8691c72`, Gabriel's wording) names the danger ranking and site inspector. Until w5-polish's UI04 merges, `v1-local` shows the sales label only in `trust-panel.tsx`. Either #151 merges after polish too, or `v1-local` carries a short window where the guide promises more than the screens show. **Lead decision.**
@@ -84,7 +91,8 @@ Run with no tests. My check of each against the code:
 - **Exact change:** in `_rows`, make one hub and give demand only to pantries. The locations line becomes `{'hub' if i == 0 else 'pantry'}`, and the demand pairs become `pairs = ((i, p) for i in range(1, LOCATIONS) for p in range(PRODUCTS))`. Update the `--rows` help to "demand_history rows (at most 4,455,000: 99 pantries × 500 × 90; a hub has no demand history, W5-D02)". Alternative: keep 5 hubs and start at `range(5, LOCATIONS)` (at most 4,275,000).
 - **Why:** W5-D02 refuses `demand_history` rows for hubs and DCs (W4 decisions §10). Today the generator writes rows for L000–L004, which are hubs, so `test_bench_import.py::test_small_bench_writes_phase_seconds_and_peak_rss` fails with `generated files did not validate: … L000 is a hub …`. The 4.5 M envelope (100 × 500 × 90) can no longer be reached by a network that has a hub; whether V1-SPEC §5.1's figure needs a note is the lead's call. W5-PK04 (bulk-import measurement) uses this bench.
 - **Unblocks:** W5-D02.
-- **Status:** approved (Gabriel, 2026-11-12) as a one-time exception: the lane makes the change inside its D02 commit. Done in the W5-D02 commit (see the task row): one hub (`'hub' if i == 0`), demand pairs over `range(1, LOCATIONS)`, and `MAX_ROWS = 4,455,000` used for the `--rows` default, bound and error text, plus the usage line in the docstring. Nothing else in the script changed.
+- **Revised (Gabriel, 2026-11-12, code-review #4), done in `09b6aba`:** import validation doesn't require a hub, and a hubless network of 100 pantries reaches the whole 4,500,000-row envelope, so the bench now writes 100 pantries and no hub: `MAX_ROWS = LOCATIONS × PRODUCTS × DAYS`, default, bound, messages and the docstring example back to 4,500,000. There is still no hub demand, because there is no hub. The one-hub version below is superseded.
+- **Status (original):** approved (Gabriel, 2026-11-12) as a one-time exception: the lane makes the change inside its D02 commit. Done in the W5-D02 commit (see the task row): one hub (`'hub' if i == 0`), demand pairs over `range(1, LOCATIONS)`, and `MAX_ROWS = 4,455,000` used for the `--rows` default, bound and error text, plus the usage line in the docstring. Nothing else in the script changed.
 
 ### CR-w5-data-2 — the import page should read the run when a commit answers IMPORT_ALREADY_FINISHED
 - **File(s):** `apps/web/src/components/import/import-view.tsx` (w5-polish / w5-screens / lead; not this lane)
@@ -100,6 +108,11 @@ Run with no tests. My check of each against the code:
 
 - **W5-D03 → web:** (approved 2026-11-12: `w5-screens` adds the `not_evaluated_zero_actual` branch before D03 reaches v1-local.) `apps/web/src/components/data-explorer/trust-panel.tsx:64-72` shows `NOT_EVALUATED` ("accuracy not evaluated: needs 35+ days") for every non-`evaluated` status. After D03, a series whose scored actuals sum to 0 arrives as `not_evaluated_zero_actual` with `reason: sum_actual_zero`, so it would read "needs 35+ days" (wrong) where it showed `NOT_MEASURABLE` before. The panel needs a branch for this status, e.g. the existing NOT_MEASURABLE copy. W5-UI04/UI05 (`w5-polish`) or the lead should decide; merge both together.
 - **W5-D01 → W5-UI04:** `DangerRow.basis` and `ProductProjection.basis` are now filled (`demand` | `sales` | null). The why text carries the donation sentence as plain text, so the web needs no change for it.
+
+## Known limitations
+
+- **Cancelled or stopped imports can be committed again** (verifier N3): only a stored `done` or `failed` phase is refused. A run whose job was cancelled or stopped still reads `staging`, so a commit admits a new job. That's the designed Retry path, pinned by `test_a_run_whose_job_stopped_before_finishing_can_still_be_committed_again`; the wave text names only done and failed.
+- **A series with 35+ days but no scoreable actuals** (all blank in the scored windows) gets `not_evaluated_insufficient_history`, which the web shows as "needs 35+ days". Not for this PR (Gabriel, 2026-11-12).
 
 ## Escalations
 
