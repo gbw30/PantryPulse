@@ -17,7 +17,7 @@
 
 | Gate | Commit | Result |
 |---|---|---|
-| `node scripts/quality/run.cjs quick` | | |
+| `node scripts/quality/run.cjs quick` | `7e94d4c` | PASS (web typecheck, web lint, api lint, api tests); standard env, so the PostgreSQL suites skip (458) and are not counted. The Stop hook's run just before failed once on `test_actions.py::test_actions_equal_the_full_network_replay[bench-retail-RETAIL_OPTIMIZED-receiving-None]` (see Gotchas) |
 | `node scripts/quality/run.cjs full` (with `.env.lane`) | | |
 | `/devkit:ship-check` | | |
 
@@ -31,6 +31,8 @@
 - W5-SC01 print: the selection is saved in the print link's `onClick`, before Next navigates. Selecting alone writes nothing, so another tab's Decisions can't replace it; a failed save still removes the stored one.
 
 ## Gotchas
+
+- `apps/api/tests/optimization/test_actions.py::test_actions_equal_the_full_network_replay[bench-retail-RETAIL_OPTIMIZED-receiving-None]` failed once in a Stop-hook quick run on `7e94d4c` (1 failed, 1761 passed, 458 skipped), at a load average of about 27. This lane changed no API code (`git diff 81c551b..HEAD -- apps/api` is empty). It then passed 105/105 for the whole test, 6/6 alone (about 1.5 s each), and in a full quick rerun. The hook output had no assertion text. The test runs a real CP-SAT solve (`run_method`, line 281), so a time-limited solve under load is the likely cause, but that is unverified. For the solver owner.
 
 - Under heavy machine load (load average 37 with four lanes and a compose stack up), legacy `scenario-lab.spec.ts` tests time out at 5 s with the page still on "Loading networks…" (:350, :361). They passed 5/5 alone and 30/30 with the lane stack stopped. Local e2e numbers are only meaningful on a quiet machine.
 - At 390×844 every screen is 481 px wide: the top bar's right cluster (`top-bar.tsx:83`, `ml-auto flex shrink-0 items-center gap-3`) overflows. Found by the W5-SC02 capture; w5-polish's file, reported to the orchestrator.
