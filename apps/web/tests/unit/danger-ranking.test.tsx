@@ -158,3 +158,28 @@ it("a distribution centre's Retail row says a DC has no sales, so stock it doesn
   const rows = within(screen.getByRole("table", { name: /Danger ranking/ })).getAllByRole("row").slice(1);
   expect(rows[0]).toHaveTextContent(note);
 });
+
+// W5-UI04 (V1-A08): a row built from sales says so; demand and unknown (null) bases say nothing.
+const SALES = "Basis: sales (undercounts demand when shelves were empty)";
+function withBasis() {
+  const ranking = example("DangerRanking");
+  ranking.rows[0] = { ...ranking.rows[0], basis: "sales" };
+  ranking.rows[1] = { ...ranking.rows[1], basis: "demand" };
+  return ranking;
+}
+
+it("a row whose basis is sales says it undercounts demand; demand and null rows say nothing (W5-UI04)", () => {
+  const ranking = withBasis();
+  render(<DangerRanking ranking={ranking} />);
+  expect(item(ranking.rows[0].location_id)).toHaveTextContent(SALES);
+  expect(item(ranking.rows[1].location_id)).not.toHaveTextContent(/Basis:/);
+  expect(screen.getAllByText(SALES, { exact: false })).toHaveLength(1);
+});
+
+it("the table view carries the same sales basis on that row only (W5-UI04)", () => {
+  const ranking = withBasis();
+  render(<DangerRanking ranking={ranking} view="table" />);
+  const rows = within(screen.getByRole("table")).getAllByRole("row").slice(1);
+  expect(rows[0]).toHaveTextContent(SALES);
+  expect(rows[1]).not.toHaveTextContent(/Basis:/);
+});

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { SALES_LABEL } from "@/components/data-explorer/trust-panel";
 import { currentRunId, ForecastRunsNote, RunForecast, useForecastRun } from "@/components/forecast/forecast-run";
 import { InboundNote, SampleBadge, useNetwork } from "@/components/shell/network-switcher";
 import { usePresenterOptional } from "@/components/shell/presenter-session";
@@ -32,6 +33,8 @@ const retailReason = (row: Row) => row.reason === "expiry"
   : "Reason: lost sales (higher than the expiring-stock share)";
 // A Retail expiry row's first_deficit_date is the first day stock expires unsold (services/danger/ranking.py).
 const firstDayText = (row: Row) => `${row.reason === "expiry" ? "first expiry" : "first deficit"} ${shortDate(row.first_deficit_date!)}`;
+// W5-UI04 (V1-A08): a row built from sales history says so; demand and unknown bases say nothing.
+const basisText = (row: Row) => (row.basis === "sales" ? `Basis: ${SALES_LABEL}` : null);
 // W3 §10: a DC sells nothing, so any stock it doesn't send out is projected to expire unsold.
 const DC_NOTE = "A DC has no sales; stock it doesn't send out counts as expiring";
 type Role = Schema["LocationList"]["locations"][number]["role"];
@@ -86,6 +89,7 @@ export function DangerRanking({ ranking, view: initialView = "list", label = (id
               <p className="text-muted-foreground">
                 Driving product <span className="font-medium text-foreground">{row.driving_product_id}</span>: {unitsText(row)}
                 {row.first_deficit_date && <> · {firstDayText(row)}</>}
+                {basisText(row) && <span className="text-xs"> · {basisText(row)}</span>}
                 {/* On the same line where it fits, so three ranks stay in the first view (W4-03 #5). */}
                 {retail && <span className="text-xs"> · {why(row)}</span>}
               </p>
@@ -106,7 +110,7 @@ export function DangerRanking({ ranking, view: initialView = "list", label = (id
                   <td className="px-3 py-2 tabular-nums">{row.rank}</td>
                   <td className="px-3 py-2"><span className="inline-flex items-center gap-1.5"><DangerBandGlyph band={row.band} />{BAND_LABEL[row.band]}</span></td>
                   <td className="px-3 py-2">{scoreText(row, ranking.mode)}{retail && <span className="block text-xs text-muted-foreground">{why(row)}</span>}</td>
-                  <td className="px-3 py-2">{row.driving_product_id}</td>
+                  <td className="px-3 py-2">{row.driving_product_id}{basisText(row) && <span className="block text-xs text-muted-foreground">{basisText(row)}</span>}</td>
                   <td className="px-3 py-2 tabular-nums">{unitsText(row)}</td>
                   <td className="px-3 py-2 tabular-nums">{row.first_deficit_date ? shortDate(row.first_deficit_date) : "None in horizon"}</td>
                 </tr>

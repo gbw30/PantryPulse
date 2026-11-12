@@ -69,3 +69,16 @@ it("Escape anywhere closes the inspector", async () => {
   fireEvent.keyDown(document.body, { key: "Escape" });
   expect(onClose).toHaveBeenCalledTimes(1);
 });
+
+it("a product whose basis is sales says it undercounts demand; demand and null products say nothing (W5-UI04)", async () => {
+  const [first, second] = projection.products;
+  vi.spyOn(networkApi, "projection").mockResolvedValue({ ...projection, products: [{ ...first, basis: "sales" }, { ...second, basis: "demand" }] });
+  open();
+  const region = screen.getByRole("region", { name: "Site inspector · Archer Road Pantry" });
+  const sales = await within(region).findByText("Basis: sales (undercounts demand when shelves were empty)");
+  expect(within(region).getAllByText(/^Basis:/)).toHaveLength(1);
+  const tables = within(region).getAllByRole("table");
+  // Under the sales product's own table, before the next product's.
+  expect(tables[0].compareDocumentPosition(sales) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(sales.compareDocumentPosition(tables[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});

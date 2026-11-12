@@ -49,7 +49,7 @@ export function LocationMap({ name, placed, label, bandOf, onSelect, children }:
     // Desktop: the capped map leaves room beside it for its caption, so the ranking starts higher (W4-03 #5).
     <div className="grid gap-1 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-end lg:gap-x-4">
       {/* Desktop caps the height (keeping 16:9) so ranks #1–#3 sit in the first view (W4-03 ux-critic #5). */}
-      <div role="group" aria-label={`Map of ${name}`} className="relative aspect-video w-full overflow-hidden rounded-lg border border-border bg-muted/30 lg:h-[clamp(8rem,calc(100svh-36rem),22rem)] lg:w-auto lg:max-w-full">
+      <div role="group" aria-label={`Map of ${name}`} className="relative aspect-video w-full overflow-hidden rounded-lg border border-border bg-muted/30 lg:h-[clamp(8rem,calc(100svh-37rem),22rem)] lg:w-auto lg:max-w-full">
         {placed.map(({ location, x, y }) => {
           const band = bandOf(location.location_id);
           const text = `${label(location.location_id)}, ${band ? BAND_LABEL[band] : "not ranked"}`;

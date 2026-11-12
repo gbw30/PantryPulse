@@ -100,6 +100,8 @@ function fiveRows(mode: "PANTRY" | "RETAIL" = "PANTRY") {
   served.mode = mode;
   const low = served.rows[1];
   served.rows.push(...[3, 4, 5].map((rank) => ({ ...low, location_id: `P-9${rank}`, rank })));
+  // Retail from sales history is the longest line: the reason and the sales basis (W5-UI04) on every row.
+  if (mode === "RETAIL") served.rows = served.rows.map((row) => ({ ...row, basis: "sales" as const }));
   return served;
 }
 

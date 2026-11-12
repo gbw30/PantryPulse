@@ -2,6 +2,7 @@ import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { vocabularyFor } from "@/lib/mode-vocabulary";
+import { SALES_LABEL } from "@/components/data-explorer/trust-panel";
 import { networkApi, type Network } from "@/lib/network-api";
 import { ApiError, type Schema } from "@/lib/planning-api";
 import { formatUnits, pluralize } from "./live-source";
@@ -51,6 +52,7 @@ function ProductProjection({ product, mode, driving }: { product: Product; mode:
         </table>
       </div>
       <p className="text-xs">Eligible stock now: {formatUnits(product.eligible_stock_now, product.unit)}</p>
+      {product.basis === "sales" && <p className="text-xs">Basis: {SALES_LABEL}</p>}
       {missing.map((name) => <p key={name} className="text-xs text-muted-foreground">{name}: not available for {product.product_id}.</p>)}
     </div>
   );
