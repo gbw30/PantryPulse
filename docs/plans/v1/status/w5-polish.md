@@ -50,7 +50,7 @@ Skills check (2026-11-12): `/jmo-workflow:better-ui` loaded; `/jmo-workflow:anim
 
 None filed by this lane.
 
-- **CR-w5-data-2** (from w5-data; approved, Gabriel, 2026-11-12; done in (this commit)): `commit()` in `import-view.tsx` answers 409 `IMPORT_ALREADY_FINISHED` by reading the run (`track`) instead of "Import request failed … Nothing was saved". This fixes a Retry after a commit whose phase write was lost and whose job then finished. Test first: `tests/unit/import-view.test.tsx` adds two tests (a done run shows "Import finished"; a failed run keeps its row-error report). RED: both failed (the page said the request failed). GREEN: `npx vitest run` → 30 files, 192 passed; tsc, eslint clean. Keyed on the code, so harmless before W5-D04 lands.
+- **CR-w5-data-2** (from w5-data; approved, Gabriel, 2026-11-12; done in `43df904`): `commit()` in `import-view.tsx` answers 409 `IMPORT_ALREADY_FINISHED` by reading the run (`track`) instead of "Import request failed … Nothing was saved". This fixes a Retry after a commit whose phase write was lost and whose job then finished. Test first: `tests/unit/import-view.test.tsx` adds two tests (a done run shows "Import finished"; a failed run keeps its row-error report). RED: both failed (the page said the request failed). GREEN: `npx vitest run` → 30 files, 192 passed; tsc, eslint clean. Keyed on the code, so harmless before W5-D04 lands.
 
 ## Escalations
 
