@@ -1,4 +1,4 @@
-// covers: V1-A01, V1-A18, V1-A24
+// covers: V1-A21
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');

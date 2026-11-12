@@ -101,7 +101,7 @@ function classify(events, { googleKey }) {
   }
   const destinations = [...byDestination.values()];
   const violations = destinations.filter((d) => !d.allowed).map((d) => ({ destination: d.destination,
-    reason: d.proto === 'udp' ? 'outbound UDP other than DNS' : d.server_name ? 'not in the allowlist' : 'no TLS server name to check' }));
+    reason: d.proto === 'udp' ? 'outbound UDP (DNS past Docker\'s resolver included)' : d.server_name ? 'not in the allowlist' : 'no TLS server name to check' }));
   return { destinations, violations, dnsNames };
 }
 

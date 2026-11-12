@@ -35,6 +35,8 @@ For contributors without Python or a local PostgreSQL, including Windows and mac
 - an e2e title (`*.spec.ts`) carries `@V1-Axx`; or
 - one of a test file's first five lines is `# covers: V1-Axx` (Python) or `// covers: V1-Axx` (JS/TS).
 
+A test that runs a checker on synthetic input (for example the egress classifier or the recorded-runs validator) covers the test kit, V1-A21, not the criterion that checker measures. Those criteria map to the checker itself, through the story's `tests` entry, and stay open while it fails.
+
 A story's `tests` list holds only evidence checks that carry no tag, written `<path> [args]`. `--enforce` exits 1 when an ID has no coverage or a listed path no longer exists. `--report` lists the map without failing.
 
 ## Recorded-evidence checks: V1-A01, V1-A18, V1-A24 (pull path)
@@ -67,7 +69,7 @@ To record a run, put the files in `docs/testing/evidence/runs/`:
 
 `scripts/testing/egress-journey.cjs` installs the stack fresh under `COMPOSE_PROJECT_NAME` (it runs `docker compose down -v` first, so it refuses the default `pantrypulse` project) and builds with lane-local image tags, so another install's images are never retagged.
 
-1. **Capture.** `scripts/testing/egress-sniff.py` runs as the `egress-capture` service (`compose.test.yaml`, profile `egress`) in the Docker host's network namespace. On the stack's bridge it records each outbound TCP connection with its TLS server name and any outbound UDP. It reads no other payload.
+1. **Capture.** `scripts/testing/egress-sniff.py` runs as the `egress-capture` service (`compose.test.yaml`, profile `egress`) in the Docker host's network namespace. On the stack's bridge it records each outbound TCP connection with its TLS server name and any outbound UDP, DNS included. It reads no other payload.
 2. **Journey.** Over HTTP through the web's same-origin proxy, it drives these steps on the two samples:
    - sign in with the generated password;
    - A06 templates, and an A07 malformed import, rejected with no network created;
@@ -75,7 +77,7 @@ To record a run, put the files in `docs/testing/evidence/runs/`:
    - A12 forecast and backtest, and the A13 ranking and projection;
    - A14 Pantry comparisons in both transfer modes and A15 Retail in units and USD, every method verified;
    - A16 actions and CSV export.
-3. **Checks.** Only `geocoding.geo.census.gov` is allowed, and `routes.googleapis.com` only when the user saved a Google key. `api.census.gov` is never called, because ACS rates come from the bundled table. A connection without a TLS server name, or any outbound UDP other than DNS, is flagged. The generated password and proxy token must not appear in `docker compose logs`, in the web's `.next` output, in tracked or untracked-but-not-ignored files, or in any commit made since the run started.
+3. **Checks.** Only `geocoding.geo.census.gov` is allowed, and `routes.googleapis.com` only when the user saved a Google key. `api.census.gov` is never called, because ACS rates come from the bundled table. A connection without a TLS server name, and any outbound UDP, is flagged. That includes DNS sent from the stack's subnet to an outside server, because Docker's own resolver never puts a container's lookup on the bridge. The generated password and proxy token must not appear in `docker compose logs`, in the web's `.next` output, in tracked or untracked-but-not-ignored files, or in any commit made since the run started.
 4. **Positive control.** The run fails if the capture saw no Census connection, because the journey geocodes and a capture that missed it would be blind.
 
 It writes `artifacts/egress/report.json`. It reports secrets by name, never by value.

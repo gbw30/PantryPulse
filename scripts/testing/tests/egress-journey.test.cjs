@@ -1,4 +1,4 @@
-// covers: V1-A03, V1-A04
+// covers: V1-A21
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -101,4 +101,29 @@ test('flags a secret in tracked, untracked or newly committed Git files, never i
     { secret: 'google_key', where: 'git history' },
   ]);
   assert.ok(!JSON.stringify(findings).includes(SECRETS.google_key), 'a finding never repeats the secret');
+});
+
+test('the sniffer flags DNS that a container sends past Docker\'s resolver, and keeps resolver DNS for names', () => {
+  // Docker's embedded resolver (127.0.0.11) never puts a container's query on the bridge, so
+  // UDP to port 53 leaving the stack's subnet there is a direct lookup to an outside server.
+  const py = String.raw`
+import importlib.util, ipaddress, json, struct, sys
+spec = importlib.util.spec_from_file_location("sniff", sys.argv[1])
+m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+def frame(src, dst, sport, dport):
+    ip = bytes([0x45, 0, 0, 0, 0, 0, 0, 0, 64, 17, 0, 0])
+    ip += ipaddress.ip_address(src).packed + ipaddress.ip_address(dst).packed
+    return b"\x00" * 12 + b"\x08\x00" + ip + struct.pack("!HHHH", sport, dport, 16, 0) + b"\x00" * 8
+subnet = ipaddress.ip_network("172.30.0.0/16")
+cases = [("br-x", ("172.30.0.5", "203.0.113.9", 40001, 53)),
+         ("services1", ("192.168.65.6", "192.168.65.7", 40002, 53))]
+print(json.dumps([m.packet_event(frame(*a), iface, "br-x", subnet) for iface, a in cases]))
+`;
+  const run = spawnSync('python3', ['-I', '-c', py, path.join(__dirname, '..', 'egress-sniff.py')], { encoding: 'utf8' });
+  assert.equal(run.status, 0, run.stderr);
+  const [direct, resolver] = JSON.parse(run.stdout);
+  assert.equal(direct.kind, 'udp');
+  assert.equal(resolver.kind, 'dns');
+  const { violations } = classify([{ kind: 'start' }, direct, resolver], { googleKey: false });
+  assert.deepEqual(violations.map((v) => v.destination), ['203.0.113.9:53/udp']);
 });

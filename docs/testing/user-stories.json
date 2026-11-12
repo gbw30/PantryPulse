@@ -20,13 +20,17 @@
       "id": "V1-A03",
       "criterion": "No paid keys: after install (image pull or build), the full journey (A07–A16) completes with no keys configured and no outbound calls except Census lookups for user-imported addresses",
       "evidence": "Journey run with egress logged",
-      "tests": []
+      "tests": [
+        "scripts/testing/egress-journey.cjs"
+      ]
     },
     {
       "id": "V1-A04",
       "criterion": "Local login: generated credentials work; the password never appears in logs, Git or the browser bundle; backend auth and CSRF stay enforced",
       "evidence": "Log/bundle grep test + existing auth tests",
-      "tests": []
+      "tests": [
+        "scripts/testing/egress-journey.cjs"
+      ]
     },
     {
       "id": "V1-A05",

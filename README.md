@@ -80,7 +80,7 @@ A maximum-size import (100 locations × 500 products × 90 days) took 1 min 22 s
 
 ## Methods and research basis
 
-Pantry networks compare five methods on the same frozen scenario: no transfers, equal share, most-urgent-first, classical goal programming and **EGP-PI-inspired** allocation. Retail networks compare no transfers, soonest-expiry-first, and an optimized plan that minimizes expired stock plus lost sales. Every published result passes an independent verifier.
+Pantry networks compare five methods on the same frozen scenario: no transfers, equal share, most-urgent-first, classical goal programming and **EGP-PI-inspired** allocation. Retail networks compare no transfers, soonest-expiry-first, and an optimized plan that minimizes expired stock plus lost sales. Every plan shown passes an independent verifier; a method that fails verification is shown as failed, never replaced or turned into suggested actions.
 
 EGP-PI-inspired is a bounded, research-inspired adaptation of Rampazo, R. C., Jones, D. F., Godoi, L. F., Iamamoto, M. O., & Cantane, D. R. (2026), *An extended goal programming framework incorporating poverty measures: application to food bank logistics*, International Transactions in Operational Research, first published online 11 September 2026 ([doi:10.1111/itor.70252](https://doi.org/10.1111/itor.70252)).
 
