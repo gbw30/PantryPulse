@@ -9,6 +9,8 @@ export const SALES_LABEL = "sales (undercounts demand when shelves were empty)";
 export const NOT_EVALUATED = "accuracy not evaluated: needs 35+ days";
 /** An evaluated score whose WAPE has no denominator (the contract allows a null wape_pct). */
 export const NOT_MEASURABLE = "accuracy not measurable: no recorded demand on the scored days";
+/** `not_evaluated_zero_actual` (W5-L01): every actual was zero, so there is no error percentage to give. */
+export const ZERO_ACTUAL = "accuracy not measurable: every scored day's actual was zero";
 
 type Props = {
   /** "Archer Road Pantry (P-12) · WATER-24" */
@@ -69,7 +71,7 @@ export function TrustPanel({ label, basis, score, method, donationForecast }: Pr
           {biasText(score.bias_pct) && <p>{biasText(score.bias_pct)}</p>}
           <p className="text-xs text-muted-foreground">Measured on {score.scored_points} past days of this network&apos;s history. No claim is made about future accuracy.</p>
         </div>
-      ) : <p className="font-medium">{NOT_EVALUATED}</p>)}
+      ) : <p className="font-medium">{score.status === "not_evaluated_zero_actual" ? ZERO_ACTUAL : NOT_EVALUATED}</p>)}
       {donationForecast && (
         <p>
           expected donations (forecast, not confirmed): {formatUnits(donationForecast.units, donationForecast.unit)}

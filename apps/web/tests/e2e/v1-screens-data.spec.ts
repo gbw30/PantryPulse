@@ -32,3 +32,32 @@ for (const [width, height] of WIDTHS) {
     expect(calls.filter((call) => LEGACY.includes(call.path) || call.path.startsWith("shortages/")), "legacy reads").toEqual([]);
   });
 }
+
+// W5-UI02.1b (D03 copy, Gabriel 2026-11-12): a backtest whose actuals were all zero can't be scored. It says so,
+// never "needs 35+ days" and never a percentage; the short-history series keeps its own wording.
+test("@V1-A12 an all-zero backtest says accuracy can't be measured; short history keeps 'needs 35+ days'", async ({ page }) => {
+  const zero = example("BacktestResult");
+  const good = zero.series.find((s) => s.score?.status === "evaluated")!;
+  const unscorable = { status: "not_evaluated_zero_actual" as const, reason: "sum_actual_zero", wape_pct: null, bias_pct: null, origins_evaluated: 4, scored_points: 28 };
+  good.score = unscorable;
+  zero.locations = zero.locations.map((row) => (row.location_id === good.location_id ? { ...row, score: unscorable } : row));
+  await mockV1(page, {
+    "GET networks": { body: { networks: [network] } },
+    ...publishedRun(network, run.forecast_run_id),
+    [`GET networks/${network.id}/forecasts/${run.forecast_run_id}`]: { body: run },
+    [`GET forecasts/${run.job_id}/backtest`]: { body: zero },
+    [`GET networks/${network.id}/locations`]: { body: example("LocationList") },
+  });
+  await page.goto("/data");
+  const section = page.getByRole("region", { name: `Forecast trust · ${network.name}` });
+  const panel = section.getByRole("region", { name: "Forecast trust: Archer Road Pantry (P-12) · WATER-24" });
+  await expect(panel).toContainText("accuracy not measurable: every scored day's actual was zero");
+  await expect(panel).not.toContainText("35+ days");
+  await expect(panel).not.toContainText("%");
+  const row = section.getByRole("table", { name: "Accuracy by location and unit" }).getByRole("row", { name: /Archer Road Pantry/ });
+  await expect(row).toContainText("accuracy not measurable: every scored day's actual was zero");
+  await expect(row).not.toContainText("35+ days");
+  // Unchanged: the short-history series and its location row.
+  await expect(section.getByRole("region", { name: "Forecast trust: Eastside Pantry (P-07) · WATER-24" })).toContainText("accuracy not evaluated: needs 35+ days");
+  await expect(section.getByRole("table", { name: "Accuracy by location and unit" }).getByRole("row", { name: /Eastside Pantry/ })).toContainText("accuracy not evaluated: needs 35+ days");
+});
