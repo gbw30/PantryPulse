@@ -3,7 +3,8 @@
 V1-SPEC §6.4 with the V5 §7 formulas. Origin k (k = 1 nearest) is the weekly cutoff n - 7k:
 its fit sees only the days before it and it scores the seven days after. Error = prediction -
 actual. WAPE = Σ|error| / Σactual and bias = Σerror / Σactual (positive = over-forecast), as
-percentages, both read from one scored set and both unavailable when Σactual is zero. A missing
+percentages, both read from one scored set. When Σactual is zero both are undefined, so the score
+is not evaluated, with the reason sum_actual_zero (W5-D03). A missing
 actual is left out of the set, never scored as zero. Under 35 days: not evaluated.
 """
 
@@ -103,8 +104,13 @@ def score(scored: ScoredSet) -> BacktestScore:
         return BacktestScore(origins_evaluated=0, wape_pct=None, bias_pct=None,
                              status="not_evaluated_insufficient_history", scored_points=0)
 
-    def pct(value: Decimal) -> Decimal | None:
-        return None if scored.actual == 0 else (100 * value / scored.actual).quantize(CENT)
+    if scored.actual == 0:  # WAPE and bias divide by Σactual: undefined, so not evaluated
+        return BacktestScore(origins_evaluated=len(scored.origins), wape_pct=None, bias_pct=None,
+                             status="not_evaluated_zero_actual", reason="sum_actual_zero",
+                             scored_points=scored.points)
+
+    def pct(value: Decimal) -> Decimal:
+        return (100 * value / scored.actual).quantize(CENT)
 
     return BacktestScore(origins_evaluated=len(scored.origins), wape_pct=pct(scored.abs_error),
                          bias_pct=pct(scored.error), status="evaluated",
