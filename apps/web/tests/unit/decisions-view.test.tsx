@@ -71,16 +71,19 @@ it("selecting 700 actions keeps the print link short, with no action ids, and th
   vi.spyOn(networkApi, "actions").mockResolvedValue(many);
   render(<DecisionsView comparisonId={saved.id} method="CLASSICAL_GP" />);
   fireEvent.click(await screen.findByRole("button", { name: "Select all" }));
-  const href = screen.getByRole("link", { name: "Print page (700 actions)" }).getAttribute("href")!;
+  const link = screen.getByRole("link", { name: "Print page (700 actions)" });
+  const href = link.getAttribute("href")!;
   expect(href.length).toBeLessThan(2048);
   expect(many.actions.filter((a) => href.includes(a.id))).toEqual([]);
   expect(new URL(href, "http://localhost").searchParams.has("actions")).toBe(false);
+  fireEvent.click(link);
   cleanup();
 
   render(<PrintPlan networkId={network.id} comparisonId={saved.id} method="CLASSICAL_GP" />);
   const table = await screen.findByRole("table", { name: "Selected actions" });
   expect(within(table).getAllByRole("row")).toHaveLength(701); // the header and 700 actions
-});
+  // About 1 s alone; it once passed 5 s under full-gate load on 977f7c6 (W5-SC01).
+}, 20_000);
 
 it("the print page says the selection is missing, never prints an empty plan, when nothing was stored or storage is blocked", async () => {
   vi.spyOn(networkApi, "actions").mockResolvedValue(actions(3));
@@ -108,11 +111,12 @@ it("a selection that cannot be saved (storage full) leaves none behind, so print
   vi.spyOn(networkApi, "actions").mockResolvedValue(actions(700));
   render(<DecisionsView comparisonId={saved.id} method="CLASSICAL_GP" />);
   fireEvent.click((await screen.findAllByRole("checkbox"))[0]);
-  await waitFor(() => expect(window.localStorage.length).toBe(1)); // one action saved
+  fireEvent.click(screen.getByRole("link", { name: "Print page (1 action)" }));
+  expect(window.localStorage.length).toBe(1); // one action saved
   vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new DOMException("full", "QuotaExceededError"); });
   fireEvent.click(screen.getByRole("button", { name: "Select all" }));
-  expect(screen.getByRole("link", { name: "Print page (700 actions)" })).toBeVisible();
-  await waitFor(() => expect(window.localStorage.length).toBe(0));
+  fireEvent.click(screen.getByRole("link", { name: "Print page (700 actions)" }));
+  expect(window.localStorage.length).toBe(0);
   cleanup();
 
   render(<PrintPlan networkId={network.id} comparisonId={saved.id} method="CLASSICAL_GP" />);
@@ -124,10 +128,12 @@ it("only the latest selection is kept, and the print page uses it only for the s
   vi.spyOn(networkApi, "actions").mockResolvedValue(actions(3));
   render(<DecisionsView comparisonId={saved.id} method="CLASSICAL_GP" />);
   fireEvent.click(await screen.findByRole("button", { name: "Select all" }));
+  fireEvent.click(screen.getByRole("link", { name: "Print page (3 actions)" }));
   cleanup();
   render(<DecisionsView comparisonId={saved.id} method="NO_TRANSFERS" />);
   fireEvent.click(await screen.findByRole("button", { name: "Select all" }));
-  await waitFor(() => expect(window.localStorage.length).toBe(1)); // saving overwrites; storage never piles up
+  fireEvent.click(screen.getByRole("link", { name: "Print page (3 actions)" }));
+  expect(window.localStorage.length).toBe(1); // saving overwrites; storage never piles up
   cleanup();
 
   // CLASSICAL_GP's selection was replaced by NO_TRANSFERS's; another comparison has none either.
@@ -155,4 +161,24 @@ it("a verified method whose actions still answer 409 shows the no-plan state on 
   await waitFor(() => expect(screen.getByRole("main")).toHaveTextContent("Classical GP has no verified plan in this comparison, so there are no suggested actions."));
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   expect(screen.queryByRole("table")).not.toBeInTheDocument();
+});
+
+// W4 decisions §6 / W5-SC01: selecting saves nothing; only following the print link saves the selection, so
+// Decisions open in another tab can't replace the selection this tab is about to print.
+it("the selection is saved only when the print link is used, so another tab's selecting doesn't replace it", async () => {
+  vi.spyOn(networkApi, "actions").mockResolvedValue(actions(3));
+  render(<DecisionsView comparisonId={saved.id} method="CLASSICAL_GP" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Select all" }));
+  expect(window.localStorage.length).toBe(0);
+  fireEvent.click(screen.getByRole("link", { name: "Print page (3 actions)" }));
+  expect(window.localStorage.length).toBe(1);
+  cleanup();
+
+  // The other tab: a second plan's Decisions, with actions selected but not printed.
+  render(<DecisionsView comparisonId={saved.id} method="NO_TRANSFERS" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Select all" }));
+  cleanup();
+
+  render(<PrintPlan networkId={network.id} comparisonId={saved.id} method="CLASSICAL_GP" />);
+  expect(within(await screen.findByRole("table", { name: "Selected actions" })).getAllByRole("row")).toHaveLength(4);
 });

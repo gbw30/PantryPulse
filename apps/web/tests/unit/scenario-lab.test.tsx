@@ -2,6 +2,7 @@
 import type { ReactNode } from "react";
 import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { pluralize } from "@/components/data-explorer/format";
 import { ScenarioLab } from "@/components/scenario-lab/scenario-lab";
 import { planningApi } from "@/lib/planning-api";
 import { example } from "./contract-examples";
@@ -51,4 +52,12 @@ it("while the networks load, neither builder is shown", () => {
   expect(screen.getByRole("status")).toHaveTextContent("Loading networks…");
   expect(screen.queryByRole("form", { name: "Scenario builder" })).not.toBeInTheDocument();
   expect(screen.queryByText(/^v1 comparison/)).not.toBeInTheDocument();
+});
+
+// W5-SC01 (W4-03 ux-critic note): the builder's unit headers (wizard.tsx) and the Data Explorer's product
+// names use this plural. "boxs" read as a typo.
+it("pluralize writes -es after s-like endings, -ies after a consonant y, keeps each and an existing plural", () => {
+  const cases = { box: "boxes", bunch: "bunches", dish: "dishes", glass: "glasses", case: "cases", bottle: "bottles",
+    berry: "berries", tray: "trays", each: "each", lbs: "lbs", meals: "meals" };
+  expect(Object.fromEntries(Object.keys(cases).map((unit) => [unit, pluralize(unit)]))).toEqual(cases);
 });

@@ -16,7 +16,9 @@ export const STATUS_LABEL: Record<MarkStatus, string> = {
 };
 
 export function pluralize(unit: string) {
-  if (/s$/i.test(unit)) return unit;
+  if (/^each$/i.test(unit)) return unit;
+  if (/(ss|x|z|ch|sh)$/i.test(unit)) return `${unit}es`;
+  if (/s$/i.test(unit)) return unit; // already plural ("lbs", "meals")
   if (/[^aeiou]y$/i.test(unit)) return `${unit.slice(0, -1)}ies`;
   return `${unit}s`;
 }
