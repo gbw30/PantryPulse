@@ -245,6 +245,33 @@ it("losing contact again inside the resumed window keeps the remaining checks (F
   }
 });
 
+// CR-w5-data-2 (Gabriel, 2026-11-12): a commit admitted with its phase write lost reads "didn't start"; the job then
+// finishes, and Retry gets 409 IMPORT_ALREADY_FINISHED (W5-D04). The page reads the run instead of saying nothing was saved.
+async function retryAfterFinished(finished: ReturnType<typeof example<"ImportStatus">>) {
+  const commit = vi.spyOn(networkApi, "commitImport")
+    .mockRejectedValueOnce(new ApiError("COMPUTE_QUEUE_FULL", 503))
+    .mockRejectedValueOnce(new ApiError("IMPORT_ALREADY_FINISHED", 409));
+  vi.spyOn(networkApi, "importStatus").mockResolvedValueOnce(uploadingNoJob()).mockResolvedValue(finished);
+  await importAll();
+  expect(await screen.findByRole("alert")).toHaveTextContent("The import didn't start");
+  fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+  await waitFor(() => expect(commit).toHaveBeenCalledTimes(2));
+}
+
+it("Retry on an import that already finished shows the finished import, not a failed request (CR-w5-data-2)", async () => {
+  const done = { ...example("ImportStatus"), phase: "done" as const, error_count: 0, errors: [], failure: null };
+  await retryAfterFinished(done);
+  expect(await screen.findByRole("heading", { name: "Import finished" })).toBeInTheDocument();
+  expect(screen.queryByText(/Nothing was saved/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/Import request failed/)).not.toBeInTheDocument();
+});
+
+it("Retry on an import that already failed keeps its row-error report (CR-w5-data-2)", async () => {
+  await retryAfterFinished(example("ImportStatus"));
+  expect(await screen.findByText(example("ImportStatus").failure!.message)).toBeInTheDocument();
+  expect(screen.queryByText(/Import request failed/)).not.toBeInTheDocument();
+});
+
 it("a commit the server refused still says nothing was saved", async () => {
   vi.spyOn(networkApi, "commitImport").mockRejectedValue(new ApiError("AS_OF_DATE_INVALID", 422));
   const status = vi.spyOn(networkApi, "importStatus");

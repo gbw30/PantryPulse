@@ -24,6 +24,8 @@ Skills check (2026-11-12): `/jmo-workflow:better-ui` loaded; `/jmo-workflow:anim
 
 ## Decisions made inside the lane
 
+- **Gate evidence (orchestrator, 2026-11-12):** `.env.lane` does not set `PP19_TEST_SCHEMA_ISOLATION`, and without it the PP19 PostgreSQL suites (`apps/api/tests/integration/test_{operational,forecast_api,planning}_postgres.py`) skip silently. Every quick or full run cited here exports `PP19_TEST_SCHEMA_ISOLATION=1` alongside `.env.lane`; an earlier quick run without it is not evidence.
+
 - The screenshot capture is `apps/web/tests/e2e/connected/visual-evidence.capture.ts`, run through its own `evidence.config.ts`, not a `*.spec.ts`: CI rejects any skipped test (`scripts/quality/require-test-evidence.py:8`), and a capture that needs the connected stack would skip there — W5-UI01/UI03.
 - **Supply-link flow (Gabriel, 2026-11-12, via the orchestrator):** keep the always-on `.pp-supply-flow` loop (PP-52 #4) and add a pause control for WCAG 2.2.2. "Pause link animation" in the map's "Map controls" group: a toggle button with `aria-pressed` (stable name, pressed = paused), remembered per browser in localStorage (`pp-atlas-flow-paused`, try/catch, playing when storage is unavailable); paused links show static, as under reduced motion. `v1-motion.spec.ts` exempts only that loop, by name; everything else stays finite and ≤ 1 s — W5-UI03.
 - `connected/stack-up.sh` and `run-e2e.sh` take their ports from `.env.lane` (`PP_API_PORT`, `PLAYWRIGHT_PORT`) instead of the hardcoded 8003/3003, which are `w5-data`'s ports this wave — W5-UI01 (prerequisite).
@@ -41,11 +43,14 @@ Skills check (2026-11-12): `/jmo-workflow:better-ui` loaded; `/jmo-workflow:anim
 
 - **Do not edit** `apps/web/tests/e2e/data-label.spec.ts` (CR-w5-screens-1) or `apps/web/tests/e2e/v1-connected-journey.spec.ts` (CR-w5-screens-2); both arrive with the post-screens `origin/v1-local` merge.
 - **W5-UI05 network selector, accessible-name part:** the full network name joins the switcher's accessible name only after that merge, in the same commit as the update to `data-label.spec.ts:43,69` (they find the switcher as `{ name: "Network", exact: true }`). The truncation lands now.
+- **Do not edit** `apps/web/tests/unit/action-card.test.tsx` (CR-w5-screens-5: screens adds a `period` prop to its `card()` helper).
 - **CR-w5-screens-4 (approved, Gabriel 2026-11-12):** after that merge, delete `overview/live-source.ts`'s own `pluralize` (it writes "boxs"), re-export `pluralize` from `data-explorer/format`, and pin "boxes" on an Overview path (inspector or ranking). Same batch as the accessible-name change.
 
 ## Change requests
 
 None filed by this lane.
+
+- **CR-w5-data-2** (from w5-data; approved, Gabriel, 2026-11-12; done in (this commit)): `commit()` in `import-view.tsx` answers 409 `IMPORT_ALREADY_FINISHED` by reading the run (`track`) instead of "Import request failed … Nothing was saved". This fixes a Retry after a commit whose phase write was lost and whose job then finished. Test first: `tests/unit/import-view.test.tsx` adds two tests (a done run shows "Import finished"; a failed run keeps its row-error report). RED: both failed (the page said the request failed). GREEN: `npx vitest run` → 30 files, 192 passed; tsc, eslint clean. Keyed on the code, so harmless before W5-D04 lands.
 
 ## Escalations
 
