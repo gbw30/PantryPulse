@@ -104,7 +104,16 @@ def decision_actions(
     actions = tuple(
         _action(plan, x.transfer) for x in plan.packed if wanted is None or x.transfer.id in wanted
     )
-    return DecisionActions(comparison_id=comparison_id, method=result.method, actions=actions)
+    days = dates(scenario)
+    return DecisionActions(
+        comparison_id=comparison_id,
+        method=result.method,
+        actions=actions,
+        plan_window_start=days[0],
+        plan_window_end=days[window_days(scenario) - 1],
+        effect_window_start=days[0],
+        effect_window_end=days[-1],
+    )
 
 
 def _action(plan, t) -> DecisionAction:
