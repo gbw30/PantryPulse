@@ -1,4 +1,5 @@
 import type { Schema } from "@/lib/planning-api";
+import { cn } from "@/lib/utils";
 import { DANGER_BANDS, DangerBandGlyph, type DangerBand } from "./risk-legend";
 
 export type Location = Schema["LocationSummary"];
@@ -37,28 +38,39 @@ type MapProps = {
   label: (locationId: string) => string;
   bandOf: (locationId: string) => DangerBand | null;
   onSelect: (locationId: string, opener: HTMLElement) => void;
+  /** Shown with the caption (beside the map on desktop): the locations it can't place. */
+  children?: React.ReactNode;
 };
 
 /** Each placed location is a button with its band shape; colour only reinforces the shape and text. */
-export function LocationMap({ name, placed, label, bandOf, onSelect }: MapProps) {
+export function LocationMap({ name, placed, label, bandOf, onSelect, children }: MapProps) {
+  if (placed.length === 0) return children; // nothing to place: no empty frame, only the unplaced list
   return (
-    <div className="grid gap-1">
-      <div role="group" aria-label={`Map of ${name}`} className="relative aspect-video w-full overflow-hidden rounded-lg border border-border bg-muted/30">
+    // Desktop: the capped map leaves room beside it for its caption, so the ranking starts higher (W4-03 #5).
+    <div className="grid gap-1 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-end lg:gap-x-4">
+      {/* Desktop caps the height (keeping 16:9) so ranks #1–#3 sit in the first view (W4-03 ux-critic #5). */}
+      <div role="group" aria-label={`Map of ${name}`} className="relative aspect-video w-full overflow-hidden rounded-lg border border-border bg-muted/30 lg:h-[clamp(8rem,calc(100svh-36rem),22rem)] lg:w-auto lg:max-w-full">
         {placed.map(({ location, x, y }) => {
           const band = bandOf(location.location_id);
           const text = `${label(location.location_id)}, ${band ? BAND_LABEL[band] : "not ranked"}`;
           return (
             <button key={location.location_id} type="button" aria-label={text} title={text} style={{ left: `${x}%`, top: `${y}%` }}
-              className="absolute grid size-6 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+              className="group absolute grid size-6 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
               onClick={(event) => onSelect(location.location_id, event.currentTarget)}>
               {band ? <DangerBandGlyph band={band} size={16} /> : (
                 <svg width={12} height={12} viewBox="0 0 12 12" aria-hidden="true"><rect x="1.5" y="1.5" width="9" height="9" fill="var(--pp-surface)" stroke="var(--pp-ink-muted)" strokeWidth="1.5" /></svg>
               )}
+              {/* W4-03 ux-critic #5: a keyboard-focused marker names its site; it opens toward the map's centre so the frame never clips it. */}
+              <span aria-hidden="true" className={cn("pointer-events-none absolute hidden whitespace-nowrap rounded-md border border-border bg-popover px-1.5 py-0.5 text-xs text-popover-foreground shadow-sm group-focus-visible:block",
+                x < 50 ? "left-0" : "right-0", y > 70 ? "bottom-full mb-1" : "top-full mt-1")}>{label(location.location_id)}</span>
             </button>
           );
         })}
       </div>
-      <p className="text-xs text-muted-foreground">Placed from each location&apos;s coordinates on a schematic projection, with no basemap. A square marks a location that is not ranked.</p>
+      <div className="grid content-end gap-2">
+        <p className="text-xs text-muted-foreground">Placed from each location&apos;s coordinates on a schematic projection, with no basemap. A square marks a location that is not ranked.</p>
+        {children}
+      </div>
     </div>
   );
 }

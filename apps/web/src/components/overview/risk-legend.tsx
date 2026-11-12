@@ -79,7 +79,8 @@ export function DangerLegend({ mode }: { mode: "PANTRY" | "RETAIL" }) {
           <li key={b.band} className="flex items-center gap-1.5">
             <DangerBandGlyph band={b.band} />
             <span className="font-medium">{b.label}</span>
-            <span className="text-muted-foreground">{b.meaning}</span>
+            {/* A Retail score can come from expiry (V1-SPEC §6.6), so its bands never read as shortage alone. */}
+            <span className="text-muted-foreground">{mode === "RETAIL" ? b.meaning.replace("projected short", "projected short or expiring unsold") : b.meaning}</span>
           </li>
         ))}
       </ul>

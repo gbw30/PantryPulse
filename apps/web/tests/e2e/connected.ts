@@ -142,7 +142,9 @@ export const FORECAST_TIMEOUT = 600_000;
  */
 export async function runForecast(page: Page, name: string) {
   await page.goto("/overview");
-  const section = page.getByRole("region", { name: `Danger ranking · ${name}` });
+  await expect(page.getByRole("region", { name: `Danger ranking · ${name}` })).toBeVisible();
+  // The Overview has one "Run forecast" (W5-UI02.5 moved it beside the page header; atlas-ranking.spec.ts pins where).
+  const section = page.getByRole("main");
   const button = section.getByRole("button", { name: "Run forecast" });
   await expect(button).toBeVisible();
   await expect(button).not.toHaveAttribute("aria-disabled", "true");

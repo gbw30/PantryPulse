@@ -9,7 +9,7 @@ Skills check (2026-11-12): `/jmo-workflow:better-ui` loaded; `/jmo-workflow:anim
 | Task | Status | Commit | Evidence (command → result) |
 |---|---|---|---|
 | W5-UI01 | done | (this commit) | Connected stack (`stack-up.sh`, schema `ppor_demo_pppolish_1112030601`, real API, PostgreSQL and production worker; real forecast.v1 runs and a Hub → pantries only, 2-day comparison through the queue), production build of base `81c551b`: `RUN=/tmp/pppol1 PP_E2E_PRODUCTION=1 PP_EVIDENCE_DIR=v1-before run-e2e.sh --config tests/e2e/connected/evidence.config.ts` → 1 passed (1.1 m); 54 screenshots (import, settings, atlas ranking Pantry and Retail, site inspector, forecast trust, comparison, decisions, print × 1440×900, 1280×720, 390×844 × light/dark) in `docs/pantrypulse/visual-evidence/v1-before/` |
-| W5-UI02 | todo | — | — |
+| W5-UI02 | done | (this commit) | RED on base src first (7 new e2e failed for the expected reasons; 5 new unit tests failed on missing copy/props). GREEN: `npx vitest run` → 30 files, 190 passed; `npx playwright test tests/e2e/atlas-ranking.spec.ts --workers=2` → 13 passed; `tests/e2e/v1-a11y.spec.ts --workers=2` → 13 passed. UI02.4: Retail band meanings say "projected short or expiring unsold"; an expiry row says "first expiry <date>", the Retail table header "First day short or expiring"; a DC row carries "A DC has no sales; stock it doesn't send out counts as expiring". UI02.5: ranks #1–#3 in the first view at 1440×900 and 1280×720 for Pantry and Retail rows (map height capped at 16:9, caption beside it, legend beside the List/Table toggle, Retail reason on the product line); "Run forecast" moved beside the page header under a "Presenter" label (`group "Presenter controls"`); the inspector lists the driving product first, marked "Drives this location's danger rank"; a keyboard-focused marker shows its site name; Escape closes the live inspector and focus returns to the row or marker that opened it |
 | W5-UI03 | todo | — | — |
 | W5-UI04 | todo (depends on W5-D01 merged) | — | — |
 | W5-UI05 | todo | — | — |
@@ -29,6 +29,7 @@ Skills check (2026-11-12): `/jmo-workflow:better-ui` loaded; `/jmo-workflow:anim
 
 ## Gotchas
 
+- Running several mocked e2e files at once against the dev server (default worker count) times out or aborts navigations while Next compiles; the same files pass with `--workers=2`. The first run after a source edit also pays the compile.
 - The connected stack's run directory must be short (`/tmp/pppol1`): AF_UNIX socket paths are capped at 107 bytes, and the session scratchpad path is longer.
 - The API log (`$RUN/api.log`) is block-buffered, so it can look empty while the browser is talking to the API.
 - Full-page screenshots draw the sidebar only to the first viewport height (it is `h-svh`); that is a capture artifact, not a layout bug.

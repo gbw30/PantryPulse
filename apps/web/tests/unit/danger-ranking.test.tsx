@@ -125,3 +125,36 @@ it("with no forecast yet, the presenter runs one from the ranking and the rankin
   expect(screen.getByText("Forecast finished. The views below use the new run.")).toBeVisible();
   vi.restoreAllMocks();
 });
+
+// W5-UI02.4 (W4-03 ux-critic #4): a Retail score can come from expiry, so Retail copy never calls it a deficit.
+it("the Retail legend explains every band as short or expiring unsold", () => {
+  render(<DangerLegend mode="RETAIL" />);
+  const bands = screen.getByRole("list", { name: "Danger bands" });
+  for (const li of within(bands).getAllByRole("listitem")) expect(li).toHaveTextContent(/projected short or expiring unsold/);
+});
+
+it("an expiry-driven Retail row says first expiry, never deficit, in the list and the table", () => {
+  const ranking = retail();
+  const expiry = { ...ranking.rows[0], first_deficit_date: "2026-11-08" };
+  ranking.rows[0] = expiry;
+  const { unmount } = render(<DangerRanking ranking={ranking} />);
+  expect(item("P-12")).toHaveTextContent("first expiry Nov 8");
+  expect(item("P-12")).not.toHaveTextContent(/deficit/i);
+  unmount();
+  render(<DangerRanking ranking={ranking} view="table" />);
+  const table = screen.getByRole("table", { name: /Danger ranking/ });
+  expect(table).not.toHaveTextContent(/deficit/i);
+  expect(within(table).getAllByRole("row")[1]).toHaveTextContent("Nov 8");
+});
+
+it("a distribution centre's Retail row says a DC has no sales, so stock it doesn't send counts as expiring", () => {
+  const note = "A DC has no sales; stock it doesn't send out counts as expiring";
+  const role = (id: string) => (id === "P-12" ? "distribution_center" as const : "store" as const);
+  const { unmount } = render(<DangerRanking ranking={retail()} role={role} />);
+  expect(item("P-12")).toHaveTextContent(note);
+  expect(item("P-07")).not.toHaveTextContent(note);
+  unmount();
+  render(<DangerRanking ranking={retail()} role={role} view="table" />);
+  const rows = within(screen.getByRole("table", { name: /Danger ranking/ })).getAllByRole("row").slice(1);
+  expect(rows[0]).toHaveTextContent(note);
+});

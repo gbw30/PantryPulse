@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { vocabularyFor } from "@/lib/mode-vocabulary";
@@ -9,7 +9,7 @@ import type { Location } from "./location-map";
 
 type Product = Schema["LocationProjection"]["products"][number];
 type Load = { status: "loading" } | { status: "error"; code: string } | { status: "ready"; projection: Schema["LocationProjection"] };
-type Props = { network: Network; forecastRunId: string; location: Location; onClose: () => void };
+type Props = { network: Network; forecastRunId: string; location: Location; onClose: () => void; /** The ranking row's driving product, listed first. */ drivingProductId?: string };
 
 const DONATIONS = "Donations (forecast, not confirmed)";
 const shortDate = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
@@ -23,7 +23,7 @@ function placeLine(mode: Network["mode"], location: Location) {
 }
 
 /** One product's days in its own unit. `null` is unknown, never zero; nothing is added across products. */
-function ProductProjection({ product, mode }: { product: Product; mode: Network["mode"] }) {
+function ProductProjection({ product, mode, driving }: { product: Product; mode: Network["mode"]; driving: boolean }) {
   const pantry = mode === "PANTRY";
   const columns: [string, (number | null)[] | null][] = [
     ["Target", product.target], [pantry ? "Served" : "Sold", product.served], [pantry ? "Unmet need" : "Lost sales", product.unmet],
@@ -32,7 +32,8 @@ function ProductProjection({ product, mode }: { product: Product; mode: Network[
   const shown = columns.filter((c): c is [string, (number | null)[]] => c[1] !== null);
   const missing = columns.filter(([, values]) => values === null).map(([name]) => name);
   return (
-    <div className="grid gap-1.5">
+    <div className="grid gap-1.5" data-driving={driving || undefined}>
+      {driving && <p className="w-fit rounded-md border border-pp-danger/50 px-1.5 py-0.5 text-xs font-medium">Drives this location&apos;s danger rank</p>}
       <div role="region" tabIndex={0} aria-label={`${product.product_id} days, scrolls horizontally`} className="overflow-x-auto">
         <table className="w-full border-collapse text-left text-xs tabular-nums">
           <caption className="pb-1 text-left text-sm font-medium">{product.product_id} in {pluralize(product.unit)}</caption>
@@ -56,11 +57,24 @@ function ProductProjection({ product, mode }: { product: Product; mode: Network[
 }
 
 /** v1 site inspector (V1-SPEC §6.6) on LocationProjection: per product, in each product's own unit. */
-export function LocationInspector({ network, forecastRunId, location, onClose }: Props) {
+export function LocationInspector({ network, forecastRunId, location, onClose, drivingProductId }: Props) {
   const [load, setLoad] = useState<Load>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => { heading.current?.focus(); }, []);
+  // W4-03 ux-critic #5: Escape anywhere closes it, as the demo atlas's inspector does (network-atlas.tsx), unless an
+  // open listbox, menu or popover takes the key first.
+  const onEscape = useEffectEvent((event: KeyboardEvent) => {
+    if (event.key !== "Escape" || event.defaultPrevented) return;
+    const target = event.target instanceof Element ? event.target : null;
+    if (target?.closest('[role="listbox"], [role="menu"], [data-radix-popper-content-wrapper]')) return;
+    event.preventDefault();
+    onClose();
+  });
+  useEffect(() => {
+    document.addEventListener("keydown", onEscape);
+    return () => document.removeEventListener("keydown", onEscape);
+  }, []);
   useEffect(() => {
     let active = true;
     networkApi.projection(network.id, forecastRunId, location.location_id).then(
@@ -91,7 +105,9 @@ export function LocationInspector({ network, forecastRunId, location, onClose }:
       )}
       {load.status === "ready" && (load.projection.products.length === 0
         ? <p className="text-sm">No product is projected at this location.</p>
-        : load.projection.products.map((p) => <ProductProjection key={p.product_id} product={p} mode={load.projection.mode} />))}
+        // The driving product first (W4-03 ux-critic #5); the rest keep the API's order.
+        : [...load.projection.products].sort((a, b) => Number(b.product_id === drivingProductId) - Number(a.product_id === drivingProductId))
+          .map((p) => <ProductProjection key={p.product_id} product={p} mode={load.projection.mode} driving={p.product_id === drivingProductId} />))}
     </section>
   );
 }

@@ -47,3 +47,25 @@ it("a projection the server can't give yet says so, with a retry, and close hand
   fireEvent.click(screen.getByRole("button", { name: "Close inspector" }));
   expect(onClose).toHaveBeenCalled();
 });
+
+// W5-UI02.5 (W4-03 ux-critic #5): the product that sets the location's danger rank comes first, and says so.
+it("lists the driving product first and marks it", async () => {
+  vi.spyOn(networkApi, "projection").mockResolvedValue(projection);
+  render(<LocationInspector network={network} forecastRunId={projection.forecast_run_id} location={location} onClose={vi.fn()} drivingProductId="RICE-5" />);
+  const region = screen.getByRole("region", { name: "Site inspector · Archer Road Pantry" });
+  await within(region).findByRole("table", { name: "RICE-5 in bags" });
+  const captions = within(region).getAllByRole("table").map((t) => t.querySelector("caption")?.textContent);
+  expect(captions[0]).toMatch(/^RICE-5 in bags/);
+  expect(captions[1]).toMatch(/^WATER-24 in cases/);
+  expect(within(region).getAllByText("Drives this location's danger rank")).toHaveLength(1);
+  expect(within(region).getByRole("table", { name: "RICE-5 in bags" }).closest("[data-driving]")).not.toBeNull();
+});
+
+it("Escape anywhere closes the inspector", async () => {
+  vi.spyOn(networkApi, "projection").mockResolvedValue(projection);
+  const onClose = vi.fn();
+  open(onClose);
+  await screen.findByRole("table", { name: "WATER-24 in cases" });
+  fireEvent.keyDown(document.body, { key: "Escape" });
+  expect(onClose).toHaveBeenCalledTimes(1);
+});

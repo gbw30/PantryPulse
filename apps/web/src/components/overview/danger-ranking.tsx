@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { currentRunId, ForecastRunsNote, RunForecast, useForecastRun } from "@/components/forecast/forecast-run";
 import { InboundNote, SampleBadge, useNetwork } from "@/components/shell/network-switcher";
+import { usePresenterOptional } from "@/components/shell/presenter-session";
 import { networkApi, type Network } from "@/lib/network-api";
 import { ApiError, type Schema } from "@/lib/planning-api";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,11 @@ const unitsText = (row: Row) => `${formatUnits(row.driving_units, row.unit)} ${r
 const retailReason = (row: Row) => row.reason === "expiry"
   ? "Reason: stock expiring unsold (higher than the unmet-sales share)"
   : "Reason: lost sales (higher than the expiring-stock share)";
+// A Retail expiry row's first_deficit_date is the first day stock expires unsold (services/danger/ranking.py).
+const firstDayText = (row: Row) => `${row.reason === "expiry" ? "first expiry" : "first deficit"} ${shortDate(row.first_deficit_date!)}`;
+// W3 §10: a DC sells nothing, so any stock it doesn't send out is projected to expire unsold.
+const DC_NOTE = "A DC has no sales; stock it doesn't send out counts as expiring";
+type Role = Schema["LocationList"]["locations"][number]["role"];
 
 type View = "list" | "table";
 
@@ -40,20 +46,25 @@ type RankingProps = {
   /** Opens the site inspector; absent for a location the list doesn't know. */
   onSelect?: (locationId: string, opener: HTMLElement) => void;
   canSelect?: (locationId: string) => boolean;
+  /** The location's role, once the location list has loaded (a DC's row explains its expiry). */
+  role?: (locationId: string) => Role | undefined;
 };
 
 /** Ranked locations with a band (text + shape), the driving product in its own unit, and a table view. */
-export function DangerRanking({ ranking, view: initialView = "list", label = (id) => id, onSelect, canSelect = () => true }: RankingProps) {
+export function DangerRanking({ ranking, view: initialView = "list", label = (id) => id, onSelect, canSelect = () => true, role = () => undefined }: RankingProps) {
   const [view, setView] = useState<View>(initialView);
   const rows = [...ranking.rows].sort((a, b) => a.rank - b.rank);
+  const retail = ranking.mode === "RETAIL";
+  const why = (row: Row) => <>{retailReason(row)}{role(row.location_id) === "distribution_center" && <>. {DC_NOTE}.</>}</>;
   const name = (id: string, className: string) => onSelect && canSelect(id)
     ? <button type="button" className={cn(className, "text-left underline underline-offset-2 hover:text-primary")} onClick={(e) => onSelect(id, e.currentTarget)}>{label(id)}</button>
     : <span className={className}>{label(id)}</span>;
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <DangerLegend mode={ranking.mode} />
-        <div className="flex gap-1" role="group" aria-label="Ranking view">
+        {/* The legend wraps beside the view toggle instead of pushing it onto a row of its own (first view, W4-03 #5). */}
+        <div className="min-w-0 flex-1 basis-[28rem]"><DangerLegend mode={ranking.mode} /></div>
+        <div className="flex shrink-0 gap-1" role="group" aria-label="Ranking view">
           {(["list", "table"] as const).map((v) => (
             <Button key={v} variant={view === v ? "secondary" : "ghost"} size="sm" aria-pressed={view === v} onClick={() => setView(v)} className="max-md:h-11">
               {v === "list" ? "List" : "Table"}
@@ -74,9 +85,10 @@ export function DangerRanking({ ranking, view: initialView = "list", label = (id
               </div>
               <p className="text-muted-foreground">
                 Driving product <span className="font-medium text-foreground">{row.driving_product_id}</span>: {unitsText(row)}
-                {row.first_deficit_date && <> · first deficit {shortDate(row.first_deficit_date)}</>}
+                {row.first_deficit_date && <> · {firstDayText(row)}</>}
+                {/* On the same line where it fits, so three ranks stay in the first view (W4-03 #5). */}
+                {retail && <span className="text-xs"> · {why(row)}</span>}
               </p>
-              {ranking.mode === "RETAIL" && <p className="text-xs text-muted-foreground">{retailReason(row)}</p>}
             </li>
           ))}
         </ol>
@@ -85,7 +97,7 @@ export function DangerRanking({ ranking, view: initialView = "list", label = (id
           <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
             <caption className="px-3 py-2 text-left font-medium">Danger ranking ({rows.length} locations)</caption>
             <thead className="bg-muted/60 text-xs text-muted-foreground">
-              <tr>{["Location", "Rank", "Band", "Score", "Driving product", "Units (that product)", "First deficit"].map((h) => <th key={h} scope="col" className="px-3 py-2 font-medium">{h}</th>)}</tr>
+              <tr>{["Location", "Rank", "Band", "Score", "Driving product", "Units (that product)", retail ? "First day short or expiring" : "First deficit"].map((h) => <th key={h} scope="col" className="px-3 py-2 font-medium">{h}</th>)}</tr>
             </thead>
             <tbody>
               {rows.map((row) => (
@@ -93,7 +105,7 @@ export function DangerRanking({ ranking, view: initialView = "list", label = (id
                   <td className="px-3 py-2">{name(row.location_id, "font-medium")}</td>
                   <td className="px-3 py-2 tabular-nums">{row.rank}</td>
                   <td className="px-3 py-2"><span className="inline-flex items-center gap-1.5"><DangerBandGlyph band={row.band} />{BAND_LABEL[row.band]}</span></td>
-                  <td className="px-3 py-2">{scoreText(row, ranking.mode)}{ranking.mode === "RETAIL" && <span className="block text-xs text-muted-foreground">{retailReason(row)}</span>}</td>
+                  <td className="px-3 py-2">{scoreText(row, ranking.mode)}{retail && <span className="block text-xs text-muted-foreground">{why(row)}</span>}</td>
                   <td className="px-3 py-2">{row.driving_product_id}</td>
                   <td className="px-3 py-2 tabular-nums">{unitsText(row)}</td>
                   <td className="px-3 py-2 tabular-nums">{row.first_deficit_date ? shortDate(row.first_deficit_date) : "None in horizon"}</td>
@@ -117,26 +129,38 @@ const words = (code: string) => code.replaceAll("_", " ").toLowerCase();
  * the site inspector, with the presenter's "Run forecast" control (W4-02). Kept apart from the demo atlas snapshot
  * so fixture and v1 data never mix.
  */
-export function DangerRankingSection() {
+export function DangerRankingSection({ header }: { header?: React.ReactNode }) {
   const { network } = useNetwork();
-  return network ? <RankingSection key={network.id} network={network} /> : null;
+  return network ? <RankingSection key={network.id} network={network} header={header} /> : null;
 }
 
-function RankingSection({ network }: { network: Network }) {
+function RankingSection({ network, header }: { network: Network; header?: React.ReactNode }) {
   const { runs, reload } = useForecastRun(network);
+  const presenter = usePresenterOptional()?.state === "presenter";
   const forecastRunId = currentRunId(runs);
   return (
+    <>
+    {/* W4-03 ux-critic #5: "Run forecast" is a presenter tool, not the ranking's main action, so it sits beside the page header. */}
+    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+      {header}
+      {presenter && runs.status === "ready" && (
+        <div role="group" aria-label="Presenter controls" className="grid justify-items-start gap-1">
+          <span className="font-condensed text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Presenter</span>
+          <RunForecast network={network} latest={runs.latest} onDone={reload} />
+        </div>
+      )}
+    </div>
     <section aria-labelledby="danger-heading" className="grid gap-3 rounded-xl border border-border bg-card p-4">
       <div className="flex flex-wrap items-center gap-2">
         <h2 id="danger-heading" className="text-lg font-semibold">Danger ranking · {network.name}</h2>
         {network.is_sample && <SampleBadge />}
       </div>
       <InboundNote provided={network.inbound_file_provided} />
-      {runs.status === "ready" && <RunForecast network={network} latest={runs.latest} onDone={reload} />}
       <ForecastRunsNote runs={runs} onRetry={reload} none="Run a forecast for this network to rank its locations by danger." />
       {/* A new forecast run starts from loading, with nothing selected. */}
       {forecastRunId && <RankingBody key={forecastRunId} network={network} forecastRunId={forecastRunId} />}
     </section>
+    </>
   );
 }
 
@@ -182,12 +206,15 @@ function RankingBody({ network, forecastRunId }: { network: Network; forecastRun
             <Button variant="outline" size="sm" onClick={() => { setPlaces({ status: "loading" }); setAttempt((a) => ({ ...a, places: a.places + 1 })); }}>Retry</Button>
           </div>
         )}
-        {placed.length > 0 && <LocationMap name={network.name} placed={placed} label={label} bandOf={(id) => bands.get(id) ?? null} onSelect={select} />}
-        {unplaced.length > 0 && (
-          <div className="grid gap-1 text-xs">
-            <p id="unplaced-heading" className="font-medium">Not on the map (no coordinates)</p>
-            <ul aria-labelledby="unplaced-heading" className="flex flex-wrap gap-x-3 gap-y-1">{unplaced.map((l) => <li key={l.location_id}>{label(l.location_id)}</li>)}</ul>
-          </div>
+        {(placed.length > 0 || unplaced.length > 0) && (
+          <LocationMap name={network.name} placed={placed} label={label} bandOf={(id) => bands.get(id) ?? null} onSelect={select}>
+            {unplaced.length > 0 && (
+              <div className="grid gap-1 text-xs">
+                <p id="unplaced-heading" className="font-medium">Not on the map (no coordinates)</p>
+                <ul aria-labelledby="unplaced-heading" className="flex flex-wrap gap-x-3 gap-y-1">{unplaced.map((l) => <li key={l.location_id}>{label(l.location_id)}</li>)}</ul>
+              </div>
+            )}
+          </LocationMap>
         )}
         {load.status === "loading" && <p role="status" className="text-sm text-muted-foreground">Loading the danger ranking…</p>}
         {load.status === "error" && (
@@ -203,10 +230,11 @@ function RankingBody({ network, forecastRunId }: { network: Network; forecastRun
               // nothing could be scored, never an all-clear (W4-03 #4, D1).
               ? "No location could be ranked: none has forecast sales above zero for the next 7 days, and no stock expiry could be projected."
               : "No location could be ranked: none has forecast demand above zero for the next 7 days."}</p>
-            : <DangerRanking ranking={load.ranking} label={label} onSelect={select} canSelect={(id) => byId.has(id)} />
+            : <DangerRanking ranking={load.ranking} label={label} onSelect={select} canSelect={(id) => byId.has(id)} role={(id) => byId.get(id)?.role} />
         )}
       </div>
-      {location && <LocationInspector key={location.location_id} network={network} forecastRunId={forecastRunId} location={location} onClose={close} />}
+      {location && <LocationInspector key={location.location_id} network={network} forecastRunId={forecastRunId} location={location} onClose={close}
+        drivingProductId={load.status === "ready" ? load.ranking.rows.find((r) => r.location_id === location.location_id)?.driving_product_id : undefined} />}
     </div>
   );
 }
