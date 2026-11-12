@@ -23,6 +23,7 @@ from app.schemas.v1_planning import (
     BatchV3,
     CapacityV3,
     DemandSeriesV3,
+    DonationForecastV3,
     InboundV3,
     LocationV3,
     ORInputV3,
@@ -89,7 +90,7 @@ def build_scenario(conn: sa.Connection, network: sa.Row, options: ScenarioOption
     location_ids = {r.id: r.external_id for r in locations}
     product_ids = {r.id: r.external_id for r in products}
 
-    demand = _demand(forecast, location_ids, product_ids, assumptions)
+    demand, donations = _demand(forecast, location_ids, product_ids, assumptions)
     inbound, provided = _inbound(conn, version_id, assumptions)
     rounded: list[str] = []
     routes = _routes(conn, version_id, options.transfer_mode, assumptions, rounded)
@@ -131,7 +132,8 @@ def build_scenario(conn: sa.Connection, network: sa.Row, options: ScenarioOption
                 handling_units_per_unit=int(r.handling_units_per_unit),
                 unit_value_usd=None if r.unit_value_usd is None else str(r.unit_value_usd))
                 for r in products),
-            batches=tuple(batches), demand=tuple(demand), inbound=tuple(inbound),
+            batches=tuple(batches), demand=tuple(demand), donations=tuple(donations),
+            inbound=tuple(inbound),
             inbound_file_provided=provided, routes=tuple(routes), capacities=tuple(capacities),
             global_handling=None, cost_budget_minor=options.cost_budget_minor,
             reserves=reserves, retail_weights=weights, vulnerability=tuple(vulnerability),
@@ -159,20 +161,25 @@ def _forecast(conn: sa.Connection, run_id: UUID, org: UUID, version_id: UUID,
     return output
 
 
-def _demand(forecast: ForecastOutput, location_ids: dict, product_ids: dict,
-            assumptions: list[str]) -> list[DemandSeriesV3]:
-    demand, missing, donations = [], [], 0
+def _demand(forecast: ForecastOutput, location_ids: dict, product_ids: dict, assumptions: list[str]
+            ) -> tuple[list[DemandSeriesV3], list[DonationForecastV3]]:
+    """Demand rows, and the donation forecasts frozen for display only (never supply). Both are
+    sorted by location and product, so the series order never changes the scenario's hash."""
+    demand, missing, donations = [], [], []
     for series in forecast.series:
         key = series.scope.key
         if key.site_id not in location_ids or key.product_id not in product_ids:
             raise AccessError("FORECAST_VERSION_MISMATCH", 409)
         loc, prod = location_ids[key.site_id], product_ids[key.product_id]
+        literals = tuple(decimal_literal(str(p.central_estimate)) for p in series.points)
         if key.target_type == "DONATION":  # shown elsewhere, never supply (V1-SPEC §6.1)
-            donations += series.status == "AVAILABLE"
+            if series.status == "AVAILABLE":
+                donations.append(DonationForecastV3(
+                    location_id=loc, product_id=prod, actual_provider=series.actual_provider.name,
+                    fallback_reason=series.fallback_reason, central_literals=literals))
         elif series.status != "AVAILABLE":
             missing.append(f"{loc} × {prod} ({series.status})")
         else:
-            literals = tuple(decimal_literal(str(p.central_estimate)) for p in series.points)
             rounded = round_daily_targets([(p.day, Decimal(x))
                                            for p, x in zip(series.points, literals, strict=True)])
             demand.append(DemandSeriesV3(
@@ -186,9 +193,13 @@ def _demand(forecast: ForecastOutput, location_ids: dict, product_ids: dict,
                            "or store listed here sends none of that product: "
                            + ", ".join(sorted(missing)))
     if donations:
-        assumptions.append(f"Expected donations (forecast, not confirmed) for {donations} "
+        assumptions.append(f"Expected donations (forecast, not confirmed) for {len(donations)} "
                            "series are shown but never counted as supply")
-    return sorted(demand, key=lambda d: (d.location_id, d.product_id))
+
+    def by_key(row):
+        return row.location_id, row.product_id
+
+    return sorted(demand, key=by_key), sorted(donations, key=by_key)
 
 
 def _inbound(conn: sa.Connection, version_id: UUID,
