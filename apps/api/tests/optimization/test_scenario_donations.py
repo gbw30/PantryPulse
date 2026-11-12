@@ -10,9 +10,10 @@ from uuid import UUID
 
 import pytest
 
-from app.schemas.v1_planning import ORInputV3
+from app.schemas.v1_planning import METHODS_BY_MODE, ORInputV3
 from app.services.optimization.actions import _Plan, decision_actions
 from app.services.optimization.methods import run_method
+from app.services.optimization.projection import project_v3
 from app.services.optimization.verify import only_product
 from tests.optimization.test_retail_oracle import load
 from tests.optimization.test_scale_v1 import bench_scenario
@@ -67,6 +68,41 @@ def test_one_unit_of_donations_is_singular():
     (action,) = decision_actions(s, run_method(s, "RETAIL_OPTIMIZED", "UNITS"),
                                  comparison_id=COMPARISON).actions
     assert "(forecast, not confirmed): 1 case over 7 days" in action.why_text
+
+
+def test_a_donation_sum_above_one_day_s_limit_is_shown_exactly():
+    """Verifier F1: each day may be up to 100,000, so a window's sum can pass it."""
+    s = with_donations(load("retail-expiry-transfer")[0], donation("B", "P", *["14286"] * 7))
+    (action,) = decision_actions(s, run_method(s, "RETAIL_OPTIMIZED", "UNITS"),
+                                 comparison_id=COMPARISON).actions
+    assert "(forecast, not confirmed): 100002 cases over 7 days" in action.why_text
+
+
+DISPLAY_ONLY = ["pantry-four-methods", "retail-expiry-transfer", "retail-lost-vs-waste",
+                "retail-day5-expiry", "retail-usd-flip", "bench-pantry"]
+
+
+def _scenario(name):
+    return bench_scenario(14, 10, "pantry") if name == "bench-pantry" else load(name)[0]
+
+
+@pytest.mark.parametrize(("name", "method"), [
+    (name, method) for name in DISPLAY_ONLY for method in METHODS_BY_MODE[_scenario(name).mode]])
+def test_donations_never_change_a_result_projection_or_effect(name, method):
+    """Verifier F3: every location × product gets 1,000/day of expected donations; the
+    projection, each method's result and every action's text and effect stay the same."""
+    s = _scenario(name)
+    d = with_donations(s, *(donation(loc.id, p.id, *["1000"] * 7)
+                            for loc in s.locations for p in s.products))
+    assert len(d.donations) == len(s.locations) * len(s.products)
+    assert project_v3(d).days == project_v3(s).days
+    a, b = run_method(s, method, "UNITS"), run_method(d, method, "UNITS")
+    assert b == a  # the whole result: transfers, effects, statuses, objective, labels
+    if a.verified and a.transfers:
+        def effects(scenario, result):
+            return [(x.action_text, x.effect) for x in decision_actions(
+                scenario, result, comparison_id=COMPARISON).actions]
+        assert effects(d, b) == effects(s, a)
 
 
 @pytest.mark.parametrize("method", ["EQUAL_SHARE", "CLASSICAL_GP"])
