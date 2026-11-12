@@ -1,6 +1,6 @@
 # Status — `w5-packaging`
 
-**Lane:** `w5-packaging` · **Branch:** `lane/w5-packaging` · **Base SHA:** `81c551bc2e232362f0e63a7a00126ef1ca863fb8` · **Last update:** `2026-11-12 03:20` · **Head:** see `git log`
+**Lane:** `w5-packaging` · **Branch:** `lane/w5-packaging` · **Base SHA:** `81c551bc2e232362f0e63a7a00126ef1ca863fb8` · **Last update:** `2026-11-12 09:40` · **Head:** see `git log`
 
 ## Tasks
 
@@ -31,9 +31,23 @@ Order: PK01 → PK03 → PK04 → PK02 → PK05. PK02's `--enforce` can reach ex
 
 | Gate | Commit | Result |
 |---|---|---|
-| `node scripts/quality/run.cjs quick` | | |
-| `node scripts/quality/run.cjs full` (with `.env.lane`) | | |
-| `/devkit:ship-check` | | |
+| `node scripts/quality/run.cjs quick` (with `.env.lane`) | `0daecf8` | PASS: web typecheck, web lint, api lint, api tests all exit 0; `sourceUnchangedDuringRun` true (`.claude/state/quality/quick.json`, 2026-11-12T09:24Z) |
+| `node scripts/quality/run.cjs full` (with `.env.lane`) | `0daecf8` | PASS: those four plus web unit tests, web build, contract drift, database migrations, all exit 0; `sourceUnchangedDuringRun` true (`full.json`, 09:30Z). The gate stores no skip counts, so the zero-skip evidence is the two rows below |
+| API suite, zero skips: `uv run --frozen pytest --junitxml=…` then `scripts/quality/require-test-evidence.py` (with `.env.lane`, `PP19_TEST_SCHEMA_ISOLATION=1`) | `61bea71` (no `apps/` change to `0daecf8`: `git diff --stat 61bea71..0daecf8 -- apps` is empty) | `2220 passed, 2 warnings in 565.80s`; "2220 backend tests completed without skips or failures"; exit 0 |
+| Web unit, zero skips: `npm run test:unit` in `apps/web` | `0daecf8` | Vitest `Tests 181 passed (181)`, 28 files; `node --test` 14 pass, 0 skipped |
+| `npm run test:config` | `0daecf8` | 36 pass, 0 fail, 0 skipped |
+| `node --test scripts/testing/tests/*.test.cjs` | `0daecf8` | 28 pass, 0 fail, 0 skipped |
+| `/devkit:ship-check` | `0daecf8` | Step 1: the rows above. Step 2: local review by the project `verifier` agent at `9f635a8` (+ delta to `6e16e01`); its five findings are fixed in `0daecf8` (see "Review" below). Step 3: security-guidance is not installed (skipped). Steps 4–5: PR and `/code-review` wait for the orchestrator's go (after the w5-data merge). Step 6: not applicable (test tooling and docs) |
+
+### Review (verifier, ship-check step 2)
+
+| Finding | Fix in `0daecf8` |
+|---|---|
+| F1 (Medium): fixture tests of the checkers made A01, A03, A04, A18 and A24 look covered | Those test modules now cover V1-A21 (the test kit). A03 and A04 map to `scripts/testing/egress-journey.cjs` itself; A01, A18 and A24 to `check-recorded-runs.cjs`, which still exits 1. The guide says so |
+| F2 (Low): the sniffer treated any UDP/53 as DNS, so a container's direct lookup to an outside server was never flagged | `packet_event` checks the bridge path before DNS and records that as `udp` (a violation); new test with crafted frames (RED first: `packet_event` missing). The PK03 capture (`artifacts/egress/capture.jsonl`) re-checked under the new rule: 0 DNS packets from the stack's subnet, so its PASS stands |
+| F3 (Low): HARDWARE.md said "about 1.9 GiB"; 458 + 1,423 MiB = 1,881 MiB | Now "about 1.8 GiB (1,881 MiB)" |
+| F4 (Low): the bench artifact lacks `bench_versions`; the runner was uncommitted when it ran | Disclosed in HARDWARE.md's limits; the post-D02 re-measurement uses the committed runner |
+| F5 (Low): README said every published result passes the verifier, but failed methods are returned unverified | "Every plan shown passes an independent verifier; a method that fails verification is shown as failed, never replaced or turned into suggested actions" (`results.tsx:286`, `decisions-view.tsx:18-20`) |
 
 ## Decisions made inside the lane
 
