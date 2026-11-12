@@ -1,0 +1,54 @@
+# Test kit group B (V1-A21): the full backend suite against PostgreSQL 16 in Linux containers.
+# Run it with `npm run test:docker`, which picks its own project name and removes the stack after.
+# Disposable: no published ports, the database lives in tmpfs, nothing touches the app stack's
+# volumes, and only the repository paths the suite reads are mounted, read-only (no .env files,
+# no .pantrypulse/). The suite fails if any test skips (scripts/quality/require-test-evidence.py).
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: pantrypulse
+      POSTGRES_PASSWORD: test_only
+      POSTGRES_DB: pantrypulse_test
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pantrypulse -d pantrypulse_test"]
+      interval: 1s
+      timeout: 5s
+      retries: 30
+
+  api-tests:
+    build:
+      context: ./apps/api
+    working_dir: /workspace/apps/api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PP_TEST_DATABASE_URL: postgresql+psycopg://pantrypulse:test_only@postgres:5432/pantrypulse_test
+      PP19_TEST_DATABASE_URL: postgresql+psycopg://pantrypulse:test_only@postgres:5432/pantrypulse_test
+      PP19_TEST_SCHEMA_ISOLATION: "1"
+      # The image's environment (built from uv.lock); the mounted tree has none of its own.
+      UV_PROJECT_ENVIRONMENT: /app/.venv
+      PYTHONDONTWRITEBYTECODE: "1"
+    volumes:
+      - ./apps/api/app:/workspace/apps/api/app:ro
+      - ./apps/api/tests:/workspace/apps/api/tests:ro
+      - ./apps/api/scripts:/workspace/apps/api/scripts:ro
+      - ./apps/api/migrations:/workspace/apps/api/migrations:ro
+      - ./apps/api/alembic.ini:/workspace/apps/api/alembic.ini:ro
+      - ./apps/api/pyproject.toml:/workspace/apps/api/pyproject.toml:ro
+      - ./apps/api/uv.lock:/workspace/apps/api/uv.lock:ro
+      - ./data:/workspace/data:ro
+      - ./docs:/workspace/docs:ro
+      - ./packages/contracts:/workspace/packages/contracts:ro
+      - ./scripts:/workspace/scripts:ro
+      - ./compose.compute.yaml:/workspace/compose.compute.yaml:ro
+      - ./artifacts/testing:/reports
+    command:
+      - sh
+      - -c
+      - >-
+        uv run --frozen pytest -q -p no:cacheprovider --junitxml=/reports/api-linux.xml
+        && uv run --frozen python /workspace/scripts/quality/require-test-evidence.py /reports/api-linux.xml
