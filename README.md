@@ -1,63 +1,99 @@
 # PantryPulse
 
-> **v1 authority (2026-11-06):** [V1-SPEC](docs/pantrypulse/V1-SPEC.md) and the [v1 plan](docs/plans/v1/README.md) override this document where they conflict; [SPEC-V5](docs/pantrypulse/SPEC-V5.md) governs what V1-SPEC leaves open. The v1 local install is `docker compose up`; the migration head is now `ppv1_0014`. The full README rewrite is W5 packaging.
+PantryPulse shows which locations in a food-pantry network or a store chain are about to run short, or to throw away stock that expires, and compares plans for moving stock between your own locations before anything happens. It runs on your computer with your own data. It suggests transfers; it never changes your stock.
 
-PantryPulse is a project for Gator Hack V, October 23–25, 2026, exploring how food banks and community organizations can share limited supplies more fairly.
+Version pin: `0.1.0` (`ghcr.io/gbw30/pantrypulse-api:0.1.0`, `ghcr.io/gbw30/pantrypulse-web:0.1.0`)
 
-Start with [current source/runtime status](docs/pantrypulse/CURRENT-STATUS.md) and the [consolidated specification V5](docs/pantrypulse/SPEC-V5.md) for implemented scope, accepted requirements, remaining decisions and release acceptance.
+## Quickstart
 
-When several organizations need food at the same time, there may not be enough to meet every request. Sending the same amount to everyone can overlook differences in need. Sending supplies wherever delivery is easiest can leave vulnerable communities with larger shortages. Meanwhile, food can expire, storage space is limited, and organizations donating supplies still need enough for the people they already serve.
+### 1. Prerequisites
 
-PantryPulse aims to help a coordinator understand these trade-offs and compare possible allocation plans before making a decision.
+- **Windows 11:** [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install/) with the WSL 2 backend, and [git](https://git-scm.com/install/windows).
+- **Linux** (tested on Ubuntu 24.04): [Docker Engine](https://docs.docker.com/engine/install/ubuntu/) with the Compose plugin, and git.
+- macOS is untested and not supported in this version.
+- Hardware: 4 CPU cores and 8 GiB of memory available to Docker, and about 15 GB of free disk. See [docs/pantrypulse/HARDWARE.md](docs/pantrypulse/HARDWARE.md) for the measurements.
 
-## How it is intended to work
+You don't need Node, Python or a database: Docker runs everything.
 
-The demonstration will use simulated inventory, requests and institution-level vulnerability indicators for six beneficiary organizations and one or two distribution hubs. It will:
+### 2. Download and start
 
-1. Estimate upcoming demand, with a simple seasonal forecast available when the more advanced forecasting model is unavailable.
-2. Calculate two allocation plans from exactly the same supplies, requests and operating limits.
-3. Show who receives supplies, which needs remain unmet, and how the plans differ in their treatment of shortages and vulnerability.
-4. Let the coordinator explore a changed scenario and see how the recommendations respond.
+```bash
+git clone https://github.com/gbw30/PantryPulse.git
+cd PantryPulse
+docker compose up --build
+```
 
-Both plans must respect the same practical rules: supplies cannot be created or counted twice, organizations cannot receive more than they can handle, donors must retain protected supplies, and eligible food that expires sooner must be used first.
+No images are published yet, so `--build` builds them on your computer. After the first published release, `docker compose up` without `--build` will download them instead.
 
-## What makes the comparison different
+The first run took 2 min 07 s to build and 27 s to start on the reference laptop ([measurements](docs/pantrypulse/HARDWARE.md)), plus the time to download Docker's base images (PostgreSQL, Python, Node and uv) on a machine that doesn't have them yet.
 
-The first method, **classical goal programming**, balances a set of allocation goals. The second, **EGP-PI-inspired allocation**, is intended to make vulnerability and deprivation central to that balance. Deprivation means both how far an organization falls short of its needs and how its shortage compares with those of its peers.
+### 3. Sign in
 
-The research basis is Rampazo et al., *An extended goal programming framework incorporating poverty measures: application to food bank logistics*, first published online September 11, 2026 ([research paper](https://doi.org/10.1111/itor.70252)). PantryPulse proposes a bounded adaptation using simulated vulnerability indicators. It does not claim to reproduce the complete published formulation.
+During start-up, the output prints:
 
-The goal of the reproducible demonstration is to show when these research-derived priorities change actual allocation decisions, and to make the resulting trade-offs visible. A different recommendation is evidence of different priorities; it does not by itself establish better real-world outcomes.
+```text
+Open http://127.0.0.1:3000 — username: local — password: see .pantrypulse/local-login.txt
+```
 
-## Current state
+Open that address once the `web` service has started (the output stops scrolling). Sign in as `local`, with the password from the file `.pantrypulse/local-login.txt` in the folder you cloned. The password is generated on the first start and never leaves your computer.
 
-Main includes the connected simulated application: presenter access, persisted baseline forecasts, frozen scenarios, sequential classical/research-inspired comparisons, independent result verification and the `/optimization` workspace through a same-origin proxy. PR #75 integrated operational storage and baseline forecasting; PR #76 connected the bounded allocation workflow and active Linux/PostgreSQL/browser CI. These are simulated decisions, not operational dispatch or evidence of real-world policy effectiveness.
+### 4. Try the sample
 
-The [connected integration guide](docs/optimization/CONNECTED-INTEGRATION.md) records the supported domain and explicit demo loader. The migration head at that integration was `ppor_0005` (now `ppv1_0014`); all predecessor revisions are preserved. [Stock services](docs/pantrypulse/STOCK-SERVICES.md), [inventory projection](docs/pantrypulse/INVENTORY-PROJECTION.md) and [migration instructions](apps/api/migrations/README.md) describe the persistence boundary. Deployment and any update of existing running images remain controlled operations.
+The first start loads two fictional networks, labeled "Sample data — fictional": a Pantry network (1 hub, 8 pantries) and a Retail network (1 distribution centre, 20 stores).
 
-The production [worker](docs/setup/WORKER-QUEUE.md) supports `forecast.v1` and `or-comparison.v2`, with one active operation and two waiting jobs. PR #77 supplies [bounded local compute](docs/setup/LOCAL-COMPUTE.md), persistent model storage and prepared [Fly configuration](docs/setup/FLY.md). Full pinned Chronos-2 has passed real standalone CPU inference and synthetic timing checks; the application provider remains baseline-only. Representative forecast accuracy, integrated Chronos, supplier planning, visitor access, general imports and real operational actions remain separate work.
+1. Choose a network in the sidebar.
+2. On the Overview, run the forecast. The ranking lists the locations most at risk of running short or of stock expiring unsold.
+3. In the Scenario Lab, compare the transfer methods on one frozen scenario.
+4. In Decisions, review each suggested action and export the plan as CSV or print it. The plan is a simulation: no stock is reserved or moved.
 
-The demo is planned around simulated data and institution-level indicators. It will not purchase supplies or dispatch real deliveries.
+### 5. Import your own data
 
-## Project foundation
+Open **Import** (http://127.0.0.1:3000/import). Download the blank templates or the filled-in examples; the in-app guide explains every column.
 
-The planned system uses a Next.js/React interface, a Python/FastAPI backend, OR-Tools for allocation calculations, and PostgreSQL for shared data. Charts will explain the results, while brief animations and clear loading states will help users follow calculations in progress. Chronos-2 is the preferred optional forecasting model, with a seasonal-naive fallback.
+- Required files: `locations.csv`, `products.csv`, `inventory.csv`, `demand_history.csv`.
+- Optional files: `routes.csv`, `inbound.csv`, `donation_history.csv`.
+- Limits: up to 100 locations, 500 products, 90 days of daily history (14 days to forecast, 35 to measure accuracy) and 200,000 inventory batches. A file over a limit is rejected with the limit named, never cut short.
 
-The website, API and worker can run on the laptop using an isolated local or Neon schema. A separate synthetic Vercel preview remains branch-scoped; a separately selected hosted connected frontend must configure and verify the implemented proxy/auth path against its actual API. Fly remains a prepared alternative; login, platform validation and deployment are pending. See [external services](EXTERNAL-SERVICES.md).
+A maximum-size import (100 locations × 500 products × 90 days) took 1 min 22 s of processing on the reference laptop. Locations that have an address but no coordinates are geocoded by the US Census Bureau. That lookup is the app's only outbound call, unless you save your own Google key for road distances in Settings.
 
-## Further reading
+### 6. Stop or start over
 
-- [Project specification V5 — current source of truth](docs/pantrypulse/SPEC-V5.md)
-- [Original V4 source document](https://docs.google.com/document/d/1WcsV69YCE1mqW2pI7IyEFQBSuwQB_hMhVQKfU20ZFk8/edit?tab=t.951hp1xdarlq)
-- [Local development installation guide](INSTALLATION.md)
-- [External services installation guide](EXTERNAL-SERVICES.md)
-- [Personal-computer demo setup](docs/setup/LOCAL-DEMO.md)
-- [Run Chronos locally](CHRONOS-LOCAL.md)
-- [Prioritized implementation plan](docs/pantrypulse/IMPLEMENTATION-PLAN.md)
-- [Architecture and research validation](docs/architecture/0001-v4-research-first.md)
+- `docker compose down` stops the app. Your data stays for the next `docker compose up`.
+- `docker compose down -v` **deletes all local data**: imported networks, forecasts, comparisons and the login. There is no undo. The next start loads the samples again and generates a new password.
 
-V5 consolidates V4, later accepted decisions and actual implementation evidence. Older documents remain historical or detailed references where compatible.
+### Troubleshooting
 
-The optional `/design-lab` route is an illustrative dashboard experiment, with a default 2D network and a [bounded optional 3D exception](docs/architecture/0004-design-lab-3d-exception.md). It does not connect to allocation APIs or represent committed transfers.
+- **Port 3000 is in use:** copy `.env.example` to `.env`, set `PP_WEB_PORT=3001` (or any free port), run `docker compose up --build` again and open that port.
+- **Docker memory:** the forecast and planning worker is allowed up to 6 CPUs and 8 GiB. On Windows, Docker Desktop with WSL 2 takes its CPU and memory limits from WSL (`%UserProfile%\.wslconfig`, section `[wsl2]`, `memory=` and `processors=`); allow at least what [HARDWARE.md](docs/pantrypulse/HARDWARE.md) lists, then restart Docker Desktop.
+- **WSL 2 backend:** in Docker Desktop, open Settings → General and turn on "Use the WSL 2 based engine". If Docker asks for a WSL update, run `wsl --update` in PowerShell.
+- **Login fails after `down -v`:** the password changed; read `.pantrypulse/local-login.txt` again.
 
-A [frontend-only Vercel preview of `/design-lab`](https://pantrypulse-prototype-preview-git-codex-e82088-gbw30s-projects.vercel.app/design-lab) is available from `codex/vercel-prototype-preview`. That older deployment has no API/database/presenter connection; main now redirects its root to `/optimization`. The [Vercel record](docs/setup/VERCEL.md) explains the branch-specific build policy. Merging main does not refresh that preview or establish a hosted release.
+## Known limits
+
+- Batch IDs over 64 characters, or containing `/`, are shown as hashed batch IDs.
+- There is no way to abort an import, and nothing cleans up abandoned imports or their files.
+- The stack runs one worker; the cleanup of staged import tables assumes that.
+- Import progress shows its phase but no live row count.
+- There is no publish retry backoff.
+- Forecasts are projections: seasonal-naive, with a labeled moving-average fallback. Their quantile ranges are not calibrated intervals or stockout probabilities.
+- macOS is untested. Chronos-2 forecasting is an opt-in profile for contributors and is off by default.
+
+## Methods and research basis
+
+Pantry networks compare five methods on the same frozen scenario: no transfers, equal share, most-urgent-first, classical goal programming and **EGP-PI-inspired** allocation. Retail networks compare no transfers, soonest-expiry-first, and an optimized plan that minimizes expired stock plus lost sales. Every published result passes an independent verifier.
+
+EGP-PI-inspired is a bounded, research-inspired adaptation of Rampazo, R. C., Jones, D. F., Godoi, L. F., Iamamoto, M. O., & Cantane, D. R. (2026), *An extended goal programming framework incorporating poverty measures: application to food bank logistics*, International Transactions in Operational Research, first published online 11 September 2026 ([doi:10.1111/itor.70252](https://doi.org/10.1111/itor.70252)).
+
+- **Adapted:** absolute-poverty and relative-poverty goals with thresholds, normalized vulnerability attributes of each location, a weighted plus Chebyshev deviation, and first-expiry-first lot rules.
+- **Not reproduced:** the paper's endogenous vulnerability weights, its multi-period model, its full equations and its reported results.
+- **Data:** vulnerability values describe locations (census tracts), never individuals. The samples' values are simulated "sample values". For your own network they come from the bundled Census ACS table, or you enter them.
+
+A different recommendation shows different priorities in this simulated scenario. It is not evidence of better real-world outcomes.
+
+## For contributors
+
+- [INSTALLATION.md](INSTALLATION.md): contributor setups, including running the backend tests in Docker with `npm run test:docker`.
+- [Testing guide](docs/testing/README.md): every test kit and what it proves.
+- [V1-SPEC](docs/pantrypulse/V1-SPEC.md) and the [v1 plan](docs/plans/v1/README.md): scope and decisions. [SPEC-V5](docs/pantrypulse/SPEC-V5.md) governs what V1-SPEC leaves open.
+
+PantryPulse started as a Gator Hack V project. MIT License.

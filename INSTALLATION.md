@@ -2,6 +2,31 @@
 
 > **v1 authority (2026-11-06):** [V1-SPEC](docs/pantrypulse/V1-SPEC.md) and the [v1 plan](docs/plans/v1/README.md) override this document where they conflict; [SPEC-V5](docs/pantrypulse/SPEC-V5.md) governs what V1-SPEC leaves open. The v1 install supports Windows 11 and Linux through `docker compose up`; the migration head is now `ppv1_0014`.
 
+**Only want to run PantryPulse?** Follow the [README quickstart](README.md#quickstart): Docker and git are all you need. This guide is for contributors who change the code.
+
+## Contributor setups
+
+Pick the row that matches your machine. Every setup runs the same gates; the [testing guide](docs/testing/README.md) lists each test kit and what it proves.
+
+| Setup | You install | Backend tests | Notes |
+|---|---|---|---|
+| **Docker only** (any OS, including Windows with Application Control) | Docker, git, Node 24.16.0 for the web | `npm run test:docker`: the whole backend suite on PostgreSQL 16 in Linux containers, 0 skips | No Python or local PostgreSQL. The API dev container is `npm run dev:api:docker` (`compose.dev.yaml`, profile `api`). |
+| **Linux or WSL 2, native** (the v1 lanes' setup) | Docker, git, Node 24.16.0, uv 0.11.15 | `uv run --frozen --directory apps/api pytest` with a `*_test` database in `PP_TEST_DATABASE_URL`, plus `PP19_TEST_DATABASE_URL` and `PP19_TEST_SCHEMA_ISOLATION=1` for the PostgreSQL suites | Fastest edit/test loop. `node scripts/quality/run.cjs full` is the merge gate. |
+| **Windows native** (PowerShell, sections 1–5 below) | Git, Node, npm, uv, Docker Desktop | Docker routes above; on the original host Application Control blocks OR-Tools natively | `scripts/setup-windows.ps1` and `scripts/doctor-windows.ps1`. |
+
+Several stacks on one machine: give each its own `COMPOSE_PROJECT_NAME` and `PP_WEB_PORT` (for example, in a gitignored `.env.lane` that you load with `set -a; . ./.env.lane; set +a`). Never run a second stack under the default project name `pantrypulse`, because `docker compose down -v` deletes that project's data.
+
+The contributor compose files:
+
+| File | What it runs |
+|---|---|
+| `compose.yaml` | the v1 install: PostgreSQL, `migrate`, `seed`, API, worker, web (only the web port is published) |
+| `compose.dev.yaml` | the dev database on 127.0.0.1:55432 and, with `--profile api`, the API on 127.0.0.1:8000 (project `pantrypulse-dev`) |
+| `compose.test.yaml` | `npm run test:docker` (group B), and the egress capture for `scripts/testing/egress-journey.cjs` (profile `egress`) |
+| `compose.compute.yaml` | opt-in resource-bounded compute tools, overlaying `compose.dev.yaml` |
+| `compose.forecast.yaml`, `compose.chronos.yaml` | the opt-in Chronos-2 profile ([CHRONOS-LOCAL.md](CHRONOS-LOCAL.md)) |
+| `compose.demo.yaml` | the historical connected demo |
+
 For a shorter walkthrough with separate host and teammate instructions, follow the [Windows installation and Cloudflare connection quickstart](docs/setup/WINDOWS-QUICKSTART.md).
 
 This guide targets Windows x64 with PowerShell 5.1 or 7. [Current status](docs/pantrypulse/CURRENT-STATUS.md) and [SPEC-V5](docs/pantrypulse/SPEC-V5.md) distinguish merged source, running images and remaining release work. The [V4 tab](https://docs.google.com/document/d/1WcsV69YCE1mqW2pI7IyEFQBSuwQB_hMhVQKfU20ZFk8/edit?tab=t.951hp1xdarlq) and saved snapshot are historical. Local backend/Chronos preparation is resumed; cloud deployment and supplier planning remain separate authorizations.
@@ -168,7 +193,7 @@ npm run check:runtime:docker
 .\scripts\doctor-windows.ps1 -RequireContainerApi
 ```
 
-Expected health JSON: `{"status":"ok","scope":"process"}`. Current tests cover the scaffold, not an allocation/forecast demonstration. Full domain quality gates remain pending; do not interpret their absent tests as successful product validation.
+Expected health JSON: `{"status":"ok","scope":"process"}`. The quick, full and e2e gates (`node scripts/quality/run.cjs quick|full|e2e`) are the product checks; a skipped PostgreSQL suite is never validation ([testing guide](docs/testing/README.md)).
 
 Native alternative on hosts with working allowed Python DLLs: run `npm run dev:api` in a separate terminal. Do not run it alongside the container API on port 8000. On the original Windows host, Application Control rejected a pandas DLL imported by OR-Tools; native health works but does not prove solver availability. Use the verified Docker route without changing security policy.
 
@@ -178,14 +203,14 @@ Stop the web/native API with Ctrl+C in its terminal. Stop project containers wit
 docker compose -f compose.dev.yaml stop api postgres
 ```
 
-The named PostgreSQL volume survives. Startup SQL creates pantrypulse_dev and pantrypulse_test plus existing lane databases only when the volume is first initialized. Do not delete a volume as a routine setup fix. There are no Alembic domain revisions yet; migration validation will be added after the research contract gate.
+The named PostgreSQL volume survives. Startup SQL creates pantrypulse_dev and pantrypulse_test plus existing lane databases only when the volume is first initialized. Do not delete a volume as a routine setup fix. Migrations run through Alembic to head `ppv1_0014` ([migration instructions](apps/api/migrations/README.md)).
 
 ## 6. Installed dependency groups
 
 | Group | Packages / tooling |
 |---|---|
 | Web runtime | Next.js, React/React DOM, Recharts, Motion, Lucide, Radix Slot, class-variance-authority, clsx, tailwind-merge, tw-animate-css |
-| Web development | TypeScript/types, Tailwind/PostCSS, ESLint/Next config, Playwright, openapi-typescript, pinned shadcn CLI |
+| Web development | TypeScript/types, Tailwind/PostCSS, ESLint/Next config, Playwright, Vitest with Testing Library and jsdom (group A unit tests), openapi-typescript, pinned shadcn CLI |
 | API runtime | FastAPI, Uvicorn, Pydantic/settings, SQLAlchemy, Alembic, psycopg binary, OR-Tools, python-multipart |
 | API development | pytest, HTTPX, Ruff |
 | Local services | PostgreSQL 16; optional API development container |
@@ -237,7 +262,6 @@ The following are omitted from the canonical environment on purpose. Some are na
 | @xyflow/react | Process/transfer-flow diagrams | Optional visualization |
 | mapie / scikit-learn | Calibrated intervals and classical model tooling | Requires held-out evaluation and a defined calibration method |
 | google-genai | Gemini natural-language scenario input/explanations | Optional; no authority to alter inventory or approve actions |
-| vitest / @testing-library/react | Frontend unit/component tests | pytest and Playwright cover the current scaffold; add when components justify them |
 | Fly/Vercel/Neon CLI tools | Hosted deployment | Local environment needs no cloud CLI or account; the separate Fly deployment guide requires flyctl |
 
 Only the forecast extra is currently declared as an optional install group and resolved in uv.lock. A lock entry is not an installation. Other candidates must be explicitly added and locked if adopted. Pandas and NumPy are already installed through OR-Tools and are not omitted dependencies.
