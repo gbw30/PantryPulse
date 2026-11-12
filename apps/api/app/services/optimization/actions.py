@@ -14,7 +14,6 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from decimal import Decimal
 
-from app.schemas.or_inputs import decimal_literal
 from app.schemas.v1_planning import (
     ActionEffect,
     DecisionAction,
@@ -209,7 +208,7 @@ def _donations(s, location_id, product_id, unit, days) -> str:
         return f"{name} has no donation forecast."
     total = sum(Decimal(x) for x in row.central_literals[:days])
     return (f"At {name}, expected donations (forecast, not confirmed): "
-            f"{decimal_literal(str(total))} {units_label(unit, total)} over {days} days, "
+            f"{total.normalize():f} {units_label(unit, total)} over {days} days, "
             "not counted as supply.")
 
 
