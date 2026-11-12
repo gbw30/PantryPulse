@@ -72,6 +72,16 @@ Earlier runs that don't count: a full gate on `f75da9a` failed once at web unit 
 - **Unblocks:** W5-D02.
 - **Status:** approved (Gabriel, 2026-11-12) as a one-time exception: the lane makes the change inside its D02 commit. Done in the W5-D02 commit (see the task row): one hub (`'hub' if i == 0`), demand pairs over `range(1, LOCATIONS)`, and `MAX_ROWS = 4,455,000` used for the `--rows` default, bound and error text, plus the usage line in the docstring. Nothing else in the script changed.
 
+### CR-w5-data-2 — the import page should read the run when a commit answers IMPORT_ALREADY_FINISHED
+- **File(s):** `apps/web/src/components/import/import-view.tsx` (w5-polish / w5-screens / lead; not this lane)
+- **Exact change:** in `commit()` (`import-view.tsx:143-149`), before the 4xx branch, add `if (error instanceof ApiError && error.code === "IMPORT_ALREADY_FINISHED") return track(importId);` so that a finished run is shown as it is (done, or failed with its row errors) instead of "Import request failed … Nothing was saved." Add a unit test: commit rejects 409 `IMPORT_ALREADY_FINISHED`, status reads `done`, and the page shows the finished import.
+- **Why:** W5-D04 (`fea2ec0`) answers 409 for a run stored done or failed.
+  - The plain lost-response path is unaffected. The web never resends a commit by itself: on no answer or a 5xx it reads the run (`track`, `import-view.tsx:149`). Each commit sends a fresh random key (`network-api.ts:29` passes none), and the API ignores the caller's key anyway: its queue key comes from the run (`imports/api.py`).
+  - One path does change. A commit that got no answer is admitted, but its phase write is lost. After 30 checks the page shows "didn't start" with Retry. The admitted job later records itself (`repositories/imports.py:87-91`, `set_job_phase`) and finishes. A Retry clicked on that stale page used to get 202 with the same job and be tracked to its real end. Now it gets 409 and the page wrongly says nothing was saved.
+- **Why keep the 409 (not 202 for a finished run):** the decision (W4 §7, wave-5 W5-D04) is that a done or failed run is refused, admits no job and keeps its phase. A 202 would have to name the run's old job, which for a failed run may be the cancelled job, and would still read as "accepted". The 409 with its own code tells the client exactly what happened, and reading the run gives it the outcome. The fix belongs in the client's handling of that code.
+- **Unblocks:** nothing in this lane; it closes a W5-D04 integration edge before release.
+- **Status:** open
+
 ## Notes for other lanes (read-only for me)
 
 - **W5-D03 → web:** (approved 2026-11-12: `w5-screens` adds the `not_evaluated_zero_actual` branch before D03 reaches v1-local.) `apps/web/src/components/data-explorer/trust-panel.tsx:64-72` shows `NOT_EVALUATED` ("accuracy not evaluated: needs 35+ days") for every non-`evaluated` status. After D03, a series whose scored actuals sum to 0 arrives as `not_evaluated_zero_actual` with `reason: sum_actual_zero`, so it would read "needs 35+ days" (wrong) where it showed `NOT_MEASURABLE` before. The panel needs a branch for this status, e.g. the existing NOT_MEASURABLE copy. W5-UI04/UI05 (`w5-polish`) or the lead should decide; merge both together.
