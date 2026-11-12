@@ -85,7 +85,7 @@ export function LocationInspector({ network, forecastRunId, location, onClose, d
   }, [network.id, forecastRunId, location.location_id, attempt]);
 
   return (
-    <section aria-label={`Site inspector · ${location.name}`} className="grid content-start gap-3 rounded-lg border border-border bg-background p-3 lg:sticky lg:top-4">
+    <section aria-label={`Site inspector · ${location.name}`} className="pp-inspector-in grid content-start gap-3 rounded-lg border border-border bg-background p-3 lg:sticky lg:top-4">
       <div className="flex items-start justify-between gap-2">
         <div className="grid gap-0.5">
           <h3 ref={heading} tabIndex={-1} className="text-base font-semibold outline-none">{location.name}</h3>

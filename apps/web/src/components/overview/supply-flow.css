@@ -13,8 +13,8 @@
   stroke-dasharray: 2 10;
   opacity: 0.6;
   pointer-events: none;
-  /* Starts after the links draw in; the fade-in is a one-off, the flow loops. */
-  animation: pp-supply-flow 2.4s linear infinite, pp-supply-flow-in 0.4s ease-out 0.7s backwards;
+  /* Fades in as the links finish drawing, done within 1 s (W5-UI03); the fade-in is a one-off, the flow loops. */
+  animation: pp-supply-flow 2.4s linear infinite, pp-supply-flow-in 0.4s ease-out 0.5s backwards;
   transition: opacity 0.2s ease-out, stroke-width 0.2s ease-out;
 }
 
@@ -57,4 +57,14 @@
   .pp-supply-emphasis {
     stroke-opacity: 1;
   }
+}
+
+/* The map's pause control (WCAG 2.2.2) shows the links static, the same as reduced motion. */
+[data-flow-paused="true"] .pp-supply-flow {
+  display: none;
+  animation: none;
+}
+
+[data-flow-paused="true"] .pp-supply-emphasis {
+  stroke-opacity: 1;
 }

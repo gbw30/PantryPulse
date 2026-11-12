@@ -1,6 +1,7 @@
 // covers: V1-A20
 import { expect, test, type Locator, type Page, type TestInfo } from "@playwright/test";
 import { expectNoSeriousA11yViolations } from "./a11y";
+import { moving, movingTransitions, recordMotion } from "./motion";
 import { REQUIRED, csv, failedStatus, mockImport } from "./v1-import-mocks";
 import { envelope, example, mockV1, publishedRun } from "./v1-mocks";
 
@@ -10,75 +11,6 @@ import { envelope, example, mockV1, publishedRun } from "./v1-mocks";
 // packages/contracts/examples/v1: proves UI behavior, not the connected app.
 
 const VIEWPORTS = [[1440, 900], [1280, 720], [390, 844]] as const;
-
-// Animated properties that move, scale or resize something (WCAG 2.3.3). Colour, opacity and focus-ring
-// changes are not motion and stay allowed.
-const MOTION = /^(transform|translate|scale|rotate|top|right|bottom|left|inset|width|height|max-height|max-width|margin|padding)/;
-type Started = { kind: string; name: string; props: string[]; infinite: boolean; target: string };
-
-/** Records every animation, transition and script-driven transform the page starts, before its own scripts run. */
-async function recordMotion(page: Page) {
-  await page.addInitScript(() => {
-    const started: Started[] = [];
-    const transforms = new Map<Element, Set<string>>();
-    Object.assign(window, { __started: started, __transforms: transforms });
-    const label = (el: Element) => [el.tagName.toLowerCase(), el.id && `#${el.id}`, el.getAttribute("data-slot") && `[${el.getAttribute("data-slot")}]`,
-      el.getAttribute("aria-label") && `"${el.getAttribute("aria-label")}"`].filter(Boolean).join("");
-    const props = (frames: Keyframe[]) => [...new Set(frames.flatMap(Object.keys))].filter((k) => !["offset", "computedOffset", "easing", "composite"].includes(k));
-    const record = (kind: string, name: string, animation: Animation | undefined, target: Element, fallback: string[] = []) => started.push({
-      kind, name, target: label(target),
-      props: animation?.effect instanceof KeyframeEffect ? props(animation.effect.getKeyframes()) : fallback,
-      infinite: animation?.effect?.getComputedTiming().iterations === Infinity,
-    });
-    document.addEventListener("animationstart", (event) => {
-      const target = event.target as Element;
-      // One that ended before it could be read counts as motion ("unknown"): the check fails closed.
-      record("css-animation", event.animationName, target.getAnimations().find((a) => (a as CSSAnimation).animationName === event.animationName), target, ["unknown"]);
-    }, true);
-    document.addEventListener("transitionrun", (event) => {
-      record("css-transition", event.propertyName, undefined, event.target as Element, [event.propertyName]);
-    }, true);
-    const animate = Element.prototype.animate;
-    Element.prototype.animate = function (this: Element, ...args: Parameters<Element["animate"]>) {
-      const animation = animate.apply(this, args);
-      record("script-animation", "animate()", animation, this);
-      return animation;
-    };
-    // Script-driven motion (requestAnimationFrame) shows only as inline transforms changing frame by frame.
-    new MutationObserver((records) => {
-      for (const r of records) {
-        const el = r.target as HTMLElement;
-        if (!el.style?.transform) continue;
-        const seen = transforms.get(el) ?? new Set<string>();
-        seen.add(el.style.transform);
-        transforms.set(el, seen);
-        if (seen.size === 3) started.push({ kind: "inline-transform", name: [...seen].join(" → "), props: ["transform"], infinite: false, target: label(el) });
-      }
-    }).observe(document, { subtree: true, attributes: true, attributeFilter: ["style"] });
-  });
-}
-
-/** What the page has started so far that moves something on screen, or never ends. */
-const moving = async (page: Page) => (await page.evaluate(() => (window as unknown as { __started: Started[] }).__started))
-  .filter((s) => s.infinite || s.props.some((p) => p === "unknown" || MOTION.test(p)));
-
-/**
- * Every element whose computed transition would move or resize it: a layout property, or "all", with a
- * non-zero duration. The recorder above sees a transition only when a size change happens to land after
- * the first style pass, which depends on load; this reads the styles themselves, so it never depends on timing.
- */
-const movingTransitions = (page: Page) => page.evaluate((source) => {
-  const motion = new RegExp(source);
-  const label = (el: Element) => [el.tagName.toLowerCase(), el.getAttribute("data-slot") && `[${el.getAttribute("data-slot")}]`,
-    el.getAttribute("aria-label") && `"${el.getAttribute("aria-label")}"`].filter(Boolean).join("");
-  return [...new Set([...document.querySelectorAll("*")].flatMap((el) => {
-    const style = getComputedStyle(el);
-    const durations = style.transitionDuration.split(",").map((d) => parseFloat(d));
-    return style.transitionProperty.split(",").map((p) => p.trim())
-      .filter((p, i) => (p === "all" || motion.test(p)) && durations[i % durations.length] > 0)
-      .map((p) => `${label(el)}: ${p}`);
-  }))];
-}, MOTION.source);
 
 /** prefers-reduced-motion is on, and nothing the page started so far moved anything on screen. */
 async function expectNoMotion(page: Page) {
