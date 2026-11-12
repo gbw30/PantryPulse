@@ -52,3 +52,19 @@ services:
       - >-
         uv run --frozen pytest -q -p no:cacheprovider --junitxml=/reports/api-linux.xml
         && uv run --frozen python /workspace/scripts/quality/require-test-evidence.py /reports/api-linux.xml
+
+  # Egress capture for scripts/testing/egress-journey.cjs (V1-A03), which starts it under its own
+  # project with the app stack's bridge and subnet. Reads packet headers in the Docker host's
+  # network namespace; never part of `npm run test:docker`.
+  egress-capture:
+    profiles: [egress]
+    image: python:3.12.13-slim
+    network_mode: host
+    cap_add: [NET_RAW]
+    environment:
+      EGRESS_BRIDGE: ${EGRESS_BRIDGE:-}
+      EGRESS_SUBNET: ${EGRESS_SUBNET:-}
+    volumes:
+      - ./scripts/testing/egress-sniff.py:/sniff.py:ro
+      - ./artifacts/egress:/out
+    command: ["sh", "-c", "exec python -I -u /sniff.py \"$$EGRESS_BRIDGE\" \"$$EGRESS_SUBNET\" > /out/capture.jsonl"]
