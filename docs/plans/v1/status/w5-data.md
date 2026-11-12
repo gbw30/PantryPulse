@@ -16,6 +16,8 @@
 
 | Gate | Commit | Result |
 |---|---|---|
+| `node scripts/quality/run.cjs quick` (after the v1-local merge `abe117d` and W5-UI04) | `3d193ff` | PASS (web typecheck, web lint, api lint, api tests) |
+| `node scripts/quality/run.cjs full` (`.env.lane` + `PP19_TEST_SCHEMA_ISOLATION=1`), PR candidate | `3d193ff` | PASS 8/8 (`full.json`: pass true, head `3d193ffd`, source unchanged; load ~7–10). Later commits touch only this file. |
 | `node scripts/quality/run.cjs quick` | `c63d436` | PASS (web typecheck, web lint, api lint, api tests) |
 | `node scripts/quality/run.cjs full` (`.env.lane` + `PP19_TEST_SCHEMA_ISOLATION=1`) | `f75da9a` | PASS 8/8 (`.claude/state/quality/full.json`: pass true, source unchanged). The gate prints no counts; the API suite on the same code (`3741685`, which differs only in this file) gave 2263 passed, 0 skipped, 0 failed. |
 | `/devkit:ship-check` | `f75da9a` | Step 1: the full gate above. Step 2: project `verifier` on D02–D04, PASS WITH NOTES (below). Step 3: security-guidance isn't installed in this session, skipped. Steps 4–5: the PR waits until D01 merges into v1-local (orchestrator); `/code-review` runs once the PR exists. Step 6: no auth, payment, migration or permission change, skipped. |
