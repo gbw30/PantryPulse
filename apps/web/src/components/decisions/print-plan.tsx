@@ -6,7 +6,7 @@ import { V1_METHOD_LABEL } from "@/components/scenario-lab/model";
 import { SAMPLE_LABEL } from "@/components/shell/network-switcher";
 import { networkApi, type Network } from "@/lib/network-api";
 import { ApiError, isUuid } from "@/lib/planning-api";
-import { effectLines } from "./action-card";
+import { effectLines, effectPeriod, planCovers } from "./action-card";
 import { isV1Method, loadPlan, methodNotCompared, noVerifiedPlan, readSelection, type Plan } from "./decisions-view";
 import { PlanNotes, SIMULATED_NOTE } from "./export-bar";
 
@@ -61,6 +61,7 @@ export function PrintPlan({ networkId, comparisonId, method }: Props) {
             : rows.length === 0 ? <p role="alert">No selected actions were found for this plan. Open the print page from Decisions after selecting actions.</p> : (<>
           <p className="font-semibold">{SIMULATED_NOTE}</p>
           <p>{ready.decisions.non_additive_label}</p>
+          <p>{planCovers(ready.decisions, ready.saved.result.mode)}</p>
           <table className="w-full border-collapse text-left align-top">
             <caption className="sr-only">Selected actions</caption>
             <thead>
@@ -70,12 +71,14 @@ export function PrintPlan({ networkId, comparisonId, method }: Props) {
             </thead>
             <tbody>
               {rows.map((a) => {
-                const lines = effectLines(a, ready.saved.result.mode, result?.usd_unavailable_reason ?? null);
+                const period = effectPeriod(ready.decisions!);
+                const lines = effectLines(a, ready.saved.result.mode, result?.usd_unavailable_reason ?? null)
+                  .map((line) => (line.dated ? `${line.text} over ${period}` : line.text));
                 return (
                   <tr key={a.id} className="border-b border-border align-top break-inside-avoid">
                     <td className="py-1.5 pr-3">{a.action_text}</td>
                     <td className="py-1.5 pr-3">{a.why_text} <span className="text-muted-foreground">({a.explanation_kind === "proven_binding" ? "proven: binding constraint" : "inferred reason"})</span></td>
-                    <td className="py-1.5 pr-3">{[lines.receiver, lines.sender, lines.expired, lines.usd].filter(Boolean).join("; ")}</td>
+                    <td className="py-1.5 pr-3">{lines.join("; ")}</td>
                   </tr>
                 );
               })}

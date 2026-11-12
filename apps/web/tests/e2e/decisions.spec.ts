@@ -170,3 +170,28 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]] as const) {
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });
 }
+
+// W5-UI02.3 (W4-03 ux-critic finding 3): a 3-day plan's effects are measured over the 7 forecast days, so each
+// quantity names its own period, and the plan says the days after its window are not planned (W5-L02 dates).
+const EFFECT_PERIOD = "Nov 6–12 (7 days)";
+const PLAN_COVERS = "Plan covers Nov 6–8 (3 days) only; unmet need after Nov 8 is not planned.";
+
+test("@V1-A16 @V1-A20 every effect quantity names its period, and the plan says the days after its window are not planned", async ({ page }) => {
+  const { section } = await open(page);
+  await expect(section.getByText(PLAN_COVERS)).toBeVisible();
+  for (const article of await section.getByRole("article").all()) {
+    const effects = article.getByRole("list", { name: "Effect" }).getByRole("listitem");
+    await expect(effects).toHaveCount(3);
+    for (const line of await effects.all()) await expect(line).toContainText(`over ${EFFECT_PERIOD}`);
+  }
+
+  await section.getByRole("button", { name: "Select all" }).click();
+  await section.getByRole("link", { name: "Print page (2 actions)" }).click();
+  await expect(page.getByText(PLAN_COVERS)).toBeVisible();
+  const cells = page.getByRole("table", { name: "Selected actions" }).locator("tbody tr td:nth-child(3)");
+  await expect(cells).toHaveCount(2);
+  for (const cell of await cells.all()) {
+    const text = (await cell.textContent())!;
+    expect(text.split("; ").map((part) => part.endsWith(`over ${EFFECT_PERIOD}`)), text).toEqual([true, true, true]);
+  }
+});

@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { beforeEach, expect, it, vi } from "vitest";
 import { DecisionsView } from "@/components/decisions/decisions-view";
 import { PrintPlan } from "@/components/decisions/print-plan";
+import { periodText, planCovers } from "@/components/decisions/action-card";
 import { networkApi } from "@/lib/network-api";
 import { ApiError } from "@/lib/planning-api";
 import { example, type Schemas } from "./contract-examples";
@@ -181,4 +182,12 @@ it("the selection is saved only when the print link is used, so another tab's se
 
   render(<PrintPlan networkId={network.id} comparisonId={saved.id} method="CLASSICAL_GP" />);
   expect(within(await screen.findByRole("table", { name: "Selected actions" })).getAllByRole("row")).toHaveLength(4);
+});
+
+// W5-UI02.3: effect periods and the plan window are named in local calendar days.
+it("names a period across months, a single day, and the Retail wording after the plan's window", () => {
+  expect(periodText("2026-10-30", "2026-11-05")).toBe("Oct 30–Nov 5 (7 days)");
+  expect(periodText("2026-11-06", "2026-11-06")).toBe("Nov 6 (1 day)");
+  const decisions = { ...example("DecisionActions"), plan_window_start: "2026-11-06", plan_window_end: "2026-11-12" };
+  expect(planCovers(decisions, "RETAIL")).toBe("Plan covers Nov 6–12 (7 days) only; lost sales after Nov 12 are not planned.");
 });
