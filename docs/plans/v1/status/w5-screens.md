@@ -6,7 +6,7 @@
 
 | Task | Status | Commit | Evidence (command → result) |
 |---|---|---|---|
-| W5-UI02.1 | done (CI needs CR-w5-screens-1) | see W5-UI02.1 commit | RED: `npx playwright test tests/e2e/v1-screens-data.spec.ts` → 3 failed (`legacy content "Riverbend"`). GREEN: `npx playwright test tests/e2e/v1-screens-data.spec.ts tests/e2e/data-explorer.spec.ts tests/e2e/forecast-trust.spec.ts` → 27 passed, 1 skipped (the connected test, `PP_RUN_CONNECTED` unset; not counted). `data-label.spec.ts:66` → 2 failed, by design (CR-w5-screens-1) |
+| W5-UI02.1 | done (CI needs CR-w5-screens-1) | see W5-UI02.1 commit | RED: `npx playwright test tests/e2e/v1-screens-data.spec.ts` → 3 failed (`legacy content "Riverbend"`). GREEN: `npx playwright test tests/e2e/v1-screens-data.spec.ts tests/e2e/data-explorer.spec.ts tests/e2e/forecast-trust.spec.ts` → 27 passed, 1 skipped (the connected test, `PP_RUN_CONNECTED` unset; not counted). `data-label.spec.ts:66` → 2 failed before CR-w5-screens-1; 5 passed after it (`0790cf1`) |
 | W5-UI02.2 | done (connected check needs CR-w5-screens-2) | see W5-UI02.2 commit | RED: `npx playwright test tests/e2e/v1-comparison.spec.ts -g "fit at 1280"` → 1 failed (`one card per row`). GREEN: `npx playwright test tests/e2e/v1-comparison.spec.ts tests/e2e/scenario-lab.spec.ts --repeat-each=2` → 30 passed, 2 skipped (the connected test ×2, `PP_RUN_CONNECTED` unset; not counted). `npx vitest run tests/unit/method-comparison.test.tsx tests/unit/v1-comparison.test.tsx tests/unit/scenario-lab.test.tsx` → 19 passed |
 | W5-UI02.3 | todo | — | — |
 | W5-SC01 | todo | — | — |
@@ -36,9 +36,9 @@
 ### CR-w5-screens-1 — `data-label.spec.ts` pins the legacy block beside a chosen network
 - **File(s):** `apps/web/tests/e2e/data-label.spec.ts` (w5-polish)
 - **Exact change:** in the test at line 66 (`/data with a ${kind} chosen labels that network in the top bar and the legacy block as simulated`), replace `await expect(page.locator("[data-explorer-source]")).toContainText(/simulated network/i);` with `await expect(page.locator("[data-explorer-source]")).toHaveCount(0);`, retitle it `/data with a ${kind} chosen labels that network in the top bar and shows no legacy block`, and update the comment above it (lines 62-63) to say the legacy block no longer renders with a chosen network (W5-UI02.1). The top-bar assertions stay as they are and still pass.
-- **Why:** W5-UI02.1 removes the legacy block when a v1 network is chosen; this test asserts that block is there, so it fails twice (`element(s) not found`) on this branch. The other five tests in the file pass.
+- **Why:** W5-UI02.1 removes the legacy block when a v1 network is chosen; this test asserts that block is there, so it failed twice (`element(s) not found`) on this branch. The file's other three tests passed.
 - **Unblocks:** CI on the `w5-screens` PR (W5-UI02.1). The local `quick`/`full` gates do not run e2e.
-- **Status:** open
+- **Status:** approved (Gabriel, 2026-11-12), done in `0790cf1`. Evidence: `npx playwright test tests/e2e/data-label.spec.ts` → 5 passed, 0 failed, 0 skipped. The file has 5 tests (`--list`), not 6.
 
 ### CR-w5-screens-2 — the connected journey reads collapsed effects rows
 - **File(s):** `apps/web/tests/e2e/v1-connected-journey.spec.ts` (w5-polish / lead connected harness)
