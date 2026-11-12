@@ -440,6 +440,26 @@ def test_demand_history_for_a_hub_or_dc_is_refused(mode):
     assert "Remove" in error.fix and ("pantries" if mode == "PANTRY" else "stores") in error.fix
 
 
+@pytest.mark.parametrize(("mode", "wrong", "receivers"), [
+    ("PANTRY", "distribution_center", "pantries"), ("RETAIL", "hub", "stores")])
+def test_hub_or_dc_demand_fix_names_the_receivers_of_the_network_mode(mode, wrong, receivers):
+    """The fix follows the network's mode, not the row's sender type: a DC typed into a Pantry
+    import (already a type error) still says demand history is only for pantries."""
+    locations = (LOCATIONS if mode == "PANTRY" else (
+        "location_id,name,type,street,city,state,zip\n"
+        "H1,Central DC,distribution_center,1 Dock Rd,Orlando,FL,32801\n"
+        "P1,Store One,store,2 Main St,Orlando,FL,32801\n")
+    ) + f"X1,Mistyped,{wrong},3 Side St,Orlando,FL,32801\n"
+    demand = ("location_id,product_id,date,quantity,basis\n"
+              "P1,RICE,2026-11-01,3,demand\nX1,RICE,2026-11-01,4,demand\n")
+    report = validate_files(_files(locations=locations, demand_history=demand),
+                            PANTRY.model_copy(update={"mode": mode}))
+    [error] = [e for e in report.errors if e.file == "demand_history"]
+    assert (error.line, error.column, error.code, error.value) == (
+        3, "location_id", "MALFORMED", "X1")
+    assert error.fix == f"Remove this row; demand history is only for {receivers}"
+
+
 def test_donation_history_at_a_hub_is_still_accepted():
     donations = "location_id,product_id,date,quantity,donor\nH1,RICE,2026-11-01,5,Grocer\n"
     report = validate_files(_files(donation_history=donations), PANTRY)
