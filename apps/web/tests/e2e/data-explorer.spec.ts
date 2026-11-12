@@ -2,6 +2,7 @@ import { expect, test, type Locator, type Page, type Route } from "@playwright/t
 import { signInThroughForm } from "./sign-in";
 import type { components } from "../../../../packages/contracts/src/schema";
 import { expectNoSeriousA11yViolations } from "./a11y";
+import { withoutV1Networks } from "./v1-mocks";
 
 // Data Explorer (PP-53) over the same-origin /api/v1 proxy. Every test mocks the browser's API
 // requests; the connected test at the end needs a seeded backend. Mocks are typed against the
@@ -515,6 +516,8 @@ test("loading shows stable skeletons with both flips disabled", async ({ page })
 
 test("connected: a signed-in presenter reads the live dashboard from the seeded backend", async ({ page }) => {
   test.skip(process.env.PP_RUN_CONNECTED !== "1", "Requires isolated seeded PostgreSQL, API and Linux worker");
+  // A chosen v1 network replaces the legacy block on /data (W5-UI02.1), so this legacy check sees none.
+  await withoutV1Networks(page);
   await page.goto("/overview");
   await signInThroughForm(page);
   await page.goto("/data");

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MotionConfig } from "motion/react";
 import { AppShell } from "@/components/shell/app-shell";
+import { useNetwork } from "@/components/shell/network-switcher";
 import { usePresenter } from "@/components/shell/presenter-session";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -193,13 +194,29 @@ function Screen({ view, initialProductId }: { view: View; initialProductId: stri
   );
 }
 
+/**
+ * The dashboard with a v1 network chosen shows only that network (W5-UI02.1): the legacy summary block reads
+ * other sites and units, so it renders only when no v1 network exists or the list failed. While the list
+ * loads, nothing legacy is fetched or shown.
+ */
+function Dashboard({ initialProductId }: { initialProductId: string | null }) {
+  const { state, network } = useNetwork();
+  if (!network && state.status !== "loading") return <Screen view="dashboard" initialProductId={initialProductId} />;
+  return (
+    <div className="flex flex-1 flex-col gap-4 px-4 pt-3 pb-6 md:gap-5 md:px-6 md:py-5">
+      <DataExplorerHeader active="dashboard"
+        description={network ? `Forecasts and their accuracy for ${network.name}, measured on its own history.` : "Loading your networks…"} />
+      <ForecastTrustSection />
+    </div>
+  );
+}
+
 /** Client root for /data, /data/pulse and /data/operations. */
 export function DataExplorerScreen({ view, initialProductId = null }: { view: View; initialProductId?: string | null }) {
   return (
     <MotionConfig reducedMotion="user">
       <AppShell active="data" legacyOnly={view !== "dashboard"}>
-        <Screen view={view} initialProductId={initialProductId} />
-        {view === "dashboard" && <div className="px-4 pb-6 md:px-6"><ForecastTrustSection /></div>}
+        {view === "dashboard" ? <Dashboard initialProductId={initialProductId} /> : <Screen view={view} initialProductId={initialProductId} />}
       </AppShell>
     </MotionConfig>
   );
