@@ -52,11 +52,12 @@ def test_published_schema_does_not_promise_donations(mode):
 
 
 def test_stored_mini_network_scenario_keeps_its_golden_hash():
-    stored = json.loads((MINI / "expected-scenario.json").read_text())
+    # The golden as frozen before W5-L01; W5-D01 regenerated expected-scenario.json with donations.
+    stored = json.loads((MINI / "expected-scenario-pre-w5.json").read_text())
     assert "donations" not in stored  # frozen before W5-L01
     scenario = ORInputV3.model_validate(stored)
     assert scenario.model_dump(mode="json") == stored
-    assert operational_hash(scenario) == (MINI / "expected-hash.txt").read_text().strip()
+    assert operational_hash(scenario) == (MINI / "expected-hash-pre-w5.txt").read_text().strip()
 
 
 def test_a_donation_row_is_frozen_and_hashed():

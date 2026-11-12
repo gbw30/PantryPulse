@@ -14,6 +14,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from decimal import Decimal
 
+from app.schemas.or_inputs import decimal_literal
 from app.schemas.v1_planning import (
     ActionEffect,
     DecisionAction,
@@ -68,7 +69,7 @@ class _Plan:
                 out[key(r)].append(r)
             return out
 
-        fields = ("batches", "demand", "inbound", "reserves")
+        fields = ("batches", "demand", "donations", "inbound", "reserves")
         return cls(
             s,
             packed,
@@ -186,7 +187,7 @@ def _why(plan, t) -> tuple[str, str]:
     sender = [d for d in base if d.location_id == t.from_location_id and d.expired]
     if sender:
         parts[-1] += f"; {sum(d.expired for d in sender)} of them expire {_day(sender[0].day)}"
-    why = "; ".join(parts) + "."
+    why = "; ".join(parts) + ". " + _donations(s, t.to_location_id, p, unit, len(window))
     # One more unit on this route, against the room the rest of the plan leaves in every limit
     grown = quantities_of(x.transfer for x in plan.by_product[p])
     grown[p, t.from_location_id, t.to_location_id] += 1
@@ -199,13 +200,26 @@ def _why(plan, t) -> tuple[str, str]:
     return f"{why} One more unit is infeasible: {reasons}.", "proven_binding"
 
 
+def _donations(s, location_id, product_id, unit, days) -> str:
+    """The receiver's frozen donation forecast over the why's own days: shown, never supply."""
+    name = next(loc.name for loc in s.locations if loc.id == location_id)
+    row = next((d for d in s.donations
+                if (d.location_id, d.product_id) == (location_id, product_id)), None)
+    if row is None:
+        return f"{name} has no donation forecast."
+    total = sum(Decimal(x) for x in row.central_literals[:days])
+    return (f"At {name}, expected donations (forecast, not confirmed): "
+            f"{decimal_literal(str(total))} {units_label(unit, total)} over {days} days, "
+            "not counted as supply.")
+
+
 COUNT_NOUNS = frozenset(
     {"bag", "box", "bottle", "bucket", "bundle", "can", "carton", "case", "container", "crate"}
     | {"jar", "pack", "packet", "pallet", "sack", "tin", "tray", "tub", "unit"}
 )
 
 
-def units_label(unit: str, n: int) -> str:
+def units_label(unit: str, n: int | Decimal) -> str:
     """The product's own unit; only known count nouns are pluralized, anything else verbatim."""
     if n == 1 or unit.lower() not in COUNT_NOUNS:
         return unit

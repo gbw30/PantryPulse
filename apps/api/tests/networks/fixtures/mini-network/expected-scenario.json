@@ -124,6 +124,23 @@
       ]
     }
   ],
+  "donations": [
+    {
+      "actual_provider": "SEASONAL_NAIVE",
+      "central_literals": [
+        "5",
+        "5",
+        "5",
+        "5",
+        "5",
+        "5",
+        "5"
+      ],
+      "fallback_reason": null,
+      "location_id": "P1",
+      "product_id": "RICE"
+    }
+  ],
   "first_planning_date": "2026-11-05",
   "forecast_run_id": "00000000-0000-0000-0000-000000000004",
   "global_handling": null,
