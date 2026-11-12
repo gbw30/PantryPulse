@@ -66,7 +66,7 @@ Order: PK01 → PK03 → PK04 → PK02 → PK05. PK02's `--enforce` can reach ex
   `'docs/pantrypulse/HARDWARE.md', // scripts/testing/tests/bench-report.test.cjs, scripts/bench/run-all.cjs`
 - **Why:** `bench-report.test.cjs` reads HARDWARE.md and `run-all.cjs` rewrites its table, so a docs-only PR that edits HARDWARE.md must still run the checks. `npm run test:config` → `✖ every docs/ Markdown path quoted in code is in TEST_READ` (`scripts/quality/tests/docs-only.test.cjs:86`, actual `['docs/pantrypulse/HARDWARE.md']`) at `61bea71`; CI's `verify` job runs `test:config` (`.github/workflows/pantrypulse-ci.yml:26`), so the lane PR's CI fails until this lands. Building the path from parts would get past the guard, but its own comment names that as a blind spot, so I didn't.
 - **Unblocks:** the lane PR's CI (W5-PK04 is otherwise done).
-- **Status:** open
+- **Status:** approved (Gabriel, 2026-11-12), done in `0286cc0`. Evidence: `npm run test:config` → exit 0, tests 36, pass 36, fail 0, skipped 0; "every docs/ Markdown path quoted in code is in TEST_READ" passes.
 
 ## Escalations
 
