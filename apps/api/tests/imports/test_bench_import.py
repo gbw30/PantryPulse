@@ -1,6 +1,6 @@
 # covers: V1-A09
 """bench_import.py times the import.v1 step, prepare and publish (the part under the queue
-lock) on a generated network, with peak RSS (W1-D05 step 3). Small here; 4,455,000 rows by
+lock) on a generated network, with peak RSS (W1-D05 step 3). Small here; 4,500,000 rows by
 hand."""
 
 import importlib.util
@@ -44,18 +44,19 @@ def test_arguments_parse_when_the_script_sits_at_app_scripts(monkeypatch, tmp_pa
     with pytest.raises(SystemExit) as stop:  # --rows 0 stops at the envelope check, before any DB
         bench.main([*out, "--rows", "0"])
     assert stop.value.code == 2
-    assert "--rows must be 1..4,455,000" in capsys.readouterr().err
+    assert "--rows must be 1..4,500,000" in capsys.readouterr().err
 
 
 def test_rows_stop_at_what_the_generator_can_write(capsys):
-    """One hub, which has no demand history (W5-D02, CR-w5-data-1): 99 pantries × 500 × 90."""
+    """No hub (CR-w5-data-1, revised): import validation doesn't require one, and a hubless
+    network of 100 pantries reaches the whole envelope, 100 × 500 × 90, with no hub demand."""
     bench = _bench()
-    assert bench.MAX_ROWS == 4_455_000 == 99 * 500 * 90
+    assert bench.MAX_ROWS == 4_500_000 == 100 * 500 * 90
     with pytest.raises(SystemExit) as stop:
-        bench.main(["--rows", "4455001"])
-    assert stop.value.code == 2 and "--rows must be 1..4,455,000" in capsys.readouterr().err
+        bench.main(["--rows", "4500001"])
+    assert stop.value.code == 2 and "--rows must be 1..4,500,000" in capsys.readouterr().err
     lines = list(bench._rows("locations", 0, 0))
-    assert [line.split(",")[2] for line in lines].count("hub") == 1
-    first = 500 * 90 + 1  # all of L001 (the first pantry), then one row of L002
+    assert {line.split(",")[2] for line in lines} == {"pantry"}
+    first = 500 * 90 + 1  # all of L000, then one row of L001
     assert {row.split(",")[0] for row in bench._rows("demand_history", first, 0)} == {
-        "L001", "L002"}
+        "L000", "L001"}
