@@ -1,6 +1,6 @@
 # Status — `w5-data`
 
-**Lane:** `w5-data` · **Branch:** `lane/w5-data` · **Base SHA:** `81c551bc2e232362f0e63a7a00126ef1ca863fb8` · **Last update:** `2026-11-12` · **Head:** see `git log`
+**Lane:** `w5-data` · **Branch:** `lane/w5-data` · **Base SHA:** `81c551bc2e232362f0e63a7a00126ef1ca863fb8` · **Last update:** `2026-11-14` · **Head:** see `git log`
 
 ## Tasks
 
@@ -18,10 +18,11 @@
 
 | Gate | Commit | Result |
 |---|---|---|
-| Focused: `uv run --frozen pytest -q -rs tests/imports/ tests/forecasting/test_backtest.py` (`.env.lane` + `PP19_TEST_SCHEMA_ISOLATION=1`) | `396153b` | 220 passed, 0 skipped |
-| `node scripts/quality/run.cjs quick`, after the code-review fixes | `396153b` | PASS 4/4 (web typecheck, web lint, api lint, api tests) |
-| `node scripts/quality/run.cjs full` (`.env.lane` + `PP19_TEST_SCHEMA_ISOLATION=1`), **current PR candidate** | `396153b` | PASS 8/8 (`full.json`: pass true, head `396153b2`, source unchanged; load ~3–4). The gate prints no counts. Later commits touch only this file. |
-| Whole API suite for a count, `uv run --frozen pytest -q` (same env) | `396153b` | **Not evidence, re-run on resume:** the Docker daemon stopped mid-run (orchestrator pause), so `pp-ci-postgres` on 55433 refused connections. The run ended 8 failed, 2014 passed, 245 errors, all PostgreSQL tests (`Connection refused`). The full gate above ran first, with the database up. Last whole-suite count: 2265 passed, 0 skipped (orchestrator's verifier, `e4d8b05`). |
+| Focused: `uv run --frozen pytest -q -rs tests/imports/ tests/forecasting/test_backtest.py` (`.env.lane` + `PP19_TEST_SCHEMA_ISOLATION=1`), after merging `origin/v1-local` `b660a83` (PR #152, w5-screens) | `5b1932f` | 220 passed, 0 skipped |
+| Whole API suite `uv run --frozen pytest -q -rs` (same env) | `5b1932f` | **2267 passed, 0 skipped, 0 failed** (669 s) |
+| `node scripts/quality/run.cjs quick` (same env) | `5b1932f` | PASS 4/4 (web typecheck, web lint, api lint, api tests) |
+| `node scripts/quality/run.cjs full` (same env), **current PR candidate** | `5b1932f` | PASS 8/8 (`full.json`: pass true, head `5b1932fe`, source unchanged; load ~1–12). Includes #152's 20 s timeout on the 700-action decisions test. Later commits touch only this file. |
+| `node scripts/quality/run.cjs full` (same env) | `396153b` | PASS 8/8 (`full.json`: pass true, head `396153b2`, source unchanged). A whole-suite count run right after it doesn't count: the Docker daemon stopped mid-run (the 2026-11-12 pause), so PostgreSQL refused connections. |
 | `node scripts/quality/run.cjs quick` (after the v1-local merge `abe117d` and W5-UI04) | `3d193ff` | PASS (web typecheck, web lint, api lint, api tests) |
 | `node scripts/quality/run.cjs full` (`.env.lane` + `PP19_TEST_SCHEMA_ISOLATION=1`), PR candidate | `3d193ff` | PASS 8/8 (`full.json`: pass true, head `3d193ffd`, source unchanged; load ~7–10). Later commits touch only this file. |
 | `node scripts/quality/run.cjs quick` | `c63d436` | PASS (web typecheck, web lint, api lint, api tests) |
@@ -117,6 +118,12 @@ Run with no tests. My check of each against the code:
 
 - **Cancelled or stopped imports can be committed again** (verifier N3): only a stored `done` or `failed` phase is refused. A run whose job was cancelled or stopped still reads `staging`, so a commit admits a new job. That's the designed Retry path, pinned by `test_a_run_whose_job_stopped_before_finishing_can_still_be_committed_again`; the wave text names only done and failed.
 - **A series with 35+ days but no scoreable actuals** (all blank in the scored windows) gets `not_evaluated_insufficient_history`, which the web shows as "needs 35+ days". Not for this PR (Gabriel, 2026-11-12).
+
+## Waiting on (2026-11-14)
+
+- The orchestrator verifies the delta since `e4d8b05` on PR #151: `09b6aba` (CR-w5-data-1 revised), `3bd1cde` (W5-D02 follow-up, #5/#6), the merge of `v1-local` `b660a83` (`5b1932f`), and the status commits.
+- The push (Gabriel's approval). The local head is ahead of `origin/lane/w5-data` (`e4d8b05`), and the PR body still needs updating after the push: drop the 4,455,000 limitation, add the two new known limitations, and record the gates at `5b1932f`.
+- Merge: #151 is next in the order (data, packaging, polish), now that w5-screens' #152 has merged. This lane merges nothing.
 
 ## Escalations
 
