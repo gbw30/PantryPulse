@@ -109,7 +109,8 @@ function Comparison({ network }: { network: Network }) {
         <p className="text-xs text-muted-foreground">{modeSummary(network.mode)}. All methods share one frozen scenario and one feasible region.</p>
       </div>
       {datasetId && <ForecastRunsNote runs={runs} onRetry={reload} />}
-      <div className="grid min-w-0 gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]">
+      {/* items-start: open result rows must not stretch the setup column and spread its controls apart. */}
+      <div className="grid min-w-0 items-start gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]">
         <ComparisonSetup mode={network.mode} busy={status.kind === "busy" || status.kind === "lost"} scenario={scenario} blocked={blocked}
           onFreeze={(options) => void freeze(options)} onCompare={(measure) => void compare(measure)} />
         <div className="grid min-w-0 content-start gap-3">

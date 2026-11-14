@@ -302,34 +302,45 @@ type V1Names = { location: (id: string) => string; product: (id: string) => { na
 
 export const solverText = (status: V1Result["native_status"]) => (status ? `Solver status: ${status} (native)` : "No solver: rule-based method");
 
+// Headers and cells wrap so all six columns fit a card at 1280 px; a narrow phone still scrolls the table.
+const WRAP = "h-auto py-1.5 whitespace-normal";
+
 function EffectsTable({ result, label, retail, names }: { result: V1Result; label: string; retail: boolean; names: V1Names }) {
   if (!result.effects.length) return <p className="text-xs text-muted-foreground">No location effects reported.</p>;
   const short = retail ? "Lost sales" : "Unmet";
+  const rows = result.effects.length;
   return (
-    <div className={SCROLL} tabIndex={0} role="region" aria-label={`Effects table for ${label}, scrolls horizontally`}>
-      <Table>
-        <TableCaption className="sr-only">{label}: effects by location</TableCaption>
-        <TableHeader>
-          <TableRow>
-            {["Location", "Product", `${short} without plan`, `${short} with plan`, "Expired without plan", "Expired with plan"].map((h) => <TableHead key={h}>{h}</TableHead>)}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {result.effects.map((e) => {
-            const p = names.product(e.product_id);
-            return (
-              <TableRow key={`${e.location_id}:${e.product_id}`}>
-                <TableHead scope="row">{names.location(e.location_id)}</TableHead>
-                <TableCell>{p.name}</TableCell>
-                {[e.unmet_without_plan, e.unmet_with_plan, e.expired_without_plan, e.expired_with_plan].map((n, i) => (
-                  <TableCell key={i} className="tabular-nums">{formatUnits(n, p.unit)}</TableCell>
-                ))}
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </div>
+    // Collapsed by default so a card leads with its outcome and action, not every row (W5-UI02.2).
+    <details className="group grid gap-1.5">
+      <summary className="w-fit cursor-pointer rounded-sm text-xs font-medium underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">
+        <span className="group-open:hidden">Show rows</span><span className="hidden group-open:inline">Hide rows</span>
+        <span className="font-normal text-muted-foreground"> · {rows} location × product row{rows === 1 ? "" : "s"}</span>
+      </summary>
+      <div className={cn(SCROLL, "mt-1.5")} tabIndex={0} role="region" aria-label={`Effects table for ${label}, scrolls horizontally`}>
+        <Table className="text-xs">
+          <TableCaption className="sr-only">{label}: effects by location</TableCaption>
+          <TableHeader>
+            <TableRow>
+              {["Location", "Product", `${short} without plan`, `${short} with plan`, "Expired without plan", "Expired with plan"].map((h) => <TableHead key={h} className={WRAP}>{h}</TableHead>)}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {result.effects.map((e) => {
+              const p = names.product(e.product_id);
+              return (
+                <TableRow key={`${e.location_id}:${e.product_id}`}>
+                  <TableHead scope="row" className={WRAP}>{names.location(e.location_id)}</TableHead>
+                  <TableCell className={WRAP}>{p.name}</TableCell>
+                  {[e.unmet_without_plan, e.unmet_with_plan, e.expired_without_plan, e.expired_with_plan].map((n, i) => (
+                    <TableCell key={i} className={cn(WRAP, "tabular-nums")}>{formatUnits(n, p.unit)}</TableCell>
+                  ))}
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+    </details>
   );
 }
 
@@ -337,12 +348,28 @@ function MethodCard({ comparisonId, method, result, retail, names }: { compariso
   const label = V1_METHOD_LABEL[method];
   const solved = result?.products.filter((p) => p.native_status !== null) ?? [];
   const skipped = result?.products.filter((p) => p.native_status === null && p.label) ?? [];
+  const transfers = result?.verified ? result.transfers.length : null;
   return (
     <section aria-labelledby={`v1-method-${method}`} data-method={method} className="grid min-w-0 gap-1.5 rounded-lg border border-border bg-card px-3 py-2.5 text-sm">
-      <h3 id={`v1-method-${method}`} className="font-semibold">{label}</h3>
+      {/* The outcome and its action lead the card; the details follow (W5-UI02.2). */}
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+        <div className="grid gap-0.5">
+          <h3 id={`v1-method-${method}`} className="font-semibold">{label}</h3>
+          {result && <MethodVerification verified={result.verified} />}
+        </div>
+        {transfers !== null && (
+          <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs">
+            <span className="tabular-nums">{transfers} transfer{transfers === 1 ? "" : "s"} suggested</span>
+            {transfers > 0 && (
+              <Link href={`/decisions?${new URLSearchParams({ comparison_id: comparisonId, method })}`} aria-label={`Open suggested actions for ${label}`} className="rounded-sm font-medium underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                Open suggested actions
+              </Link>
+            )}
+          </p>
+        )}
+      </div>
       {!result ? <p className="text-muted-foreground">No result returned for this method.</p> : (
         <>
-          <MethodVerification verified={result.verified} />
           <p className="text-xs text-muted-foreground">{solverText(result.native_status)}</p>
           {result.failure_reason && <p>{result.failure_reason}</p>}
           {result.labels.map((l) => <p key={l} className="text-xs">{l}</p>)}
@@ -352,17 +379,7 @@ function MethodCard({ comparisonId, method, result, retail, names }: { compariso
           {method === "EGP_PI_INSPIRED" && (
             <p className="text-xs text-muted-foreground">Research-inspired: a bounded adaptation of Rampazo et al. (2026), DOI 10.1111/itor.70252. Results describe this simulated scenario only.</p>
           )}
-          {result.verified && (
-            <>
-              <p className="text-xs">{result.transfers.length} transfer{result.transfers.length === 1 ? "" : "s"} suggested</p>
-              <EffectsTable result={result} label={label} retail={retail} names={names} />
-              {result.transfers.length > 0 && (
-                <Link href={`/decisions?${new URLSearchParams({ comparison_id: comparisonId, method })}`} aria-label={`Open suggested actions for ${label}`} className="text-xs font-medium underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm justify-self-start">
-                  Open suggested actions
-                </Link>
-              )}
-            </>
-          )}
+          {result.verified && <EffectsTable result={result} label={label} retail={retail} names={names} />}
         </>
       )}
     </section>
@@ -386,7 +403,7 @@ export function MethodComparisonResults({ comparison, scenario, requested }: { c
         <p className="text-muted-foreground">Scenario hash {result.scenario_hash.slice(0, 12)}… · saved {when(comparison.recorded_at)}</p>
         {retail && <p>Measure: {result.measure === "USD" ? "USD (effects below stay in units)" : `units${usdReason ? ` · USD unavailable: ${usdReason}` : ""}`}</p>}
       </div>
-      <div className="grid gap-2 xl:grid-cols-2">
+      <div className="grid gap-2">
         {order.map((m) => <MethodCard key={m} comparisonId={comparison.id} method={m} result={result.methods.find((r) => r.method === m)} retail={retail} names={names} />)}
       </div>
       <p className="text-xs text-muted-foreground">Effects are per location and product; quantities of different products are never added together.</p>

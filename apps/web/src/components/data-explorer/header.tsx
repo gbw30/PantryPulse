@@ -31,7 +31,9 @@ export function ExplorerTabLink({ tab, active, productId, className }: { tab: Ex
  * DataExplorerHeader: eyebrow, title, description, a right-hand controls slot and the subview tab strip.
  * Exported for PP-56 (Inventory & Lots, Data input). Render inside AppShell (it reads the presenter session).
  */
-export function DataExplorerHeader({ active, controls, meta, productId }: { active: ExplorerTabKey; controls?: React.ReactNode; meta?: React.ReactNode; productId?: string | null }) {
+export function DataExplorerHeader({ active, controls, meta, productId, description = "Projected demand, service and stock by site and product across the simulated network." }: {
+  active: ExplorerTabKey; controls?: React.ReactNode; meta?: React.ReactNode; productId?: string | null; description?: string;
+}) {
   const { state } = usePresenter();
   const tabs = EXPLORER_TABS.filter((tab) => !tab.stockChanging && (!tab.presenterOnly || state === "presenter"));
   return (
@@ -40,7 +42,7 @@ export function DataExplorerHeader({ active, controls, meta, productId }: { acti
         <div className="min-w-0">
           <p className="font-condensed text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Forecasts &amp; inventory</p>
           <h1 className="text-[26px] leading-tight font-semibold tracking-tight md:text-[28px]">Data Explorer</h1>
-          <p className="text-sm text-muted-foreground">Projected demand, service and stock by site and product across the simulated network.</p>
+          <p className="text-sm text-muted-foreground">{description}</p>
           {meta}
         </div>
         {controls && <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-end lg:justify-end">{controls}</div>}
