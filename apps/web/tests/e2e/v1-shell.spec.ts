@@ -8,7 +8,7 @@ const pantry = list.networks.find((n) => n.mode === "PANTRY" && !n.is_sample)!;
 const sample = list.networks.find((n) => n.is_sample)!;
 
 async function chooseNetwork(page: Page, name: string) {
-  await page.getByRole("combobox", { name: "Network", exact: true }).click();
+  await page.getByRole("region", { name: "Current network" }).getByRole("combobox").click();
   await page.getByRole("option", { name: new RegExp(name) }).click();
 }
 
@@ -48,7 +48,7 @@ test("switching network updates vocabulary", async ({ page }) => {
   await expect(switcher).not.toContainText("Pantry mode");
   // The choice survives a reload (per-browser convenience only).
   await page.reload();
-  await expect(page.getByRole("combobox", { name: "Network", exact: true })).toContainText(sample.name);
+  await expect(page.getByRole("region", { name: "Current network" }).getByRole("combobox")).toContainText(sample.name);
 });
 
 // W5-UI05 (W4-03 ux-critic notes): a long network name widened the selector past the sidebar, over page titles.
@@ -59,9 +59,9 @@ for (const [width, height] of [[1440, 900], [1280, 720]] as const) {
     await mockV1(page, { "GET networks": { body: { networks: [long] } } });
     await page.setViewportSize({ width, height });
     await page.goto("/settings");
-    // shortcut: the full name joins the accessible name after w5-screens merges (data-label.spec.ts finds "Network" exactly).
-    const trigger = page.getByRole("combobox", { name: "Network", exact: true });
-    await expect(trigger).toContainText("Heronfield Market");
+    // Truncated on screen, so the full name lives in the accessible name (label + chosen network).
+    const trigger = page.getByRole("region", { name: "Current network" }).getByRole("combobox");
+    await expect(trigger).toHaveAccessibleName(`Network ${long.name} (sample)`);
     const sidebar = (await page.locator("[data-sidebar='sidebar']").first().boundingBox())!;
     const box = (await trigger.boundingBox())!;
     expect(box.x + box.width, "the trigger ends inside the sidebar").toBeLessThanOrEqual(sidebar.x + sidebar.width);
@@ -72,7 +72,7 @@ for (const [width, height] of [[1440, 900], [1280, 720]] as const) {
 
 // W5-UI05 (orchestrator, from w5-screens' connected captures): at 390 the top bar's right-hand group (sample
 // label, snapshot date, theme toggle) refused to shrink, so every v1 screen was 481 px wide and scrolled sideways.
-for (const path of ["/overview", "/data", "/scenarios", "/import", "/settings"]) {
+for (const path of ["/overview", "/data", "/scenarios", "/decisions", "/import", "/settings"]) {
   test(`@V1-A20 ${path} at 390x844 with a sample network chosen never scrolls sideways`, async ({ page }) => {
     const chosen = { ...sample, name: "Heronfield Market — sample retail network", as_of_date: "2026-11-12" };
     await page.unrouteAll();

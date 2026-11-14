@@ -1,4 +1,5 @@
 import { OverviewApiError, overviewApi, parseQuantity, type DashboardSummary, type ForecastCatalog, type InventorySnapshot, type ShortageProjection } from "@/lib/overview-api";
+import { pluralize } from "@/components/data-explorer/format";
 import { isStaleCode, noticeReason } from "./notice-copy";
 import { staticFixtureSnapshot } from "./static-fixture";
 import type { ExpiringLots, LiveNotice, OverviewDataSource, OverviewSnapshot, Product, Quantity, Site, SiteProductProjection } from "./types";
@@ -8,12 +9,8 @@ import type { ExpiringLots, LiveNotice, OverviewDataSource, OverviewSnapshot, Pr
 
 export const LIVE_LABEL = "Live · simulated network";
 
-/** Simple display plural; the base unit itself is kept in accessible text. */
-export function pluralize(unit: string) {
-  if (/s$/i.test(unit)) return unit;
-  if (/[^aeiou]y$/i.test(unit)) return `${unit.slice(0, -1)}ies`;
-  return `${unit}s`;
-}
+// One display plural for the app (CR-w5-screens-4): this file's own wrote "boxs", "ozs" and "eachs".
+export { pluralize };
 
 const UNPLURAL = /^(each|lb|lbs|kg|g|oz)$/i;
 /** "55 cases": one product's quantity in its own unit; never combined with another product's. */

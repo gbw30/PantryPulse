@@ -136,6 +136,6 @@ test("on a phone, the navigation a presenter opened stays open while the network
     await expect(signOut).toBeVisible({ timeout: 1000 });
   }).toPass();
   release();
-  await expect(page.getByRole("combobox", { name: "Network", exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Current network" }).getByRole("combobox")).toBeVisible();
   await expect(signOut).toBeVisible();
 });

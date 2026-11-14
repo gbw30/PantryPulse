@@ -148,7 +148,7 @@ test('@V1-A10 a sample network\'s pre-filled rates read "sample values"; an impo
   const sample = uniqueName("Sample Pantry");
   seedSample(sample, "PANTRY", "pantry");
   await page.reload();
-  await page.getByRole("combobox", { name: "Network", exact: true }).click();
+  await page.getByRole("region", { name: "Current network" }).getByRole("combobox").click();
   await page.getByRole("option", { name: new RegExp(sample) }).click();
   const sampleLocations = page.getByRole("region", { name: `Locations in ${sample}` });
   for (const id of ["P1", "P2", "P3"]) {

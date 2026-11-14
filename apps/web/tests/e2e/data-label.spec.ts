@@ -40,7 +40,7 @@ test("@V1-A05 with a real network chosen, the screens that still render the lega
   for (const path of [...LEGACY_WITHOUT_NETWORK, ...NO_NETWORK_DATA]) {
     await page.goto(path);
     // The network is chosen (the switcher shows it) before the pill's absence counts.
-    await expect(page.getByRole("combobox", { name: "Network", exact: true }).first(), path).toContainText(imported.name);
+    await expect(page.getByRole("region", { name: "Current network" }).getByRole("combobox").first(), path).toContainText(imported.name);
     await expect(banner(page), path).not.toContainText(/Simulated network|Sample data/);
   }
 });
@@ -66,7 +66,7 @@ for (const [kind, network, label] of [["real import", imported, null], ["sample 
   test(`@V1-A05 /data with a ${kind} chosen labels that network in the top bar and shows no legacy block`, async ({ page }) => {
     await mockV1(page, { "GET networks": { body: { networks: [network] } }, ...LEGACY_FIXTURE });
     await page.goto("/data");
-    await expect(page.getByRole("combobox", { name: "Network", exact: true }).first()).toContainText(network.name);
+    await expect(page.getByRole("region", { name: "Current network" }).getByRole("combobox").first()).toContainText(network.name);
     await expect(page.locator("[data-explorer-source]")).toHaveCount(0);
     if (label) await expect(pill(page, label)).toBeVisible();
     await expect(banner(page)).not.toContainText(label ? "Simulated network" : /Simulated network|Sample data/);

@@ -39,4 +39,4 @@ it("connected runs never reuse an existing server; other local runs still may", 
   vi.stubEnv("PP_RUN_CONNECTED", "");
   const local = (await import("../../playwright.config")).default;
   expect(local.webServer).toMatchObject({ reuseExistingServer: true });
-});
+}, 30_000); // two cold imports of @playwright/test outlast the 5 s default when the whole unit suite runs in parallel

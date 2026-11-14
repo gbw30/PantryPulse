@@ -64,7 +64,7 @@ test("@V1-A20 the motion check is live: with motion allowed, it records the netw
   await mockImport(page, failedStatus);
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/import");
-  await page.getByRole("combobox", { name: "Network", exact: true }).click();
+  await page.getByRole("region", { name: "Current network" }).getByRole("combobox").click();
   await expect(page.getByRole("listbox")).toBeVisible();
   await expect.poll(() => moving(page)).not.toEqual([]);
   // The computed-transition check is live too: with motion allowed, layout transitions are there to find.
@@ -126,7 +126,7 @@ for (const [width, height] of VIEWPORTS) {
         await tabTo(page, page.getByRole("button", { name: "Open navigation" }));
         await page.keyboard.press("Enter");
       }
-      const switcher = page.getByRole("combobox", { name: "Network", exact: true });
+      const switcher = page.getByRole("region", { name: "Current network" }).getByRole("combobox");
       await tabTo(page, switcher);
       await page.keyboard.press("Enter");
       const listbox = page.getByRole("listbox");

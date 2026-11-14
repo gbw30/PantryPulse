@@ -82,3 +82,19 @@ it("a product whose basis is sales says it undercounts demand; demand and null p
   expect(tables[0].compareDocumentPosition(sales) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(sales.compareDocumentPosition(tables[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
+
+// CR-w5-screens-4: the Overview pluralizes with data-explorer/format (it wrote "boxs", "ozs" and "eachs").
+it("names each product's unit in plain English: boxes, oz, each (CR-w5-screens-4)", async () => {
+  const [first] = projection.products;
+  const products = (["box", "oz", "each"] as const).map((unit, i) => ({ ...first, product_id: `P${i}`, unit, eligible_stock_now: 3 }));
+  vi.spyOn(networkApi, "projection").mockResolvedValue({ ...projection, products });
+  open();
+  const region = screen.getByRole("region", { name: "Site inspector · Archer Road Pantry" });
+  await within(region).findByRole("table", { name: "P0 in boxes" });
+  expect(within(region).getByRole("table", { name: "P1 in oz" })).toBeInTheDocument();
+  expect(within(region).getByRole("table", { name: "P2 in each" })).toBeInTheDocument();
+  expect(within(region).getByText("Eligible stock now: 3 boxes")).toBeInTheDocument();
+  expect(within(region).getByText("Eligible stock now: 3 oz")).toBeInTheDocument();
+  expect(within(region).getByText("Eligible stock now: 3 each")).toBeInTheDocument();
+  expect(region.textContent).not.toMatch(/\b(boxs|ozs|eachs)\b/);
+});

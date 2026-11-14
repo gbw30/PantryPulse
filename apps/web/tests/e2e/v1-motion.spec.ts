@@ -46,7 +46,7 @@ const SCREENS: Record<string, (page: Page) => Promise<void>> = {
     await mockImport(page, failedStatus);
     await page.goto("/import");
     await page.getByText(/^Column guide \(/).first().click();
-    await page.getByRole("combobox", { name: "Network", exact: true }).click();
+    await page.getByRole("region", { name: "Current network" }).getByRole("combobox").click();
     await expect(page.getByRole("listbox")).toBeVisible();
     await page.keyboard.press("Escape");
   },
