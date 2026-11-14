@@ -16,7 +16,8 @@ export const STATUS_LABEL: Record<MarkStatus, string> = {
 };
 
 export function pluralize(unit: string) {
-  if (/^(each|oz|g|kg|ml|l)$/i.test(unit)) return unit; // abbreviations don't take a plural
+  // Units are free text: abbreviations ("fl oz", "dz", "oz."), anything that isn't a plain word, and all-caps codes ("BOX", "EA") stay as written.
+  if (/^(each|ea|oz|g|kg|mg|ml|l|dz|doz)$/i.test(unit) || !/^[a-z]+$/i.test(unit) || unit === unit.toUpperCase()) return unit;
   if (/(ss|x|z|ch|sh)$/i.test(unit)) return `${unit}es`;
   if (/s$/i.test(unit)) return unit; // already plural ("lbs", "meals")
   if (/[^aeiou]y$/i.test(unit)) return `${unit.slice(0, -1)}ies`;

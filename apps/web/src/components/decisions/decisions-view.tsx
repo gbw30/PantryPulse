@@ -45,7 +45,8 @@ export async function loadPlan(networkId: string, comparisonId: string, method: 
 
 // The print page gets the selection through storage, not its URL: hundreds of ids overflow a URL (code-review #7).
 // One selection is kept, naming the plan it belongs to; each save replaces it, so storage never piles up. It is
-// saved only when the print link is followed, so selecting in another tab never replaces it (W4 decisions §6).
+// saved only when the print link is used (followed, middle-clicked, or its context menu opened, which also saves
+// on Copy link or Escape), so selecting in another tab never replaces it (W4 decisions §6).
 const SELECTION_KEY = "pantrypulse:print-selection";
 type Selection = { network_id: string; comparison_id: string; method: V1Method; ids: string[] };
 function saveSelection(networkId: string, comparisonId: string, method: V1Method, ids: string[]) {

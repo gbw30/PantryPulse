@@ -61,3 +61,10 @@ it("pluralize writes -es after s-like endings, -ies after a consonant y, keeps e
     berry: "berries", tray: "trays", each: "each", lbs: "lbs", meals: "meals" };
   expect(Object.fromEntries(Object.keys(cases).map((unit) => [unit, pluralize(unit)]))).toEqual(cases);
 });
+
+// Units are free text from the CSVs: only a plain word takes a plural; abbreviations and all-caps codes stay as written.
+it("pluralize keeps abbreviations, anything that isn't a plain word, and an all-caps unit as written", () => {
+  const cases = { l: "l", L: "L", dz: "dz", doz: "doz", ea: "ea", mg: "mg", "fl oz": "fl oz", "oz.": "oz.", "24-pack": "24-pack",
+    BOX: "BOX", EA: "EA", Box: "Boxes", Berry: "Berries", boxes: "boxes" };
+  expect(Object.fromEntries(Object.keys(cases).map((unit) => [unit, pluralize(unit)]))).toEqual(cases);
+});

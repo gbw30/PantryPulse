@@ -29,6 +29,14 @@
 - Gates (with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1`): quick PASS at `3f8d35c` after merging `origin/v1-local` (2253 API passed, 0 skipped; 185 web unit passed). Full PASS at `3a62ca6` (2222 API, 36 migrations, 184 web unit; 0 skipped). Since the full run: the two review fixes in `b40bcc5`, plus the API-only W5-D01 merge.
 - Independent verifier: `60f7137` PASS WITH NOTES (orchestrator). Merging nothing; waiting for the orchestrator and Gabriel.
 
+## Follow-up after #152 (merged as `v1-local` `b660a83`)
+
+Three low-severity findings from the orchestrator's delta verifier; Gabriel approved a small follow-up PR. Fast-forwarded to `origin/v1-local` `b660a83` first.
+- F1: the Print link's context menu opened from the keyboard, a touch long-press or a macOS ctrl-click fires no click and no non-zero mousedown, so the selection wasn't saved. Fix: `onContextMenu` also saves (`export-bar.tsx`). A right-click followed by Copy link or Escape now saves too (accepted). The comment in `decisions-view.tsx` says so.
+- F2: units are free text. Only a plain alphabetic word takes a plural; dz, doz, ea and mg join the abbreviation list; "fl oz", "oz." and "24-pack" stay as written. "l" is now pinned by a test.
+- F3: an all-caps unit stays as written ("BOX", "EA"), since all-caps units are usually codes. "Box" → "Boxes", "Berry" → "Berries"; "boxes", "lbs" and "meals" are unchanged.
+- RED: `npx vitest run tests/unit/decisions-view.test.tsx tests/unit/scenario-lab.test.tsx` → 2 failed (`expected +0 to be 1`; `dz: 'dzes'`). GREEN: `npx vitest run` → 187 passed (28 files). `node scripts/quality/run.cjs quick` with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1` → PASS. Committed, not pushed; waiting for Gabriel's OK through the orchestrator.
+
 ## Decisions made inside the lane
 
 - W5-UI02.1: with a v1 network chosen, `/data` renders the Data Explorer header (its description names the network) and that network's Forecast trust only. The legacy block renders only when no v1 network exists or the network list failed, the same rule `/scenarios` follows (W3 lead decision, `v1-mocks.ts` `withoutV1Networks`). While the list loads, nothing legacy is fetched. The "Seven-Day Pulse" tab stays; that view is legacy-only and its top bar says "Simulated network".
