@@ -44,7 +44,8 @@ export async function loadPlan(networkId: string, comparisonId: string, method: 
 }
 
 // The print page gets the selection through storage, not its URL: hundreds of ids overflow a URL (code-review #7).
-// One selection is kept, naming the plan it belongs to; each save replaces it, so storage never piles up.
+// One selection is kept, naming the plan it belongs to; each save replaces it, so storage never piles up. It is
+// saved only when the print link is followed, so selecting in another tab never replaces it (W4 decisions §6).
 const SELECTION_KEY = "pantrypulse:print-selection";
 type Selection = { network_id: string; comparison_id: string; method: V1Method; ids: string[] };
 function saveSelection(networkId: string, comparisonId: string, method: V1Method, ids: string[]) {
@@ -119,7 +120,6 @@ function Loaded({ network, comparisonId, method }: { network: Network; compariso
   const ready = load.status === "ready" ? load : null;
   const result = ready?.result;
   const ids = useMemo(() => ready?.decisions?.actions.map((a) => a.id).filter((id) => selected.has(id)) ?? [], [ready, selected]);
-  useEffect(() => saveSelection(network.id, comparisonId, method, ids), [network.id, comparisonId, method, ids]);
   const printHref = `/decisions/print?${new URLSearchParams({ network_id: network.id, comparison_id: comparisonId, method })}`;
 
   async function exportCsv() {
@@ -166,7 +166,7 @@ function Loaded({ network, comparisonId, method }: { network: Network; compariso
           {!ready.decisions ? (
             <p className="text-sm">{noVerifiedPlan(method, result)}</p>
           ) : (<>
-          <ExportBar total={ready.decisions.actions.length} count={ids.length} busy={exporting} printHref={printHref} onExport={() => void exportCsv()}
+          <ExportBar total={ready.decisions.actions.length} count={ids.length} busy={exporting} printHref={printHref} onPrint={() => saveSelection(network.id, comparisonId, method, ids)} onExport={() => void exportCsv()}
             onSelectAll={() => setSelected(new Set(ready.decisions?.actions.map((a) => a.id)))} onClear={() => setSelected(new Set())} />
           {exportError && <p role="alert" className="text-sm">{exportError}</p>}
           <ActionList decisions={ready.decisions} mode={ready.saved.result.mode} usdUnavailableReason={result?.usd_unavailable_reason ?? null}
