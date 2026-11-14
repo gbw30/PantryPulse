@@ -18,9 +18,9 @@ Skills check (2026-11-12): `/jmo-workflow:better-ui` loaded; `/jmo-workflow:anim
 
 | Gate | Commit | Result |
 |---|---|---|
-| `node scripts/quality/run.cjs quick` (with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1`) | `7f23051` (interim, after merging `a6d08a1`) | PASS (exit 0). The final run comes after the post-screens batch |
-| `uv run --frozen pytest` in `apps/api` (with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1`) | `c7d6872` (interim, before the `a6d08a1` merge; `apps/api` identical through `10552c7`) | 2220 passed, 0 skipped (404 s) |
-| `node scripts/quality/run.cjs full` (with `.env.lane`) | | |
+| `node scripts/quality/run.cjs quick` (with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1`) | `a6c46f3` | PASS (exit 0), connected stack stopped. A first run with the stack still up failed 4 tests in `apps/api/tests/imports/test_import_job.py` (cancel; other input after a lost record ×3; 702 s instead of ~420 s). The file alone passed 26/26 with the stack up, and the whole gate passed once the stack was down, so the cause is the stack's API and worker sharing the lane test database and CPU, not the code (`apps/api` has no lane changes). Run the API suite with the stack down |
+| `uv run --frozen pytest -q -rs` in `apps/api` (same env) | `a6c46f3` | 2253 passed, 0 skipped (419 s) |
+| `node scripts/quality/run.cjs full` (with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1`) | `a6c46f3` | PASS (exit 0): web unit tests, web build, contract drift, database migrations |
 | `/devkit:ship-check` | | |
 
 ## Decisions made inside the lane
@@ -36,6 +36,7 @@ Skills check (2026-11-12): `/jmo-workflow:better-ui` loaded; `/jmo-workflow:anim
 - Running several mocked e2e files at once against the dev server (default worker count) times out or aborts navigations while Next compiles; the same files pass with `--workers=2`. The first run after a source edit also pays the compile.
 - The connected stack's run directory must be short (`/tmp/pppol1`): AF_UNIX socket paths are capped at 107 bytes, and the session scratchpad path is longer.
 - The API log (`$RUN/api.log`) is block-buffered, so it can look empty while the browser is talking to the API.
+- Run the API suite (quick gate) with the connected stack stopped: with it up, `tests/imports/test_import_job.py` failed 4 tests that pass alone and pass with the stack down.
 - Full-page screenshots draw the sidebar only to the first viewport height (it is `h-svh`); that is a capture artifact, not a layout bug.
 
 - **W5-UI05 product picker finding:** the plan's premise does not hold. Under `slowTimers(2000)` the closed card's late focus return does fire while the picker is in use, but Radix Select schedules its own focus return later, so focus ends on the picker and the chosen product stays. Both new tests (`overview.spec.ts`, click and keyboard) pass on the current code, and still pass with #143's `lost` guard removed (mutation run; the #143 card test does fail then). No production change; the tests are regression coverage. The first keyboard version failed because Radix moves the ArrowDown highlight in a 0 ms timer that `slowTimers` also delays; the test now waits for the highlight before Enter.
