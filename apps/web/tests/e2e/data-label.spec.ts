@@ -59,15 +59,15 @@ test("@V1-A05 a network list that fails to load says so on every screen, and the
   }
 });
 
-// W4-03 #1: /data shows the chosen network's forecast trust under the legacy demo, so the top bar labels the chosen
-// network (sample data, or nothing for a real import) and the legacy block carries "Simulated network" itself.
+// W5-UI02.1: with a v1 network chosen, /data shows only that network's forecast trust and no legacy block, so the
+// top bar labels the chosen network (sample data, or nothing for a real import).
 const LEGACY_FIXTURE = { "GET dashboard/summary": { status: 403, body: envelope("FORBIDDEN") }, "GET forecast-catalog": { status: 403, body: envelope("FORBIDDEN") } };
 for (const [kind, network, label] of [["real import", imported, null], ["sample network", { ...imported, is_sample: true }, "Sample data — fictional"]] as const) {
-  test(`@V1-A05 /data with a ${kind} chosen labels that network in the top bar and the legacy block as simulated`, async ({ page }) => {
+  test(`@V1-A05 /data with a ${kind} chosen labels that network in the top bar and shows no legacy block`, async ({ page }) => {
     await mockV1(page, { "GET networks": { body: { networks: [network] } }, ...LEGACY_FIXTURE });
     await page.goto("/data");
     await expect(page.getByRole("combobox", { name: "Network", exact: true }).first()).toContainText(network.name);
-    await expect(page.locator("[data-explorer-source]")).toContainText(/simulated network/i);
+    await expect(page.locator("[data-explorer-source]")).toHaveCount(0);
     if (label) await expect(pill(page, label)).toBeVisible();
     await expect(banner(page)).not.toContainText(label ? "Simulated network" : /Simulated network|Sample data/);
   });
