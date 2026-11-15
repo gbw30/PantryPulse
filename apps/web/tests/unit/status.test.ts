@@ -5,6 +5,7 @@ import {
   markerAccessibleName, nextDeficitFrom, nextDeficitLine, roleLabel,
   statusDetail, statusFor, statusLine,
 } from "@/components/overview/status";
+import { formatUnits as liveFormatUnits } from "@/components/overview/live-source";
 import type { BeneficiaryProjection, SiteProductProjection } from "@/components/overview/types";
 
 const dates = ["2026-10-24", "2026-10-25", "2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30"];
@@ -60,6 +61,15 @@ describe("US-12: truthful units, roles and local calendar dates", () => {
     expect(formatUnits(1200, meals)).toBe("1,200 meals");
     expect(formatUnits(2, { ...meals, unit: "bottle", unitPlural: "bottles" })).toBe("2 bottles");
   });
+  // The Overview follows the shared rule (data-explorer/format): singular only when the number as shown is 1, and one
+  // plural for every unit, so "lb" reads "2 lbs" and "oz" stays "2 oz". Both Overview formatters: the atlas/charts
+  // (status.ts) and the danger ranking and inspector stock line (live-source.ts).
+  it.each([[1.0004, "box", "1 box"], [2, "lb", "2 lbs"], [2, "oz", "2 oz"], [1.5, "box", "1.5 boxes"], [1, "lbs", "1 lbs"]])(
+    "%s %s reads %s", (n, unit, text) => {
+      expect(formatUnits(Number(n), { id: "p", name: "P", unit: String(unit), unitPlural: "ignored" })).toBe(text);
+      expect(liveFormatUnits(Number(n), String(unit))).toBe(text);
+    },
+  );
   it("formats month/year boundaries and DST dates as local calendar dates", () => {
     expect(formatDay("2026-11-01")).toBe("Sun, Nov 1");
     expect(formatShortDate("2026-10-24")).toBe("Oct 24");

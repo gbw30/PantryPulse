@@ -12,9 +12,7 @@ export const LIVE_LABEL = "Live · simulated network";
 // One display plural for the app (CR-w5-screens-4): this file's own wrote "boxs", "ozs" and "eachs".
 export { pluralize };
 
-const UNPLURAL = /^(each|lb|lbs|kg|g|oz)$/i;
-/** "55 cases": one product's quantity in its own unit; never combined with another product's. */
-export const formatUnits = (n: number, unit: string) => `${n.toLocaleString("en-US")} ${n === 1 || UNPLURAL.test(unit) ? unit : pluralize(unit)}`;
+export { quantityText as formatUnits } from "./status";
 
 function shortName(name: string) {
   return name.replace(/ Pantry$/, "").replace(/ Distribution Hub$/, " Hub");
