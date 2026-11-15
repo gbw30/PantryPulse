@@ -53,4 +53,4 @@ Hardening items decided at W2-06 ([decisions/W2-06-change-requests.md](decisions
 
 - [x] **Step 1:** decide the open CRs with Gabriel. Add the ux-critic findings to `wave-5.md` as W5-UI02 items, then update `prompts/w5-*.md`.
 - [x] **Step 2:** confirm that `/jmo-workflow:better-ui` and `/jmo-workflow:animate` load in a new session; `stack-web@devkit` was installed 2026-11-04. If they don't, tell Gabriel before W5 starts. Confirmed 2026-11-11: both are listed in the orchestrator session's available skills.
-- [ ] **Step 3:** wave-end report, consolidate the lanes' "Gotchas", W5 worktrees, then the wave-start report. **Gabriel approves the wave 5 start.**
+- [x] **Step 3:** wave-end report, consolidate the lanes' "Gotchas", W5 worktrees, then the wave-start report. **Gabriel approves the wave 5 start.**
