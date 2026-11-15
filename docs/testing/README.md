@@ -71,23 +71,23 @@ To record a run, put the files in `docs/testing/evidence/runs/`:
 
 `scripts/testing/egress-journey.cjs` installs the stack fresh under `COMPOSE_PROJECT_NAME` (it runs `docker compose down -v` first, so it refuses the default `pantrypulse` project) and builds with lane-local image tags, so another install's images are never retagged.
 
-1. **Capture.** `scripts/testing/egress-sniff.py` runs as the `egress-capture` service (`compose.test.yaml`, profile `egress`) in the Docker host's network namespace. On the stack's bridge it records each outbound TCP connection with its TLS server name and any outbound UDP, DNS included. It reads no other payload.
+1. **Capture.** `scripts/testing/egress-sniff.py` runs as the `egress-capture` service (`compose.test.yaml`, profile `egress`) in the Docker host's network namespace. It records only packets on the stack's own bridge that leave the stack's subnet: each outbound TCP connection with its TLS server name, any outbound UDP (DNS included), and any IPv6 to a global address. It records nothing from other interfaces, which on native Linux with host networking carry every host process's traffic, and reads no other payload.
 2. **Journey.** Over HTTP through the web's same-origin proxy, it drives these steps on the two samples:
    - sign in with the generated password;
    - A06 templates, and an A07 malformed import, rejected with no network created;
    - one import of user addresses (A10), which geocodes through Census;
+   - saving a random dummy Google key after enrichment (A11's settings path; no Google lookup is requested);
    - A12 forecast and backtest, and the A13 ranking and projection;
    - A14 Pantry comparisons in both transfer modes and A15 Retail in units and USD, every method verified;
    - A16 actions and CSV export.
-3. **Checks.** Only `geocoding.geo.census.gov` is allowed, and `routes.googleapis.com` only when the user saved a Google key. `api.census.gov` is never called, because ACS rates come from the bundled table. A connection without a TLS server name, and any outbound UDP, is flagged. That includes DNS sent from the stack's subnet to an outside server, because Docker's own resolver never puts a container's lookup on the bridge. The generated password and proxy token must not appear in `docker compose logs`, in the web's `.next` output, in tracked or untracked-but-not-ignored files, or in any commit made since the run started.
+3. **Checks.** Only `geocoding.geo.census.gov` is allowed. `api.census.gov` is never called, because ACS rates come from the bundled table, and a Google connection is flagged too, because the journey requests no Google lookup. A connection without a TLS server name, any outbound UDP and any outbound IPv6 are flagged; that includes DNS sent from the stack's subnet to an outside server, because Docker's own resolver never puts a container's lookup on the bridge. The generated password, the proxy token, the presenter password hash (from `local_logins`) and the dummy Google key must not appear in `docker compose logs`, the web's `.next` output, any API response body the journey received, tracked or untracked-but-not-ignored files, or any commit made since the run started.
 4. **Positive control.** The run fails if the capture saw no Census connection, because the journey geocodes and a capture that missed it would be blind.
 
-It writes `artifacts/egress/report.json`. It reports secrets by name, never by value.
+It writes `artifacts/egress/report.json`, and passes only when `scripts/testing/check-egress-evidence.cjs` would accept the report. It reports secrets by name, never by value. Copy a passing report to `docs/testing/evidence/egress-<date>.json`: A03 and A04 stay pending until the latest one is clean and no file under `apps/` or `compose.yaml` has changed since its commit.
 
 **Limits:**
-- IPv4 only; the compose bridge has no IPv6.
-- On Docker Desktop, the VM forwards DNS itself, so lookups can't be attributed to the stack. They only name addresses in the report.
-- A Google-keyed run is not part of the journey (A03 is "no keys"). A11's live keyed run is separate.
+- Addresses are named by TLS server name only; DNS answers are not recorded, so a flagged connection without a server name shows only its IP address.
+- A live Google-keyed run is not part of the journey (A03 is "no keys"). A11's live keyed run is separate.
 - It exercises the journey's code paths, not every route.
 
 ## Measurements (V1-A09, A17, A19)

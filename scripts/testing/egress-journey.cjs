@@ -3,11 +3,15 @@
 // project, captures every outbound connection the stack makes (scripts/testing/egress-sniff.py on
 // the project bridge), drives the A06–A16 journey over HTTP through the web's same-origin proxy
 // on the two samples plus one import of user addresses (which geocodes through Census), then
-// checks the generated password and proxy token never appear in the compose logs, the web's
-// .next output or the Git tree. Writes artifacts/egress/report.json; exits 0 only on a clean run.
+// checks that the generated password, the proxy token, the presenter password hash and a dummy
+// Google key never appear in the compose logs, the web's .next output, any API response body or
+// the Git tree. Writes artifacts/egress/report.json; exits 0 only on a run that
+// scripts/testing/check-egress-evidence.cjs accepts.
 // Usage (from the repo root, with .env.lane loaded): node scripts/testing/egress-journey.cjs
 // It runs `docker compose down -v` on COMPOSE_PROJECT_NAME first, so it refuses the default project.
 const { spawnSync } = require('node:child_process');
+const crypto = require('node:crypto');
+const { problems } = require('./check-egress-evidence.cjs');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -46,63 +50,31 @@ function serverName(hex) {
   return null;
 }
 
-/** The question name and IPv4 answers of a DNS response, or null. */
-function dnsAnswers(hex) {
-  const b = Buffer.from(hex, 'hex');
-  if (b.length < 12 || !(b[2] & 0x80)) return null;
-  const name = (start) => {
-    const labels = [];
-    let p = start;
-    let end = null;
-    for (let hops = 0; p < b.length && hops < 64; hops++) {
-      const len = b[p];
-      if (len === 0) { end ??= p + 1; break; }
-      if ((len & 0xc0) === 0xc0) { end ??= p + 2; p = b.readUInt16BE(p) & 0x3fff; continue; }
-      labels.push(b.subarray(p + 1, p + 1 + len).toString('ascii'));
-      p += 1 + len;
-    }
-    return { text: labels.join('.').toLowerCase(), end };
-  };
-  const question = name(12);
-  let p = question.end + 4;
-  const ips = [];
-  for (let i = 0; i < b.readUInt16BE(6) && p + 10 <= b.length; i++) {
-    p = name(p).end;
-    const [type, rdlen] = [b.readUInt16BE(p), b.readUInt16BE(p + 8)];
-    if (type === 1 && rdlen === 4) ips.push([...b.subarray(p + 10, p + 14)].join('.'));
-    p += 10 + rdlen;
-  }
-  return { name: question.text, ips };
-}
-
 /** Every outbound destination the stack contacted, and those outside the allowlist. */
 function classify(events, { googleKey }) {
   if (!events.some((e) => e.kind === 'start')) throw new Error('no capture: the sniffer never started');
   const allowed = new Set([...ALLOWED, ...(googleKey ? WITH_KEY : [])]);
-  const dnsNames = {};
-  for (const e of events.filter((x) => x.kind === 'dns')) {
-    const answer = dnsAnswers(e.dns);
-    for (const ip of answer?.ips ?? []) dnsNames[ip] = [...new Set([...(dnsNames[ip] ?? []), answer.name])].sort();
-  }
   const flows = new Map();
-  for (const e of events.filter((x) => ['connect', 'tls', 'udp'].includes(x.kind))) {
-    const key = `${e.kind === 'udp' ? 'udp' : 'tcp'} ${e.src}:${e.sport}>${e.dst}:${e.dport}`;
-    const f = flows.get(key) ?? { dst: e.dst, dport: e.dport, proto: e.kind === 'udp' ? 'udp' : 'tcp', sni: null };
+  for (const e of events.filter((x) => ['connect', 'tls', 'udp', 'ipv6'].includes(x.kind))) {
+    const proto = e.kind === 'connect' || e.kind === 'tls' ? 'tcp' : e.kind;
+    const key = proto === 'ipv6' ? `ipv6 ${e.src}>${e.dst}` : `${proto} ${e.src}:${e.sport}>${e.dst}:${e.dport}`;
+    const f = flows.get(key) ?? { dst: e.dst, dport: e.dport, proto, sni: null };
     if (e.kind === 'tls') f.sni ??= serverName(e.tls);
     flows.set(key, f);
   }
   const byDestination = new Map();
   for (const f of flows.values()) {
-    const destination = f.proto === 'udp' ? `${f.dst}:${f.dport}/udp` : `${f.sni ?? f.dst}:${f.dport}`;
-    const d = byDestination.get(destination) ?? { destination, ip: f.dst, port: f.dport, proto: f.proto,
-      server_name: f.sni, dns_names: dnsNames[f.dst] ?? [], allowed: f.proto === 'tcp' && allowed.has(f.sni), connections: 0 };
+    const destination = f.proto === 'ipv6' ? `[${f.dst}]/ipv6` : f.proto === 'udp' ? `${f.dst}:${f.dport}/udp` : `${f.sni ?? f.dst}:${f.dport}`;
+    const d = byDestination.get(destination) ?? { destination, ip: f.dst, port: f.dport ?? null, proto: f.proto,
+      server_name: f.sni, allowed: f.proto === 'tcp' && allowed.has(f.sni), connections: 0 };
     d.connections += 1;
     byDestination.set(destination, d);
   }
   const destinations = [...byDestination.values()];
   const violations = destinations.filter((d) => !d.allowed).map((d) => ({ destination: d.destination,
-    reason: d.proto === 'udp' ? 'outbound UDP (DNS past Docker\'s resolver included)' : d.server_name ? 'not in the allowlist' : 'no TLS server name to check' }));
-  return { destinations, violations, dnsNames };
+    reason: d.proto === 'ipv6' ? 'outbound IPv6' : d.proto === 'udp' ? 'outbound UDP (DNS past Docker\'s resolver included)'
+      : d.server_name ? 'not in the allowlist' : 'no TLS server name to check' }));
+  return { destinations, violations };
 }
 
 /** Which secrets (by name, never value) appear in `data` (a string or Buffer). */
@@ -171,6 +143,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /** A browser-like client of the web's same-origin /api/v1 proxy: cookies, Origin and CSRF. */
 function client(base) {
   const cookies = new Map();
+  const responses = []; // every response body, for the secret scan
   let csrf = null;
   async function call(method, url, { json, body, headers = {}, expect } = {}) {
     const res = await fetch(new URL(url, base), { method, redirect: 'manual', headers: {
@@ -180,12 +153,13 @@ function client(base) {
     }, body: json ? JSON.stringify(json) : body });
     for (const c of res.headers.getSetCookie()) { const [kv] = c.split(';'); const i = kv.indexOf('='); cookies.set(kv.slice(0, i), kv.slice(i + 1)); }
     const text = await res.text();
+    responses.push(text);
     if (expect && !expect.includes(res.status)) throw new Error(`${method} ${url} → ${res.status}: ${text.slice(0, 500)}`);
     let data = text;
     try { data = JSON.parse(text); } catch { /* CSV or text */ }
     return { status: res.status, data, headers: res.headers };
   }
-  return { call, setCsrf: (t) => { csrf = t; } };
+  return { call, responses, setCsrf: (t) => { csrf = t; } };
 }
 
 async function until(what, timeoutMs, probe) {
@@ -256,7 +230,7 @@ async function compareAndExport(api, network, scenario, measure) {
   return `${saved.result.methods.length} methods verified; ${chosen.method} exported ${actions.length} actions`;
 }
 
-async function journey(api, password, steps) {
+async function journey(api, { password, googleKey }, steps) {
   const step = async (name, fn) => {
     try { steps.push({ step: name, ok: true, detail: (await fn()) ?? '' }); }
     catch (e) { steps.push({ step: name, ok: false, detail: e.message }); throw e; }
@@ -294,6 +268,14 @@ async function journey(api, password, steps) {
     });
     const known = enriched.locations?.filter((l) => l.state === 'known').length;
     return `enrichment ${enriched.state}; ${known} locations with known attributes; ${enriched.unmatched?.length ?? 0} unmatched`;
+  });
+  await step('A11 save a Google key (a dummy, after enrichment; no Google lookup is requested)', async () => {
+    // Saving only stores it (local_secrets); so the scan can check the key never leaks, and any
+    // Google connection is unexpected and flagged.
+    const saved = await api.call('PUT', '/api/v1/settings/google-maps-key', { json: { key: googleKey }, expect: [200] });
+    if (saved.data.google_maps_configured !== true) throw new Error('the key was not saved');
+    await api.call('GET', '/api/v1/settings', { expect: [200] });
+    return 'saved; settings report it configured';
   });
   const networks = (await api.call('GET', '/api/v1/networks', { expect: [200] })).data.networks;
   for (const mode of ['PANTRY', 'RETAIL']) {
@@ -342,7 +324,10 @@ async function main() {
   const capture = ['compose', '-p', `${project}-egress`, '-f', 'compose.test.yaml', '--profile', 'egress'];
   const report = { commit: must('git', ['rev-parse', 'HEAD']).trim(),
     dirty_paths: must('git', ['status', '--porcelain']).split('\n').filter(Boolean).map((l) => l.slice(3)),
-    project, web_port: port, google_key_configured: false, started_at: new Date().toISOString() };
+    project, web_port: port, started_at: new Date().toISOString(),
+    google_key: 'a random dummy key, saved after enrichment; no Google lookup is requested, so any Google connection is flagged' };
+  const googleKey = `egress-dummy-${crypto.randomBytes(18).toString('base64url')}`;
+  let api = null;
   const steps = [];
   let secrets = {};
   try {
@@ -359,10 +344,16 @@ async function main() {
     console.log('Starting the stack with the capture running…');
     must('docker', [...app, 'up', '-d', '--wait', '--wait-timeout', '900']);
     const login = fs.readFileSync(path.join(root, '.pantrypulse/local-login.txt'), 'utf8');
-    secrets = { password: /^password: (.+)$/m.exec(login)?.[1], proxy_token: must('docker', [...app, 'exec', '-T', 'web', 'cat', '/run/pantrypulse/proxy-token']).trim() };
-    if (!secrets.password || !secrets.proxy_token) throw new Error('could not read the generated password or proxy token');
+    secrets = { password: /^password: (.+)$/m.exec(login)?.[1],
+      proxy_token: must('docker', [...app, 'exec', '-T', 'web', 'cat', '/run/pantrypulse/proxy-token']).trim(),
+      presenter_password_hash: must('docker', [...app, 'exec', '-T', 'postgres', 'psql', '-U', 'pantrypulse', '-d', 'pantrypulse', '-tAc',
+        "SELECT password_hash FROM local_logins WHERE username = 'local'"]).trim(),
+      google_key: googleKey };
+    const unread = Object.keys(secrets).filter((k) => !secrets[k]);
+    if (unread.length) throw new Error(`could not read ${unread.join(', ')}`);
     console.log('Driving the journey…');
-    await journey(client(`http://127.0.0.1:${port}`), secrets.password, steps).catch((e) => console.error(`journey stopped: ${e.message}`));
+    api = client(`http://127.0.0.1:${port}`);
+    await journey(api, { password: secrets.password, googleKey }, steps).catch((e) => console.error(`journey stopped: ${e.message}`));
   } catch (e) {
     steps.push({ step: 'install', ok: false, detail: e.message });
   } finally {
@@ -379,21 +370,26 @@ async function main() {
       must('docker', [...app, 'cp', 'web:/app/apps/web/.next', next]);
       findings.push(...scanDir(next, secrets, '.next output'));
     } finally { fs.rmSync(next, { recursive: true, force: true }); }
+    findings.push(...findSecrets(secrets, (api?.responses ?? []).join('\n'), 'API responses'));
     findings.push(...scanGit(root, secrets, new Date(report.started_at)));
   }
-  report.secrets = { checked: Object.keys(secrets).filter((k) => secrets[k]), sources: ['compose logs', '.next output', 'git working tree', 'git history since the run started'], findings };
+  report.secrets = { checked: Object.keys(secrets).filter((k) => secrets[k]),
+    sources: ['compose logs', '.next output', 'API responses', 'git working tree', 'git history since the run started'],
+    api_responses_scanned: api?.responses.length ?? 0, findings };
   // Positive control: the address import geocodes, so a capture that saw no Census connection is blind.
   report.capture_saw_geocoding = report.egress.destinations.some((d) => d.server_name === ALLOWED[0]);
-  report.pass = steps.length > 0 && steps.every((s) => s.ok) && report.capture_saw_geocoding &&
-    report.egress.violations.length === 0 && findings.length === 0 && report.secrets.checked.length === 2;
+  // One definition of a clean run: the evidence check that V1-A03/A04 use.
+  report.issues = problems({ ...report, pass: true }, root);
+  report.pass = report.issues.length === 0;
   if (!report.capture_saw_geocoding) console.log('FAIL the capture saw no Census connection although the journey geocodes: it is blind');
   fs.writeFileSync(path.join(outDir, 'report.json'), `${JSON.stringify(report, null, 2)}\n`);
   for (const s of steps) console.log(`${s.ok ? 'ok  ' : 'FAIL'} ${s.step}${s.detail ? ` — ${s.detail}` : ''}`);
   for (const d of report.egress.destinations) console.log(`${d.allowed ? 'allowed ' : 'FLAGGED '} ${d.destination} (${d.connections} connections)`);
   for (const f of findings) console.log(`SECRET  ${f.secret} in ${f.where}${f.file ? `: ${f.file}` : ''}`);
+  for (const i of report.issues) console.log(`ISSUE   ${i}`);
   console.log(`${report.pass ? 'PASS' : 'FAIL'} — artifacts/egress/report.json. The stack is still up under ${project}; stop it with \`docker compose down -v\`.`);
   process.exitCode = report.pass ? 0 : 1;
 }
 
 if (require.main === module) main().catch((e) => { console.error(e); process.exitCode = 1; });
-module.exports = { parseCapture, classify, findSecrets, scanDir, scanGit, serverName, dnsAnswers, laneImages };
+module.exports = { parseCapture, classify, findSecrets, scanDir, scanGit, serverName, laneImages, client };
