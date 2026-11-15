@@ -25,7 +25,7 @@ docker compose up --build
 
 No images are published yet, so `--build` builds them on your computer. After the first published release, `docker compose up` without `--build` will download them instead.
 
-The first run took 2 min 07 s to build and 27 s to start on the reference laptop ([measurements](docs/pantrypulse/HARDWARE.md)), plus the time to download Docker's base images (PostgreSQL, Python, Node and uv) on a machine that doesn't have them yet.
+The first run took 4 min 22 s to build and 36 s to start on the reference laptop while other work was running on it ([measurements](docs/pantrypulse/HARDWARE.md)), plus the time to download Docker's base images (PostgreSQL, Python, Node and uv) on a machine that doesn't have them yet.
 
 ### 3. Sign in
 
@@ -54,7 +54,7 @@ Open **Import** (http://127.0.0.1:3000/import). Download the blank templates or 
 - Optional files: `routes.csv`, `inbound.csv`, `donation_history.csv`.
 - Limits: up to 100 locations, 500 products, 90 days of daily history (14 days to forecast, 35 to measure accuracy) and 200,000 inventory batches. A file over a limit is rejected with the limit named, never cut short.
 
-A maximum-size import (100 locations × 500 products × 90 days) took 1 min 22 s of processing on the reference laptop. Locations that have an address but no coordinates are geocoded by the US Census Bureau. That lookup is the app's only outbound call, unless you save your own Google key for road distances in Settings.
+A maximum-size import (100 locations × 500 products × 90 days) took 1 min 03 s of processing on the reference laptop. Locations that have an address but no coordinates are geocoded by the US Census Bureau. That lookup is the app's only outbound call, unless you save your own Google key for road distances in Settings.
 
 ### 6. Stop or start over
 

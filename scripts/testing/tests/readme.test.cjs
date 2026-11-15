@@ -31,6 +31,8 @@ test("the README's first-run time is HARDWARE.md's measurement", () => {
   const a = JSON.parse(fs.readFileSync(path.join(root, 'docs/pantrypulse', link), 'utf8'));
   assert.ok(quickstart.includes(minutes(a.build.seconds)), `quickstart states the measured build time ${minutes(a.build.seconds)}`);
   assert.ok(quickstart.includes(minutes(a.start.seconds)), `quickstart states the measured first start ${minutes(a.start.seconds)}`);
+  const imported = minutes(a.import.report.seconds.total);
+  assert.ok(quickstart.includes(`took ${imported} of processing`), `quickstart states the measured A09 import time ${imported}`);
 });
 
 test('research and impact wording stays within research-claims-check', () => {
