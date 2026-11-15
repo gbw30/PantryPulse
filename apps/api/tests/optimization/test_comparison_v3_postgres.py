@@ -36,7 +36,14 @@ from app.services.jobs.policies import supervisor_advertisement
 from app.services.jobs.registry import ExecutionContext
 from app.services.optimization.export import SIMULATED_NOTE
 from app.workers.registries import load_registry
-from tests.integration.wq_support import alembic_config, database_url, reset_schema
+from tests.integration.wq_support import (
+    age_heartbeat,
+    alembic_config,
+    database_url,
+    heartbeating,
+    reset_schema,
+    wait_for_fresh_heartbeat,
+)
 from tests.optimization.test_retail_oracle import load
 
 pytestmark = pytest.mark.integration
@@ -73,7 +80,8 @@ def storage():
             ),
             {"o": presenter},
         )
-    yield ForecastRuntime(engine, queue), own, presenter
+    with heartbeating(queue, own):
+        yield ForecastRuntime(engine, queue), own, presenter
     engine.dispose()
     reset_schema(url, SCHEMA)
 
@@ -174,6 +182,21 @@ def published(api, **kw):
     claim, package = run(rt.queue, own, **kw)
     rt.queue.publish(own, claim, package)
     return accepted.json()["result_url"], package["comparison"]
+
+
+def test_admission_holds_after_the_heartbeat_window_passes_mid_module(api):
+    """The module's supervisor must keep beating like a live one: admission refuses a heartbeat
+    older than heartbeat_stale_s, so under load a test late in the module, or a long body such as
+    solve-then-retry, was refused (ESC-w5-packaging-1)."""
+    client, headers, rt, _, ids = api
+    age_heartbeat(rt.queue, PRODUCTION_PROFILE.heartbeat_stale_s + 5)
+    assert wait_for_fresh_heartbeat(rt.queue, PRODUCTION_PROFILE.heartbeat_stale_s)
+    accepted = submit(client, headers, ids, key="late")
+    assert accepted.status_code == 202, accepted.text
+    cancelled = client.post(f"/api/v1/jobs/{accepted.json()['job_id']}/cancel",
+                            headers=headers | {"Idempotency-Key": "late-cancel"})
+    assert cancelled.status_code == 202, cancelled.text
+    assert cancelled.json()["state"] == "CANCELLED"
 
 
 def code(response):
