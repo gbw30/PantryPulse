@@ -1,6 +1,6 @@
 # Status — `w5-packaging`
 
-**Lane:** `w5-packaging` · **Branch:** `lane/w5-packaging` · **Base SHA:** `81c551bc2e232362f0e63a7a00126ef1ca863fb8` · **Last update:** `2026-11-15 07:45` · **Head:** see `git log`
+**Lane:** `w5-packaging` · **Branch:** `lane/w5-packaging` · **Base SHA:** `81c551bc2e232362f0e63a7a00126ef1ca863fb8` · **Last update:** `2026-11-15 (session end)` · **Head:** see `git log`
 
 ## Tasks
 
@@ -91,6 +91,55 @@ Order: PK01 → PK03 → PK04 → PK02 → PK05. PK02's `--enforce` can reach ex
 | F3 (Low): HARDWARE.md said "about 1.9 GiB"; 458 + 1,423 MiB = 1,881 MiB | Now "about 1.8 GiB (1,881 MiB)" |
 | F4 (Low): the bench artifact lacks `bench_versions`; the runner was uncommitted when it ran | Disclosed in HARDWARE.md's limits; the post-D02 re-measurement uses the committed runner |
 | F5 (Low): README said every published result passes the verifier, but failed methods are returned unverified | "Every plan shown passes an independent verifier; a method that fails verification is shown as failed, never replaced or turned into suggested actions" (`results.tsx:286`, `decisions-view.tsx:18-20`) |
+
+## Parked: follow-up PR for `/code-review` items 2, 4 and 7 (Gabriel's go, 2026-11-15)
+
+#156 merged into `v1-local` as `cadd138`. CI full ran 2269 backend tests with 0 skipped, and 264 e2e passed. The follow-up was parked at Gabriel's end of session. Rules: no push and no PR until the orchestrator gives the go; no attribution lines; nothing posted on GitHub.
+
+**Done:**
+- `lane/w5-packaging` fast-forwarded to `origin/v1-local` `cadd138`. There's no merge commit; the tree was clean.
+- The investigation below. **No code is changed yet. No tests have been written and no gates have run for the follow-up.**
+
+**Found:**
+- **The egress evidence is already stale against `v1-local`, whatever item 2 does.**
+  - `node scripts/testing/check-egress-evidence.cjs` → exit 1: `pending egress-2026-11-15.json: apps/ or compose.yaml changed since 9541f6f`.
+  - `git diff --stat 9541f6f cadd138 -- apps compose.yaml package.json package-lock.json packages/contracts` → 46 files, +1143/−181, all from other lanes' merges (w5-polish: `apps/web/**`). `package.json`, `package-lock.json`, `packages/contracts` and `compose.yaml` did not change.
+  - V1-A03 and V1-A04 are therefore `pending` on `cadd138`. Don't re-run the egress journey without the orchestrator's go; W6 re-runs it on the release candidate.
+- **Build inputs of the images:**
+  - The api build context is `apps/api` (`compose.yaml:9-10`; `apps/api/Dockerfile`, `.compute` and `.chronos` copy only from there, plus the uv image), so `apps/` covers it.
+  - The web context is the repo root (`compose.yaml:101-103`). `apps/web/Dockerfile:6-10` copies `package.json`, `package-lock.json`, `apps/web/package.json`, `packages/contracts` and `apps/web`.
+  - The root `.dockerignore` also shapes the web context. `apps/api/.dockerignore` is already under `apps/`.
+- **Exit codes:**
+  - All three checks report pending on stdout with `process.exitCode = 1` and write nothing to stderr. `check-recorded-runs` A01/A18/A24 and `check-egress-evidence` were each measured: exit 1, 0 bytes on stderr.
+  - But Node also exits 1 on an uncaught exception (with a stack trace on stderr). So "exit 1 = pending" alone cannot tell a crash from not-yet-recorded evidence.
+
+**Next steps, each test-first (RED, then GREEN):**
+1. **Item 2** (`scripts/testing/check-egress-evidence.cjs:13`).
+   - Change: `STACK = ['apps', 'compose.yaml', 'package.json', 'package-lock.json', 'packages/contracts', '.dockerignore']`. Name the changed paths in the stale message, which will no longer be "apps/ or compose.yaml"; update the regex in `egress-evidence.test.cjs:51`.
+   - New tests: a commit after the report that touches `package-lock.json`, a file under `packages/contracts`, or `.dockerignore` → stale; a dirty `package-lock.json` → "uncommitted stack sources".
+2. **Item 4** (`scripts/testing/story-coverage.cjs:62-69`).
+   - **Proposed rule:** pending = exit status 1 with nothing on stderr. Everything else from a non-passing check is **broken**: another exit code, a signal, a timeout (`r.error`/`r.signal`), a spawn error, or exit 1 with stderr output (an uncaught exception). This refines the orchestrator's "exit 1 = pending", because Node exits 1 on a crash; confirm it with the orchestrator.
+   - Output: a broken story prints `broken <ID>: <check> <reason>` and is never `ok`. The summary adds `; broken N (IDs)`, and `--enforce` exits 1 when any story is broken.
+   - The 120 s timeout becomes overridable through the environment (for example `PP_STORY_CHECK_TIMEOUT_MS`), so a test can time out in under a second.
+   - New tests in `story-coverage.test.cjs`, using the `tree()` fixture:
+     - a check that throws → broken, `--enforce` exit 1;
+     - a check that never ends, run with a 500 ms timeout → broken (timed out), `--enforce` exit 1;
+     - a check that exits 2 → broken;
+     - exit 1 with an empty stderr → pending, `--enforce` exit 0 (the existing `fail.cjs` test already covers this).
+   - Update the header comment.
+3. **Item 7** (`docs/testing/user-stories.json`, V1-A24).
+   - Change: `checks: ["scripts/testing/check-recorded-runs.cjs V1-A24", "scripts/testing/check-version-pin.cjs"]`.
+   - Tests:
+     - the real A24 entry lists `check-version-pin.cjs`;
+     - a `tree()` with the real `check-version-pin.cjs` copied in, a README pinning 0.1.0 and a compose.yaml tagging 0.2.0 → that story is `pending`, never `ok`.
+   - Update the real-tree test (`story-coverage.test.cjs:59-64`): A24 is pending through `check-recorded-runs` while `check-version-pin` passes.
+4. **Optional N1:** the `renderSummary` docstring in `scripts/bench/run-all.cjs` says "generated from the artifact alone". Make it "from the artifact and compose.yaml".
+5. **Gates**, with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1` exported by hand:
+   - `npm run test:config`;
+   - `node scripts/testing/story-coverage.cjs --enforce`. Expected: A03 and A04 pending (stale egress, above), A01/A18/A24 pending, no broken;
+   - `node scripts/testing/check-egress-evidence.cjs`. Expected: exit 1, stale, which is the finding above;
+   - `node scripts/quality/run.cjs quick`.
+6. Commit lane-only and send the orchestrator the head SHA with the commands and counts. Then wait for its go to push and open the follow-up PR into `v1-local`, with no attribution lines.
 
 ## Next, on the orchestrator's go (after the w5-data merge, PR #151)
 
