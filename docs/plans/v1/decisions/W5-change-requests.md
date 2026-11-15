@@ -16,7 +16,7 @@ Each lane ran as a separate CLI session in `~/code/PantryPulse-<lane>` on `lane/
 | #154 | Lead: the module supervisor heartbeat in the import-job and comparison suites (ESC-w5-packaging-1) | `8b4fff9` |
 | #155 | w5-polish: UI01–UI05, CR-w5-data-2, CR-w5-screens-4 and the wave-end ux-critic batch | `eb21003` |
 | #156 | w5-packaging: PK01–PK05, CR-w5-packaging-1–3, the quiet W5-PK04 re-measure at `d92021b`, and the code-review fixes (the 6-CPU requirement, repo-relative bench paths, the memory wording) | `cadd138` |
-| pending | w5-packaging follow-up: code-review items 2, 4 and 7 (egress staleness inputs, broken checkers fail `--enforce`, the version pin in V1-A24's checks) | |
+| #157 | w5-packaging follow-up: code-review items 2, 4 and 7 (egress staleness inputs, broken checkers fail `--enforce`, the version pin in V1-A24's checks) | `d751453` |
 | pending | Lead: this close-out | |
 
 ## 2. Cross-lane change requests (Gabriel, 2026-11-12)
@@ -143,6 +143,11 @@ The rule: when one lane's change breaks a file another lane owns, the lane that 
     - N1: the `renderSummary` docstring;
     - N2: "8 GiB" is hard-coded beside the generated `mem_limit`;
     - N3: `relativeCommands` leaves `--out=/abs` absolute.
+- **Packaging follow-up (#157, verifier PASS WITH NOTES):**
+  - A negative or fractional `PP_STORY_CHECK_TIMEOUT_MS` throws a RangeError (it fails safe).
+  - Egress staleness ignores uncommitted changes, and the egress harness files themselves aren't stale triggers.
+  - Wording nits, such as "1 stack sources".
+  - On v1-local, A03 and A04 now read pending, because polish changed `apps/` after the egress run at `9541f6f`.
 - **Research claims:** `GET /api/v1/allocation-methodology` returns no DOI, date or adapted constructs (`planning.py:37-50`). W6 runs `research-claims-check` on it.
 - **Post-v1 cleanup:**
   - `scenario.py:45`, `forecasting/network.py:58` and `enrichment/distance.py:13` hardcode their own sender role sets instead of using `HUB_ROLES`.
