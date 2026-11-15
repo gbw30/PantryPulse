@@ -92,7 +92,7 @@ The rule: when one lane's change breaks a file another lane owns, the lane that 
       - The memory row no longer claims the worker reaches its 8 GiB ceiling when Docker has exactly 8 GiB.
     - A follow-up PR before W6: items 2, 4 and 7.
     - Known limitations: items 3, 5, 6, 8 and 10 (§5).
-  - The lead also replaced two home-directory paths in `spikes/S3-docker.md`. Git history keeps them.
+  - The lead also replaced three home-directory paths in `spikes/S3-docker.md`. Git history keeps them.
 - **4-CPU machines (W6):** W6 measures a run capped at 4 CPUs. If it stays within the solver and forecast ceilings, the lead adds an optional worker CPU setting, default 6.
 - **The atlas redesign (Gabriel, 2026-11-15):** the Overview must not overload a first-time user. The atlas becomes a map with the pantries or stores plotted, where the user can move straight from one location to the next or pan around the map. The design is being agreed with Gabriel; it lands before the W6 candidate is chosen.
 
@@ -130,7 +130,7 @@ The rule: when one lane's change breaks a file another lane owns, the lane that 
   - A01, A18 and A24 stay pending until W6's recorded runs.
   - The CPU requirement is V1-SPEC's provisional figure plus the compose limit, measured on one Windows 11 machine. Ubuntu and macOS are not measured.
   - `INSTALLATION.md:13` says "Docker only (any OS…)", which isn't measured.
-  - A `--depth 1` clone fails 1 of 83 config tests.
+  - A `--depth 1` clone fails one config test (the bench commit check).
   - The hand-typed-figure guard misses spellings such as "120 seconds" or "1,454 MB".
   - The sniffer skips ICMP and IPv4 UDP packets with fewer than 6 payload bytes.
   - Code-review items:

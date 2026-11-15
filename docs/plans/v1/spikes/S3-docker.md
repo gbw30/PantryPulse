@@ -14,7 +14,7 @@ Commands, from a normal PowerShell session (not Administrator; `C:\code\pp-s3` i
 
 ```powershell
 git config --global --add safe.directory '//wsl.localhost/Ubuntu/home/<you>/code/PantryPulse/.git'
-git clone --branch w0/foundation \\wsl.localhost\Ubuntu\home\gabri\code\PantryPulse C:\code\pp-s3
+git clone --branch w0/foundation \\wsl.localhost\Ubuntu\home\<you>\code\PantryPulse C:\code\pp-s3
 cd C:\code\pp-s3
 docker compose -p pp-s3 build --no-cache
 docker compose -p pp-s3 up
