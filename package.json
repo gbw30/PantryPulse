@@ -15,7 +15,7 @@
     "ui:info": "npm run ui:info --workspace @pantrypulse/web",
     "setup:windows": "powershell -NoProfile -File scripts/setup-windows.ps1",
     "doctor:windows": "powershell -NoProfile -File scripts/doctor-windows.ps1",
-    "test:config": "node --test scripts/quality/tests/*.test.cjs",
+    "test:config": "node --test scripts/quality/tests/*.test.cjs scripts/testing/tests/*.test.cjs",
     "test:e2e:install": "npm run test:e2e:install --workspace @pantrypulse/web",
     "dev:web": "npm run dev --workspace @pantrypulse/web",
     "dev:api": "uv run --frozen --directory apps/api uvicorn app.main:app --reload --host 127.0.0.1 --port 8000",

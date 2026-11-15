@@ -11,6 +11,7 @@ const TEST_READ = [
   'docs/plans/v1/README.md', // apps/api/tests/test_v1_contract.py
   'docs/forecasting/QUALIFICATION-PROTOCOL.md', // apps/api/scripts/evaluate_retail_forecasting.py
   'docs/optimization/DECISION-REGISTER.md', // scripts/or/check-decision-markers.py
+  'docs/pantrypulse/HARDWARE.md', // scripts/testing/tests/bench-report.test.cjs, scripts/bench/run-all.cjs
 ];
 
 const isDoc = (file) => file.endsWith('.md') && file !== 'README.md' && !TEST_READ.includes(file)
