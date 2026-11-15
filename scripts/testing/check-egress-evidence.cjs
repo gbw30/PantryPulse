@@ -3,14 +3,17 @@
 // latest docs/testing/evidence/egress-*.json, written by scripts/testing/egress-journey.cjs, must be
 // a clean, complete run for the stack as it is now. Exits 1 (the story stays pending) when the
 // report is missing, failed, blind, partial, or older than the last change to what the stack is
-// built from (apps/, compose.yaml).
+// built from (STACK).
 // Usage: node scripts/testing/check-egress-evidence.cjs [--root <dir>]
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const REQUIRED_SECRETS = ['password', 'proxy_token', 'presenter_password_hash', 'google_key'];
-const STACK = ['apps', 'compose.yaml'];
+// What the images are built from: compose.yaml; the api context apps/api; the web context is the
+// repository root, and apps/web/Dockerfile copies package.json, package-lock.json, packages/contracts
+// and apps/web, filtered by the root .dockerignore.
+const STACK = ['apps', 'compose.yaml', 'package.json', 'package-lock.json', 'packages/contracts', '.dockerignore'];
 
 function problems(report, root) {
   const out = [];
@@ -29,8 +32,13 @@ function problems(report, root) {
   const git = (...args) => spawnSync('git', ['-C', root, ...args], { encoding: 'utf8' });
   if (!/^[0-9a-f]{40}$/.test(report.commit ?? '') || git('cat-file', '-e', `${report.commit}^{commit}`).status !== 0) {
     out.push(`commit ${report.commit} is not in this repository`);
-  } else if (git('diff', '--quiet', report.commit, 'HEAD', '--', ...STACK).status !== 0) {
-    out.push(`apps/ or compose.yaml changed since ${report.commit.slice(0, 7)}: re-run the egress journey`);
+  } else {
+    const changed = git('diff', '--name-only', report.commit, 'HEAD', '--', ...STACK);
+    const files = changed.stdout.split('\n').filter(Boolean);
+    if (changed.status !== 0) out.push(`cannot compare ${report.commit.slice(0, 7)} with HEAD: ${changed.stderr.trim()}`);
+    else if (files.length) {
+      out.push(`${files.length} stack sources changed since ${report.commit.slice(0, 7)} (${files.slice(0, 5).join(', ')}${files.length > 5 ? ', …' : ''}): re-run the egress journey`);
+    }
   }
   return out;
 }

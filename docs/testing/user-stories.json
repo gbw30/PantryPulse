@@ -158,7 +158,8 @@
       "evidence": "Release workflow run + clean-machine runs for both paths",
       "tests": [],
       "checks": [
-        "scripts/testing/check-recorded-runs.cjs V1-A24"
+        "scripts/testing/check-recorded-runs.cjs V1-A24",
+        "scripts/testing/check-version-pin.cjs"
       ]
     }
   ]

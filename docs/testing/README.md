@@ -37,9 +37,9 @@ For contributors without Python or a local PostgreSQL, including Windows and mac
 
 A test that runs a checker on synthetic input (for example the egress classifier or the recorded-runs validator) covers the test kit, V1-A21, not the criterion that checker measures.
 
-Criteria a test can't prove name their evidence check in the story's `checks` list (`<script> [args]`, run with node): A01, A18 and A24 use `check-recorded-runs.cjs`, and A03 and A04 use `check-egress-evidence.cjs`, which accepts only a clean, complete egress report whose commit matches today's `apps/` and `compose.yaml`. While a check fails, the story prints `pending`, never `ok`, whatever its tests say.
+Criteria a test can't prove name their evidence check in the story's `checks` list (`<script> [args]`, run with node): A01, A18 and A24 use `check-recorded-runs.cjs`; A24 also uses `check-version-pin.cjs`. A03 and A04 use `check-egress-evidence.cjs`, which accepts only a clean, complete egress report whose commit matches today's stack sources (`apps/`, `compose.yaml`, and the web image's root inputs: `package.json`, `package-lock.json`, `packages/contracts`, `.dockerignore`). A check that exits 1 with nothing on stderr means "not recorded yet": the story prints `pending`, never `ok`, whatever its tests say. Any other result (another exit code, a signal, a timeout, or exit 1 with stderr output, as an uncaught exception gives) means the check itself is broken: the story prints `broken`. The timeout is 120 s; `PP_STORY_CHECK_TIMEOUT_MS` overrides it.
 
-`--enforce` exits 1 when an ID has neither tests nor checks, when a check script no longer exists, or when a story's `tests` entry is not a test file carrying that story's tag; a pending story still passes, because it is mapped to a real check. `--report` lists the map without failing.
+`--enforce` exits 1 when an ID has neither tests nor checks, when a check script no longer exists, when a check is broken, or when a story's `tests` entry is not a test file carrying that story's tag; a pending story still passes, because it is mapped to a real check. `--report` lists the map without failing.
 
 ## Recorded-evidence checks: V1-A01, V1-A18, V1-A24 (pull path)
 
@@ -83,7 +83,7 @@ To record a run, put the files in `docs/testing/evidence/runs/`:
 3. **Checks.** Only `geocoding.geo.census.gov` is allowed. `api.census.gov` is never called, because ACS rates come from the bundled table, and a Google connection is flagged too, because the journey requests no Google lookup. A connection without a TLS server name, any outbound UDP and any outbound IPv6 are flagged; that includes DNS sent from the stack's subnet to an outside server, because Docker's own resolver never puts a container's lookup on the bridge. The generated password, the proxy token, the presenter password hash (from `local_logins`) and the dummy Google key must not appear in `docker compose logs`, the web's `.next` output, any API response body the journey received, tracked or untracked-but-not-ignored files, or any commit made since the run started.
 4. **Positive control.** The run fails if the capture saw no Census connection, because the journey geocodes and a capture that missed it would be blind.
 
-It writes `artifacts/egress/report.json`, and passes only when `scripts/testing/check-egress-evidence.cjs` would accept the report. It reports secrets by name, never by value. Copy a passing report to `docs/testing/evidence/egress-<date>.json`: A03 and A04 stay pending until the latest one is clean and no file under `apps/` or `compose.yaml` has changed since its commit.
+It writes `artifacts/egress/report.json`, and passes only when `scripts/testing/check-egress-evidence.cjs` would accept the report. It reports secrets by name, never by value. Copy a passing report to `docs/testing/evidence/egress-<date>.json`: A03 and A04 stay pending until the latest one is clean and none of those stack sources has changed since its commit.
 
 **Limits:**
 - Addresses are named by TLS server name only; DNS answers are not recorded, so a flagged connection without a server name shows only its IP address.

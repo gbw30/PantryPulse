@@ -111,7 +111,7 @@ function relativeCommands(a) {
   return a;
 }
 
-/** The Requirements table and the ceiling margin of HARDWARE.md, generated from the artifact alone. */
+/** The Requirements table and the ceiling margin of HARDWARE.md, generated from the artifact and compose.yaml's worker limits. */
 function renderSummary(a) {
   const m = a.machine;
   const steps = benches(a);
