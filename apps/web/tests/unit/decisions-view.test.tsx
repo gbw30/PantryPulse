@@ -196,6 +196,17 @@ it("a middle-click or the link's context menu (open in a new tab) saves the sele
   expect(window.localStorage.length).toBe(1);
 });
 
+it("the context menu opened from the keyboard, a touch long-press or a macOS ctrl-click saves the selection; none fires click or a non-zero mousedown", async () => {
+  vi.spyOn(networkApi, "actions").mockResolvedValue(actions(3));
+  render(<DecisionsView comparisonId={saved.id} method="CLASSICAL_GP" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Select all" }));
+  const link = screen.getByRole("link", { name: "Print page (3 actions)" });
+  fireEvent.mouseDown(link, { button: 0, ctrlKey: true });
+  expect(window.localStorage.length).toBe(0);
+  fireEvent.contextMenu(link);
+  expect(window.localStorage.length).toBe(1);
+});
+
 // W5-UI02.3: effect periods and the plan window are named in local calendar days.
 it("names a period across months, a single day, and the Retail wording after the plan's window", () => {
   expect(periodText("2026-10-30", "2026-11-05")).toBe("Oct 30–Nov 5 (7 days)");
