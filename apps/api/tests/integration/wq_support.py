@@ -75,5 +75,15 @@ def make_ready(repo, **kw):
     return own
 
 
+def age_heartbeat(repo, seconds: float) -> None:
+    """Back-date the supervisor heartbeat, as if `seconds` had passed without one."""
+    with repo.engine.begin() as conn:
+        conn.execute(
+            sa.text("UPDATE compute_control SET heartbeat_at = clock_timestamp()"
+                    " - make_interval(secs => :s) WHERE lane_id = :l"),
+            {"s": seconds, "l": repo.lane_id},
+        )
+
+
 def echo(value=1, **behavior):
     return {"value": value, "behavior": behavior}

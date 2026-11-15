@@ -36,7 +36,12 @@ from app.services.jobs.policies import supervisor_advertisement
 from app.services.jobs.registry import ExecutionContext
 from app.services.optimization.export import SIMULATED_NOTE
 from app.workers.registries import load_registry
-from tests.integration.wq_support import alembic_config, database_url, reset_schema
+from tests.integration.wq_support import (
+    age_heartbeat,
+    alembic_config,
+    database_url,
+    reset_schema,
+)
 from tests.optimization.test_retail_oracle import load
 
 pytestmark = pytest.mark.integration
@@ -118,6 +123,7 @@ def seed(engine, name="retail-usd-flip"):
 @pytest.fixture
 def api(storage, monkeypatch):
     rt, own, presenter = storage
+    assert rt.queue.heartbeat(own)  # admission refuses a heartbeat older than heartbeat_stale_s
     ids = seed(rt.engine)
     salt = "37" * 16
     digest = hashlib.scrypt(
@@ -174,6 +180,19 @@ def published(api, **kw):
     claim, package = run(rt.queue, own, **kw)
     rt.queue.publish(own, claim, package)
     return accepted.json()["result_url"], package["comparison"]
+
+
+def test_a_test_that_starts_after_the_heartbeat_window_is_still_admitted(storage, request):
+    """`storage` stamps the supervisor heartbeat once per module; admission refuses one older
+    than heartbeat_stale_s, so a test starting late in the module was refused
+    (ESC-w5-packaging-1)."""
+    age_heartbeat(storage[0].queue, PRODUCTION_PROFILE.heartbeat_stale_s + 5)
+    client, headers, _, _, ids = request.getfixturevalue("api")
+    accepted = submit(client, headers, ids, key="late")
+    assert accepted.status_code == 202, accepted.text
+    cancelled = client.post(f"/api/v1/jobs/{accepted.json()['job_id']}/cancel",
+                            headers=headers | {"Idempotency-Key": "late-cancel"})
+    assert cancelled.status_code == 202, cancelled.text
 
 
 def code(response):

@@ -28,7 +28,12 @@ from app.services.networks.api import get_network, list_networks
 from app.services.presenter_access import AccessError
 from app.workers.registries import load_registry
 from tests.imports.test_import_postgres import FILES
-from tests.integration.wq_support import alembic_config, database_url, reset_schema
+from tests.integration.wq_support import (
+    age_heartbeat,
+    alembic_config,
+    database_url,
+    reset_schema,
+)
 
 pytestmark = pytest.mark.integration
 SCHEMA = "w1_data_job_test"
@@ -48,7 +53,7 @@ def engine():
 
 
 @pytest.fixture(scope="module")
-def queue(engine):
+def supervisor(engine):
     """A READY supervisor advertising import.v1 (admission needs one); it never claims, so
     no step runs here and the tests run each import in process."""
     repo = QueueRepository(engine, registry=load_registry("production"),
@@ -59,14 +64,32 @@ def queue(engine):
             PRODUCTION_PROFILE, handler_contracts=("import.v1",), process_containment=True))
     assert own is not None and repo.finish_recovery(own)
     assert repo.set_state(own, SupervisorState.READY)
-    return repo
+    return repo, own
+
+
+@pytest.fixture(scope="module")
+def queue(supervisor):
+    return supervisor[0]
 
 
 @pytest.fixture
-def rt(engine, queue, tmp_path, monkeypatch):
+def rt(engine, supervisor, tmp_path, monkeypatch):
+    queue, own = supervisor
+    assert queue.heartbeat(own)  # admission refuses a heartbeat older than heartbeat_stale_s
     monkeypatch.setenv("PP_IMPORT_DIR", str(tmp_path))
     yield SimpleNamespace(engine=engine, queue=queue)
     _cancel_queued(engine, queue)
+
+
+def test_a_test_that_starts_after_the_heartbeat_window_is_still_admitted(engine, queue, request):
+    """`queue` stamps the supervisor heartbeat once per module; admission refuses one older than
+    heartbeat_stale_s, so under load a test starting late in the module was refused
+    (ESC-w5-packaging-1)."""
+    age_heartbeat(queue, PRODUCTION_PROFILE.heartbeat_stale_s + 5)
+    rt = request.getfixturevalue("rt")
+    created = api.create_import(rt, SCOPE, _new())
+    _upload(rt, created.import_id, FILES)
+    assert _commit(rt, created.import_id) is not None
 
 
 def _cancel_queued(engine, queue):
