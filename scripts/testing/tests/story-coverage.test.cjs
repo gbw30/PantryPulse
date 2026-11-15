@@ -83,9 +83,26 @@ test('--enforce fails on a listed check whose file does not exist', () => {
   assert.match(result.stdout, /stale V1-A01: scripts\/gone\.cjs does not exist/);
 });
 
+test("V1-A24 runs the version-pin check, so a README pin that differs from compose.yaml is never ok", () => {
+  const stories = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', '..', 'docs/testing/user-stories.json'), 'utf8')).stories;
+  const a24 = stories.find((s) => s.id === 'V1-A24');
+  assert.ok(a24.checks.includes('scripts/testing/check-version-pin.cjs'), JSON.stringify(a24.checks));
+  // The real check, in a tree whose README pins 0.1.0 while compose.yaml tags 0.2.0.
+  const root = tree({ checks: ['scripts/testing/check-version-pin.cjs'] });
+  fs.mkdirSync(path.join(root, 'scripts/testing'), { recursive: true });
+  fs.copyFileSync(path.join(__dirname, '..', 'check-version-pin.cjs'), path.join(root, 'scripts/testing/check-version-pin.cjs'));
+  fs.writeFileSync(path.join(root, 'README.md'), 'Version pin: `0.1.0`\n');
+  fs.writeFileSync(path.join(root, 'compose.yaml'), 'services:\n  api:\n    image: ghcr.io/gbw30/pantrypulse-api:0.2.0\n');
+  const result = run(root);
+  assert.equal(result.status, 0, result.stdout);
+  assert.match(result.stdout, /^pending V1-A01: scripts\/testing\/check-version-pin\.cjs exits 1/m);
+  assert.doesNotMatch(result.stdout, /^ok V1-A01/m);
+});
+
 test('the real tree maps every V1-A ID; A01, A18 and A24 stay pending until their runs are recorded', () => {
   const result = spawnSync(process.execPath, [script, '--enforce'], { encoding: 'utf8' });
   assert.equal(result.status, 0, result.stdout);
   for (const id of ['V1-A01', 'V1-A18', 'V1-A24']) assert.match(result.stdout, new RegExp(`^pending ${id}: scripts/testing/check-recorded-runs\\.cjs ${id} exits 1`, 'm'));
-  assert.doesNotMatch(result.stdout, /^uncovered /m);
+  assert.doesNotMatch(result.stdout, /^(uncovered|broken) /m);
+  assert.match(result.stdout, /^pending V1-A24: [^\n]*check-version-pin\.cjs \(passes\)/m, 'the real README and compose.yaml agree');
 });
