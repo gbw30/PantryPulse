@@ -95,10 +95,11 @@ function optimizers(a) {
       : `The number of products at risk and optimized differs by run (${atRisk.join(', ')} of ${products}); see the artifact.`);
 }
 
-/** The worker's CPU limit in compose.yaml (its only `cpus:`): Docker needs at least that many CPUs to start it. */
-function workerCpus() {
-  const limits = [...fs.readFileSync(path.join(root, 'compose.yaml'), 'utf8').matchAll(/^\s+cpus:\s*['"]?([\d.]+)/gm)].map((m) => m[1]);
-  if (limits.length !== 1) throw new Error(`expected one cpus: limit in compose.yaml, found ${limits.length}`);
+/** The worker's `cpus:` or `mem_limit:` in compose.yaml (the only service that sets either). Docker needs at least
+ * that many CPUs to start it. */
+function workerLimit(key) {
+  const limits = [...fs.readFileSync(path.join(root, 'compose.yaml'), 'utf8').matchAll(new RegExp(`^\\s+${key}:\\s*['"]?(\\S+?)['"]?$`, 'gm'))].map((m) => m[1]);
+  if (limits.length !== 1) throw new Error(`expected one ${key}: in compose.yaml, found ${limits.length}`);
   return limits[0];
 }
 
@@ -117,7 +118,9 @@ function renderSummary(a) {
   const named = { import: a.import, forecast: a.forecast, 'Pantry comparison': a.comparison.pantry, 'Retail comparison': a.comparison.retail };
   const [largest, peak] = Object.entries(named).reduce((x, y) => (y[1].peak_rss_mib > x[1].peak_rss_mib ? y : x));
   const [lo, hi] = (/taskset -c (\d+)-(\d+)/.exec(a.import.command) ?? []).slice(1).map(Number);
-  const cpus = workerCpus();
+  const cpus = workerLimit('cpus');
+  const memLimit = workerLimit('mem_limit');
+  const others = Object.entries(a.idle.per_container_peak_mib).filter(([c]) => !/-worker-\d+$/.test(c)).reduce((s, [, v]) => s + v, 0);
   const label = (image) => (/-api[:@]/.test(image) ? 'API' : /-web[:@]/.test(image) ? 'web' : /postgres/.test(image) ? 'PostgreSQL' : image);
   const comparisons = ['pantry', 'retail'].flatMap((mode) => Object.entries(a.comparison[mode].report.comparison_wall_s)
     .map(([measure, s]) => ({ mode, measure, s, ceilings: a.comparison[mode].report.ceilings_s })));
@@ -127,7 +130,7 @@ function renderSummary(a) {
     '| Resource | Requirement | From the measurements |',
     '|---|---|---|',
     `| CPU | **${cpus} CPUs available to Docker**: compose.yaml limits the worker to ${cpus} CPUs (\`cpus: ${cpus}\`), and Docker does not start a container whose limit is above the CPUs it has. V1-SPEC's provisional figure is 4 cores; a lower limit is not offered yet | Docker had ${m.docker_cpus} CPUs, and the benches ran under \`taskset\` on ${hi - lo + 1}. Idle, the stack's containers used ${cores(a.idle.cpu_percent / 100)} of a core in total. Each bench process averaged ${cores(Math.min(...steps.map((p) => p.cpu_avg_cores)))}–${cores(Math.max(...steps.map((p) => p.cpu_avg_cores)))} cores; PostgreSQL's CPU during the benches is not included. Single-core speed sets how long a comparison takes (see the ceiling margin below). |`,
-    `| Memory | **8 GiB available to Docker**: V1-SPEC's provisional figure; what was measured fits well within it | Idle, the stack's containers peaked at ${a.idle.memory_peak_mib} MiB together. The largest bench process (the ${largest}) peaked at ${peak.peak_rss_mib.toLocaleString('en-US')} MiB, its largest child process's RSS. PostgreSQL's memory during the benches is not included, so these two are not a measured total. 8 GiB also lets the worker reach its 8 GiB ceiling (V1-SPEC §9). Less memory may work but is untested. The 16 GB machine recommendation is not measured. |`,
+    `| Memory | **8 GiB available to Docker**: V1-SPEC's provisional figure; what was measured fits well within it | Idle, the stack's containers peaked at ${a.idle.memory_peak_mib} MiB together. The largest bench process (the ${largest}) peaked at ${peak.peak_rss_mib.toLocaleString('en-US')} MiB, its largest child process's RSS. PostgreSQL's memory during the benches is not included, so these two are not a measured total. The worker's own ceiling, from V1-SPEC §9, is 8 GiB (\`mem_limit: ${memLimit}\`). With exactly 8 GiB for Docker, the other containers (about ${others} MiB idle) share it, so the worker can't reach its full ceiling; the measured peaks stay far below it. Less memory may work but is untested. The 16 GB machine recommendation is not measured. |`,
     `| Disk | **About 15 GB free**: provisional, only partly measured | Images ${gib(a.disk.images_mib)} (${Object.entries(a.disk.images).map(([i, mib]) => `${label(i)} ${mib.toLocaleString('en-US')} MiB`).join(', ')}) and a ${a.disk.database_mib} MiB database after the first start. Not measured: Docker's build cache, the database after a maximum-size import, and the Chronos profile's provisional +10 GB. |`,
     `| Time | First run: build ${minutes(a.build.seconds)}, then first start ${minutes(a.start.seconds)} | Base images were already on the machine, so a clean machine adds their download. The build has no cache mounts, so \`--no-cache\` downloads every npm and Python package again; it depends on load and connection speed (the host's 1-minute load went from ${a.build.load.start[0]} to ${a.build.load.end[0]} during the build). |`,
     '',

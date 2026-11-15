@@ -60,6 +60,19 @@ test("the CPU requirement is the worker's CPU limit in compose.yaml", () => {
   assert.doesNotMatch(row, /\*\*4 cores/, "the requirement is not V1-SPEC's provisional 4 cores");
 });
 
+test("the memory row states the worker's compose.yaml ceiling and that the other containers share Docker's memory", () => {
+  const { renderSummary } = require('../../bench/run-all.cjs');
+  const { artifact } = measured();
+  const limits = [...fs.readFileSync(path.join(root, 'compose.yaml'), 'utf8').matchAll(/^\s+mem_limit:\s*['"]?(\S+?)['"]?$/gm)].map((m) => m[1]);
+  assert.equal(limits.length, 1, 'compose.yaml sets one memory limit, on the worker');
+  const others = Object.entries(artifact.idle.per_container_peak_mib).filter(([c]) => !/-worker-\d+$/.test(c)).reduce((s, [, v]) => s + v, 0);
+  const row = renderSummary(artifact).split('\n').find((l) => l.startsWith('| Memory |'));
+  assert.ok(row.includes('**8 GiB available to Docker**'), row);
+  assert.ok(row.includes(`(\`mem_limit: ${limits[0]}\`)`), row);
+  assert.ok(row.includes(`about ${others} MiB idle`), row);
+  assert.doesNotMatch(row, /lets the worker reach its/, 'with exactly 8 GiB, the other containers take part of it');
+});
+
 test('no bench artifact records an absolute path', () => {
   const dir = path.join(root, 'docs/testing/evidence');
   for (const f of fs.readdirSync(dir).filter((n) => /^bench-.*\.json$/.test(n))) {
