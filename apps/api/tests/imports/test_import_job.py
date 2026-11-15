@@ -32,7 +32,9 @@ from tests.integration.wq_support import (
     age_heartbeat,
     alembic_config,
     database_url,
+    heartbeating,
     reset_schema,
+    wait_for_fresh_heartbeat,
 )
 
 pytestmark = pytest.mark.integration
@@ -53,7 +55,7 @@ def engine():
 
 
 @pytest.fixture(scope="module")
-def supervisor(engine):
+def queue(engine):
     """A READY supervisor advertising import.v1 (admission needs one); it never claims, so
     no step runs here and the tests run each import in process."""
     repo = QueueRepository(engine, registry=load_registry("production"),
@@ -64,29 +66,23 @@ def supervisor(engine):
             PRODUCTION_PROFILE, handler_contracts=("import.v1",), process_containment=True))
     assert own is not None and repo.finish_recovery(own)
     assert repo.set_state(own, SupervisorState.READY)
-    return repo, own
-
-
-@pytest.fixture(scope="module")
-def queue(supervisor):
-    return supervisor[0]
+    with heartbeating(repo, own):
+        yield repo
 
 
 @pytest.fixture
-def rt(engine, supervisor, tmp_path, monkeypatch):
-    queue, own = supervisor
-    assert queue.heartbeat(own)  # admission refuses a heartbeat older than heartbeat_stale_s
+def rt(engine, queue, tmp_path, monkeypatch):
     monkeypatch.setenv("PP_IMPORT_DIR", str(tmp_path))
     yield SimpleNamespace(engine=engine, queue=queue)
     _cancel_queued(engine, queue)
 
 
-def test_a_test_that_starts_after_the_heartbeat_window_is_still_admitted(engine, queue, request):
-    """`queue` stamps the supervisor heartbeat once per module; admission refuses one older than
-    heartbeat_stale_s, so under load a test starting late in the module was refused
-    (ESC-w5-packaging-1)."""
-    age_heartbeat(queue, PRODUCTION_PROFILE.heartbeat_stale_s + 5)
-    rt = request.getfixturevalue("rt")
+def test_admission_holds_after_the_heartbeat_window_passes_mid_module(rt):
+    """The module's supervisor must keep beating like a live one: admission refuses a heartbeat
+    older than heartbeat_stale_s, so under load a test late in the module, or a long test body,
+    was refused (ESC-w5-packaging-1)."""
+    age_heartbeat(rt.queue, PRODUCTION_PROFILE.heartbeat_stale_s + 5)
+    assert wait_for_fresh_heartbeat(rt.queue, PRODUCTION_PROFILE.heartbeat_stale_s)
     created = api.create_import(rt, SCOPE, _new())
     _upload(rt, created.import_id, FILES)
     assert _commit(rt, created.import_id) is not None
