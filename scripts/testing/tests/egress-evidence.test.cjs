@@ -20,6 +20,13 @@ function repo(change = {}) {
   fs.mkdirSync(path.join(root, 'apps/api'), { recursive: true });
   fs.writeFileSync(path.join(root, 'apps/api/main.py'), 'x = 1\n');
   fs.writeFileSync(path.join(root, 'compose.yaml'), 'services: {}\n');
+  // The web image's build inputs outside apps/ (apps/web/Dockerfile, built from the repository root).
+  fs.writeFileSync(path.join(root, 'package.json'), '{}\n');
+  fs.writeFileSync(path.join(root, 'package-lock.json'), '{}\n');
+  fs.writeFileSync(path.join(root, '.dockerignore'), 'node_modules\n');
+  fs.mkdirSync(path.join(root, 'packages/contracts'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'packages/contracts/index.ts'), 'export {};\n');
+  fs.writeFileSync(path.join(root, 'README.md'), '# docs\n');
   git(root, 'add', '-A');
   git(root, 'commit', '-q', '-m', 'run');
   const report = {
@@ -48,7 +55,25 @@ test('a report is stale once anything the stack is built from changes after its 
   git(root, 'commit', '-q', '-am', 'later code');
   const result = run(root);
   assert.equal(result.status, 1);
-  assert.match(result.stdout, /apps\/ or compose\.yaml changed since/);
+  assert.match(result.stdout, /stack sources changed since [0-9a-f]{7} \(apps\/api\/main\.py\)/);
+});
+
+test("the web image's build inputs outside apps/ make the report stale too", () => {
+  for (const file of ['package.json', 'package-lock.json', 'packages/contracts/index.ts', '.dockerignore']) {
+    const root = repo();
+    fs.appendFileSync(path.join(root, file), '\n');
+    git(root, 'commit', '-q', '-am', `later ${file}`);
+    const result = run(root);
+    assert.equal(result.status, 1, file);
+    assert.match(result.stdout, new RegExp(`stack sources changed since [0-9a-f]{7} \\(${file.replace(/[.]/g, '\\.')}\\)`), file);
+  }
+});
+
+test('a change outside the stack sources leaves the report current', () => {
+  const root = repo();
+  fs.appendFileSync(path.join(root, 'README.md'), 'more\n');
+  git(root, 'commit', '-q', '-am', 'docs');
+  assert.equal(run(root).status, 0);
 });
 
 test('a failed, partial or blind report never passes', () => {
@@ -60,6 +85,8 @@ test('a failed, partial or blind report never passes', () => {
     [{ secrets: { checked: ['password', 'proxy_token', 'presenter_password_hash', 'google_key'], sources: ['compose logs'], findings: [] } }, /did not scan API responses/],
     [{ journey: [] }, /no journey steps/],
     [{ dirty_paths: ['apps/web/x.ts'] }, /uncommitted stack sources/],
+    [{ dirty_paths: ['package-lock.json'] }, /uncommitted stack sources: package-lock\.json/],
+    [{ dirty_paths: ['packages/contracts/index.ts'] }, /uncommitted stack sources: packages\/contracts\/index\.ts/],
   ]) {
     const result = run(repo(change));
     assert.equal(result.status, 1, JSON.stringify(change));
