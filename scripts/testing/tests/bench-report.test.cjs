@@ -40,6 +40,24 @@ test('HARDWARE.md states each required measurement, and every number is the arti
   assert.equal(loaded.net_batches, generated.batches, 'every generated batch loaded');
 });
 
+test('the requirements and ceiling margin are generated from the artifact too', () => {
+  const { renderSummary } = require('../../bench/run-all.cjs');
+  const { artifact } = measured();
+  const text = fs.readFileSync(hardware, 'utf8');
+  const summary = /<!-- summary:begin -->\n([\s\S]*?)<!-- summary:end -->/.exec(text);
+  assert.ok(summary, 'HARDWARE.md has the generated summary block');
+  assert.equal(summary[1], renderSummary(artifact));
+});
+
+test('outside the generated blocks, HARDWARE.md states no measured figure, only V1-SPEC figures', () => {
+  const text = fs.readFileSync(hardware, 'utf8')
+    .replace(/<!-- (summary|bench):begin -->[\s\S]*?<!-- \1:end -->/g, '');
+  const SPEC = new Set(['8 GiB', '15 GB', '16 GB', '10 GB', '690 s', '330 s', '300 s', '6 CPUs']);
+  const figures = [...text.matchAll(/\d[\d,.]*\s?(?:min\b|s\b|MiB|GiB|GB|cores?\b|CPUs?\b|rows\b|%)/g)].map((m) => m[0]);
+  assert.deepEqual(figures.filter((f) => !SPEC.has(f)), []);
+  assert.doesNotMatch(text, /load (average )?(was |near |of |up to )?\d/i);
+});
+
 test('every measurement is tied to a real commit and a timestamp', () => {
   const { artifact } = measured();
   assert.match(artifact.commit, /^[0-9a-f]{40}$/);
@@ -62,4 +80,13 @@ test('every timed phase records the host load average at its start and end', () 
       assert.ok(Array.isArray(l) && l.length === 3 && l.every((v) => Number.isFinite(v) && v >= 0), `${name} load.${end} is [1, 5, 15 min]`);
     }
   }
+});
+
+test('durations round before they split into minutes and seconds', () => {
+  const { minutes } = require('../../bench/run-all.cjs');
+  assert.equal(minutes(59.4), '59 s');
+  assert.equal(minutes(59.6), '1 min 00 s');
+  assert.equal(minutes(119.6), '2 min 00 s');
+  assert.equal(minutes(179.5), '3 min 00 s');
+  assert.equal(minutes(204.6), '3 min 25 s');
 });

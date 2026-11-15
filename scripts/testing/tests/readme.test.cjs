@@ -31,8 +31,26 @@ test("the README's first-run time is HARDWARE.md's measurement", () => {
   const a = JSON.parse(fs.readFileSync(path.join(root, 'docs/pantrypulse', link), 'utf8'));
   assert.ok(quickstart.includes(minutes(a.build.seconds)), `quickstart states the measured build time ${minutes(a.build.seconds)}`);
   assert.ok(quickstart.includes(minutes(a.start.seconds)), `quickstart states the measured first start ${minutes(a.start.seconds)}`);
-  const imported = minutes(a.import.report.seconds.total);
+  const [build, start, imported] = [a.build.seconds, a.start.seconds, a.import.report.seconds.total].map(minutes);
+  assert.ok(quickstart.includes(`The first run took ${build} to build and ${start} to start`), `quickstart states ${build} and ${start}`);
   assert.ok(quickstart.includes(`took ${imported} of processing`), `quickstart states the measured A09 import time ${imported}`);
+  // Every duration in the quickstart is one of these three; no other figure can drift from the artifact.
+  const durations = [...quickstart.matchAll(/\b\d+ min \d{2} s\b|(?<!min )\b\d+ s\b/g)].map((m) => m[0]);
+  assert.deepEqual(durations.filter((d) => ![build, start, imported].includes(d)), []);
+});
+
+test('the README claims a tested OS only where a passing recorded run exists', () => {
+  // A stranger reads "tested on" as a promise; only docs/testing/evidence/runs/ can back it.
+  const { validate, OSES } = require('../check-recorded-runs.cjs');
+  const LABEL = { 'windows-11': /windows 11/i, 'ubuntu-24.04': /ubuntu 24\.04/i };
+  const dir = path.join(root, 'docs/testing/evidence/runs');
+  const passed = new Set((fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith('.json')) : [])
+    .map((f) => [path.join(dir, f), JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'))])
+    .filter(([file, r]) => r.result === 'pass' && validate(r, file, root).length === 0).map(([, r]) => r.os));
+  for (const [claim] of readme.matchAll(/\btested (?:on|with|under) [^;)\n]+/gi)) {
+    const os = OSES.find((o) => LABEL[o].test(claim));
+    assert.ok(os && passed.has(os), `"${claim}" needs a passing recorded run on ${os ?? 'a tracked OS'}`);
+  }
 });
 
 test('research and impact wording stays within research-claims-check', () => {

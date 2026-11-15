@@ -7,7 +7,9 @@ const path = require('node:path');
 
 const args = process.argv.slice(2);
 const root = path.resolve(args.includes('--root') ? args[args.indexOf('--root') + 1] : path.join(__dirname, '..', '..'));
-const IMAGE = /ghcr\.io\/gbw30\/pantrypulse-[a-z]+:([^\s`"')]+)/g;
+// A tag (`:0.1.0`) or a digest (`@sha256:…`); only a release version or a digest pins an install.
+const IMAGE = /ghcr\.io\/gbw30\/pantrypulse-[a-z]+(?::|@)([^\s`"')]+)/g;
+const PINNED = /^(\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?|sha256:[0-9a-f]{64})$/;
 
 const compose = fs.readFileSync(path.join(root, 'compose.yaml'), 'utf8');
 const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
@@ -16,6 +18,8 @@ const pin = /Version pin: `([^`]+)`/.exec(readme)?.[1];
 const errors = [];
 if (tags.length !== 1) errors.push(`compose.yaml must tag every pantrypulse image with one version, found: ${tags.join(', ') || 'none'}`);
 if (!pin) errors.push('README.md has no "Version pin: `<version>`" line');
+else if (!PINNED.test(pin)) errors.push(`README.md pins ${pin}, which is not a release version or digest (a moving tag like latest changes under the user)`);
+for (const tag of tags) if (!PINNED.test(tag) && tag !== pin) errors.push(`compose.yaml tags ${tag}, which is not a release version or digest`);
 else if (tags.length === 1 && pin !== tags[0]) errors.push(`README.md pins ${pin} but compose.yaml tags ${tags[0]}`);
 for (const m of readme.matchAll(IMAGE)) if (m[1] !== pin) errors.push(`README.md references ${m[0]}, not the pinned ${pin}`);
 for (const e of errors) console.log(e);

@@ -3,6 +3,9 @@
 # Disposable: no published ports, the database lives in tmpfs, nothing touches the app stack's
 # volumes, and only the repository paths the suite reads are mounted, read-only (no .env files,
 # no .pantrypulse/). The suite fails if any test skips (scripts/quality/require-test-evidence.py).
+# Its own project name: without one, Compose would name it after the folder ("pantrypulse" for a
+# clone named PantryPulse), the app stack's project. The runners still pass their own -p.
+name: pantrypulse-tests
 services:
   postgres:
     image: postgres:16

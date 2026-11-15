@@ -44,3 +44,15 @@ test('the real README and compose.yaml agree', () => {
   const result = spawnSync(process.execPath, [script], { encoding: 'utf8' });
   assert.equal(result.status, 0, result.stdout + result.stderr);
 });
+
+test('a moving tag such as latest is not a pin: only a release version or a digest is', () => {
+  const latest = run(tree(COMPOSE('latest', 'latest'), 'Version pin: `latest` (`ghcr.io/gbw30/pantrypulse-api:latest`)\n'));
+  assert.equal(latest.status, 1);
+  assert.match(latest.stdout + latest.stderr, /latest.*not a release version or digest/);
+  assert.equal(run(tree(COMPOSE('main', 'main'), 'Version pin: `main`\n')).status, 1);
+  assert.equal(run(tree(COMPOSE('1.2.0-rc.1', '1.2.0-rc.1'), 'Version pin: `1.2.0-rc.1`\n')).status, 0);
+  const digest = `sha256:${'a'.repeat(64)}`;
+  const byDigest = `services:\n  api:\n    image: ghcr.io/gbw30/pantrypulse-api@${digest}\n  web:\n    image: ghcr.io/gbw30/pantrypulse-web@${digest}\n`;
+  const pinned = run(tree(byDigest, `Version pin: \`${digest}\`\n`));
+  assert.equal(pinned.status, 0, pinned.stdout + pinned.stderr);
+});

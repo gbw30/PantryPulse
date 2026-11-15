@@ -9,7 +9,7 @@ Version pin: `0.1.0` (`ghcr.io/gbw30/pantrypulse-api:0.1.0`, `ghcr.io/gbw30/pant
 ### 1. Prerequisites
 
 - **Windows 11:** [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install/) with the WSL 2 backend, and [git](https://git-scm.com/install/windows).
-- **Linux** (tested on Ubuntu 24.04): [Docker Engine](https://docs.docker.com/engine/install/ubuntu/) with the Compose plugin, and git.
+- **Linux** (Ubuntu 24.04 is the supported target; no run on it is recorded yet): [Docker Engine](https://docs.docker.com/engine/install/ubuntu/) with the Compose plugin, and git.
 - macOS is untested and not supported in this version.
 - Hardware: 4 CPU cores and 8 GiB of memory available to Docker, and about 15 GB of free disk. See [docs/pantrypulse/HARDWARE.md](docs/pantrypulse/HARDWARE.md) for the measurements.
 
@@ -25,7 +25,7 @@ docker compose up --build
 
 No images are published yet, so `--build` builds them on your computer. After the first published release, `docker compose up` without `--build` will download them instead.
 
-The first run took 60 s to build and 24 s to start on the reference laptop, which was otherwise idle ([measurements](docs/pantrypulse/HARDWARE.md)). The build downloads every npm and Python package, so a busy machine or a slow connection takes longer: on the same laptop under load it took up to 4 min 22 s. A machine that doesn't have Docker's base images yet (PostgreSQL, Python, Node and uv) also downloads them first.
+The first run took 1 min 00 s to build and 24 s to start on the reference laptop, with other work on it paused ([measurements](docs/pantrypulse/HARDWARE.md)). The build downloads every npm and Python package, so a busy machine or a slow connection takes longer. A machine that doesn't have Docker's base images yet (PostgreSQL, Python, Node and uv) also downloads them first.
 
 ### 3. Sign in
 

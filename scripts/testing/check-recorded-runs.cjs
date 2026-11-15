@@ -59,4 +59,5 @@ function main() {
   process.exitCode = failed ? 1 : 0;
 }
 
-main();
+if (require.main === module) main();
+module.exports = { validate, OSES, REQUIRED };

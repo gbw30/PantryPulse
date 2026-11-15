@@ -9,7 +9,9 @@
 //      (A17, 100 × 500, every method). They run natively against PP_TEST_DATABASE_URL because
 //      bench_v1.py needs git, which the API image doesn't have; the code is the worker's own.
 // Writes docs/testing/evidence/bench-<date>.json, then regenerates the measurement block of
-// docs/pantrypulse/HARDWARE.md from it. Usage, with .env.lane loaded: node scripts/bench/run-all.cjs
+// docs/pantrypulse/HARDWARE.md from it (the summary and bench blocks). Usage, with .env.lane loaded:
+// node scripts/bench/run-all.cjs, or `node scripts/bench/run-all.cjs --render <artifact.json>` to
+// regenerate HARDWARE.md from an existing artifact without measuring.
 // It runs `docker compose down -v` on COMPOSE_PROJECT_NAME, so it refuses the default project.
 const { spawnSync } = require('node:child_process');
 const fs = require('node:fs');
@@ -21,8 +23,12 @@ const root = path.resolve(__dirname, '../..');
 const api = path.join(root, 'apps/api');
 const hardware = path.join(root, 'docs/pantrypulse/HARDWARE.md');
 const MiB = 1024 * 1024;
+const FORECAST_CEILING_S = 300; // the forecast job's ceiling (CLAUDE.md: forecast 270/300 s)
 
-const minutes = (s) => (s < 60 ? `${s.toFixed(0)} s` : `${Math.floor(s / 60)} min ${String(Math.round(s % 60)).padStart(2, '0')} s`);
+function minutes(seconds) {
+  const s = Math.round(seconds); // round first, so 119.6 is 2 min 00 s, never 1 min 60 s
+  return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')} s`;
+}
 const gib = (mib) => `${(mib / 1024).toFixed(1)} GiB`;
 const when = (iso) => iso.replace(/\.\d+Z$/, 'Z');
 // Host load average [1, 5, 15 min]: the reference machine is shared, so each timing carries it.
@@ -59,6 +65,57 @@ function renderTable(a, link) {
     '| Measure | Result | Started (UTC) | Host load, 1 min (start → end) |',
     '|---|---|---|---|',
     ...rows.map(([measure, result, at, load]) => `| ${measure} | ${result} | ${when(at)} | ${load ? `${load.start[0]} → ${load.end[0]}` : '—'} |`),
+    '',
+    optimizers(a),
+    '',
+    `- **Host load:** the 1-minute load average was at most ${peakLoad([a.build, a.start, a.idle])} during the build, first start and idle sampling, and at most ${peakLoad(benches(a))} during the benches.`,
+    `- **Bench versions** (the commit that last changed each): ${Object.entries(a.bench_versions ?? {}).map(([f, c]) => `\`${path.basename(f)}\` \`${c.slice(0, 7)}\``).join(', ')}. The import bench generated ${a.import.report.generated.locations} locations × ${a.import.report.generated.products} products × 90 days.`,
+    '',
+  ].join('\n');
+}
+
+const benches = (a) => [a.import, a.forecast, a.comparison.pantry, a.comparison.retail];
+const peakLoad = (phases) => Math.max(...phases.flatMap((p) => [p.load.start[0], p.load.end[0]]));
+const cores = (n) => n.toFixed(1);
+
+/** The optimizer outcome of both comparisons, counted from the artifact. */
+function optimizers(a) {
+  const all = ['pantry', 'retail'].flatMap((mode) => a.comparison[mode].report.methods.map((m) => ({ mode, ...m })));
+  const solved = all.filter((m) => m.native_status);
+  const counts = solved.map((m) => m.product_status_counts);
+  const allOptimal = counts.every((c) => Object.keys(c).every((k) => k === 'OPTIMAL' || k === 'not at risk; not optimized'));
+  const checked = all.filter((m) => m.union_check);
+  const products = a.comparison.pantry.report.size.products;
+  const atRisk = [...new Set(counts.map((c) => c.OPTIMAL ?? 0))];
+  return `${allOptimal ? 'All optimizer products ended `OPTIMAL`' : 'Not every optimizer product ended `OPTIMAL` (see the artifact)'}. ` +
+    `${all.every((m) => m.verified) ? 'Every method result, baselines included, was verified' : 'Not every method result was verified'}, and the per-product union check passed on ` +
+    `${checked.filter((m) => m.union_check.passed).length} of ${checked.length} results across the Pantry units run and the Retail units and USD runs. ` +
+    (atRisk.length === 1
+      ? `In each optimizer run, ${atRisk[0]} of the ${products} products were at risk and optimized; the other ${products - atRisk[0]} are "not at risk; not optimized" by design (decisions/W0-optimizer-decomposition.md).`
+      : `The number of products at risk and optimized differs by run (${atRisk.join(', ')} of ${products}); see the artifact.`);
+}
+
+/** The Requirements table and the ceiling margin of HARDWARE.md, generated from the artifact alone. */
+function renderSummary(a) {
+  const m = a.machine;
+  const steps = benches(a);
+  const named = { import: a.import, forecast: a.forecast, 'Pantry comparison': a.comparison.pantry, 'Retail comparison': a.comparison.retail };
+  const [largest, peak] = Object.entries(named).reduce((x, y) => (y[1].peak_rss_mib > x[1].peak_rss_mib ? y : x));
+  const [lo, hi] = (/taskset -c (\d+)-(\d+)/.exec(a.import.command) ?? []).slice(1).map(Number);
+  const label = (image) => (/-api[:@]/.test(image) ? 'API' : /-web[:@]/.test(image) ? 'web' : /postgres/.test(image) ? 'PostgreSQL' : image);
+  const comparisons = ['pantry', 'retail'].flatMap((mode) => Object.entries(a.comparison[mode].report.comparison_wall_s)
+    .map(([measure, s]) => ({ mode, measure, s, ceilings: a.comparison[mode].report.ceilings_s })));
+  const slowest = comparisons.reduce((x, y) => (y.s > x.s ? y : x));
+  const size = a.comparison[slowest.mode].report.size;
+  return [
+    '| Resource | Requirement | From the measurements |',
+    '|---|---|---|',
+    `| CPU | **4 cores available to Docker**: V1-SPEC's provisional figure; no step has run under a 4-CPU limit yet | Docker had ${m.docker_cpus} CPUs, and the benches ran under \`taskset\` on ${hi - lo + 1}. Idle, the stack's containers used ${cores(a.idle.cpu_percent / 100)} of a core in total. Each bench process averaged ${cores(Math.min(...steps.map((p) => p.cpu_avg_cores)))}–${cores(Math.max(...steps.map((p) => p.cpu_avg_cores)))} cores; PostgreSQL's CPU during the benches is not included. Single-core speed sets how long a comparison takes (see the ceiling margin below). |`,
+    `| Memory | **8 GiB available to Docker**: V1-SPEC's provisional figure; what was measured fits well within it | Idle, the stack's containers peaked at ${a.idle.memory_peak_mib} MiB together. The largest bench process (the ${largest}) peaked at ${peak.peak_rss_mib.toLocaleString('en-US')} MiB, its largest child process's RSS. PostgreSQL's memory during the benches is not included, so these two are not a measured total. 8 GiB also lets the worker reach its 8 GiB ceiling (V1-SPEC §9). Less memory may work but is untested. The 16 GB machine recommendation is not measured. |`,
+    `| Disk | **About 15 GB free**: provisional, only partly measured | Images ${gib(a.disk.images_mib)} (${Object.entries(a.disk.images).map(([i, mib]) => `${label(i)} ${mib.toLocaleString('en-US')} MiB`).join(', ')}) and a ${a.disk.database_mib} MiB database after the first start. Not measured: Docker's build cache, the database after a maximum-size import, and the Chronos profile's provisional +10 GB. |`,
+    `| Time | First run: build ${minutes(a.build.seconds)}, then first start ${minutes(a.start.seconds)} | Base images were already on the machine, so a clean machine adds their download. The build has no cache mounts, so \`--no-cache\` downloads every npm and Python package again; it depends on load and connection speed (the host's 1-minute load went from ${a.build.load.start[0]} to ${a.build.load.end[0]} during the build). |`,
+    '',
+    `**Ceiling margin.** At ${size.locations} × ${size.products}, the slowest comparison was ${slowest.mode === 'pantry' ? 'Pantry' : 'Retail'} in ${slowest.measure.toLowerCase()}: every method together took ${minutes(slowest.s)} of the ${slowest.ceilings.comparison} s comparison ceiling${slowest.s < slowest.ceilings.method ? `, so each method stayed under the ${slowest.ceilings.method} s per-method ceiling` : ''}, on this laptop's CPU. Each bench averages about one core, so a CPU with about half this one's single-core speed could approach the ceiling. That is unverified; it is the first thing to check on slower hardware. The forecast used ${minutes(a.forecast.wall_s)} of its ${FORECAST_CEILING_S} s ceiling, and the import's job steps took ${minutes(a.import.report.seconds.total)}.`,
     '',
   ].join('\n');
 }
@@ -124,7 +181,26 @@ function bench(name, args, scratch, env = {}) {
     cpu_s: Math.round(u.cpu_s), cpu_avg_cores: Math.round((u.cpu_s / u.wall_s) * 10) / 10, peak_rss_mib: Math.round(u.peak_rss_kib / 1024), load, stdout };
 }
 
+/** Rewrites HARDWARE.md's two generated blocks from artifact `a` (stored at `file`). */
+function writeHardware(a, file) {
+  const link = path.relative(path.dirname(hardware), file).split(path.sep).join('/');
+  const block = (text, name, body) => {
+    const re = new RegExp(`<!-- ${name}:begin -->\\n[\\s\\S]*?<!-- ${name}:end -->`);
+    if (!re.test(text)) throw new Error(`HARDWARE.md has no ${name} block`);
+    return text.replace(re, () => `<!-- ${name}:begin -->\n${body}<!-- ${name}:end -->`);
+  };
+  const text = fs.readFileSync(hardware, 'utf8');
+  fs.writeFileSync(hardware, block(block(text, 'summary', renderSummary(a)), 'bench', renderTable(a, link)));
+}
+
 async function main() {
+  const at = process.argv.indexOf('--render');
+  if (at >= 0) { // regenerate HARDWARE.md from an existing artifact, without measuring
+    const file = path.resolve(process.argv[at + 1]);
+    writeHardware(JSON.parse(fs.readFileSync(file, 'utf8')), file);
+    console.log(`Rewrote HARDWARE.md from ${path.relative(root, file)}.`);
+    return;
+  }
   const project = process.env.COMPOSE_PROJECT_NAME;
   const db = process.env.PP_TEST_DATABASE_URL ?? '';
   if (!project || project === 'pantrypulse' || !/_test(\?|$)/.test(db)) {
@@ -185,12 +261,10 @@ async function main() {
   const file = path.join(root, `docs/testing/evidence/bench-${a.recorded_at.slice(0, 10)}.json`);
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, `${JSON.stringify(a, null, 2)}\n`);
-  const link = path.relative(path.dirname(hardware), file).split(path.sep).join('/');
-  const text = fs.readFileSync(hardware, 'utf8');
-  fs.writeFileSync(hardware, text.replace(/<!-- bench:begin -->\n[\s\S]*?<!-- bench:end -->/, `<!-- bench:begin -->\n${renderTable(a, link)}<!-- bench:end -->`));
-  console.log(renderTable(a, link));
+  writeHardware(a, file);
+  console.log(renderTable(a, path.relative(path.dirname(hardware), file).split(path.sep).join('/')));
   console.log(`Wrote ${path.relative(root, file)} and the HARDWARE.md block. The stack is stopped; \`docker compose down -v\` removes it.`);
 }
 
 if (require.main === module) main().catch((e) => { console.error(e); process.exitCode = 1; });
-module.exports = { renderTable, minutes };
+module.exports = { renderTable, renderSummary, minutes };

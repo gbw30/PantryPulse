@@ -43,3 +43,13 @@ test('the runner uses its own Compose project, never the app stack', () => {
   assert.equal(project({}), 'pantrypulse-tests');
   assert.equal(project({ COMPOSE_PROJECT_NAME: 'pp-packaging' }), 'pp-packaging-tests');
 });
+
+test('compose.test.yaml names its own project, so a bare `docker compose -f compose.test.yaml` never reaches the app', () => {
+  // Without a top-level name, Compose names the project after the folder: "pantrypulse" for a clone
+  // named PantryPulse, the app stack's own project, so `down --remove-orphans` could remove the app.
+  const name = /^name:\s*(\S+)\s*$/m.exec(fs.readFileSync(path.join(root, 'compose.test.yaml'), 'utf8'))?.[1];
+  assert.ok(name, 'compose.test.yaml has a top-level name');
+  assert.notEqual(name, 'pantrypulse');
+  assert.notEqual(name, JSON.parse(spawnSync('docker', ['compose', '-f', 'compose.yaml', 'config', '--format', 'json'],
+    { cwd: root, encoding: 'utf8', env: { ...process.env, COMPOSE_PROJECT_NAME: '' } }).stdout).name);
+});
