@@ -1,6 +1,6 @@
 # Status — `w5-packaging`
 
-**Lane:** `w5-packaging` · **Branch:** `lane/w5-packaging` · **Base SHA:** `81c551bc2e232362f0e63a7a00126ef1ca863fb8` · **Last update:** `2026-11-15 07:45` · **Head:** see `git log`
+**Lane:** `w5-packaging` · **Branch:** `lane/w5-packaging` · **Base SHA:** `81c551bc2e232362f0e63a7a00126ef1ca863fb8` · **Last update:** `2026-11-15 22:35Z` · **Head:** see `git log`
 
 ## Tasks
 
@@ -91,6 +91,25 @@ Order: PK01 → PK03 → PK04 → PK02 → PK05. PK02's `--enforce` can reach ex
 | F3 (Low): HARDWARE.md said "about 1.9 GiB"; 458 + 1,423 MiB = 1,881 MiB | Now "about 1.8 GiB (1,881 MiB)" |
 | F4 (Low): the bench artifact lacks `bench_versions`; the runner was uncommitted when it ran | Disclosed in HARDWARE.md's limits; the post-D02 re-measurement uses the committed runner |
 | F5 (Low): README said every published result passes the verifier, but failed methods are returned unverified | "Every plan shown passes an independent verifier; a method that fails verification is shown as failed, never replaced or turned into suggested actions" (`results.tsx:286`, `decisions-view.tsx:18-20`) |
+
+## Follow-up PR: `/code-review` items 2, 4 and 7 (Gabriel's go and item 4 rule, 2026-11-15)
+
+#156 merged into `v1-local` as `cadd138`. CI full ran 2269 backend tests with 0 skipped, and 264 e2e passed. This branch fast-forwarded to `cadd138`. Not pushed: waiting for the orchestrator's verification and go. No PR yet. No attribution lines; nothing posted on GitHub.
+
+| Item | Commit | Change (each test-first, RED seen) |
+|---|---|---|
+| 2 | `c3725de` | `check-egress-evidence.cjs` STACK adds the web image's root build inputs: `package.json`, `package-lock.json`, `packages/contracts`, `.dockerignore`. These come from `apps/web/Dockerfile:6-10`, whose build context is the repo root (`compose.yaml:101-103`). The api images build from `apps/api` only, which `apps/` covers. The stale message names the changed files. RED: 3 tests failed (stale message; package.json, lockfile, contracts and `.dockerignore` commits; dirty lockfile and contracts) |
+| 4 | `749681b` | `story-coverage.cjs`: pending = exit 1 with an empty stderr. Anything else is `broken <ID>`: another code, a signal, a timeout, a spawn error, or exit 1 with stderr output. Broken is never ok or pending and fails `--enforce`. `PP_STORY_CHECK_TIMEOUT_MS` overrides the 120 s timeout. RED: crash, exit 2 and stderr cases reported pending; the hang ran the full 120 s. GREEN: the timeout test takes 0.5 s |
+| 7 + N1 | `05eab31` | V1-A24's `checks` adds `scripts/testing/check-version-pin.cjs`. Tested with the real check in a tree whose README pins 0.1.0 while compose.yaml tags 0.2.0 → `pending`, never `ok`. On the real tree it shows `check-version-pin.cjs (passes)`. Also: the testing guide describes `broken` and the wider stack sources, and the `renderSummary` docstring (N1) says it also reads compose.yaml |
+
+**Gates at `05eab31`**, with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1` exported by hand:
+- `node scripts/quality/run.cjs quick` → **PASS**, exit 0, 2026-11-15T22:29:38Z. Web typecheck, web lint, api lint and api tests all exit 0; `sourceUnchangedDuringRun` true.
+- `npm run test:config` → tests 88, pass 88, fail 0, skipped 0.
+- `node scripts/testing/story-coverage.cjs --enforce` → exit 0, `covered 19/24; pending 5 (V1-A01, V1-A03, V1-A04, V1-A18, V1-A24)`; no `broken` story.
+- `node scripts/testing/check-egress-evidence.cjs` → exit 1, `pending egress-2026-11-15.json: 46 stack sources changed since 9541f6f (apps/web/…)`. This is expected: the w5-polish merge changed `apps/web/**` after the egress run. V1-A03 and V1-A04 are therefore pending until W6 re-runs the egress journey on the release candidate. Not re-run here, per the orchestrator.
+- `node scripts/testing/check-version-pin.cjs` → "README.md and compose.yaml both pin 0.1.0".
+
+**Next:** on the orchestrator's go, push `lane/w5-packaging` (Gabriel approves in the terminal). Then open the follow-up PR into `v1-local` with no attribution lines, and send the orchestrator the PR number.
 
 ## Next, on the orchestrator's go (after the w5-data merge, PR #151)
 
