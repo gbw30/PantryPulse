@@ -74,7 +74,7 @@ Agreed with the orchestrator on 2026-11-12. Go received 2026-11-15: steps 1–3 
 - A01, A18 and A24 (pull path) map to `scripts/testing/check-recorded-runs.cjs`, which validates per-OS run records in `docs/testing/evidence/runs/` and exits 1 while none exist. It is never skipped; those criteria stay open until a person records the runs. — W5-PK02.
 
 - The benches run natively under `taskset -c 0-5`, not inside the worker container: `scripts/or/bench_v1.py` calls `git`, which the API image lacks, and `scripts/or/` is outside this lane. Peak RSS and CPU time come from `getrusage(RUSAGE_CHILDREN)`. — W5-PK04.
-- HARDWARE.md's measurement table is generated from the JSON artifact by `renderTable`, and the test re-renders it, so no number can be typed by hand. The requirement prose around it states what is measured and what is not. — W5-PK04.
+- Every measured figure in HARDWARE.md is in one of two blocks generated from the JSON artifact (`renderSummary`: requirements and ceiling margin; `renderTable`: measurements, optimizer outcome, host load, bench versions), and `bench-report.test.cjs` re-renders both. The hand-written text may state only V1-SPEC figures (a test lists every number-with-unit outside the blocks), and every duration in the README quickstart must be the artifact's (`readme.test.cjs`). — W5-PK04, verifier round 2 (F2).
 
 ## Gotchas
 
@@ -95,6 +95,19 @@ Agreed with the orchestrator on 2026-11-12. Go received 2026-11-15: steps 1–3 
 - **Why:** `bench-report.test.cjs` reads HARDWARE.md and `run-all.cjs` rewrites its table, so a docs-only PR that edits HARDWARE.md must still run the checks. `npm run test:config` → `✖ every docs/ Markdown path quoted in code is in TEST_READ` (`scripts/quality/tests/docs-only.test.cjs:86`, actual `['docs/pantrypulse/HARDWARE.md']`) at `61bea71`; CI's `verify` job runs `test:config` (`.github/workflows/pantrypulse-ci.yml:26`), so the lane PR's CI fails until this lands. Building the path from parts would get past the guard, but its own comment names that as a blind spot, so I didn't.
 - **Unblocks:** the lane PR's CI (W5-PK04 is otherwise done).
 - **Status:** approved (Gabriel, 2026-11-12), done in `0286cc0`. Evidence: `npm run test:config` → exit 0, tests 36, pass 36, fail 0, skipped 0; "every docs/ Markdown path quoted in code is in TEST_READ" passes.
+
+### CR-w5-packaging-2: run the lane's tests in `test:config`
+- **File(s):** `package.json` (lead-owned), the `test:config` script line only.
+- **Change:** `node --test scripts/quality/tests/*.test.cjs scripts/testing/tests/*.test.cjs`.
+- **Why:** verifier round 2 (F1): the lane's tests ran in no gate and no CI.
+- **Status:** approved (Gabriel, 2026-11-15) as a one-time exception; done in `5907f53`. `npm run test:config` → 78 tests, 78 pass, 0 fail, 0 skipped, 3.2 s.
+
+### CR-w5-packaging-3: full history for the CI `verify` job
+- **File(s):** `.github/workflows/pantrypulse-ci.yml` (lead-owned), the `verify` job's `actions/checkout@v4` step (line 19).
+- **Exact change:** add `with: { fetch-depth: 0 }` to that step.
+- **Why:** with CR-2, `verify` runs `scripts/testing/tests/bench-report.test.cjs`, which checks that the bench artifact's commit (`d92021b`) exists with `git cat-file -e`. The default depth-1 checkout has no history, so the test fails there. Reproduced: a `git clone --depth 1` of this branch at `5907f53` → `node --test scripts/quality/tests/*.test.cjs scripts/testing/tests/*.test.cjs` → 70 of 71 pass, `✖ every measurement is tied to a real commit and a timestamp`. Making the test skip in a shallow clone would hide the check, so I didn't. (`check-egress-evidence.cjs` and `check-recorded-runs.cjs` also read history; in a shallow clone their stories show `pending`, which fails nothing.)
+- **Unblocks:** the lane PR's `verify` job.
+- **Status:** open.
 
 ## Escalations
 
