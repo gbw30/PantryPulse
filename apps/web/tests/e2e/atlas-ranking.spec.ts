@@ -134,12 +134,41 @@ for (const [width, height, mode] of [[1440, 900, "PANTRY"], [1280, 720, "PANTRY"
     await expect(items).toHaveCount(5);
     if (mode === "RETAIL") await expect(items.first()).toContainText("A DC has no sales");
     await page.evaluate(() => window.scrollTo(0, 0));
+    // At least 24 px under #3, so a small change in copy or data doesn't push it out of the first view.
     for (const i of [0, 1, 2]) {
       const box = (await items.nth(i).boundingBox())!;
-      expect(box.y + box.height, `rank #${i + 1} ends inside the first view`).toBeLessThanOrEqual(height);
+      expect(box.y + box.height, `rank #${i + 1} ends 24 px inside the first view`).toBeLessThanOrEqual(height - 24);
     }
+    // The column beside the map (caption, then legend) starts at the map's top, not at its bottom.
+    const map = (await page.getByRole("group", { name: /^Map of / }).boundingBox())!;
+    const caption = (await page.getByText(/^Placed from each location/).boundingBox())!;
+    expect(Math.abs(caption.y - map.y), "caption and legend top-aligned with the map").toBeLessThanOrEqual(8);
   });
 }
+
+// ux-critic (wave end): with the inspector open, the column beside the map was squeezed and its text ran under the
+// inspector, cut mid-word. The legend then sits under the map, inside the ranking column.
+test("@V1-A20 with the inspector open at 1440x900, no legend text overflows its box", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page);
+  const section = page.getByRole("region", { name: `Danger ranking · ${network.name}` });
+  await section.getByRole("button", { name: names["P-12"], exact: true }).click();
+  const inspector = page.getByRole("region", { name: "Site inspector · Archer Road Pantry" });
+  await expect(inspector).toBeVisible();
+  const legend = section.getByRole("list", { name: "Danger bands" }).locator("..");
+  const overflow = await legend.evaluate((box) => {
+    const outer = box.getBoundingClientRect();
+    return [box, ...box.querySelectorAll("*")].filter((el) => {
+      const r = el.getBoundingClientRect();
+      return el.scrollWidth > el.clientWidth + 1 || r.left < outer.left - 1 || r.right > outer.right + 1;
+    }).map((el) => `${el.tagName} ${(el.textContent ?? "").slice(0, 30)}`);
+  });
+  expect(overflow, "legend elements wider than their box").toEqual([]);
+  const legendBox = (await legend.boundingBox())!;
+  const inspectorBox = (await inspector.boundingBox())!;
+  expect(legendBox.x + legendBox.width, "legend clear of the inspector").toBeLessThanOrEqual(inspectorBox.x);
+  expect(legendBox.width, "legend keeps a readable width").toBeGreaterThanOrEqual(320);
+});
 
 test("@V1-A20 Run forecast sits outside the ranking, labeled for presenters", async ({ page }) => {
   await open(page);

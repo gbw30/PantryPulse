@@ -218,7 +218,7 @@ function RankingBody({ network, forecastRunId }: { network: Network; forecastRun
           </div>
         )}
         {placed.length > 0 && (
-          <LocationMap name={network.name} placed={placed} label={label} bandOf={(id) => bands.get(id) ?? null} onSelect={select}>
+          <LocationMap name={network.name} placed={placed} label={label} bandOf={(id) => bands.get(id) ?? null} onSelect={select} stacked={Boolean(location)}>
             {legendMode && <DangerLegend mode={legendMode} />}
           </LocationMap>
         )}

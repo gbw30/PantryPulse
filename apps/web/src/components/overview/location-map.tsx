@@ -40,14 +40,16 @@ type MapProps = {
   onSelect: (locationId: string, opener: HTMLElement) => void;
   /** Shown with the caption, beside the map on desktop (the danger legend). */
   children?: React.ReactNode;
+  /** Caption and legend under the map even on desktop: the inspector beside the ranking leaves no room for them. */
+  stacked?: boolean;
 };
 
 /** Each placed location is a button with its band shape; colour only reinforces the shape and text. */
-export function LocationMap({ name, placed, label, bandOf, onSelect, children }: MapProps) {
+export function LocationMap({ name, placed, label, bandOf, onSelect, children, stacked = false }: MapProps) {
   if (placed.length === 0) return null; // nothing to place: no empty frame (the section lists unplaced locations)
   return (
-    // Desktop: the capped map leaves room beside it for its caption, so the ranking starts higher (W4-03 #5).
-    <div className="grid gap-1 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-end lg:gap-x-4">
+    // Desktop: the capped map leaves room beside it for its caption, top-aligned with it, so the ranking starts higher (W4-03 #5).
+    <div className={cn("grid gap-1", !stacked && "lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start lg:gap-x-4")}>
       {/* Desktop caps the height (keeping 16:9) so ranks #1–#3 sit in the first view (W4-03 ux-critic #5). */}
       <div role="group" aria-label={`Map of ${name}`} className="relative aspect-video w-full overflow-hidden rounded-lg border border-border bg-muted/30 lg:h-[clamp(8rem,calc(100svh-37rem),22rem)] lg:w-auto lg:max-w-full">
         {placed.map(({ location, x, y }) => {
@@ -67,7 +69,7 @@ export function LocationMap({ name, placed, label, bandOf, onSelect, children }:
           );
         })}
       </div>
-      <div className="grid content-end gap-2">
+      <div className="grid content-start gap-2">
         <p className="text-xs text-muted-foreground">Placed from each location&apos;s coordinates on a schematic projection, with no basemap. A square marks a location that is not ranked.</p>
         {children}
       </div>

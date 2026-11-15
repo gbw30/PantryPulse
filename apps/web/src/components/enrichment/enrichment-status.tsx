@@ -10,12 +10,15 @@ const MISSING_LABEL: Record<Schema["EgpBlocker"]["missing"][number], string> = {
 
 type Props = {
   status: Status;
+  /** Poverty and SNAP rates, their exclusion and the EGP blockers only feed Pantry planning (V1-D03): Retail hides them. */
+  mode: Schema["Network"]["mode"];
   onRetry: () => Promise<Schema["ForecastAccepted"]>;
   onSaveAttributes: (locationId: string, update: Schema["LocationAttributesUpdate"]) => Promise<unknown>;
 };
 
 /** Census geocoding and ACS attributes for one network (V1-SPEC §6.3), with EGP blockers (§6.2). */
-export function EnrichmentStatusPanel({ status, onRetry, onSaveAttributes }: Props) {
+export function EnrichmentStatusPanel({ status, mode, onRetry, onSaveAttributes }: Props) {
+  const pantry = mode === "PANTRY";
   const [retry, setRetry] = useState<{ busy: boolean; message: string | null }>({ busy: false, message: null });
 
   async function retryLookups() {
@@ -51,7 +54,7 @@ export function EnrichmentStatusPanel({ status, onRetry, onSaveAttributes }: Pro
         </section>
       )}
 
-      {status.egp_blockers.length > 0 && (
+      {pantry && status.egp_blockers.length > 0 && (
         <div role="alert" className="grid gap-1 rounded-xl border border-pp-warning/60 bg-card px-4 py-3 text-sm">
           <p className="font-medium">EGP_PI_INSPIRED is blocked until each location below has values entered or is excluded.</p>
           <ul className="ml-5 list-disc">
@@ -79,13 +82,13 @@ export function EnrichmentStatusPanel({ status, onRetry, onSaveAttributes }: Pro
         </section>
       )}
 
-      <section aria-labelledby="attributes-heading" className="rounded-xl border border-border bg-card px-4 py-1">
+      {pantry && <section aria-labelledby="attributes-heading" className="rounded-xl border border-border bg-card px-4 py-1">
         <h3 id="attributes-heading" className="pt-3 text-sm font-semibold">Poverty and SNAP rates by location</h3>
         {status.locations.map((location) => (
           <AttributeEditor key={`${location.location_id}:${location.state}:${location.poverty_rate}:${location.snap_rate}`} location={location}
             onSave={(update) => onSaveAttributes(location.location_id, update)} />
         ))}
-      </section>
+      </section>}
     </div>
   );
 }
