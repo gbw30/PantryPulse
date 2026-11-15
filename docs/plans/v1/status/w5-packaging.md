@@ -1,6 +1,6 @@
 # Status — `w5-packaging`
 
-**Lane:** `w5-packaging` · **Branch:** `lane/w5-packaging` · **Base SHA:** `81c551bc2e232362f0e63a7a00126ef1ca863fb8` · **Last update:** `2026-11-12 09:55` · **Head:** see `git log`
+**Lane:** `w5-packaging` · **Branch:** `lane/w5-packaging` · **Base SHA:** `81c551bc2e232362f0e63a7a00126ef1ca863fb8` · **Last update:** `2026-11-15 06:10` · **Head:** see `git log`
 
 ## Tasks
 
@@ -32,6 +32,14 @@ Order: PK01 → PK03 → PK04 → PK02 → PK05. PK02's `--enforce` can reach ex
 | Gate | Commit | Result |
 |---|---|---|
 | `node scripts/quality/run.cjs quick` (with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1` exported by hand) | `d1d9800` (after the merge of `v1-local` `2a42698`) | **FAIL** (2026-11-15T01:10Z, host load up to 25 while w5-polish ran its gate): web typecheck, web lint, api lint pass; api tests `9 failed, 2258 passed` in 12 min 16 s, all 9 in `tests/imports/test_import_job.py` with `AdmissionRejected`. Not caused by this lane (it changes nothing under `apps/`); see ESC-w5-packaging-1 |
+| **Round 2, final head `8b04600`** (all with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1` exported by hand) | | |
+| `node scripts/quality/run.cjs quick` | `8b04600` | **PASS**, exit 0, 2026-11-15T05:59:05Z: web typecheck, web lint, api lint, api tests all exit 0; `sourceUnchangedDuringRun` true (`.claude/state/quality/quick.json`) |
+| `node scripts/quality/run.cjs full` | `8b04600` | **PASS**, exit 0, 2026-11-15T06:06:53Z: web typecheck, web lint, api lint, api tests, web unit tests, web build, contract drift, database migrations all exit 0; `sourceUnchangedDuringRun` true (`full.json`). The gate stores no test counts; CI's full job enforces zero API skips |
+| `npm run test:config` | `8b04600` | tests 78, pass 78, fail 0, skipped 0 (3.2 s) |
+| Fresh `git clone` of the branch without `--depth` (659 commits), `node --test scripts/quality/tests/*.test.cjs scripts/testing/tests/*.test.cjs` | `8b04600` | tests 78, pass 78, fail 0, skipped 0 |
+| Same with `git clone --depth 1` (CI's `verify` checkout before CR-w5-packaging-3) | `8b04600` | tests 78, pass 77, fail 1, skipped 0: only `every measurement is tied to a real commit and a timestamp` (the bench commit `d92021b` is not in a depth-1 clone), which CR-3's `fetch-depth: 0` fixes |
+| `node scripts/testing/story-coverage.cjs --enforce` | `8b04600` | exit 0; `covered 21/24; pending 3 (V1-A01, V1-A18, V1-A24)`: those three wait for recorded runs (`check-recorded-runs.cjs` exits 1) and print `pending`, never `ok`; A03 and A04 are ok on `egress-2026-11-15.json` (`check-egress-evidence.cjs` → `ok`) |
+| **Earlier** | | |
 | `node scripts/quality/run.cjs quick` (with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1` exported by hand) | `a1eb4d3` (after merging `v1-local` `8b4fff9`, the heartbeat fix #154) | **PASS** (2026-11-15T02:20Z, host load 4–5): web typecheck, web lint, api lint, api tests all exit 0; `sourceUnchangedDuringRun` true (`.claude/state/quality/quick.json`). The gate prints no test counts |
 | (earlier) same, before the merge | `1e251ab` | PASS: web typecheck, web lint, api lint, api tests all exit 0; `sourceUnchangedDuringRun` true (`.claude/state/quality/quick.json`, 2026-11-12T09:44Z) |
 | `node scripts/quality/run.cjs full` (with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1` exported by hand) | `1e251ab` | PASS: those four plus web unit tests, web build, contract drift, database migrations, all exit 0; `sourceUnchangedDuringRun` true (`full.json`, 09:51Z). The gate stores no skip counts, so the zero-skip evidence is the rows below. `1e251ab` differs from `0daecf8` only in this status file |
