@@ -80,9 +80,11 @@ export function TopBar({ search, horizonLabel, active, legacyOnly }: { search?: 
       >
         <Search />
       </Button>
-      <div className={cn("ml-auto flex shrink-0 items-center gap-3", mobileSearchOpen && "max-md:hidden")}>
+      <div className={cn("ml-auto flex min-w-0 items-center gap-3", mobileSearchOpen && "max-md:hidden")}>
+        {/* Below sm the data label sits over the snapshot date, so the bar fits 390 px without hiding either. */}
+        <div className="flex min-w-0 items-center gap-3 max-sm:flex-col max-sm:items-end max-sm:gap-0.5">
         {labels.map((label) => (
-          <span key={label} className="inline-flex items-center gap-1.5 rounded-full border border-pp-teal/30 bg-pp-teal-soft px-2.5 py-1 text-xs font-medium text-foreground">
+          <span key={label} className="inline-flex items-center gap-1.5 rounded-full border border-pp-teal/30 bg-pp-teal-soft px-2.5 py-1 text-xs font-medium whitespace-nowrap text-foreground max-sm:py-0.5">
             <span aria-hidden="true" className="size-1.5 rounded-full bg-pp-teal" />
             {label}
           </span>
@@ -90,6 +92,7 @@ export function TopBar({ search, horizonLabel, active, legacyOnly }: { search?: 
         {network?.as_of_date && (
           <span className="text-xs whitespace-nowrap text-muted-foreground tabular-nums">Snapshot {snapshotDate(network.as_of_date)}</span>
         )}
+        </div>
         {horizonLabel && (
           <span className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-sm text-foreground max-md:hidden">
             <CalendarDays className="size-4 text-muted-foreground" aria-hidden="true" />

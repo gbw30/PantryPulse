@@ -1,0 +1,465 @@
+{
+  "schema": "pantrypulse-bench-v1",
+  "recorded_at": "2026-11-15T01:40:29.096Z",
+  "commit": "d92021b0c923079569660b528877d8fe33c92ae7",
+  "dirty_paths": [],
+  "bench_versions": {
+    "apps/api/scripts/bench_import.py": "09b6aba089e1c9289a78f6ca43186ed07eb4d943",
+    "apps/api/scripts/bench_forecast.py": "86ee346137ded4c44e9fc6c7e7773a6ee720d178",
+    "scripts/or/bench_v1.py": "408a86d2ca3a0668536c004e5ae4f7264ecf330f"
+  },
+  "machine": {
+    "cpu": "Intel(R) Core(TM) Ultra 9 285H",
+    "cpus": 16,
+    "ram_mib": 15672,
+    "os": "Docker Desktop (kernel 6.18.58.1-microsoft-standard-WSL2)",
+    "docker_version": "29.9.2",
+    "docker_cpus": 16,
+    "docker_memory_mib": 15672
+  },
+  "note": "Timings on synthetic, seeded data at the maximum envelope; never accuracy evidence.",
+  "build": {
+    "started_at": "2026-11-15T01:40:29.856Z",
+    "seconds": 59.6,
+    "load": {
+      "start": [
+        1.5,
+        3.1,
+        4.4
+      ],
+      "end": [
+        9.5,
+        5.1,
+        5
+      ]
+    }
+  },
+  "start": {
+    "started_at": "2026-11-15T01:41:29.480Z",
+    "seconds": 24.3,
+    "load": {
+      "start": [
+        9.5,
+        5.1,
+        5
+      ],
+      "end": [
+        7.1,
+        4.9,
+        4.9
+      ]
+    }
+  },
+  "idle": {
+    "started_at": "2026-11-15T01:42:53.942Z",
+    "load": {
+      "start": [
+        4.7,
+        4.6,
+        4.8
+      ],
+      "end": [
+        3.5,
+        4.3,
+        4.7
+      ]
+    },
+    "samples": 10,
+    "memory_mib": 313,
+    "memory_peak_mib": 332,
+    "cpu_percent": 40,
+    "per_container_peak_mib": {
+      "pp-packaging-api-1": 127,
+      "pp-packaging-postgres-1": 70,
+      "pp-packaging-web-1": 59,
+      "pp-packaging-worker-1": 78
+    }
+  },
+  "disk": {
+    "measured_at": "2026-11-15T01:43:24.429Z",
+    "images": {
+      "postgres:16": 607,
+      "pp-packaging-api:local": 1122,
+      "pp-packaging-web:local": 373
+    },
+    "database_mib": 101,
+    "images_mib": 2102
+  },
+  "import": {
+    "started_at": "2026-11-15T01:43:26.034Z",
+    "command": "taskset -c 0-5 uv run --frozen python scripts/bench_import.py --out ../../artifacts/bench/import.json",
+    "wall_s": 59.1,
+    "cpu_s": 38,
+    "cpu_avg_cores": 0.6,
+    "peak_rss_mib": 501,
+    "load": {
+      "start": [
+        3.7,
+        4.3,
+        4.7
+      ],
+      "end": [
+        2.8,
+        4,
+        4.6
+      ]
+    },
+    "report": {
+      "generated": {
+        "locations": 100,
+        "products": 500,
+        "batches": 200000,
+        "demand_history": 4500000
+      },
+      "loaded": {
+        "net_batches": 200000,
+        "net_demand_history": 4500000
+      },
+      "seconds": {
+        "generate": 3.833,
+        "step": 31.6729,
+        "prepare": 20.1233,
+        "publish": 1.3388,
+        "total": 53.135
+      },
+      "peak_rss_bytes": 525369344,
+      "host": {
+        "platform": "Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+        "python": "3.12.13",
+        "cpus": 16
+      }
+    }
+  },
+  "forecast": {
+    "started_at": "2026-11-15T01:44:25.191Z",
+    "command": "taskset -c 0-5 uv run --frozen python scripts/bench_forecast.py --part lock --series 50000",
+    "wall_s": 34,
+    "cpu_s": 28,
+    "cpu_avg_cores": 0.8,
+    "peak_rss_mib": 1066,
+    "load": {
+      "start": [
+        2.8,
+        4,
+        4.6
+      ],
+      "end": [
+        2.1,
+        3.7,
+        4.5
+      ]
+    },
+    "report": {
+      "series": 50000,
+      "days": 90,
+      "state": "SUCCEEDED",
+      "error": null,
+      "errors": {},
+      "timings": {
+        "submit_s": 5.43,
+        "prepare_s": 5.84,
+        "publisher_publish_s": 3.2,
+        "queue_publish_s": 4.38,
+        "lock_held_s": 4.08,
+        "job_s": 29.87
+      },
+      "input_mb": 11.93,
+      "note": "lock_held_s runs from the call to the queue's _lock_claimed to COMMIT: acquiring the lock, its own checks (the job row and the input hash), the INSERT, the transitions and COMMIT",
+      "part": "lock",
+      "wall_s": 33.78,
+      "peak_rss_mb": 1066.1,
+      "commit": "d92021b",
+      "python": "3.12.13",
+      "cpus": 16,
+      "synthetic": true,
+      "load_1_5_15": {
+        "start": [
+          2.83740234375,
+          3.96240234375,
+          4.587890625
+        ],
+        "end": [
+          2.08544921875,
+          3.64892578125,
+          4.45849609375
+        ]
+      }
+    }
+  },
+  "comparison": {
+    "pantry": {
+      "started_at": "2026-11-15T01:44:59.229Z",
+      "command": "taskset -c 0-5 uv run --frozen python ../../scripts/or/bench_v1.py --mode pantry --out ../../artifacts/bench/or-pantry.json",
+      "wall_s": 231.5,
+      "cpu_s": 232,
+      "cpu_avg_cores": 1,
+      "peak_rss_mib": 1000,
+      "load": {
+        "start": [
+          2.1,
+          3.7,
+          4.5
+        ],
+        "end": [
+          1.9,
+          2.8,
+          3.9
+        ]
+      },
+      "report": {
+        "mode": "PANTRY",
+        "seed": 20261104,
+        "machine": {
+          "platform": "Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+          "cpus_allowed": 6
+        },
+        "recorded_at": "2026-11-15T01:45:00+00:00",
+        "commit": "d92021b0c923079569660b528877d8fe33c92ae7",
+        "tree_clean": true,
+        "size": {
+          "locations": 100,
+          "products": 500,
+          "batches": 69961,
+          "demand_series": 48000,
+          "routes": 960
+        },
+        "generate_s": 1.2,
+        "ceilings_s": {
+          "method": 330,
+          "comparison": 690
+        },
+        "methods": [
+          {
+            "measure": "UNITS",
+            "method": "NO_TRANSFERS",
+            "native_status": null,
+            "product_status_counts": {
+              "baseline": 500
+            },
+            "verified": true,
+            "failure_reason": null,
+            "transfers": 0,
+            "union_check": {
+              "passed": true,
+              "violations": []
+            }
+          },
+          {
+            "measure": "UNITS",
+            "method": "EQUAL_SHARE",
+            "native_status": null,
+            "product_status_counts": {
+              "baseline": 209,
+              "not at risk; not optimized": 291
+            },
+            "verified": true,
+            "failure_reason": null,
+            "transfers": 3473,
+            "union_check": {
+              "passed": true,
+              "violations": []
+            }
+          },
+          {
+            "measure": "UNITS",
+            "method": "MOST_URGENT_FIRST",
+            "native_status": null,
+            "product_status_counts": {
+              "baseline": 209,
+              "not at risk; not optimized": 291
+            },
+            "verified": true,
+            "failure_reason": null,
+            "transfers": 3473,
+            "union_check": {
+              "passed": true,
+              "violations": []
+            }
+          },
+          {
+            "measure": "UNITS",
+            "method": "CLASSICAL_GP",
+            "native_status": "OPTIMAL",
+            "product_status_counts": {
+              "OPTIMAL": 209,
+              "not at risk; not optimized": 291
+            },
+            "verified": true,
+            "failure_reason": null,
+            "transfers": 4062,
+            "union_check": {
+              "passed": true,
+              "violations": []
+            }
+          },
+          {
+            "measure": "UNITS",
+            "method": "EGP_PI_INSPIRED",
+            "native_status": "OPTIMAL",
+            "product_status_counts": {
+              "OPTIMAL": 209,
+              "not at risk; not optimized": 291
+            },
+            "verified": true,
+            "failure_reason": null,
+            "transfers": 4091,
+            "union_check": {
+              "passed": true,
+              "violations": []
+            }
+          }
+        ],
+        "comparison_wall_s": {
+          "UNITS": 204.5
+        },
+        "peak_rss_mb": 999.5,
+        "total_s": 230.9
+      }
+    },
+    "retail": {
+      "started_at": "2026-11-15T01:48:50.732Z",
+      "command": "taskset -c 0-5 uv run --frozen python ../../scripts/or/bench_v1.py --mode retail --out ../../artifacts/bench/or-retail.json",
+      "wall_s": 333.3,
+      "cpu_s": 333,
+      "cpu_avg_cores": 1,
+      "peak_rss_mib": 1454,
+      "load": {
+        "start": [
+          1.9,
+          2.8,
+          3.9
+        ],
+        "end": [
+          1.8,
+          2.3,
+          3.4
+        ]
+      },
+      "report": {
+        "mode": "RETAIL",
+        "seed": 20261104,
+        "machine": {
+          "platform": "Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+          "cpus_allowed": 6
+        },
+        "recorded_at": "2026-11-15T01:48:52+00:00",
+        "commit": "d92021b0c923079569660b528877d8fe33c92ae7",
+        "tree_clean": true,
+        "size": {
+          "locations": 100,
+          "products": 500,
+          "batches": 69961,
+          "demand_series": 48000,
+          "routes": 960
+        },
+        "generate_s": 1.2,
+        "ceilings_s": {
+          "method": 330,
+          "comparison": 690
+        },
+        "methods": [
+          {
+            "measure": "UNITS",
+            "method": "NO_TRANSFERS",
+            "native_status": null,
+            "product_status_counts": {
+              "baseline": 500
+            },
+            "verified": true,
+            "failure_reason": null,
+            "transfers": 0,
+            "union_check": {
+              "passed": true,
+              "violations": []
+            }
+          },
+          {
+            "measure": "UNITS",
+            "method": "SOONEST_EXPIRY_FIRST",
+            "native_status": null,
+            "product_status_counts": {
+              "baseline": 209,
+              "not at risk; not optimized": 291
+            },
+            "verified": true,
+            "failure_reason": null,
+            "transfers": 8429,
+            "union_check": {
+              "passed": true,
+              "violations": []
+            }
+          },
+          {
+            "measure": "UNITS",
+            "method": "RETAIL_OPTIMIZED",
+            "native_status": "OPTIMAL",
+            "product_status_counts": {
+              "OPTIMAL": 209,
+              "not at risk; not optimized": 291
+            },
+            "verified": true,
+            "failure_reason": null,
+            "transfers": 8025,
+            "union_check": {
+              "passed": true,
+              "violations": []
+            }
+          },
+          {
+            "measure": "USD",
+            "method": "NO_TRANSFERS",
+            "native_status": null,
+            "product_status_counts": {
+              "baseline": 500
+            },
+            "verified": true,
+            "failure_reason": null,
+            "transfers": 0,
+            "union_check": {
+              "passed": true,
+              "violations": []
+            }
+          },
+          {
+            "measure": "USD",
+            "method": "SOONEST_EXPIRY_FIRST",
+            "native_status": null,
+            "product_status_counts": {
+              "baseline": 209,
+              "not at risk; not optimized": 291
+            },
+            "verified": true,
+            "failure_reason": null,
+            "transfers": 9486,
+            "union_check": {
+              "passed": true,
+              "violations": []
+            }
+          },
+          {
+            "measure": "USD",
+            "method": "RETAIL_OPTIMIZED",
+            "native_status": "OPTIMAL",
+            "product_status_counts": {
+              "OPTIMAL": 209,
+              "not at risk; not optimized": 291
+            },
+            "verified": true,
+            "failure_reason": null,
+            "transfers": 8775,
+            "union_check": {
+              "passed": true,
+              "violations": []
+            }
+          }
+        ],
+        "comparison_wall_s": {
+          "UNITS": 145.6,
+          "USD": 151.2
+        },
+        "peak_rss_mb": 1454.2,
+        "total_s": 332.6
+      }
+    }
+  }
+}

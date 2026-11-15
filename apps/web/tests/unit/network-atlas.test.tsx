@@ -14,7 +14,8 @@ vi.mock("@/components/shell/app-shell", () => ({ AppShell: ({ children }: { chil
   ShellProviders: ({ children }: { children: ReactNode }) => children }));
 // The mocked shell has no NetworkProvider; the v1 danger ranking has its own tests (danger-ranking.test.tsx).
 vi.mock("@/components/overview/danger-ranking", async (load) => ({ ...(await load<typeof import("@/components/overview/danger-ranking")>()),
-  DangerRankingSection: () => <p>v1 danger ranking</p> }));
+  // It renders the page header it is given beside its presenter controls (W5-UI02.5).
+  DangerRankingSection: ({ header }: { header?: ReactNode }) => <>{header}<p>v1 danger ranking</p></> }));
 // No v1 network unless a test chooses one: the legacy atlas is the signed-out/visitor view.
 type NetworkValue = Pick<ReturnType<typeof import("@/components/shell/network-switcher").useNetwork>, "state" | "network">;
 let networks: NetworkValue = { state: { status: "signed_out" }, network: null };

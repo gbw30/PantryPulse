@@ -125,7 +125,7 @@ function NetworkSections({ network, configured }: { network: Network; configured
         {enrichment.state.status === "loading" && <p role="status" className="text-sm text-muted-foreground">Loading locations…</p>}
         {enrichment.state.status === "error" && <Failed what="Location details" code={enrichment.state.code} retry={enrichment.reload} />}
         {enrichment.state.status === "ready" && (
-          <EnrichmentStatusPanel status={enrichment.state.value}
+          <EnrichmentStatusPanel status={enrichment.state.value} mode={network.mode}
             onRetry={async () => { const job = await networkApi.retryEnrichment(network.id); void reloadWhenDone(job.job_id, enrichment.reload); return job; }}
             onSaveAttributes={async (locationId, update) => { await networkApi.setAttributes(network.id, locationId, update); enrichment.reload(); }} />
         )}

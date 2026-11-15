@@ -18,7 +18,8 @@ export default defineConfig({
   webServer: {
     command: `npm run ${process.env.PP_E2E_PRODUCTION === "1" ? "start" : "dev"} -- --port ${port}`,
     url: baseURL,
-    reuseExistingServer: !process.env.CI,
+    // A connected run never reuses a server: a leftover one serves a stale build (W4-03; run-e2e.sh checks the port first).
+    reuseExistingServer: !process.env.CI && process.env.PP_RUN_CONNECTED !== "1",
     timeout: 120_000,
   },
 });

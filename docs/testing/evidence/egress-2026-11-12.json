@@ -1,0 +1,114 @@
+{
+  "commit": "083885ba44ac3957913e93b251620221ba472648",
+  "dirty_paths": [
+    "scripts/bench/",
+    "scripts/testing/tests/bench-report.test.cjs"
+  ],
+  "project": "pp-packaging",
+  "web_port": "3102",
+  "google_key_configured": false,
+  "started_at": "2026-11-12T08:22:05.909Z",
+  "bridge": "br-1a4648803cd7",
+  "subnet": "172.26.0.0/16",
+  "install_started_at": "2026-11-12T08:22:16.100Z",
+  "finished_at": "2026-11-12T08:24:04.967Z",
+  "journey": [
+    {
+      "step": "sign in as local",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "A06 templates and an example file",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "A07 a malformed file is rejected and nothing is saved",
+      "ok": true,
+      "detail": "phase failed, 1 errors listed; no network created"
+    },
+    {
+      "step": "A10 import of user addresses, then Census geocoding",
+      "ok": true,
+      "detail": "enrichment done; 2 locations with known attributes; 2 unmatched"
+    },
+    {
+      "step": "A12 PANTRY sample forecast and its backtest",
+      "ok": true,
+      "detail": "forecast run bbe08e55-6b72-4699-b09c-88b4fae01d96"
+    },
+    {
+      "step": "A13 PANTRY danger ranking and projection",
+      "ok": true,
+      "detail": "8 ranked rows; projection of #1 P08"
+    },
+    {
+      "step": "A14 A16 PANTRY HUB_ONLY UNITS: compare, decide, export",
+      "ok": true,
+      "detail": "5 methods verified; EGP_PI_INSPIRED exported 13 actions"
+    },
+    {
+      "step": "A14 A16 PANTRY HUB_AND_PANTRY UNITS: compare, decide, export",
+      "ok": true,
+      "detail": "5 methods verified; EGP_PI_INSPIRED exported 13 actions"
+    },
+    {
+      "step": "A12 RETAIL sample forecast and its backtest",
+      "ok": true,
+      "detail": "forecast run 6ec0a70b-72cf-4327-88d8-520949999c08"
+    },
+    {
+      "step": "A13 RETAIL danger ranking and projection",
+      "ok": true,
+      "detail": "21 ranked rows; projection of #1 DC1"
+    },
+    {
+      "step": "A15 A16 RETAIL HUB_ONLY UNITS: compare, decide, export",
+      "ok": true,
+      "detail": "3 methods verified; RETAIL_OPTIMIZED exported 864 actions"
+    },
+    {
+      "step": "A15 A16 RETAIL HUB_ONLY USD: compare, decide, export",
+      "ok": true,
+      "detail": "3 methods verified; RETAIL_OPTIMIZED exported 851 actions"
+    }
+  ],
+  "egress": {
+    "destinations": [
+      {
+        "destination": "geocoding.geo.census.gov:443",
+        "ip": "148.129.75.136",
+        "port": 443,
+        "proto": "tcp",
+        "server_name": "geocoding.geo.census.gov",
+        "dns_names": [
+          "geocoding.geo.census.gov"
+        ],
+        "allowed": true,
+        "connections": 1
+      }
+    ],
+    "violations": [],
+    "dnsNames": {
+      "148.129.75.136": [
+        "geocoding.geo.census.gov"
+      ]
+    }
+  },
+  "secrets": {
+    "checked": [
+      "password",
+      "proxy_token"
+    ],
+    "sources": [
+      "compose logs",
+      ".next output",
+      "git working tree",
+      "git history since the run started"
+    ],
+    "findings": []
+  },
+  "capture_saw_geocoding": true,
+  "pass": true
+}

@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { animate as animateValue, AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Focus, Minus, Plus, RotateCcw } from "lucide-react";
+import { Focus, Minus, Pause, Plus, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { clampInside, DROP_GAP, GLYPH_FROM_TOP_LABEL_ABOVE, GLYPH_FROM_TOP_LABEL_BELOW, glyphPoint, markerBox, relativeBox, settleBox, type Box, type Point } from "./atlas-geometry";
 import type { ResolvedPosition } from "./atlas-layout";
-import { PRESS, SPRING } from "./atlas-motion";
+import { PRESS, SPRING, setFlowPaused, useFlowPaused } from "./atlas-motion";
 import { StatusGlyph } from "./status-glyph";
 import type { MarkerStatus, Site } from "./types";
 
@@ -229,7 +229,7 @@ function AtlasMarker({ marker, point, labelAbove, selected, lifted, moving, inde
       style={{ left: point.left, top: point.top - (labelAbove ? GLYPH_FROM_TOP_LABEL_ABOVE : GLYPH_FROM_TOP_LABEL_BELOW) }}
       initial={animate ? { opacity: 0, scale: 0.85 } : false}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ ...SPRING, delay: 0.1 + index * 0.06 }}
+      transition={{ ...SPRING, delay: Math.min(0.1 + index * 0.06, 0.3) }} // capped so the last marker settles within 1 s (W5-UI03)
     >
       {labelAbove ? <>{label}{glyph}</> : <>{glyph}{label}</>}
     </motion.button>
@@ -253,6 +253,7 @@ export function SchematicMapRenderer({ markers, positions, selectedId, onSelect,
   const suppressClick = useRef<string | null>(null);
   // First-load reveals, status transitions and the drop settle explain change; reduced motion skips them.
   const animate = !useReducedMotion();
+  const flowPaused = useFlowPaused();
 
   useEffect(() => {
     const map = mapRef.current;
@@ -507,7 +508,7 @@ export function SchematicMapRenderer({ markers, positions, selectedId, onSelect,
         <MapTexture />
       </div>
       {/* Supply links: what the hub can send to, not a planned route or shipment. Drawn under markers. */}
-      <svg className="pointer-events-none absolute inset-0 size-full" aria-hidden="true">
+      <svg className="pointer-events-none absolute inset-0 size-full" aria-hidden="true" data-flow-paused={flowPaused}>
         {links.map((link, index) => {
           const isEmphasized = emphasized(link);
           return (
@@ -610,6 +611,16 @@ export function SchematicMapRenderer({ markers, positions, selectedId, onSelect,
             </TooltipTrigger>
             <TooltipContent side="right">Fit network</TooltipContent>
           </Tooltip>
+          {animate && links.length > 0 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button asChild variant="ghost" size="icon" className="size-9 rounded-none border-border max-md:size-11 aria-pressed:bg-accent data-[compact=true]:border-l data-[compact=false]:border-t" data-compact={compact}>
+                  <motion.button type="button" aria-label="Pause link animation" aria-pressed={flowPaused} onClick={() => setFlowPaused(!flowPaused)} {...PRESS}><Pause /></motion.button>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">{flowPaused ? "Link animation paused" : "Pause link animation"}</TooltipContent>
+            </Tooltip>
+          )}
         </div>
         {compact && resetButton}
       </div>

@@ -96,7 +96,7 @@ test("@V1-A05 both samples are present after first start, each labeled fictional
     expect(networks.find((n) => n.id === samples[mode].id), mode).toMatchObject({ is_sample: true, mode });
   }
 
-  const switcher = page.getByRole("combobox", { name: "Network", exact: true });
+  const switcher = page.getByRole("region", { name: "Current network" }).getByRole("combobox");
   await switcher.click();
   for (const { name } of Object.values(samples)) await expect(page.getByRole("option", { name: `${name} (sample)`, exact: true })).toBeVisible();
   await page.keyboard.press("Escape");

@@ -47,3 +47,54 @@ it("a projection the server can't give yet says so, with a retry, and close hand
   fireEvent.click(screen.getByRole("button", { name: "Close inspector" }));
   expect(onClose).toHaveBeenCalled();
 });
+
+// W5-UI02.5 (W4-03 ux-critic #5): the product that sets the location's danger rank comes first, and says so.
+it("lists the driving product first and marks it", async () => {
+  vi.spyOn(networkApi, "projection").mockResolvedValue(projection);
+  render(<LocationInspector network={network} forecastRunId={projection.forecast_run_id} location={location} onClose={vi.fn()} drivingProductId="RICE-5" />);
+  const region = screen.getByRole("region", { name: "Site inspector · Archer Road Pantry" });
+  await within(region).findByRole("table", { name: "RICE-5 in bags" });
+  const captions = within(region).getAllByRole("table").map((t) => t.querySelector("caption")?.textContent);
+  expect(captions[0]).toMatch(/^RICE-5 in bags/);
+  expect(captions[1]).toMatch(/^WATER-24 in cases/);
+  expect(within(region).getAllByText("Drives this location's danger rank")).toHaveLength(1);
+  expect(within(region).getByRole("table", { name: "RICE-5 in bags" }).closest("[data-driving]")).not.toBeNull();
+});
+
+it("Escape anywhere closes the inspector", async () => {
+  vi.spyOn(networkApi, "projection").mockResolvedValue(projection);
+  const onClose = vi.fn();
+  open(onClose);
+  await screen.findByRole("table", { name: "WATER-24 in cases" });
+  fireEvent.keyDown(document.body, { key: "Escape" });
+  expect(onClose).toHaveBeenCalledTimes(1);
+});
+
+it("a product whose basis is sales says it undercounts demand; demand and null products say nothing (W5-UI04)", async () => {
+  const [first, second] = projection.products;
+  vi.spyOn(networkApi, "projection").mockResolvedValue({ ...projection, products: [{ ...first, basis: "sales" }, { ...second, basis: "demand" }] });
+  open();
+  const region = screen.getByRole("region", { name: "Site inspector · Archer Road Pantry" });
+  const sales = await within(region).findByText("Basis: sales (undercounts demand when shelves were empty)");
+  expect(within(region).getAllByText(/^Basis:/)).toHaveLength(1);
+  const tables = within(region).getAllByRole("table");
+  // Under the sales product's own table, before the next product's.
+  expect(tables[0].compareDocumentPosition(sales) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(sales.compareDocumentPosition(tables[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});
+
+// CR-w5-screens-4: the Overview pluralizes with data-explorer/format (it wrote "boxs", "ozs" and "eachs").
+it("names each product's unit in plain English: boxes, oz, each (CR-w5-screens-4)", async () => {
+  const [first] = projection.products;
+  const products = (["box", "oz", "each"] as const).map((unit, i) => ({ ...first, product_id: `P${i}`, unit, eligible_stock_now: 3 }));
+  vi.spyOn(networkApi, "projection").mockResolvedValue({ ...projection, products });
+  open();
+  const region = screen.getByRole("region", { name: "Site inspector · Archer Road Pantry" });
+  await within(region).findByRole("table", { name: "P0 in boxes" });
+  expect(within(region).getByRole("table", { name: "P1 in oz" })).toBeInTheDocument();
+  expect(within(region).getByRole("table", { name: "P2 in each" })).toBeInTheDocument();
+  expect(within(region).getByText("Eligible stock now: 3 boxes")).toBeInTheDocument();
+  expect(within(region).getByText("Eligible stock now: 3 oz")).toBeInTheDocument();
+  expect(within(region).getByText("Eligible stock now: 3 each")).toBeInTheDocument();
+  expect(region.textContent).not.toMatch(/\b(boxs|ozs|eachs)\b/);
+});
