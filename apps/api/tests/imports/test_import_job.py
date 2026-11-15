@@ -28,7 +28,14 @@ from app.services.networks.api import get_network, list_networks
 from app.services.presenter_access import AccessError
 from app.workers.registries import load_registry
 from tests.imports.test_import_postgres import FILES
-from tests.integration.wq_support import alembic_config, database_url, reset_schema
+from tests.integration.wq_support import (
+    age_heartbeat,
+    alembic_config,
+    database_url,
+    heartbeating,
+    reset_schema,
+    wait_for_fresh_heartbeat,
+)
 
 pytestmark = pytest.mark.integration
 SCHEMA = "w1_data_job_test"
@@ -59,7 +66,8 @@ def queue(engine):
             PRODUCTION_PROFILE, handler_contracts=("import.v1",), process_containment=True))
     assert own is not None and repo.finish_recovery(own)
     assert repo.set_state(own, SupervisorState.READY)
-    return repo
+    with heartbeating(repo, own):
+        yield repo
 
 
 @pytest.fixture
@@ -67,6 +75,17 @@ def rt(engine, queue, tmp_path, monkeypatch):
     monkeypatch.setenv("PP_IMPORT_DIR", str(tmp_path))
     yield SimpleNamespace(engine=engine, queue=queue)
     _cancel_queued(engine, queue)
+
+
+def test_admission_holds_after_the_heartbeat_window_passes_mid_module(rt):
+    """The module's supervisor must keep beating like a live one: admission refuses a heartbeat
+    older than heartbeat_stale_s, so under load a test late in the module, or a long test body,
+    was refused (ESC-w5-packaging-1)."""
+    age_heartbeat(rt.queue, PRODUCTION_PROFILE.heartbeat_stale_s + 5)
+    assert wait_for_fresh_heartbeat(rt.queue, PRODUCTION_PROFILE.heartbeat_stale_s)
+    created = api.create_import(rt, SCOPE, _new())
+    _upload(rt, created.import_id, FILES)
+    assert _commit(rt, created.import_id) is not None
 
 
 def _cancel_queued(engine, queue):
