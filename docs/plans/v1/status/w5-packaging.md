@@ -1,6 +1,6 @@
 # Status — `w5-packaging`
 
-**Lane:** `w5-packaging` · **Branch:** `lane/w5-packaging` · **Base SHA:** `81c551bc2e232362f0e63a7a00126ef1ca863fb8` · **Last update:** `2026-11-15 07:35` · **Head:** see `git log`
+**Lane:** `w5-packaging` · **Branch:** `lane/w5-packaging` · **Base SHA:** `81c551bc2e232362f0e63a7a00126ef1ca863fb8` · **Last update:** `2026-11-15 07:45` · **Head:** see `git log`
 
 ## Tasks
 
@@ -32,6 +32,10 @@ Order: PK01 → PK03 → PK04 → PK02 → PK05. PK02's `--enforce` can reach ex
 | Gate | Commit | Result |
 |---|---|---|
 | `node scripts/quality/run.cjs quick` (with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1` exported by hand) | `d1d9800` (after the merge of `v1-local` `2a42698`) | **FAIL** (2026-11-15T01:10Z, host load up to 25 while w5-polish ran its gate): web typecheck, web lint, api lint pass; api tests `9 failed, 2258 passed` in 12 min 16 s, all 9 in `tests/imports/test_import_job.py` with `AdmissionRejected`. Not caused by this lane (it changes nothing under `apps/`); see ESC-w5-packaging-1 |
+| **Memory wording, head `e0754e2`** (same environment) | | |
+| `node scripts/quality/run.cjs quick` | `e0754e2` | **PASS**, exit 0, 2026-11-15T07:42:46Z: web typecheck, web lint, api lint, api tests all exit 0; `sourceUnchangedDuringRun` true |
+| `npm run test:config` | `e0754e2` | tests 83, pass 83, fail 0, skipped 0 |
+| `node scripts/testing/story-coverage.cjs --enforce` | `e0754e2` | exit 0; `covered 21/24; pending 3 (V1-A01, V1-A18, V1-A24)`; `check-egress-evidence.cjs` → `ok egress-2026-11-15.json` |
 | **After `/code-review` on #156, head `e45633d`** (with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1` exported by hand) | | |
 | `node scripts/quality/run.cjs quick` | `e45633d` | **PASS**, exit 0, 2026-11-15T07:32:59Z: web typecheck, web lint, api lint, api tests all exit 0; `sourceUnchangedDuringRun` true |
 | `npm run test:config` | `e45633d` | tests 82, pass 82, fail 0, skipped 0 |
@@ -60,6 +64,7 @@ Order: PK01 → PK03 → PK04 → PK02 → PK05. PK02's `--enforce` can reach ex
 |---|---|
 | 1: README and HARDWARE said 4 CPU cores, but compose.yaml gives the worker `cpus: 6`, and Docker refuses a CPU limit above its CPUs (reproduced: `docker run --cpus 64` → "range of CPUs is from 0.01 to 16.00, as there are only 16 CPUs available") | Fixed in `e45633d`: `renderSummary` reads the worker's limit from compose.yaml; the README states 6 CPUs; tests tie both to compose.yaml (RED first). compose.yaml unchanged; an adjustable worker CPU limit moves to W6, after a 4-CPU measurement |
 | 9: bench artifacts recorded absolute `--out` paths (a home directory) | Fixed in `e45633d`: `--out` is passed relative to `apps/api`, where the benches run; `--render` rewrites absolute repo paths in an artifact's commands (RED first). Both artifacts re-rendered: `git diff --word-diff` shows only the three `command` fields per file; `grep -rn "/home/" docs/testing scripts README.md docs/pantrypulse/HARDWARE.md` is empty. `--render` on `bench-2026-11-12.json` fixes its JSON, then cannot render HARDWARE.md (that run predates host-load recording); HARDWARE.md is rendered from `bench-2026-11-15.json` |
+| Orchestrator, after item 1: the Memory row said 8 GiB "also lets the worker reach its 8 GiB ceiling", untrue at exactly 8 GiB | Fixed in `e0754e2`: `renderSummary` reads the worker's `mem_limit` from compose.yaml and the other containers' idle peaks (256 MiB) from the artifact; with exactly 8 GiB for Docker they share it, so the worker can't reach its full ceiling. Requirement stays 8 GiB; a test keeps the old phrase out (RED first) |
 | 2: egress staleness ignores `package.json`, `package-lock.json`, `packages/contracts`; 4: a crashed or timed-out check counts as `pending`; 7: `check-version-pin` runs in no gate | Follow-up PR after #156 merges |
 | 3: no recorded `--build` run is required; 5: A10 accepts a failed enrichment (the committed run's A10 is "enrichment done"); 6: a failed early run leaves an old local `report.json`; 8: recorded runs never go stale; 10: `sh`/`must`/`sleep` duplicated between the two runners | Known limitations |
 
