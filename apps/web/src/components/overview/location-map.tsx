@@ -38,13 +38,13 @@ type MapProps = {
   label: (locationId: string) => string;
   bandOf: (locationId: string) => DangerBand | null;
   onSelect: (locationId: string, opener: HTMLElement) => void;
-  /** Shown with the caption (beside the map on desktop): the locations it can't place. */
+  /** Shown with the caption, beside the map on desktop (the danger legend). */
   children?: React.ReactNode;
 };
 
 /** Each placed location is a button with its band shape; colour only reinforces the shape and text. */
 export function LocationMap({ name, placed, label, bandOf, onSelect, children }: MapProps) {
-  if (placed.length === 0) return children; // nothing to place: no empty frame, only the unplaced list
+  if (placed.length === 0) return null; // nothing to place: no empty frame (the section lists unplaced locations)
   return (
     // Desktop: the capped map leaves room beside it for its caption, so the ranking starts higher (W4-03 #5).
     <div className="grid gap-1 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-end lg:gap-x-4">

@@ -51,10 +51,12 @@ type RankingProps = {
   canSelect?: (locationId: string) => boolean;
   /** The location's role, once the location list has loaded (a DC's row explains its expiry). */
   role?: (locationId: string) => Role | undefined;
+  /** False when the section shows the legend beside the map instead. */
+  showLegend?: boolean;
 };
 
 /** Ranked locations with a band (text + shape), the driving product in its own unit, and a table view. */
-export function DangerRanking({ ranking, view: initialView = "list", label = (id) => id, onSelect, canSelect = () => true, role = () => undefined }: RankingProps) {
+export function DangerRanking({ ranking, view: initialView = "list", label = (id) => id, onSelect, canSelect = () => true, role = () => undefined, showLegend = true }: RankingProps) {
   const [view, setView] = useState<View>(initialView);
   const rows = [...ranking.rows].sort((a, b) => a.rank - b.rank);
   const retail = ranking.mode === "RETAIL";
@@ -64,10 +66,11 @@ export function DangerRanking({ ranking, view: initialView = "list", label = (id
     : <span className={className}>{label(id)}</span>;
   return (
     <div className="grid gap-3">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        {/* The legend wraps beside the view toggle instead of pushing it onto a row of its own (first view, W4-03 #5). */}
-        <div className="min-w-0 flex-1 basis-[28rem]"><DangerLegend mode={ranking.mode} /></div>
-        <div className="flex shrink-0 gap-1" role="group" aria-label="Ranking view">
+      {/* The legend wraps beside the view toggle instead of pushing it onto a row of its own (first view, W4-03 #5); at lg the
+          toggle sits in the section's heading row (the section is its positioning box), so ranks #1–#3 start higher. */}
+      <div className="flex flex-wrap items-start justify-between gap-3 lg:contents">
+        {showLegend && <div className="min-w-0 flex-1 basis-[28rem]"><DangerLegend mode={ranking.mode} /></div>}
+        <div className="ml-auto flex shrink-0 gap-1 lg:absolute lg:top-4 lg:right-4" role="group" aria-label="Ranking view">
           {(["list", "table"] as const).map((v) => (
             <Button key={v} variant={view === v ? "secondary" : "ghost"} size="sm" aria-pressed={view === v} onClick={() => setView(v)} className="max-md:h-11">
               {v === "list" ? "List" : "Table"}
@@ -154,8 +157,9 @@ function RankingSection({ network, header }: { network: Network; header?: React.
         </div>
       )}
     </div>
-    <section aria-labelledby="danger-heading" className="grid gap-3 rounded-xl border border-border bg-card p-4">
-      <div className="flex flex-wrap items-center gap-2">
+    <section aria-labelledby="danger-heading" className="relative grid gap-3 rounded-xl border border-border bg-card p-4">
+      {/* lg:pr-32 keeps the heading clear of the ranking's List/Table toggle, which sits at the section's top right. */}
+      <div className="flex flex-wrap items-center gap-2 lg:pr-32">
         <h2 id="danger-heading" className="text-lg font-semibold">Danger ranking · {network.name}</h2>
         {network.is_sample && <SampleBadge />}
       </div>
@@ -196,6 +200,9 @@ function RankingBody({ network, forecastRunId }: { network: Network; forecastRun
   const label = (id: string) => { const l = byId.get(id); return l ? `${l.name} (${id})` : id; };
   const bands = new Map(load.status === "ready" ? load.ranking.rows.map((r) => [r.location_id, r.band]) : []);
   const { placed, unplaced } = placeLocations(locations);
+  // With a map, the legend sits in the empty column beside it on desktop, so ranks #1–#3 stay in the first view for a
+  // presenter's Retail network too (W5 v1-after evidence); below lg that column stacks under the map.
+  const legendMode = placed.length > 0 && load.status === "ready" && load.ranking.rows.length > 0 ? load.ranking.mode : null;
   const location = selected ? byId.get(selected) : undefined;
   const select = (id: string, element: HTMLElement) => { opener.current = element; setSelected(id); };
   const close = () => { setSelected(null); opener.current?.focus(); };
@@ -210,14 +217,9 @@ function RankingBody({ network, forecastRunId }: { network: Network; forecastRun
             <Button variant="outline" size="sm" onClick={() => { setPlaces({ status: "loading" }); setAttempt((a) => ({ ...a, places: a.places + 1 })); }}>Retry</Button>
           </div>
         )}
-        {(placed.length > 0 || unplaced.length > 0) && (
+        {placed.length > 0 && (
           <LocationMap name={network.name} placed={placed} label={label} bandOf={(id) => bands.get(id) ?? null} onSelect={select}>
-            {unplaced.length > 0 && (
-              <div className="grid gap-1 text-xs">
-                <p id="unplaced-heading" className="font-medium">Not on the map (no coordinates)</p>
-                <ul aria-labelledby="unplaced-heading" className="flex flex-wrap gap-x-3 gap-y-1">{unplaced.map((l) => <li key={l.location_id}>{label(l.location_id)}</li>)}</ul>
-              </div>
-            )}
+            {legendMode && <DangerLegend mode={legendMode} />}
           </LocationMap>
         )}
         {load.status === "loading" && <p role="status" className="text-sm text-muted-foreground">Loading the danger ranking…</p>}
@@ -234,7 +236,14 @@ function RankingBody({ network, forecastRunId }: { network: Network; forecastRun
               // nothing could be scored, never an all-clear (W4-03 #4, D1).
               ? "No location could be ranked: none has forecast sales above zero for the next 7 days, and no stock expiry could be projected."
               : "No location could be ranked: none has forecast demand above zero for the next 7 days."}</p>
-            : <DangerRanking ranking={load.ranking} label={label} onSelect={select} canSelect={(id) => byId.has(id)} role={(id) => byId.get(id)?.role} />
+            : <DangerRanking ranking={load.ranking} label={label} onSelect={select} canSelect={(id) => byId.has(id)} role={(id) => byId.get(id)?.role} showLegend={!legendMode} />
+        )}
+        {/* After the ranking, so the column beside the map holds only its caption and legend and ranks #1–#3 stay in the first view. */}
+        {unplaced.length > 0 && (
+          <div className="grid gap-1 text-xs">
+            <p id="unplaced-heading" className="font-medium">Not on the map (no coordinates)</p>
+            <ul aria-labelledby="unplaced-heading" className="flex flex-wrap gap-x-3 gap-y-1">{unplaced.map((l) => <li key={l.location_id}>{label(l.location_id)}</li>)}</ul>
+          </div>
         )}
       </div>
       {location && <LocationInspector key={location.location_id} network={network} forecastRunId={forecastRunId} location={location} onClose={close}

@@ -10,13 +10,15 @@ const ranking = example("DangerRanking");
 const network = example("NetworkList").networks.find((n) => n.id === ranking.network_id)!;
 const names = Object.fromEntries(example("LocationList").locations.map((l) => [l.location_id, `${l.name} (${l.location_id})`]));
 
-async function open(page: Page, served = ranking) {
+async function open(page: Page, served = ranking, extra: Parameters<typeof mockV1>[1] = {}, net = network) {
   const calls = await mockV1(page, {
-    "GET networks": { body: { networks: [network] } },
-    ...publishedRun(network, ranking.forecast_run_id),
+    ...extra,
+    "GET networks": { body: { networks: [net] } },
+    ...publishedRun(net, ranking.forecast_run_id),
     [`GET networks/${network.id}/danger`]: (call) => call.query.get("forecast_run_id") === ranking.forecast_run_id
       ? { body: served } : { status: 404, body: { error: { code: "NOT_FOUND", message: "not found", details: {} } } },
     [`GET networks/${network.id}/locations`]: { body: example("LocationList") },
+    ...extra,
     [`GET networks/${network.id}/projection`]: (call) =>
       call.query.get("forecast_run_id") === ranking.forecast_run_id && call.query.get("location_id") === "P-12"
         ? { body: example("LocationProjection") } : { status: 404, body: envelope("NOT_FOUND") },
@@ -105,13 +107,33 @@ function fiveRows(mode: "PANTRY" | "RETAIL" = "PANTRY") {
   return served;
 }
 
+// The presenter's view after a run, as on the connected stack (W5 v1-after evidence): the "Forecast finished" status
+// under the header (a sample network's long name pushes it below the header) and, for Retail, a DC on #1 whose row
+// carries the DC note.
+const SAMPLE_NAME = { PANTRY: "Sample Pantry Network (North Central Florida)", RETAIL: "Heronfield Market — sample retail network" } as const;
+const accepted = example("ForecastAccepted");
+function presenterRun(mode: "PANTRY" | "RETAIL") {
+  const locations = example("LocationList");
+  if (mode === "RETAIL") locations.locations = locations.locations.map((l) => (l.location_id === "P-12" ? { ...l, role: "distribution_center" as const } : l));
+  return {
+    [`POST networks/${network.id}/forecasts`]: { status: 202, body: accepted },
+    [`GET jobs/${accepted.job_id}`]: { body: { job_id: accepted.job_id, current_attempt_id: accepted.attempt_id, state: "SUCCEEDED", attempts: [] } },
+    [`GET networks/${network.id}/locations`]: { body: locations },
+  };
+}
+
 for (const [width, height, mode] of [[1440, 900, "PANTRY"], [1280, 720, "PANTRY"], [1440, 900, "RETAIL"], [1280, 720, "RETAIL"]] as const) {
-  test(`@V1-A20 ranks #1–#3 show without scrolling at ${width}x${height} (${mode})`, async ({ page }) => {
+  test(`@V1-A20 ranks #1–#3 show without scrolling at ${width}x${height} (${mode}), after a presenter's run`, async ({ page }) => {
     await page.setViewportSize({ width, height });
-    await open(page, fiveRows(mode));
+    const served = fiveRows(mode);
+    if (mode === "RETAIL") served.rows[0] = { ...served.rows[0], reason: "expiry" };
+    await open(page, served, presenterRun(mode), { ...network, name: SAMPLE_NAME[mode] });
+    await page.getByRole("group", { name: "Presenter controls" }).getByRole("button", { name: "Run forecast" }).click();
+    await expect(page.getByText("Forecast finished. The views below use the new run.")).toBeVisible();
     const items = page.getByRole("list", { name: "Locations by danger" }).getByRole("listitem");
     await expect(items).toHaveCount(5);
-    expect(await page.evaluate(() => scrollY)).toBe(0);
+    if (mode === "RETAIL") await expect(items.first()).toContainText("A DC has no sales");
+    await page.evaluate(() => window.scrollTo(0, 0));
     for (const i of [0, 1, 2]) {
       const box = (await items.nth(i).boundingBox())!;
       expect(box.y + box.height, `rank #${i + 1} ends inside the first view`).toBeLessThanOrEqual(height);
