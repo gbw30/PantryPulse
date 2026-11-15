@@ -249,6 +249,27 @@ def test_donation_forecasts_do_not_change_score(nets):
 
 
 @pytest.mark.integration
+def test_danger_and_projection_rows_carry_basis(nets):
+    """The driving series' basis labels each row (W5-D01): Pantry history is demand, Retail
+    history is sales. A DC has no demand series, and an unknown forecast has no frozen basis."""
+    assert {r.location_id: r.basis for r in danger(nets, "PANTRY").rows} == dict.fromkeys(
+        ("PA", "PB", "PC", "PD"), "demand")
+    assert {r.location_id: r.basis for r in danger(nets, "RETAIL").rows} == {
+        "D1": None, "S1": "sales", "S2": "sales"}
+    assert {k: p.basis for k, p in projection(nets, "RETAIL", "S1").items()} == {
+        "MILK": "sales", "BREAD": "sales"}
+    assert projection(nets, "RETAIL", "D1")["MILK"].basis is None
+    assert {k: p.basis for k, p in projection(nets, "PANTRY", "PA").items()} == {
+        "RICE": "demand", "MILK": "demand"}
+    assert projection(nets, "PANTRY", "PE")["RICE"].basis is None
+    assert projection(nets, "PANTRY", "H1")["RICE"].basis is None
+    rows = [line("A", "X", (2,) * 7, (0, 0, 0, 1, 2, 2, 2))]
+    labeled = Line("A", rows[0].product.model_copy(update={"basis": "sales"}), 0)
+    assert [r.basis for r in danger_ranking([labeled], "PANTRY")] == ["sales"]
+    assert [r.basis for r in danger_ranking(rows, "PANTRY")] == [None]
+
+
+@pytest.mark.integration
 def test_inbound_changes_score_once(nets):
     rows = {r.location_id: r for r in danger(nets, "PANTRY").rows}
     assert rows["PC"].score_ratio == expected(10, 14)[0] == Decimal("0.8")

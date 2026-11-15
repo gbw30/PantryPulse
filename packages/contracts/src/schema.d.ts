@@ -1697,6 +1697,16 @@ export interface components {
              */
             comparison_id: string;
             /**
+             * Effect Window End
+             * Format: date
+             */
+            effect_window_end: string;
+            /**
+             * Effect Window Start
+             * Format: date
+             */
+            effect_window_start: string;
+            /**
              * Method
              * @enum {string}
              */
@@ -1707,6 +1717,16 @@ export interface components {
              * @constant
              */
             non_additive_label: "effect of this action given the rest of the plan; effects don't add up across actions";
+            /**
+             * Plan Window End
+             * Format: date
+             */
+            plan_window_end: string;
+            /**
+             * Plan Window Start
+             * Format: date
+             */
+            plan_window_start: string;
         };
         /** DemandDay */
         DemandDay: {

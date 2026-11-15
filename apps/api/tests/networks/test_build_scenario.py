@@ -89,7 +89,7 @@ class FixtureForecastPublisher:
 
 FIXTURE_FORECAST = Registration(
     contract="fixture.forecast-run.v1", operation_kind=OperationKind.FORECAST,
-    input_schema_version="1", max_input_bytes=1_000_000, max_output_bytes=10_000,
+    input_schema_version="1", max_input_bytes=1_000_000, max_output_bytes=100_000,
     handler=FixtureForecastHandler(), publisher=FixtureForecastPublisher())
 
 
@@ -424,6 +424,42 @@ def test_donation_forecast_never_supply(engine, tmp_path, forecasts):
     assert not [i for i in p.inbound if i.location_id == "P1"]  # the donation forecast is not
     assert sum(b.quantity for b in p.batches if b.location_id == "P1") == 4  # stock or arrival
     assert _assumption(p, "forecast, not confirmed")
+
+
+DONATIONS = [*FORECAST["series"],  # the fixture's P1 × RICE donation series, plus two more
+             {"location": "P2", "product": "BEANS", "target": "DONATION", "status": "AVAILABLE",
+              "basis": "RECEIVED", "provider": "MOVING_AVERAGE",
+              "fallback_reason": "seasonal-naive history too short",
+              "central": [0.5, 0.0, 1.0, 0.0, 0.0, 2.0, 0.0]},
+             {"location": "P3", "product": "RICE", "target": "DONATION",
+              "status": "INSUFFICIENT_DATA", "basis": "RECEIVED", "provider": None,
+              "fallback_reason": None, "central": None}]
+
+
+def test_scenario_freezes_donation_forecasts_with_provenance(engine, tmp_path, forecasts):
+    """W5-D01: every available DONATION series is frozen with its points, provider and fallback;
+    the unavailable one is not. They are never supply: the rest of the scenario is unchanged."""
+    network = _network(engine, tmp_path)
+    p = _scenario(engine, network, forecasts(network, series=DONATIONS)).payload
+    assert [(d.location_id, d.product_id, d.actual_provider, d.fallback_reason,
+             d.central_literals) for d in p.donations] == [
+        ("P1", "RICE", "SEASONAL_NAIVE", None, ("5",) * 7),
+        ("P2", "BEANS", "MOVING_AVERAGE", "seasonal-naive history too short",
+         ("0.5", "0", "1", "0", "0", "2", "0"))]
+    bare = _scenario(engine, network, forecasts(network, series=[
+        s for s in DONATIONS if s["target"] != "DONATION"])).payload
+    assert bare.donations == ()
+    assert (p.batches, p.inbound, p.demand, p.routes) == (
+        bare.batches, bare.inbound, bare.demand, bare.routes)
+
+
+def test_donation_order_does_not_change_the_scenario_hash(engine, tmp_path, forecasts):
+    network = _network(engine, tmp_path)
+    forward = _scenario(engine, network, forecasts(network, series=DONATIONS)).payload
+    backward = _scenario(engine, network, forecasts(network, series=DONATIONS[::-1])).payload
+    assert len(forward.donations) == 2
+    assert forward.donations == backward.donations
+    assert operational_hash(_golden(forward)) == operational_hash(_golden(backward))
 
 
 def test_no_scheduled_deliveries_flag_when_no_inbound_file(engine, tmp_path, forecasts):

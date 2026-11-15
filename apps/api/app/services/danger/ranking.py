@@ -76,13 +76,13 @@ def danger_ranking(projection: Iterable[Line], mode: NetworkMode) -> list[Danger
         for score, units, first, reason in _losses(line, mode):
             key = (-score, first or date.max, reason != "unmet", p.product_id.encode())
             if line.location_id not in worst or key < worst[line.location_id][0]:
-                worst[line.location_id] = key, (score, reason, p.product_id, units, p.unit, first)
+                worst[line.location_id] = key, (score, reason, p, units, first)
     # score, first day, unmet before expiry, then the location (not the product)
     ordered = sorted(worst.items(), key=lambda item: (*item[1][0][:3], item[0].encode()))
     return [DangerRow(location_id=location, rank=rank, score_ratio=score, band=band(score),
-                      reason=reason, driving_product_id=product, driving_units=units, unit=unit,
-                      first_deficit_date=first)
-            for rank, (location, (_, (score, reason, product, units, unit, first)))
+                      reason=reason, driving_product_id=p.product_id, driving_units=units,
+                      unit=p.unit, first_deficit_date=first, basis=p.basis)
+            for rank, (location, (_, (score, reason, p, units, first)))
             in enumerate(ordered, 1)]
 
 
@@ -114,7 +114,7 @@ def project_lines(inputs, output, batches, inbound, location_id: str | None = No
     locations = dict(inputs.locations)
     products = {net: external for net, external, _ in inputs.products}
     units = {external: unit for _, external, unit in inputs.products}
-    demand = _demand(output, locations, products, [])
+    demand, _ = _demand(output, locations, products, [])
     unknown, donations = set(), {}
     for s in output.series:
         key = locations[s.scope.key.site_id], products[s.scope.key.product_id]
@@ -137,6 +137,7 @@ def project_lines(inputs, output, batches, inbound, location_id: str | None = No
     for day in project_v3(scenario).days:
         days[day.location_id, day.product_id].append(day)
     targets = {(d.location_id, d.product_id): d.targets for d in scenario.demand}
+    basis = {(d.location_id, d.product_id): d.basis for d in scenario.demand}  # frozen rows only
     stock, arriving = defaultdict(int), defaultdict(int)
     for b in scenario.batches:
         stock[b.location_id, b.product_id] += b.quantity
@@ -158,7 +159,7 @@ def project_lines(inputs, output, batches, inbound, location_id: str | None = No
             eligible_stock_now=stock[key],
             expiring_unsold=None if key not in dated else UNKNOWN if key in unknown
             else tuple(r.expired for r in rows),
-            donation_forecast=donations.get(key)), arriving[key]))
+            donation_forecast=donations.get(key), basis=basis.get(key)), arriving[key]))
     return lines
 
 

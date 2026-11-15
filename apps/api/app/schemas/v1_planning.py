@@ -484,6 +484,12 @@ class DecisionAction(ORContract):
 class DecisionActions(ORContract):
     comparison_id: UUID
     method: AllocationMethod
+    # Inclusive local days (CR-w5-screens-3): the plan is built for its window (Pantry
+    # planning_days, Retail all 7); every effect is summed over the whole forecast period.
+    plan_window_start: date
+    plan_window_end: date
+    effect_window_start: date
+    effect_window_end: date
     actions: tuple[DecisionAction, ...]
     non_additive_label: Literal[
         "effect of this action given the rest of the plan; effects don't add up across actions"

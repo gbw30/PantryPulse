@@ -85,6 +85,8 @@ def commit_import(
     status_url = f"/api/v1/imports/{import_id}"
     with rt.engine.begin() as conn:
         run = repo.get_run(conn, import_id, lock=True)
+        if run.phase in ("done", "failed"):  # finished for good: never staged again (W5-D04)
+            raise AccessError("IMPORT_ALREADY_FINISHED", 409)
         if run.job_id is not None:
             if not _ended(rt, run.organization_id, run.job_id):
                 # one job while it runs or once it has run: the same job, never a second one

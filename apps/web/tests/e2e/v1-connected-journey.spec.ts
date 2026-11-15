@@ -48,8 +48,10 @@ test("@V1-A14 pantry: import → scenario (both transfer modes) → 5 methods ve
 
   // Locations are named, never shown as bare IDs (fixtures/v1-connected/pantry/locations.csv).
   const NAME = "(North Hub|Pantry One|Pantry Two|Pantry Three)";
+  await results!.getByRole("region", { name: "EGP-PI-inspired", exact: true }).getByText("Show rows").click();
   const effects = results!.getByRole("region", { name: /^Effects table for EGP-PI-inspired/ }).getByRole("rowheader");
   for (const header of await effects.allTextContents()) expect(header).toMatch(new RegExp(`^${NAME}$`));
+  expect(await effects.count()).toBeGreaterThan(0);
 
   const { csv, hash, section: decisions } = await decideAndExport(page, results!, opened, "EGP-PI-inspired", "EGP_PI_INSPIRED");
   expect(csv).toContain(hash);

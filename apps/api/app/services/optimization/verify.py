@@ -287,6 +287,7 @@ def only_product(s, product_id, locations=None):
             "products": tuple(p for p in s.products if p.id == product_id),
             "batches": mine(s.batches),
             "demand": mine(s.demand),
+            "donations": mine(s.donations),
             "inbound": mine(s.inbound),
             "reserves": mine(s.reserves),
         }

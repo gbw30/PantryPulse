@@ -1,6 +1,10 @@
 {
   "comparison_id": "83a4b526-7091-42b3-8e4f-60718293a415",
   "method": "CLASSICAL_GP",
+  "plan_window_start": "2026-11-06",
+  "plan_window_end": "2026-11-08",
+  "effect_window_start": "2026-11-06",
+  "effect_window_end": "2026-11-12",
   "actions": [
     {
       "id": "T-1",
