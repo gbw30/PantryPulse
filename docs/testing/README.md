@@ -35,9 +35,11 @@ For contributors without Python or a local PostgreSQL, including Windows and mac
 - an e2e title (`*.spec.ts`) carries `@V1-Axx`; or
 - one of a test file's first five lines is `# covers: V1-Axx` (Python) or `// covers: V1-Axx` (JS/TS).
 
-A test that runs a checker on synthetic input (for example the egress classifier or the recorded-runs validator) covers the test kit, V1-A21, not the criterion that checker measures. Those criteria map to the checker itself, through the story's `tests` entry, and stay open while it fails.
+A test that runs a checker on synthetic input (for example the egress classifier or the recorded-runs validator) covers the test kit, V1-A21, not the criterion that checker measures.
 
-A story's `tests` list holds only evidence checks that carry no tag, written `<path> [args]`. `--enforce` exits 1 when an ID has no coverage or a listed path no longer exists. `--report` lists the map without failing.
+Criteria a test can't prove name their evidence check in the story's `checks` list (`<script> [args]`, run with node): A01, A18 and A24 use `check-recorded-runs.cjs`, and A03 and A04 use `check-egress-evidence.cjs`, which accepts only a clean, complete egress report whose commit matches today's `apps/` and `compose.yaml`. While a check fails, the story prints `pending`, never `ok`, whatever its tests say.
+
+`--enforce` exits 1 when an ID has neither tests nor checks, when a check script no longer exists, or when a story's `tests` entry is not a test file carrying that story's tag; a pending story still passes, because it is mapped to a real check. `--report` lists the map without failing.
 
 ## Recorded-evidence checks: V1-A01, V1-A18, V1-A24 (pull path)
 
