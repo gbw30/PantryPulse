@@ -1,6 +1,6 @@
 # Status — `w5-packaging`
 
-**Lane:** `w5-packaging` · **Branch:** `lane/w5-packaging` · **Base SHA:** `81c551bc2e232362f0e63a7a00126ef1ca863fb8` · **Last update:** `2026-11-15 06:10` · **Head:** see `git log`
+**Lane:** `w5-packaging` · **Branch:** `lane/w5-packaging` · **Base SHA:** `81c551bc2e232362f0e63a7a00126ef1ca863fb8` · **Last update:** `2026-11-15 07:35` · **Head:** see `git log`
 
 ## Tasks
 
@@ -32,6 +32,10 @@ Order: PK01 → PK03 → PK04 → PK02 → PK05. PK02's `--enforce` can reach ex
 | Gate | Commit | Result |
 |---|---|---|
 | `node scripts/quality/run.cjs quick` (with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1` exported by hand) | `d1d9800` (after the merge of `v1-local` `2a42698`) | **FAIL** (2026-11-15T01:10Z, host load up to 25 while w5-polish ran its gate): web typecheck, web lint, api lint pass; api tests `9 failed, 2258 passed` in 12 min 16 s, all 9 in `tests/imports/test_import_job.py` with `AdmissionRejected`. Not caused by this lane (it changes nothing under `apps/`); see ESC-w5-packaging-1 |
+| **After `/code-review` on #156, head `e45633d`** (with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1` exported by hand) | | |
+| `node scripts/quality/run.cjs quick` | `e45633d` | **PASS**, exit 0, 2026-11-15T07:32:59Z: web typecheck, web lint, api lint, api tests all exit 0; `sourceUnchangedDuringRun` true |
+| `npm run test:config` | `e45633d` | tests 82, pass 82, fail 0, skipped 0 |
+| `node scripts/testing/story-coverage.cjs --enforce` | `e45633d` | exit 0; `covered 21/24; pending 3 (V1-A01, V1-A18, V1-A24)`; `check-egress-evidence.cjs` → `ok egress-2026-11-15.json`; `check-version-pin.cjs` → 0.1.0 |
 | **Round 2, final head `8b04600`** (all with `.env.lane` and `PP19_TEST_SCHEMA_ISOLATION=1` exported by hand) | | |
 | `node scripts/quality/run.cjs quick` | `8b04600` | **PASS**, exit 0, 2026-11-15T05:59:05Z: web typecheck, web lint, api lint, api tests all exit 0; `sourceUnchangedDuringRun` true (`.claude/state/quality/quick.json`) |
 | `node scripts/quality/run.cjs full` | `8b04600` | **PASS**, exit 0, 2026-11-15T06:06:53Z: web typecheck, web lint, api lint, api tests, web unit tests, web build, contract drift, database migrations all exit 0; `sourceUnchangedDuringRun` true (`full.json`). The gate stores no test counts; CI's full job enforces zero API skips |
@@ -49,6 +53,15 @@ Order: PK01 → PK03 → PK04 → PK02 → PK05. PK02's `--enforce` can reach ex
 | `npm run test:config` | `0daecf8` | 36 pass, 0 fail, 0 skipped |
 | `node --test scripts/testing/tests/*.test.cjs` | `0daecf8` | 28 pass, 0 fail, 0 skipped |
 | `/devkit:ship-check` | `0daecf8` / `1e251ab` | Step 1: the rows above. Step 2: local review by the project `verifier` agent at `9f635a8` (+ delta to `6e16e01`); its five findings are fixed in `0daecf8` (see "Review" below). Step 3: security-guidance is not installed (skipped). Steps 4–5: PR and `/code-review` wait for the orchestrator's go (after the w5-data merge). Step 6: not applicable (test tooling and docs) |
+
+### `/code-review` on #156 (local only, `8b4fff9..81bc170`; Gabriel's decisions 2026-11-15)
+
+| Item | Decision |
+|---|---|
+| 1: README and HARDWARE said 4 CPU cores, but compose.yaml gives the worker `cpus: 6`, and Docker refuses a CPU limit above its CPUs (reproduced: `docker run --cpus 64` → "range of CPUs is from 0.01 to 16.00, as there are only 16 CPUs available") | Fixed in `e45633d`: `renderSummary` reads the worker's limit from compose.yaml; the README states 6 CPUs; tests tie both to compose.yaml (RED first). compose.yaml unchanged; an adjustable worker CPU limit moves to W6, after a 4-CPU measurement |
+| 9: bench artifacts recorded absolute `--out` paths (a home directory) | Fixed in `e45633d`: `--out` is passed relative to `apps/api`, where the benches run; `--render` rewrites absolute repo paths in an artifact's commands (RED first). Both artifacts re-rendered: `git diff --word-diff` shows only the three `command` fields per file; `grep -rn "/home/" docs/testing scripts README.md docs/pantrypulse/HARDWARE.md` is empty. `--render` on `bench-2026-11-12.json` fixes its JSON, then cannot render HARDWARE.md (that run predates host-load recording); HARDWARE.md is rendered from `bench-2026-11-15.json` |
+| 2: egress staleness ignores `package.json`, `package-lock.json`, `packages/contracts`; 4: a crashed or timed-out check counts as `pending`; 7: `check-version-pin` runs in no gate | Follow-up PR after #156 merges |
+| 3: no recorded `--build` run is required; 5: A10 accepts a failed enrichment (the committed run's A10 is "enrichment done"); 6: a failed early run leaves an old local `report.json`; 8: recorded runs never go stale; 10: `sh`/`must`/`sleep` duplicated between the two runners | Known limitations |
 
 ### Review round 2 (orchestrator's verifier at `9366474`: FAIL, one blocker; all fixes approved by Gabriel)
 
