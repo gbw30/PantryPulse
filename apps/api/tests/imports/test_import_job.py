@@ -217,6 +217,42 @@ def test_job_failure_reported_as_failed_import(rt):
     assert "nothing was saved" in status.failure.message
 
 
+def _job_count(rt):
+    with rt.engine.connect() as conn:
+        return conn.scalar(sa.text("SELECT count(*) FROM compute_jobs"))
+
+
+@pytest.mark.parametrize("outcome", ["done", "failed"])
+def test_a_commit_on_a_finished_import_is_refused(rt, outcome):
+    """W5-D04: once a run is stored done or failed, a commit (same key or a new one) is 409
+    IMPORT_ALREADY_FINISHED: the phase stays, and no job is admitted. Here the finished run's
+    job was cancelled by the harness, which once let a commit move the phase back to staging."""
+    files = FILES if outcome == "done" else {**FILES, "products": "product_id,name\n"}
+    status = _imported(rt, files)
+    assert status.phase == outcome
+    jobs = _job_count(rt)
+    for key in (f"commit-{status.import_id}", "a-new-click"):
+        with pytest.raises(AccessError) as refused:
+            api.commit_import(rt, SCOPE, status.import_id,
+                              ImportCommit(as_of_date=date(2026, 11, 4)), key)
+        assert (refused.value.code, refused.value.status) == ("IMPORT_ALREADY_FINISHED", 409)
+    after = api.import_status(rt, SCOPE, status.import_id)
+    assert (after.phase, after.job_id, after.network_id) == (
+        outcome, status.job_id, status.network_id)
+    assert _job_count(rt) == jobs
+
+
+def test_a_run_whose_job_stopped_before_finishing_can_still_be_committed_again(rt):
+    """The Retry path stays open: the stored phase still reads staging, so it isn't finished."""
+    created = api.create_import(rt, SCOPE, _new())
+    _upload(rt, created.import_id, FILES)
+    first = _commit(rt, created.import_id)
+    rt.queue.cancel(TrustedScope(_org(rt, created.import_id), "local"), first.job_id, "stop-2")
+    again = api.commit_import(rt, SCOPE, created.import_id,
+                              ImportCommit(as_of_date=date(2026, 11, 4)), "retry-click")
+    assert again.job_id != first.job_id
+
+
 def test_reimport_creates_new_dataset_version_and_old_scenarios_keep_theirs(rt):
     first = _imported(rt)
     assert first.phase == "done"

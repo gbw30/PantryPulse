@@ -414,6 +414,58 @@ def test_route_into_hub_rejected():
         "routes", 2, "to_location_id", "MALFORMED")
 
 
+@pytest.mark.parametrize("mode", ["PANTRY", "RETAIL"])
+def test_demand_history_for_a_hub_or_dc_is_refused(mode):
+    """W5-D02: a hub or DC never has demand of its own. Its history (even an all-blank one) would
+    reach the scenario as "no forecast" while the location still sends (W4 #144)."""
+    sender, receiver = ("H1", "P1") if mode == "PANTRY" else ("D1", "S1")
+    locations = LOCATIONS if mode == "PANTRY" else (
+        "location_id,name,type,street,city,state,zip\n"
+        "D1,Central DC,distribution_center,1 Dock Rd,Orlando,FL,32801\n"
+        "S1,Store One,store,2 Main St,Orlando,FL,32801\n")
+    inventory = INVENTORY.replace("H1,", f"{sender},").replace("P1,", f"{receiver},")
+    demand = (f"location_id,product_id,date,quantity,basis\n"
+              f"{receiver},RICE,2026-11-01,3,demand\n"
+              f"{sender},RICE,2026-11-01,,sales\n"  # all blank still counts
+              f"{sender},BEANS,2026-11-02,4,demand\n")
+    report = validate_files(_files(locations=locations, inventory=inventory,
+                                   demand_history=demand), PANTRY.model_copy(update={"mode": mode}))
+    assert not report.ok
+    assert [(e.file, e.line, e.column, e.code, e.value) for e in report.errors] == [
+        ("demand_history", 3, "location_id", "MALFORMED", sender),
+        ("demand_history", 4, "location_id", "MALFORMED", sender)]
+    role = "hub" if mode == "PANTRY" else "distribution center"
+    error = report.errors[0]
+    assert f"{sender} is a {role}" in error.reason and "demand history" in error.reason
+    assert "Remove" in error.fix and ("pantries" if mode == "PANTRY" else "stores") in error.fix
+
+
+@pytest.mark.parametrize(("mode", "wrong", "receivers"), [
+    ("PANTRY", "distribution_center", "pantries"), ("RETAIL", "hub", "stores")])
+def test_hub_or_dc_demand_fix_names_the_receivers_of_the_network_mode(mode, wrong, receivers):
+    """The fix follows the network's mode, not the row's sender type: a DC typed into a Pantry
+    import (already a type error) still says demand history is only for pantries."""
+    locations = (LOCATIONS if mode == "PANTRY" else (
+        "location_id,name,type,street,city,state,zip\n"
+        "H1,Central DC,distribution_center,1 Dock Rd,Orlando,FL,32801\n"
+        "P1,Store One,store,2 Main St,Orlando,FL,32801\n")
+    ) + f"X1,Mistyped,{wrong},3 Side St,Orlando,FL,32801\n"
+    demand = ("location_id,product_id,date,quantity,basis\n"
+              "P1,RICE,2026-11-01,3,demand\nX1,RICE,2026-11-01,4,demand\n")
+    report = validate_files(_files(locations=locations, demand_history=demand),
+                            PANTRY.model_copy(update={"mode": mode}))
+    [error] = [e for e in report.errors if e.file == "demand_history"]
+    assert (error.line, error.column, error.code, error.value) == (
+        3, "location_id", "MALFORMED", "X1")
+    assert error.fix == f"Remove this row; demand history is only for {receivers}"
+
+
+def test_donation_history_at_a_hub_is_still_accepted():
+    donations = "location_id,product_id,date,quantity,donor\nH1,RICE,2026-11-01,5,Grocer\n"
+    report = validate_files(_files(donation_history=donations), PANTRY)
+    assert report.ok, report.errors
+
+
 def test_envelope_is_injectable():
     report = validate_files(_files(), PANTRY, Envelope(max_locations=1))
     assert [(e.code, e.line) for e in report.errors] == [("OVER_ENVELOPE", 3)]

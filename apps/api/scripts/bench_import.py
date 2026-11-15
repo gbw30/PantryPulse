@@ -50,7 +50,10 @@ from app.services.imports.staging import (  # noqa: E402
 )
 
 AS_OF = date(2026, 11, 4)
-LOCATIONS, PRODUCTS, DAYS = 100, 500, 90  # the v1 envelope: 4.5 M demand rows at most
+LOCATIONS, PRODUCTS, DAYS = 100, 500, 90  # the v1 envelope
+# No hub: import validation doesn't require one, and a hubless network of 100 pantries reaches
+# the whole envelope, 100 × 500 × 90 = 4,500,000 rows, with no hub demand (W5-D02).
+MAX_ROWS = LOCATIONS * PRODUCTS * DAYS
 HEADERS = {
     "locations": "location_id,name,type,street,city,state,zip,latitude,longitude",
     "products": "product_id,name,unit",
@@ -63,7 +66,7 @@ HEADERS = {
 def _rows(name: str, rows: int, batches: int):
     if name == "locations":
         for i in range(LOCATIONS):
-            yield (f"L{i:03},Site {i},{'hub' if i < 5 else 'pantry'},{i + 1} Main St,"
+            yield (f"L{i:03},Site {i},pantry,{i + 1} Main St,"
                    f"Tallahassee,FL,32301,{27 + i % 10 * 0.3:.4f},{-82 - i // 10 * 0.3:.4f}")
     elif name == "products":
         yield from (f"P{p:03},Product {p},case" for p in range(PRODUCTS))
@@ -110,7 +113,7 @@ def _reset(url: str, schema: str, *, create: bool) -> None:
 def main(argv=None) -> dict:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--rows", type=int, default=LOCATIONS * PRODUCTS * DAYS,
+    parser.add_argument("--rows", type=int, default=MAX_ROWS,
                         help="demand_history rows (at most 4,500,000)")
     parser.add_argument("--batches", type=int, default=200_000, help="inventory rows")
     parser.add_argument("--schema", default="w1_data_bench")
@@ -122,7 +125,7 @@ def main(argv=None) -> dict:
     parser.add_argument("--out", type=Path,
                         default=API_ROOT.parent.parent / "artifacts" / "bench" / "import.json")
     args = parser.parse_args(argv)
-    if not 0 < args.rows <= LOCATIONS * PRODUCTS * DAYS or not 0 < args.batches <= 200_000:
+    if not 0 < args.rows <= MAX_ROWS or not 0 < args.batches <= 200_000:
         parser.error("--rows must be 1..4,500,000 and --batches 1..200,000 (the v1 envelope)")
     url = args.database_url or parser.error("set PP_TEST_DATABASE_URL or --database-url")
     _reset(url, args.schema, create=True)
