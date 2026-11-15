@@ -13,8 +13,8 @@ Status: measured on 2026-11-06 at commit `f476520` (branch `w0/foundation`) on o
 Commands, from a normal PowerShell session (not Administrator; `C:\code\pp-s3` is owned by the user account):
 
 ```powershell
-git config --global --add safe.directory '//wsl.localhost/Ubuntu/home/gabri/code/PantryPulse/.git'
-git clone --branch w0/foundation \\wsl.localhost\Ubuntu\home\gabri\code\PantryPulse C:\code\pp-s3
+git config --global --add safe.directory '//wsl.localhost/Ubuntu/home/<you>/code/PantryPulse/.git'
+git clone --branch w0/foundation \\wsl.localhost\Ubuntu\home\<you>\code\PantryPulse C:\code\pp-s3
 cd C:\code\pp-s3
 docker compose -p pp-s3 build --no-cache
 docker compose -p pp-s3 up
@@ -32,7 +32,7 @@ docker compose -p pp-s3 up
 ## Run 2: WSL Ubuntu (orchestrator)
 
 ```bash
-git clone --branch w0/foundation /home/gabri/code/PantryPulse ~/tmp-s3-clone
+git clone --branch w0/foundation ~/code/PantryPulse ~/tmp-s3-clone
 cd ~/tmp-s3-clone
 export COMPOSE_PROJECT_NAME=pp-s3wsl PP_WEB_PORT=3999
 docker compose build --no-cache        # 37 s
