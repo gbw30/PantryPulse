@@ -11,7 +11,7 @@ Version pin: `0.1.0` (`ghcr.io/gbw30/pantrypulse-api:0.1.0`, `ghcr.io/gbw30/pant
 - **Windows 11:** [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install/) with the WSL 2 backend, and [git](https://git-scm.com/install/windows).
 - **Linux** (Ubuntu 24.04 is the supported target; no run on it is recorded yet): [Docker Engine](https://docs.docker.com/engine/install/ubuntu/) with the Compose plugin, and git.
 - macOS is untested and not supported in this version.
-- Hardware: 4 CPU cores and 8 GiB of memory available to Docker, and about 15 GB of free disk. See [docs/pantrypulse/HARDWARE.md](docs/pantrypulse/HARDWARE.md) for the measurements.
+- Hardware: 6 CPUs and 8 GiB of memory available to Docker (the planning worker is limited to 6 CPUs, and Docker won't start it with fewer), and about 15 GB of free disk. See [docs/pantrypulse/HARDWARE.md](docs/pantrypulse/HARDWARE.md) for the measurements.
 
 You don't need Node, Python or a database: Docker runs everything.
 

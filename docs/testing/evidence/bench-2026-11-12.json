@@ -56,7 +56,7 @@
   },
   "import": {
     "started_at": "2026-11-12T08:29:02.322Z",
-    "command": "taskset -c 0-5 uv run --frozen python scripts/bench_import.py --out /home/gabri/code/PantryPulse-packaging/artifacts/bench/import.json",
+    "command": "taskset -c 0-5 uv run --frozen python scripts/bench_import.py --out ../../artifacts/bench/import.json",
     "wall_s": 99.1,
     "cpu_s": 68,
     "cpu_avg_cores": 0.7,
@@ -134,7 +134,7 @@
   "comparison": {
     "pantry": {
       "started_at": "2026-11-12T08:31:33.647Z",
-      "command": "taskset -c 0-5 uv run --frozen python ../../scripts/or/bench_v1.py --mode pantry --out /home/gabri/code/PantryPulse-packaging/artifacts/bench/or-pantry.json",
+      "command": "taskset -c 0-5 uv run --frozen python ../../scripts/or/bench_v1.py --mode pantry --out ../../artifacts/bench/or-pantry.json",
       "wall_s": 371.2,
       "cpu_s": 364,
       "cpu_avg_cores": 1,
@@ -251,7 +251,7 @@
     },
     "retail": {
       "started_at": "2026-11-12T08:37:45.275Z",
-      "command": "taskset -c 0-5 uv run --frozen python ../../scripts/or/bench_v1.py --mode retail --out /home/gabri/code/PantryPulse-packaging/artifacts/bench/or-retail.json",
+      "command": "taskset -c 0-5 uv run --frozen python ../../scripts/or/bench_v1.py --mode retail --out ../../artifacts/bench/or-retail.json",
       "wall_s": 576,
       "cpu_s": 515,
       "cpu_avg_cores": 0.9,

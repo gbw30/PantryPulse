@@ -49,6 +49,40 @@ test('the requirements and ceiling margin are generated from the artifact too', 
   assert.equal(summary[1], renderSummary(artifact));
 });
 
+test("the CPU requirement is the worker's CPU limit in compose.yaml", () => {
+  // Docker refuses to start a container whose CPU limit is above the CPUs it has
+  // ("range of CPUs is from 0.01 to 16.00, as there are only 16 CPUs available").
+  const { renderSummary } = require('../../bench/run-all.cjs');
+  const limits = [...fs.readFileSync(path.join(root, 'compose.yaml'), 'utf8').matchAll(/^\s+cpus:\s*['"]?([\d.]+)/gm)].map((m) => m[1]);
+  assert.equal(limits.length, 1, 'compose.yaml sets one CPU limit, on the worker');
+  const row = renderSummary(measured().artifact).split('\n').find((l) => l.startsWith('| CPU |'));
+  assert.ok(row.includes(`**${limits[0]} CPUs available to Docker**`), row);
+  assert.doesNotMatch(row, /\*\*4 cores/, "the requirement is not V1-SPEC's provisional 4 cores");
+});
+
+test('no bench artifact records an absolute path', () => {
+  const dir = path.join(root, 'docs/testing/evidence');
+  for (const f of fs.readdirSync(dir).filter((n) => /^bench-.*\.json$/.test(n))) {
+    const a = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+    for (const phase of [a.import, a.forecast, a.comparison?.pantry, a.comparison?.retail]) {
+      for (const token of phase?.command?.split(' ') ?? []) assert.ok(!path.isAbsolute(token), `${f}: ${token}`);
+    }
+    assert.doesNotMatch(fs.readFileSync(path.join(dir, f), 'utf8'), /\/home\/|\/Users\/|[A-Za-z]:\\\\/, f);
+  }
+});
+
+test('relativeCommands rewrites absolute paths inside the repository relative to apps/api, where the benches run', () => {
+  const { relativeCommands } = require('../../bench/run-all.cjs');
+  const out = path.join(root, 'artifacts/bench/import.json');
+  const a = { import: { command: `taskset -c 0-5 uv run --frozen python scripts/bench_import.py --out ${out}` },
+    forecast: { command: 'taskset -c 0-5 uv run --frozen python scripts/bench_forecast.py --part lock' },
+    comparison: { pantry: { command: `x --out ${path.join(root, 'artifacts/bench/or-pantry.json')}` }, retail: { command: 'y' } } };
+  relativeCommands(a);
+  assert.equal(a.import.command, 'taskset -c 0-5 uv run --frozen python scripts/bench_import.py --out ../../artifacts/bench/import.json');
+  assert.equal(a.forecast.command, 'taskset -c 0-5 uv run --frozen python scripts/bench_forecast.py --part lock');
+  assert.equal(a.comparison.pantry.command, 'x --out ../../artifacts/bench/or-pantry.json');
+});
+
 test('outside the generated blocks, HARDWARE.md states no measured figure, only V1-SPEC figures', () => {
   const text = fs.readFileSync(hardware, 'utf8')
     .replace(/<!-- (summary|bench):begin -->[\s\S]*?<!-- \1:end -->/g, '');

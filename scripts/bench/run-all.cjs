@@ -95,6 +95,21 @@ function optimizers(a) {
       : `The number of products at risk and optimized differs by run (${atRisk.join(', ')} of ${products}); see the artifact.`);
 }
 
+/** The worker's CPU limit in compose.yaml (its only `cpus:`): Docker needs at least that many CPUs to start it. */
+function workerCpus() {
+  const limits = [...fs.readFileSync(path.join(root, 'compose.yaml'), 'utf8').matchAll(/^\s+cpus:\s*['"]?([\d.]+)/gm)].map((m) => m[1]);
+  if (limits.length !== 1) throw new Error(`expected one cpus: limit in compose.yaml, found ${limits.length}`);
+  return limits[0];
+}
+
+/** Rewrites absolute paths inside the repository in each bench command relative to apps/api, where the benches run. */
+function relativeCommands(a) {
+  for (const phase of [a.import, a.forecast, a.comparison?.pantry, a.comparison?.retail]) {
+    if (phase?.command) phase.command = phase.command.split(' ').map((t) => (t.startsWith(`${root}${path.sep}`) ? path.relative(api, t) : t)).join(' ');
+  }
+  return a;
+}
+
 /** The Requirements table and the ceiling margin of HARDWARE.md, generated from the artifact alone. */
 function renderSummary(a) {
   const m = a.machine;
@@ -102,6 +117,7 @@ function renderSummary(a) {
   const named = { import: a.import, forecast: a.forecast, 'Pantry comparison': a.comparison.pantry, 'Retail comparison': a.comparison.retail };
   const [largest, peak] = Object.entries(named).reduce((x, y) => (y[1].peak_rss_mib > x[1].peak_rss_mib ? y : x));
   const [lo, hi] = (/taskset -c (\d+)-(\d+)/.exec(a.import.command) ?? []).slice(1).map(Number);
+  const cpus = workerCpus();
   const label = (image) => (/-api[:@]/.test(image) ? 'API' : /-web[:@]/.test(image) ? 'web' : /postgres/.test(image) ? 'PostgreSQL' : image);
   const comparisons = ['pantry', 'retail'].flatMap((mode) => Object.entries(a.comparison[mode].report.comparison_wall_s)
     .map(([measure, s]) => ({ mode, measure, s, ceilings: a.comparison[mode].report.ceilings_s })));
@@ -110,7 +126,7 @@ function renderSummary(a) {
   return [
     '| Resource | Requirement | From the measurements |',
     '|---|---|---|',
-    `| CPU | **4 cores available to Docker**: V1-SPEC's provisional figure; no step has run under a 4-CPU limit yet | Docker had ${m.docker_cpus} CPUs, and the benches ran under \`taskset\` on ${hi - lo + 1}. Idle, the stack's containers used ${cores(a.idle.cpu_percent / 100)} of a core in total. Each bench process averaged ${cores(Math.min(...steps.map((p) => p.cpu_avg_cores)))}–${cores(Math.max(...steps.map((p) => p.cpu_avg_cores)))} cores; PostgreSQL's CPU during the benches is not included. Single-core speed sets how long a comparison takes (see the ceiling margin below). |`,
+    `| CPU | **${cpus} CPUs available to Docker**: compose.yaml limits the worker to ${cpus} CPUs (\`cpus: ${cpus}\`), and Docker does not start a container whose limit is above the CPUs it has. V1-SPEC's provisional figure is 4 cores; a lower limit is not offered yet | Docker had ${m.docker_cpus} CPUs, and the benches ran under \`taskset\` on ${hi - lo + 1}. Idle, the stack's containers used ${cores(a.idle.cpu_percent / 100)} of a core in total. Each bench process averaged ${cores(Math.min(...steps.map((p) => p.cpu_avg_cores)))}–${cores(Math.max(...steps.map((p) => p.cpu_avg_cores)))} cores; PostgreSQL's CPU during the benches is not included. Single-core speed sets how long a comparison takes (see the ceiling margin below). |`,
     `| Memory | **8 GiB available to Docker**: V1-SPEC's provisional figure; what was measured fits well within it | Idle, the stack's containers peaked at ${a.idle.memory_peak_mib} MiB together. The largest bench process (the ${largest}) peaked at ${peak.peak_rss_mib.toLocaleString('en-US')} MiB, its largest child process's RSS. PostgreSQL's memory during the benches is not included, so these two are not a measured total. 8 GiB also lets the worker reach its 8 GiB ceiling (V1-SPEC §9). Less memory may work but is untested. The 16 GB machine recommendation is not measured. |`,
     `| Disk | **About 15 GB free**: provisional, only partly measured | Images ${gib(a.disk.images_mib)} (${Object.entries(a.disk.images).map(([i, mib]) => `${label(i)} ${mib.toLocaleString('en-US')} MiB`).join(', ')}) and a ${a.disk.database_mib} MiB database after the first start. Not measured: Docker's build cache, the database after a maximum-size import, and the Chronos profile's provisional +10 GB. |`,
     `| Time | First run: build ${minutes(a.build.seconds)}, then first start ${minutes(a.start.seconds)} | Base images were already on the machine, so a clean machine adds their download. The build has no cache mounts, so \`--no-cache\` downloads every npm and Python package again; it depends on load and connection speed (the host's 1-minute load went from ${a.build.load.start[0]} to ${a.build.load.end[0]} during the build). |`,
@@ -197,7 +213,10 @@ async function main() {
   const at = process.argv.indexOf('--render');
   if (at >= 0) { // regenerate HARDWARE.md from an existing artifact, without measuring
     const file = path.resolve(process.argv[at + 1]);
-    writeHardware(JSON.parse(fs.readFileSync(file, 'utf8')), file);
+    const a = JSON.parse(fs.readFileSync(file, 'utf8'));
+    const before = JSON.stringify(a);
+    if (JSON.stringify(relativeCommands(a)) !== before) fs.writeFileSync(file, `${JSON.stringify(a, null, 2)}\n`);
+    writeHardware(a, file);
     console.log(`Rewrote HARDWARE.md from ${path.relative(root, file)}.`);
     return;
   }
@@ -243,7 +262,7 @@ async function main() {
 
   const imports = fs.mkdtempSync(path.join(os.tmpdir(), 'pp-bench-imports-'));
   try {
-    a.import = bench('import', ['scripts/bench_import.py', '--out', path.join(scratch, 'import.json')], scratch, { PP_IMPORT_DIR: imports });
+    a.import = bench('import', ['scripts/bench_import.py', '--out', path.relative(api, path.join(scratch, 'import.json'))], scratch, { PP_IMPORT_DIR: imports });
     a.import.report = JSON.parse(fs.readFileSync(path.join(scratch, 'import.json'), 'utf8'));
   } finally { fs.rmSync(imports, { recursive: true, force: true }); }
   a.forecast = bench('forecast', ['scripts/bench_forecast.py', '--part', 'lock', '--series', '50000'], scratch);
@@ -253,7 +272,7 @@ async function main() {
   a.comparison = {};
   for (const mode of ['pantry', 'retail']) {
     const out = path.join(scratch, `or-${mode}.json`);
-    a.comparison[mode] = bench(`comparison-${mode}`, ['../../scripts/or/bench_v1.py', '--mode', mode, '--out', out], scratch);
+    a.comparison[mode] = bench(`comparison-${mode}`, ['../../scripts/or/bench_v1.py', '--mode', mode, '--out', path.relative(api, out)], scratch);
     a.comparison[mode].report = JSON.parse(fs.readFileSync(out, 'utf8'))[mode.toUpperCase()] ?? JSON.parse(fs.readFileSync(out, 'utf8'));
   }
   for (const phase of [a.import, a.forecast, a.comparison.pantry, a.comparison.retail]) delete phase.stdout;
@@ -267,4 +286,4 @@ async function main() {
 }
 
 if (require.main === module) main().catch((e) => { console.error(e); process.exitCode = 1; });
-module.exports = { renderTable, renderSummary, minutes };
+module.exports = { renderTable, renderSummary, minutes, relativeCommands };

@@ -18,6 +18,12 @@ test('the quickstart covers the V1-SPEC §9 steps for a stranger', () => {
   assert.match(quickstart, /down -v[^\n]*\n?[^\n]*(deletes|erases)/, 'start over carries a warning');
 });
 
+test("the quickstart's CPU requirement is the worker's CPU limit in compose.yaml", () => {
+  const [, cpus] = /^\s+cpus:\s*['"]?([\d.]+)/m.exec(fs.readFileSync(path.join(root, 'compose.yaml'), 'utf8'));
+  assert.ok(quickstart.includes(`${cpus} CPUs and 8 GiB of memory available to Docker`), `quickstart states ${cpus} CPUs`);
+  assert.doesNotMatch(quickstart, /\b4 CPU cores\b/);
+});
+
 test('the README lists the W2-06 known limits', () => {
   for (const text of ['64 characters', 'abandoned imports', 'one worker', 'row count', 'retry backoff']) {
     assert.ok(readme.includes(text), `known limits mention ${text}`);
