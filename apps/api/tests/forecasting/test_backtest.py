@@ -127,12 +127,29 @@ def test_no_future_leakage():
     assert again == seen
 
 
-def test_zero_denominator_reports_none():
+def test_zero_denominator_is_not_evaluated_with_its_reason():
+    """W5-D03: Σactual = 0 leaves WAPE and bias undefined, so the score says "not evaluated"
+    and why, never "evaluated" with null metrics. The scored set itself is still reported."""
     score = backtest_series([D(0)] * 35, baseline_fit())
-    assert score.status == "evaluated"
-    assert score.scored_points == 28
-    assert score.wape_pct is None
-    assert score.bias_pct is None
+    assert (score.status, score.reason, score.wape_pct, score.bias_pct) == (
+        "not_evaluated_zero_actual", "sum_actual_zero", None, None)
+    assert (score.scored_points, score.origins_evaluated) == (28, 4)
+
+
+def test_rollup_with_a_zero_denominator_is_not_evaluated_with_its_reason():
+    zero = scored_set([D(0)] * 35, baseline_fit())
+    (row,) = location_rollups([("P1", "case", zero), ("P1", "case", zero)])
+    assert (row.score.status, row.score.reason, row.score.wape_pct, row.score.scored_points) == (
+        "not_evaluated_zero_actual", "sum_actual_zero", None, 56)
+    some = scored_set(weeks(0, 0, 0, 0, 5), baseline_fit())  # one nonzero actual week pooled in
+    (row,) = location_rollups([("P1", "case", zero), ("P1", "case", some)])
+    assert (row.score.status, row.score.reason) == ("evaluated", None)
+    assert row.score.wape_pct is not None
+
+
+def test_other_scores_carry_no_reason():
+    assert backtest_series(weeks(10, 10, 10, 10, 10, 10), baseline_fit()).reason is None
+    assert backtest_series([D(3)] * 20, baseline_fit()).reason is None
 
 
 def test_moving_average_fallback_when_a_prior_weekday_is_missing():

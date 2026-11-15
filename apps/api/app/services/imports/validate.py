@@ -20,6 +20,7 @@ from app.schemas.v1_imports import ErrorCode, ImportSettings, RowError, Validati
 from app.schemas.v1_networks import REQUIRED_TEMPLATES, TemplateName
 from app.schemas.v1_planning import ROLES_BY_MODE, ProductV3
 from app.services.imports.columns import COLUMNS, header
+from app.services.optimization.v3 import HUB_ROLES
 
 # The or-input-v3 `Count` bound (or_inputs.py:14): a larger quantity would fail at scenario freeze.
 MAX_QUANTITY = 100_000
@@ -473,6 +474,14 @@ class Validator:
             quantity = row.quantity("quantity", blank_ok=True)
             basis = None
             if name == "demand_history":
+                role = self.location_roles.get(location_id or "")
+                if role in HUB_ROLES:  # senders never have demand of their own (W5-D02)
+                    row.fail("location_id", "MALFORMED",
+                             f"{location_id} is a {role.replace('_', ' ')}, and hubs and "
+                             "distribution centers have no demand history of their own",
+                             "Remove this row; demand history is only for "
+                             + ("pantries" if self.settings.mode == "PANTRY" else "stores"),
+                             location_id)
                 basis = cells["basis"].lower()
                 if basis not in ("demand", "sales"):
                     row.fail("basis", "MALFORMED", "basis must be demand or sales",
@@ -544,8 +553,7 @@ class Validator:
             if source is not None and source == target:
                 row.fail("to_location_id", "MALFORMED", "a route can't start and end at the "
                          "same location", "Use two different location IDs")
-            elif target is not None and self.location_roles.get(target) in (
-                    "hub", "distribution_center"):
+            elif target is not None and self.location_roles.get(target) in HUB_ROLES:
                 row.fail("to_location_id", "MALFORMED",
                          f"{target} is a {self.location_roles[target].replace('_', ' ')}, and "
                          "hubs and distribution centers never receive transfers",

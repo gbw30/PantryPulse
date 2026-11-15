@@ -16,10 +16,14 @@ export const STATUS_LABEL: Record<MarkStatus, string> = {
 };
 
 export function pluralize(unit: string) {
-  if (/^(each|oz|g|kg|ml|l)$/i.test(unit)) return unit; // abbreviations don't take a plural
-  if (/(ss|x|z|ch|sh)$/i.test(unit)) return `${unit}es`;
-  if (/s$/i.test(unit)) return unit; // already plural ("lbs", "meals")
-  if (/[^aeiou]y$/i.test(unit)) return `${unit.slice(0, -1)}ies`;
+  // Units are free text: only the last word takes a plural ("fluid ounces"), and only when it is a plain word that is
+  // not an abbreviation ("fl oz", "dz", "oz.") or an all-caps code ("BOX", "FOOD BOX"); anything else stays as written.
+  const head = unit.slice(0, unit.lastIndexOf(" ") + 1);
+  const word = unit.slice(head.length);
+  if (/^(each|ea|oz|g|kg|mg|ml|l|dz|doz)$/i.test(word) || !/^[a-z]+$/i.test(word) || word === word.toUpperCase()) return unit;
+  if (/(ss|x|z|ch|sh)$/i.test(word)) return `${unit}es`;
+  if (/s$/i.test(word)) return unit; // already plural ("lbs", "meals")
+  if (/[^aeiou]y$/i.test(word)) return `${unit.slice(0, -1)}ies`;
   return `${unit}s`;
 }
 
@@ -30,7 +34,8 @@ export function shortName(name: string) {
 /** Units in the product's base unit; an unavailable quantity is never rounded or guessed. */
 export function formatUnits(value: Quantity, product: Product) {
   if (value === null) return "Unavailable";
-  return `${value.toLocaleString("en-US", { maximumFractionDigits: 1 })} ${value === 1 ? product.unit : product.unitPlural}`;
+  const shown = value.toLocaleString("en-US", { maximumFractionDigits: 1 });
+  return `${shown} ${shown === "1" ? product.unit : product.unitPlural}`; // the number as shown: 1.04 reads "1 box"
 }
 
 export function formatNumber(value: Quantity) {

@@ -72,9 +72,18 @@ def test_guide_states_single_timezone_and_blank_capacity_rule():
     basis = next(c for t in catalog.templates if t.name == "demand_history"
                  for c in t.columns if c.name == "basis")
     assert "sales (undercounts demand when shelves were empty)" in basis.meaning
-    # W4 stopgap: promise only where the label shows today (trust-panel.tsx), not "everywhere"
+    # W5-UI04: name exactly where the label shows, never "everywhere"
     assert "everywhere" not in basis.meaning
-    assert "Data Explorer's Forecast trust panels" in basis.meaning
+    assert ("in the Forecast trust panels, the danger ranking and the site inspector."
+            in basis.meaning)
+
+
+@pytest.mark.parametrize(("mode", "senders"), [
+    ("PANTRY", "hubs"), ("RETAIL", "distribution centers"), (None, "hubs")])
+def test_demand_history_guide_says_senders_have_no_demand(mode, senders):
+    catalog = {t.name: t for t in template_catalog(mode).templates}
+    location = next(c for c in catalog["demand_history"].columns if c.name == "location_id")
+    assert senders in location.meaning.lower() and "refused" in location.meaning
 
 
 def test_template_routes_answer_through_the_api():
