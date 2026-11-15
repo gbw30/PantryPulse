@@ -106,8 +106,8 @@ export function SampleBadge() {
 export function NetworkSwitcher() {
   const { state, network, select } = useNetwork();
   return (
-    <section aria-label="Current network" className="grid gap-1.5 px-1 text-sm">
-      <Label htmlFor="network-switcher" className="text-xs text-muted-foreground">Network</Label>
+    <section aria-label="Current network" className="grid grid-cols-[minmax(0,1fr)] gap-1.5 px-1 text-sm">
+      <Label id="network-switcher-label" htmlFor="network-switcher" className="text-xs text-muted-foreground">Network</Label>
       {state.status === "loading" && <p className="text-muted-foreground">Loading networks…</p>}
       {state.status === "signed_out" && <p className="text-muted-foreground">Sign in to see your networks.</p>}
       {state.status === "error" && <p role="alert" className="text-muted-foreground">Networks unavailable ({state.code.replaceAll("_", " ").toLowerCase()}).</p>}
@@ -117,8 +117,10 @@ export function NetworkSwitcher() {
       {state.status === "ready" && state.networks.length > 0 && (
         <>
           <Select value={network?.id ?? ""} onValueChange={select}>
-            <SelectTrigger id="network-switcher" className="h-10 w-full bg-background">
-              <SelectValue placeholder="Choose a network" />
+            {/* A long name truncates inside the sidebar instead of widening it over the page title (W4-03 ux-critic);
+                the full name stays in the accessible name (label + value) and the tooltip. */}
+            <SelectTrigger id="network-switcher" aria-labelledby="network-switcher-label network-switcher-value" title={network?.name} className="h-10 w-full min-w-0 bg-background *:data-[slot=select-value]:block *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:truncate">
+              <SelectValue id="network-switcher-value" placeholder="Choose a network" />
             </SelectTrigger>
             <SelectContent>
               {state.networks.map((n) => (

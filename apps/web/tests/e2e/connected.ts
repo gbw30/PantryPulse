@@ -52,7 +52,7 @@ export async function importNetwork(page: Page, options: Parameters<typeof start
   const finished = page.getByRole("region", { name: "Import finished" });
   const full = page.getByRole("alert").filter({ hasText: "The import didn't start (compute queue full)" });
   await untilQueued(page, finished, full, () => full.getByRole("button", { name: "Retry" }).click(), 90_000);
-  const switcher = page.getByRole("combobox", { name: "Network", exact: true });
+  const switcher = page.getByRole("region", { name: "Current network" }).getByRole("combobox");
   await expect(switcher).toContainText(options.name);
   return page.evaluate(() => window.localStorage.getItem("pantrypulse.network"));
 }
@@ -111,7 +111,7 @@ export function seedSamples(): Samples {
 
 /** Choose a network in the sidebar switcher, as a person does. */
 export async function chooseNetwork(page: Page, name: string) {
-  const switcher = page.getByRole("combobox", { name: "Network", exact: true });
+  const switcher = page.getByRole("region", { name: "Current network" }).getByRole("combobox");
   await switcher.click();
   await page.getByRole("option", { name: new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}( \\(sample\\))?$`) }).click();
   await expect(switcher).toContainText(name);
@@ -142,7 +142,9 @@ export const FORECAST_TIMEOUT = 600_000;
  */
 export async function runForecast(page: Page, name: string) {
   await page.goto("/overview");
-  const section = page.getByRole("region", { name: `Danger ranking · ${name}` });
+  await expect(page.getByRole("region", { name: `Danger ranking · ${name}` })).toBeVisible();
+  // The Overview has one "Run forecast" (W5-UI02.5 moved it beside the page header; atlas-ranking.spec.ts pins where).
+  const section = page.getByRole("main");
   const button = section.getByRole("button", { name: "Run forecast" });
   await expect(button).toBeVisible();
   await expect(button).not.toHaveAttribute("aria-disabled", "true");

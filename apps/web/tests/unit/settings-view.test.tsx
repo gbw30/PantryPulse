@@ -28,7 +28,7 @@ beforeEach(() => {
 
 it("queued lookups promise an update, which the job poll keeps", async () => {
   const accepted = example("ForecastAccepted");
-  render(<EnrichmentStatusPanel status={{ ...example("EnrichmentStatus"), state: "done" }} onRetry={async () => accepted} onSaveAttributes={vi.fn()} />);
+  render(<EnrichmentStatusPanel mode="PANTRY" status={{ ...example("EnrichmentStatus"), state: "done" }} onRetry={async () => accepted} onSaveAttributes={vi.fn()} />);
   fireEvent.click(screen.getByRole("button", { name: "Retry lookups" }));
   expect(await screen.findByText(`Lookups queued (job ${accepted.job_id.slice(0, 8)}). This list updates when they finish.`)).toBeVisible();
 
@@ -126,7 +126,7 @@ it("lookups that did not start say why and offer Retry, which queues them", asyn
   const message = "Address lookups did not start: the job queue was full when the import finished. Use Retry to start them.";
   const accepted = example("ForecastAccepted");
   const onRetry = vi.fn(async () => accepted);
-  render(<EnrichmentStatusPanel status={{ ...example("EnrichmentStatus"), state: "not_started", unmatched: [], last_error: message }} onRetry={onRetry} onSaveAttributes={vi.fn()} />);
+  render(<EnrichmentStatusPanel mode="PANTRY" status={{ ...example("EnrichmentStatus"), state: "not_started", unmatched: [], last_error: message }} onRetry={onRetry} onSaveAttributes={vi.fn()} />);
   expect(screen.getByText(message)).toBeVisible();
   expect(screen.queryByText(/last error/)).not.toBeInTheDocument();
   expect(screen.queryByRole("heading", { name: "Addresses not found" })).not.toBeInTheDocument();
@@ -136,6 +136,25 @@ it("lookups that did not start say why and offer Retry, which queues them", asyn
 });
 
 it("a sample network's lookups never started, with no message: nothing to retry", () => {
-  render(<EnrichmentStatusPanel status={{ ...example("EnrichmentStatus"), state: "not_started", unmatched: [], last_error: null }} onRetry={vi.fn()} onSaveAttributes={vi.fn()} />);
+  render(<EnrichmentStatusPanel mode="PANTRY" status={{ ...example("EnrichmentStatus"), state: "not_started", unmatched: [], last_error: null }} onRetry={vi.fn()} onSaveAttributes={vi.fn()} />);
   expect(screen.queryByRole("button", { name: "Retry lookups" })).not.toBeInTheDocument();
+});
+
+// Poverty and SNAP rates and EGP exclusion only feed Pantry planning (V1-D03), so a Retail network's Settings leave
+// them out; its address and Census lookups (the map's coordinates) stay.
+it("a Retail network's Settings show no poverty or SNAP rates, EGP exclusion or EGP blockers", async () => {
+  current = { ...first, mode: "RETAIL" };
+  render(<SettingsView />);
+  expect(await screen.findByText(/^Address and Census lookups:/)).toBeVisible();
+  expect(screen.queryByRole("heading", { name: "Poverty and SNAP rates by location" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Exclude from EGP" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Enter values" })).not.toBeInTheDocument();
+  expect(screen.queryByText(/EGP_PI_INSPIRED is blocked/)).not.toBeInTheDocument();
+});
+
+it("a Pantry network's Settings keep the rates, EGP exclusion and EGP blockers", async () => {
+  render(<SettingsView />);
+  expect(await screen.findByRole("heading", { name: "Poverty and SNAP rates by location" })).toBeVisible();
+  expect(screen.getAllByRole("button", { name: "Exclude from EGP" })).toHaveLength(2);
+  expect(screen.getByText(/EGP_PI_INSPIRED is blocked/)).toBeVisible();
 });

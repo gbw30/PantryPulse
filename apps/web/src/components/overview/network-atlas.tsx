@@ -106,15 +106,16 @@ function AtlasForNetwork(props: AtlasProps) {
 function NetworkOverview({ network }: { network: Network }) {
   return (
     <div className="flex flex-1 flex-col gap-3 px-4 pt-3 pb-4 md:gap-4 md:px-6 md:py-5 lg:gap-6">
-      <header data-atlas-header className="min-w-0">
-        <p className="font-condensed text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Network intelligence</p>
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-[26px] leading-tight font-semibold tracking-tight md:text-[28px]">Network Atlas</h1>
-          {network.is_sample && <SampleBadge />}
-        </div>
-        <p className="text-sm text-muted-foreground">Which locations in {network.name} are projected to run short, ranked by danger.</p>
-      </header>
-      <DangerRankingSection />
+      <DangerRankingSection header={
+        <header data-atlas-header className="min-w-0">
+          <p className="font-condensed text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Network intelligence</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-[26px] leading-tight font-semibold tracking-tight md:text-[28px]">Network Atlas</h1>
+            {network.is_sample && <SampleBadge />}
+          </div>
+          <p className="text-sm text-muted-foreground">Which locations in {network.name} are projected to run short, ranked by danger.</p>
+        </header>
+      } />
     </div>
   );
 }

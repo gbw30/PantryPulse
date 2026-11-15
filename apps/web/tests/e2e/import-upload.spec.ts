@@ -34,7 +34,7 @@ test("@V1-A07 rejected import shows the failure message (failed, nothing saved, 
   expect(JSON.parse(calls.find((c) => c.path.endsWith("/commit"))!.body!)).toEqual({ as_of_date: "2026-11-05" });
 
   // Nothing was saved: the switcher still lists only the networks that existed before.
-  await page.getByRole("combobox", { name: "Network", exact: true }).click();
+  await page.getByRole("region", { name: "Current network" }).getByRole("combobox").click();
   await expect(page.getByRole("option")).toHaveCount(example("NetworkList").networks.length - 1);
   await expect(page.getByRole("option", { name: /North County/ })).toHaveCount(0);
   await page.keyboard.press("Escape");
@@ -58,7 +58,7 @@ test("@V1-A23 inbound and donation files are optional and labeled", async ({ pag
   await expect(summary).toContainText("no scheduled deliveries provided");
   expect(uploads(calls).sort()).toEqual([...REQUIRED].sort());
   // The new network is now listed and chosen.
-  await expect(page.getByRole("combobox", { name: "Network", exact: true })).toContainText(example("Network").name);
+  await expect(page.getByRole("region", { name: "Current network" }).getByRole("combobox")).toContainText(example("Network").name);
 });
 
 for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]] as const) {

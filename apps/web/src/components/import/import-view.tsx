@@ -141,6 +141,8 @@ function ImportContent() {
     try {
       await networkApi.commitImport(importId, { as_of_date: asOfDateToSend(settings, lastHistory) });
     } catch (error) {
+      // A Retry after a commit whose phase write was lost: the run already finished, so show it (CR-w5-data-2).
+      if (error instanceof ApiError && error.code === "IMPORT_ALREADY_FINISHED") return track(importId);
       // Nothing is saved when the commit is refused (4xx). A commit with no answer or a 5xx may have been accepted: read the run.
       if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
         if (alive.current) setRun({ step: "request_failed", code: codeOf(error) });

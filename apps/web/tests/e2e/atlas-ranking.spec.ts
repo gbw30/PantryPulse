@@ -10,13 +10,15 @@ const ranking = example("DangerRanking");
 const network = example("NetworkList").networks.find((n) => n.id === ranking.network_id)!;
 const names = Object.fromEntries(example("LocationList").locations.map((l) => [l.location_id, `${l.name} (${l.location_id})`]));
 
-async function open(page: Page) {
+async function open(page: Page, served = ranking, extra: Parameters<typeof mockV1>[1] = {}, net = network) {
   const calls = await mockV1(page, {
-    "GET networks": { body: { networks: [network] } },
-    ...publishedRun(network, ranking.forecast_run_id),
+    ...extra,
+    "GET networks": { body: { networks: [net] } },
+    ...publishedRun(net, ranking.forecast_run_id),
     [`GET networks/${network.id}/danger`]: (call) => call.query.get("forecast_run_id") === ranking.forecast_run_id
-      ? { body: ranking } : { status: 404, body: { error: { code: "NOT_FOUND", message: "not found", details: {} } } },
+      ? { body: served } : { status: 404, body: { error: { code: "NOT_FOUND", message: "not found", details: {} } } },
     [`GET networks/${network.id}/locations`]: { body: example("LocationList") },
+    ...extra,
     [`GET networks/${network.id}/projection`]: (call) =>
       call.query.get("forecast_run_id") === ranking.forecast_run_id && call.query.get("location_id") === "P-12"
         ? { body: example("LocationProjection") } : { status: 404, body: envelope("NOT_FOUND") },
@@ -93,3 +95,117 @@ for (const [width, height] of [[1440, 900], [1280, 720], [390, 844]] as const) {
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });
 }
+
+// W5-UI02.5 (W4-03 ux-critic #5): the Overview's first view. Five ranked rows, so #3 is a real third row.
+function fiveRows(mode: "PANTRY" | "RETAIL" = "PANTRY") {
+  const served = example("DangerRanking");
+  served.mode = mode;
+  const low = served.rows[1];
+  served.rows.push(...[3, 4, 5].map((rank) => ({ ...low, location_id: `P-9${rank}`, rank })));
+  // Retail from sales history is the longest line: the reason and the sales basis (W5-UI04) on every row.
+  if (mode === "RETAIL") served.rows = served.rows.map((row) => ({ ...row, basis: "sales" as const }));
+  return served;
+}
+
+// The presenter's view after a run, as on the connected stack (W5 v1-after evidence): the "Forecast finished" status
+// under the header (a sample network's long name pushes it below the header) and, for Retail, a DC on #1 whose row
+// carries the DC note.
+const SAMPLE_NAME = { PANTRY: "Sample Pantry Network (North Central Florida)", RETAIL: "Heronfield Market — sample retail network" } as const;
+const accepted = example("ForecastAccepted");
+function presenterRun(mode: "PANTRY" | "RETAIL") {
+  const locations = example("LocationList");
+  if (mode === "RETAIL") locations.locations = locations.locations.map((l) => (l.location_id === "P-12" ? { ...l, role: "distribution_center" as const } : l));
+  return {
+    [`POST networks/${network.id}/forecasts`]: { status: 202, body: accepted },
+    [`GET jobs/${accepted.job_id}`]: { body: { job_id: accepted.job_id, current_attempt_id: accepted.attempt_id, state: "SUCCEEDED", attempts: [] } },
+    [`GET networks/${network.id}/locations`]: { body: locations },
+  };
+}
+
+for (const [width, height, mode] of [[1440, 900, "PANTRY"], [1280, 720, "PANTRY"], [1440, 900, "RETAIL"], [1280, 720, "RETAIL"]] as const) {
+  test(`@V1-A20 ranks #1–#3 show without scrolling at ${width}x${height} (${mode}), after a presenter's run`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    const served = fiveRows(mode);
+    if (mode === "RETAIL") served.rows[0] = { ...served.rows[0], reason: "expiry" };
+    await open(page, served, presenterRun(mode), { ...network, name: SAMPLE_NAME[mode] });
+    await page.getByRole("group", { name: "Presenter controls" }).getByRole("button", { name: "Run forecast" }).click();
+    await expect(page.getByText("Forecast finished. The views below use the new run.")).toBeVisible();
+    const items = page.getByRole("list", { name: "Locations by danger" }).getByRole("listitem");
+    await expect(items).toHaveCount(5);
+    if (mode === "RETAIL") await expect(items.first()).toContainText("A DC has no sales");
+    await page.evaluate(() => window.scrollTo(0, 0));
+    // At least 24 px under #3, so a small change in copy or data doesn't push it out of the first view.
+    for (const i of [0, 1, 2]) {
+      const box = (await items.nth(i).boundingBox())!;
+      expect(box.y + box.height, `rank #${i + 1} ends 24 px inside the first view`).toBeLessThanOrEqual(height - 24);
+    }
+    // The column beside the map (caption, then legend) starts at the map's top, not at its bottom.
+    const map = (await page.getByRole("group", { name: /^Map of / }).boundingBox())!;
+    const caption = (await page.getByText(/^Placed from each location/).boundingBox())!;
+    expect(Math.abs(caption.y - map.y), "caption and legend top-aligned with the map").toBeLessThanOrEqual(8);
+  });
+}
+
+// ux-critic (wave end): with the inspector open, the column beside the map was squeezed and its text ran under the
+// inspector, cut mid-word. The legend then sits under the map, inside the ranking column.
+test("@V1-A20 with the inspector open at 1440x900, no legend text overflows its box", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page);
+  const section = page.getByRole("region", { name: `Danger ranking · ${network.name}` });
+  await section.getByRole("button", { name: names["P-12"], exact: true }).click();
+  const inspector = page.getByRole("region", { name: "Site inspector · Archer Road Pantry" });
+  await expect(inspector).toBeVisible();
+  const legend = section.getByRole("list", { name: "Danger bands" }).locator("..");
+  const overflow = await legend.evaluate((box) => {
+    const outer = box.getBoundingClientRect();
+    return [box, ...box.querySelectorAll("*")].filter((el) => {
+      const r = el.getBoundingClientRect();
+      return el.scrollWidth > el.clientWidth + 1 || r.left < outer.left - 1 || r.right > outer.right + 1;
+    }).map((el) => `${el.tagName} ${(el.textContent ?? "").slice(0, 30)}`);
+  });
+  expect(overflow, "legend elements wider than their box").toEqual([]);
+  const legendBox = (await legend.boundingBox())!;
+  const inspectorBox = (await inspector.boundingBox())!;
+  expect(legendBox.x + legendBox.width, "legend clear of the inspector").toBeLessThanOrEqual(inspectorBox.x);
+  expect(legendBox.width, "legend keeps a readable width").toBeGreaterThanOrEqual(320);
+});
+
+test("@V1-A20 Run forecast sits outside the ranking, labeled for presenters", async ({ page }) => {
+  await open(page);
+  const section = page.getByRole("region", { name: `Danger ranking · ${network.name}` });
+  await expect(section.getByRole("list", { name: "Locations by danger" })).toBeVisible();
+  await expect(section.getByRole("button", { name: "Run forecast" })).toHaveCount(0);
+  const controls = page.getByRole("group", { name: "Presenter controls" });
+  await expect(controls).toContainText("Presenter");
+  await expect(controls.getByRole("button", { name: "Run forecast" })).toBeVisible();
+});
+
+test("@V1-A20 a focused map marker shows its site name", async ({ page }) => {
+  await open(page);
+  const map = page.getByRole("group", { name: `Map of ${network.name}` });
+  const marker = map.getByRole("button", { name: `${names["P-07"]}, Low danger` });
+  const name = map.getByText(names["P-07"], { exact: true });
+  await expect(name).toBeHidden();
+  await marker.focus();
+  await expect(name).toBeVisible();
+});
+
+test("@V1-A20 Escape closes the live inspector and returns focus to its opener", async ({ page }) => {
+  await open(page);
+  const section = page.getByRole("region", { name: `Danger ranking · ${network.name}` });
+  const opener = section.getByRole("button", { name: names["P-12"], exact: true });
+  await opener.click();
+  const inspector = page.getByRole("region", { name: "Site inspector · Archer Road Pantry" });
+  await expect(inspector.getByRole("table", { name: "WATER-24 in cases" })).toBeVisible();
+  await inspector.getByRole("table", { name: "WATER-24 in cases" }).click(); // focus elsewhere in the inspector
+  await page.keyboard.press("Escape");
+  await expect(inspector).toHaveCount(0);
+  await expect(opener).toBeFocused();
+
+  const marker = page.getByRole("group", { name: `Map of ${network.name}` }).getByRole("button", { name: `${names["P-07"]}, Low danger` });
+  await marker.click();
+  await expect(page.getByRole("region", { name: "Site inspector · Eastside Pantry" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("region", { name: "Site inspector · Eastside Pantry" })).toHaveCount(0);
+  await expect(marker).toBeFocused();
+});

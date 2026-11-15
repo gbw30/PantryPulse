@@ -458,6 +458,50 @@ test("a late focus return from the closed card never closes the next site's card
   await expect(page.getByTestId("site-inspector").getByRole("heading", { name: "Gator Distribution Hub" })).toBeVisible();
 });
 
+// W5-UI05 (W4-03 known limits): the product picker (Radix Select) is the other control that takes focus while a
+// card is open. Under the same late-timer delay, the old card's focus return must not undo the product just chosen
+// or pull focus away from the picker.
+test("choosing a product while a site's card is open keeps the new product and focus (late timers)", async ({ page }) => {
+  await openAtlasSlowable(page, "reduce");
+  const cedar = marker(page, "Cedar Grove Pantry");
+  await cedar.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("dialog", { name: "Cedar Grove Pantry" })).toBeVisible();
+  await slowTimers(page, 2_000); // outlasts the choice below, so the closed card's focus return lands after it
+  const picker = page.getByRole("combobox", { name: "Product" });
+  await expect(picker).toContainText("Shelf-stable meals");
+  await picker.click();
+  await page.getByRole("option", { name: /^Bottled water/ }).click();
+  await settle(page);
+  await page.waitForTimeout(2_500); // every slowed timer, including the card's focus return, has run
+  await settle(page);
+  await expect(picker).toContainText("Bottled water");
+  await expect(picker).toBeFocused();
+  await expect(page.getByRole("listbox")).toHaveCount(0);
+});
+
+test("choosing a product by keyboard while a site's card is open keeps the new product and focus (late timers)", async ({ page }) => {
+  await openAtlasSlowable(page, "reduce");
+  const cedar = marker(page, "Cedar Grove Pantry");
+  await cedar.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("dialog", { name: "Cedar Grove Pantry" })).toBeVisible();
+  await slowTimers(page, 2_000);
+  const picker = page.getByRole("combobox", { name: "Product" });
+  await picker.focus(); // focus leaves the card, which dismisses it
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("listbox")).toBeVisible();
+  await page.keyboard.press("ArrowDown");
+  // Radix Select moves the highlight in a 0 ms timer, which slowTimers delays too: wait for it before choosing.
+  await expect(page.getByRole("option", { name: /^Bottled water/ })).toBeFocused({ timeout: 5_000 });
+  await page.keyboard.press("Enter");
+  await settle(page);
+  await page.waitForTimeout(2_500);
+  await settle(page);
+  await expect(picker).toContainText("Bottled water");
+  await expect(picker).toBeFocused();
+});
+
 // Verifier finding: clicking another site while a card is open (or still animating out) left no card. The old
 // card's outside-click dismissal arrived after that site's click had selected it, and closed the shared card.
 for (const motion of ["reduce", "no-preference"] as const) {
