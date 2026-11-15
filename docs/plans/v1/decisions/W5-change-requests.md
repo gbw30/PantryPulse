@@ -17,7 +17,7 @@ Each lane ran as a separate CLI session in `~/code/PantryPulse-<lane>` on `lane/
 | #155 | w5-polish: UI01–UI05, CR-w5-data-2, CR-w5-screens-4 and the wave-end ux-critic batch | `eb21003` |
 | #156 | w5-packaging: PK01–PK05, CR-w5-packaging-1–3, the quiet W5-PK04 re-measure at `d92021b`, and the code-review fixes (the 6-CPU requirement, repo-relative bench paths, the memory wording) | `cadd138` |
 | #157 | w5-packaging follow-up: code-review items 2, 4 and 7 (egress staleness inputs, broken checkers fail `--enforce`, the version pin in V1-A24's checks) | `d751453` |
-| pending | Lead: this close-out | |
+| this PR | Lead: this close-out (full gate 8/8 and 2269 API tests, 0 skipped, on the merged tree `e0b7ef3`) | |
 
 ## 2. Cross-lane change requests (Gabriel, 2026-11-12)
 
