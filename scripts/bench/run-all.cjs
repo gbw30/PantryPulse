@@ -25,6 +25,8 @@ const MiB = 1024 * 1024;
 const minutes = (s) => (s < 60 ? `${s.toFixed(0)} s` : `${Math.floor(s / 60)} min ${String(Math.round(s % 60)).padStart(2, '0')} s`);
 const gib = (mib) => `${(mib / 1024).toFixed(1)} GiB`;
 const when = (iso) => iso.replace(/\.\d+Z$/, 'Z');
+// Host load average [1, 5, 15 min]: the reference machine is shared, so each timing carries it.
+const loadavg = () => os.loadavg().map((v) => Math.round(v * 10) / 10);
 
 /** The measurement block of HARDWARE.md, generated from the artifact alone. */
 function renderTable(a, link) {
@@ -36,27 +38,27 @@ function renderTable(a, link) {
       `union check passed on ${checked.filter((x) => x.union_check.passed).length}/${checked.length}`;
   };
   const rows = [
-    ['First-run build, `docker compose build --no-cache` (base images already downloaded)', minutes(a.build.seconds), a.build.started_at],
-    ['First start, `docker compose up --wait` (migrate, seed, web ready)', minutes(a.start.seconds), a.start.started_at],
-    ['Idle stack, all services', `RAM ${a.idle.memory_mib} MiB (peak ${a.idle.memory_peak_mib} MiB); CPU ${a.idle.cpu_percent}% of one core`, a.idle.started_at],
-    ['Disk after first start', `images ${gib(a.disk.images_mib)}; database ${a.disk.database_mib} MiB`, a.disk.measured_at],
+    ['First-run build, `docker compose build --no-cache` (base images already downloaded)', minutes(a.build.seconds), a.build.started_at, a.build.load],
+    ['First start, `docker compose up --wait` (migrate, seed, web ready)', minutes(a.start.seconds), a.start.started_at, a.start.load],
+    ['Idle stack, all services', `RAM ${a.idle.memory_mib} MiB (peak ${a.idle.memory_peak_mib} MiB); CPU ${a.idle.cpu_percent}% of one core`, a.idle.started_at, a.idle.load],
+    ['Disk after first start', `images ${gib(a.disk.images_mib)}; database ${a.disk.database_mib} MiB`, a.disk.measured_at, null],
     [`A09 import, ${a.import.report.generated.locations} × ${a.import.report.generated.products} × 90 days (${a.import.report.loaded.net_demand_history.toLocaleString('en-US')} demand rows, ${a.import.report.loaded.net_batches.toLocaleString('en-US')} batches)`,
-      `job steps ${minutes(a.import.report.seconds.total)} (validate ${minutes(a.import.report.seconds.step)}, prepare ${minutes(a.import.report.seconds.prepare)}, publish ${minutes(a.import.report.seconds.publish)}); run ${bench(a.import)}`, a.import.started_at],
-    [`A17 forecast, ${a.forecast.report.series.toLocaleString('en-US')} series × ${a.forecast.report.days ?? 90} days, through the queue and publisher`, bench(a.forecast), a.forecast.started_at],
+      `job steps ${minutes(a.import.report.seconds.total)} (validate ${minutes(a.import.report.seconds.step)}, prepare ${minutes(a.import.report.seconds.prepare)}, publish ${minutes(a.import.report.seconds.publish)}); run ${bench(a.import)}`, a.import.started_at, a.import.load],
+    [`A17 forecast, ${a.forecast.report.series.toLocaleString('en-US')} series × ${a.forecast.report.days ?? 90} days, through the queue and publisher`, bench(a.forecast), a.forecast.started_at, a.forecast.load],
     ...['pantry', 'retail'].map((mode) => {
       const c = a.comparison[mode];
       const walls = Object.entries(c.report.comparison_wall_s).map(([k, v]) => `${k.toLowerCase()} ${minutes(v)}`).join(', ');
       return [`A17 ${mode === 'pantry' ? 'Pantry' : 'Retail'} comparison, ${c.report.size.locations} × ${c.report.size.products}, every method (${walls})`,
-        `${bench(c)}; ${verified(c)}`, c.started_at];
+        `${bench(c)}; ${verified(c)}`, c.started_at, c.load];
     }),
   ];
   return [
     `Measured on ${m.cpu}, ${m.cpus} logical CPUs, ${gib(m.ram_mib)} RAM, ${m.os}; Docker ${m.docker_version} with ${m.docker_cpus} CPUs and ${gib(m.docker_memory_mib)} for Docker. ` +
-      `Commit \`${a.commit.slice(0, 7)}\`${a.dirty_paths.length ? ` plus ${a.dirty_paths.length} uncommitted paths, ${a.dirty_paths.some((p) => p.startsWith('apps/')) ? 'some under `apps/`' : 'none under `apps/`'} (listed in the artifact)` : ''}. Artifact: [${path.basename(link)}](${link}).`,
+      `Commit \`${a.commit.slice(0, 7)}\`${a.dirty_paths.length ? ` plus ${a.dirty_paths.length} uncommitted paths, ${a.dirty_paths.some((p) => p.startsWith('apps/')) ? 'some under `apps/`' : 'none under `apps/`'} (listed in the artifact)` : ''}. Artifact: [${path.basename(link)}](${link}). Host load is the machine's 1-minute load average, across its ${m.cpus} logical CPUs (the artifact also has the 5- and 15-minute averages).`,
     '',
-    '| Measure | Result | Started (UTC) |',
-    '|---|---|---|',
-    ...rows.map(([measure, result, at]) => `| ${measure} | ${result} | ${when(at)} |`),
+    '| Measure | Result | Started (UTC) | Host load, 1 min (start → end) |',
+    '|---|---|---|---|',
+    ...rows.map(([measure, result, at, load]) => `| ${measure} | ${result} | ${when(at)} | ${load ? `${load.start[0]} → ${load.end[0]}` : '—'} |`),
     '',
   ].join('\n');
 }
@@ -74,9 +76,10 @@ const now = () => new Date().toISOString();
 
 function timed(fn) {
   const started_at = now();
+  const start = loadavg();
   const t = process.hrtime.bigint();
   fn();
-  return { started_at, seconds: Math.round(Number(process.hrtime.bigint() - t) / 1e8) / 10 };
+  return { started_at, seconds: Math.round(Number(process.hrtime.bigint() - t) / 1e8) / 10, load: { start, end: loadavg() } };
 }
 
 /** `docker stats` memory ("512.3MiB / 7.6GiB") in MiB. */
@@ -107,16 +110,18 @@ const RUSAGE = 'import json,resource,subprocess,sys,time\nt=time.perf_counter()\
 function bench(name, args, scratch, env = {}) {
   console.log(`Running ${name}…`);
   const started_at = now();
+  const start = loadavg();
   const usage = path.join(scratch, `${name}.rusage.json`);
   const stdout = path.join(scratch, `${name}.stdout`);
   const out = fs.openSync(stdout, 'w');
   const r = spawnSync(path.join(api, '.venv/bin/python'), ['-c', RUSAGE, usage, 'taskset', '-c', '0-5', 'uv', 'run', '--frozen', 'python', ...args],
     { cwd: api, stdio: ['ignore', out, 'inherit'], env: { ...process.env, ...env } });
   fs.closeSync(out);
+  const load = { start, end: loadavg() };
   const u = JSON.parse(fs.readFileSync(usage, 'utf8'));
   if (r.status !== 0 || u.returncode !== 0) throw new Error(`${name} failed (exit ${u.returncode}); see ${stdout}`);
   return { started_at, command: ['taskset -c 0-5 uv run --frozen python', ...args].join(' '), wall_s: Math.round(u.wall_s * 10) / 10,
-    cpu_s: Math.round(u.cpu_s), cpu_avg_cores: Math.round((u.cpu_s / u.wall_s) * 10) / 10, peak_rss_mib: Math.round(u.peak_rss_kib / 1024), stdout };
+    cpu_s: Math.round(u.cpu_s), cpu_avg_cores: Math.round((u.cpu_s / u.wall_s) * 10) / 10, peak_rss_mib: Math.round(u.peak_rss_kib / 1024), load, stdout };
 }
 
 async function main() {
@@ -151,7 +156,9 @@ async function main() {
   const containers = must('docker', [...app, 'ps', '-q']).trim().split('\n');
   console.log('Idle: 60 s settle, then 30 s of samples…');
   await sleep(60_000);
-  a.idle = { started_at: now(), ...(await sampleStats(containers, 30)) };
+  const idleStart = { started_at: now(), load: { start: loadavg() } };
+  a.idle = { ...idleStart, ...(await sampleStats(containers, 30)) };
+  a.idle.load.end = loadavg();
   const images = must('docker', [...app, 'config', '--images']).trim().split('\n');
   a.disk = { measured_at: now(), images: Object.fromEntries(images.map((i) => [i, Math.round(Number(must('docker', ['image', 'inspect', '-f', '{{.Size}}', i])) / MiB)])),
     database_mib: Math.round(Number(must('docker', [...app, 'exec', '-T', 'postgres', 'du', '-sb', '/var/lib/postgresql/data']).split(/\s/)[0]) / MiB) };

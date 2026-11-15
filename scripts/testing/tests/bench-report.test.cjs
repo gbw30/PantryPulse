@@ -50,3 +50,16 @@ test('every measurement is tied to a real commit and a timestamp', () => {
   }
   for (const mode of ['pantry', 'retail']) assert.ok(!Number.isNaN(Date.parse(artifact.comparison[mode].started_at)));
 });
+
+test('every timed phase records the host load average at its start and end', () => {
+  // The reference machine is shared, so a reader needs the load to judge each timing.
+  const { artifact } = measured();
+  const phases = { build: artifact.build, start: artifact.start, idle: artifact.idle, import: artifact.import,
+    forecast: artifact.forecast, pantry: artifact.comparison.pantry, retail: artifact.comparison.retail };
+  for (const [name, phase] of Object.entries(phases)) {
+    for (const end of ['start', 'end']) {
+      const l = phase.load?.[end];
+      assert.ok(Array.isArray(l) && l.length === 3 && l.every((v) => Number.isFinite(v) && v >= 0), `${name} load.${end} is [1, 5, 15 min]`);
+    }
+  }
+});
