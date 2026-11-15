@@ -129,18 +129,24 @@ def v6(src, dst):
     ip = bytes([0x60, 0, 0, 0, 0, 8, 17, 64]) + ipaddress.ip_address(src).packed + ipaddress.ip_address(dst).packed
     return b"\x00" * 12 + b"\x86\xdd" + ip + struct.pack("!HHHH", 40000, 443, 8, 0)
 subnet = ipaddress.ip_network("172.30.0.0/16")
+def mac(frame, first):  # the bridge always carries Ethernet; Docker's random MACs can start with any byte
+    return bytes([first]) + frame[1:]
 cases = [("br-x", v4("172.30.0.5", "203.0.113.9", 40001, 53)),
          ("services1", v4("192.168.65.6", "192.168.65.7", 40002, 53)),
          ("eth0", v4("10.0.0.2", "1.1.1.1", 40003, 53)),
          ("br-x", v6("fd00::5", "2606:4700::1111")),
          ("br-x", v6("fe80::5", "fe80::1")),
          ("br-x", v6("fe80::5", "ff02::16")),
-         ("eth0", v6("2001:db8::5", "2606:4700::1111"))]
+         ("eth0", v6("2001:db8::5", "2606:4700::1111")),
+         ("br-x", mac(v4("172.30.0.5", "203.0.113.9", 40004, 5353), 0x6a)),
+         ("br-x", mac(b"\x00" * 12 + b"\x08\x06" + bytes(28), 0x45))]
 print(json.dumps([m.packet_event(frame, iface, "br-x", subnet) for iface, frame in cases]))
 `;
   const run = spawnSync('python3', ['-I', '-c', py, path.join(__dirname, '..', 'egress-sniff.py')], { encoding: 'utf8' });
   assert.equal(run.status, 0, run.stderr);
-  const [direct, resolver, host, global6, linkLocal, multicast, host6] = JSON.parse(run.stdout);
+  const [direct, resolver, host, global6, linkLocal, multicast, host6, macSix, arpMacFour] = JSON.parse(run.stdout);
+  assert.equal(macSix?.kind, 'udp', 'an IPv4 frame whose MAC starts 0x6_ is IPv4, never IPv6');
+  assert.equal(arpMacFour, null, 'an ARP frame whose MAC starts 0x4_ is not IPv4');
   assert.equal(direct.kind, 'udp');
   assert.deepEqual([resolver, host, linkLocal, multicast, host6], [null, null, null, null, null]);
   assert.equal(global6.kind, 'ipv6');

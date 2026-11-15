@@ -33,8 +33,10 @@ def main(bridge: str, cidr: str) -> None:
 def packet_event(frame: bytes, iface: str, bridge: str, subnet) -> dict | None:
     if iface != bridge:
         return None  # off the bridge it is not the stack's traffic (see the module docstring)
-    if frame[12:14] == b"\x86\xdd" or (frame[:1] and frame[0] >> 4 == 6):
-        ip6 = frame[14:] if frame[12:14] == b"\x86\xdd" else frame
+    ethertype = frame[12:14]  # the bridge always carries Ethernet: judge by EtherType, never by
+    # the first byte, which is a destination MAC (Docker's random MACs can start 0x4_ or 0x6_)
+    if ethertype == b"\x86\xdd":
+        ip6 = frame[14:]
         if len(ip6) < 40:
             return None
         dst = ipaddress.ip_address(ip6[24:40])
@@ -42,12 +44,9 @@ def packet_event(frame: bytes, iface: str, bridge: str, subnet) -> dict | None:
             return None  # link-local neighbour discovery and multicast stay on the bridge
         return {"kind": "ipv6", "src": str(ipaddress.ip_address(ip6[8:24])), "dst": str(dst),
                 "next_header": ip6[6]}
-    if frame[12:14] == b"\x08\x00":
-        ip = frame[14:]
-    elif frame[:1] and frame[0] >> 4 == 4:
-        ip = frame  # interfaces without a link header deliver bare IPv4
-    else:
+    if ethertype != b"\x08\x00":
         return None
+    ip = frame[14:]
     ihl, proto = (ip[0] & 0x0F) * 4, ip[9]
     if proto not in (6, 17) or len(ip) < ihl + 14:
         return None
