@@ -455,7 +455,7 @@
       },
       "BacktestScore": {
         "additionalProperties": false,
-        "description": "WAPE and bias as percentages of total actual demand, on one shared scored set (W3-F02).\n\nwape_pct = 100 × Σ|prediction − actual| / Σactual; bias_pct = 100 × Σ(prediction − actual) /\nΣactual, positive = over-forecast. Both are null when Σactual is 0. bias_pct replaces V5 §7's\nbias in units for v1 (W3 decisions §10), because units differ per product.\n\nA not-evaluated status carries no metrics; `reason` is an optional machine code for it\n(W5-L01), e.g. not_evaluated_zero_actual when Σactual is 0.",
+        "description": "WAPE and bias as percentages of total actual demand, on one shared scored set (W3-F02).\n\nwape_pct = 100 × Σ|prediction − actual| / Σactual; bias_pct = 100 × Σ(prediction − actual) /\nΣactual, positive = over-forecast. Both are null when Σactual is 0. bias_pct replaces V5 §7's\nbias in units for v1 (W3 decisions §10), because units differ per product.\n\nA not-evaluated status carries no metrics; `reason` is an optional machine code for it\n(W5-L01). When Σactual is 0, a run stored from W5-D03 on reads status\nnot_evaluated_zero_actual with reason sum_actual_zero; a run stored earlier reads status\nevaluated with both metrics null (stored backtests are not backfilled).",
         "properties": {
           "bias_pct": {
             "anyOf": [

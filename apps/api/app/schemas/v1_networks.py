@@ -75,7 +75,9 @@ class BacktestScore(ORContract):
     bias in units for v1 (W3 decisions §10), because units differ per product.
 
     A not-evaluated status carries no metrics; `reason` is an optional machine code for it
-    (W5-L01), e.g. not_evaluated_zero_actual when Σactual is 0."""
+    (W5-L01). When Σactual is 0, a run stored from W5-D03 on reads status
+    not_evaluated_zero_actual with reason sum_actual_zero; a run stored earlier reads status
+    evaluated with both metrics null (stored backtests are not backfilled)."""
 
     origins_evaluated: int = Field(ge=0)
     wape_pct: Decimal | None
