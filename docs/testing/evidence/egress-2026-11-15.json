@@ -1,0 +1,113 @@
+{
+  "commit": "9541f6fcb8c7bbf34b52f0ba15f3aeccbe4f8326",
+  "dirty_paths": [],
+  "project": "pp-packaging",
+  "web_port": "3102",
+  "started_at": "2026-11-15T02:46:07.919Z",
+  "google_key": "a random dummy key, saved after enrichment; no Google lookup is requested, so any Google connection is flagged",
+  "bridge": "br-421a801edaaf",
+  "subnet": "172.26.0.0/16",
+  "install_started_at": "2026-11-15T02:46:22.134Z",
+  "finished_at": "2026-11-15T02:48:40.314Z",
+  "journey": [
+    {
+      "step": "sign in as local",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "A06 templates and an example file",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "A07 a malformed file is rejected and nothing is saved",
+      "ok": true,
+      "detail": "phase failed, 1 errors listed; no network created"
+    },
+    {
+      "step": "A10 import of user addresses, then Census geocoding",
+      "ok": true,
+      "detail": "enrichment done; 2 locations with known attributes; 2 unmatched"
+    },
+    {
+      "step": "A11 save a Google key (a dummy, after enrichment; no Google lookup is requested)",
+      "ok": true,
+      "detail": "saved; settings report it configured"
+    },
+    {
+      "step": "A12 PANTRY sample forecast and its backtest",
+      "ok": true,
+      "detail": "forecast run 1079f7ae-a868-4d99-835e-04d99b460adc"
+    },
+    {
+      "step": "A13 PANTRY danger ranking and projection",
+      "ok": true,
+      "detail": "8 ranked rows; projection of #1 P08"
+    },
+    {
+      "step": "A14 A16 PANTRY HUB_ONLY UNITS: compare, decide, export",
+      "ok": true,
+      "detail": "5 methods verified; EGP_PI_INSPIRED exported 8 actions"
+    },
+    {
+      "step": "A14 A16 PANTRY HUB_AND_PANTRY UNITS: compare, decide, export",
+      "ok": true,
+      "detail": "5 methods verified; EGP_PI_INSPIRED exported 8 actions"
+    },
+    {
+      "step": "A12 RETAIL sample forecast and its backtest",
+      "ok": true,
+      "detail": "forecast run c982fbd2-1020-4090-93ac-d1dd9967aa1f"
+    },
+    {
+      "step": "A13 RETAIL danger ranking and projection",
+      "ok": true,
+      "detail": "21 ranked rows; projection of #1 DC1"
+    },
+    {
+      "step": "A15 A16 RETAIL HUB_ONLY UNITS: compare, decide, export",
+      "ok": true,
+      "detail": "3 methods verified; RETAIL_OPTIMIZED exported 823 actions"
+    },
+    {
+      "step": "A15 A16 RETAIL HUB_ONLY USD: compare, decide, export",
+      "ok": true,
+      "detail": "3 methods verified; RETAIL_OPTIMIZED exported 816 actions"
+    }
+  ],
+  "egress": {
+    "destinations": [
+      {
+        "destination": "geocoding.geo.census.gov:443",
+        "ip": "148.129.75.136",
+        "port": 443,
+        "proto": "tcp",
+        "server_name": "geocoding.geo.census.gov",
+        "allowed": true,
+        "connections": 1
+      }
+    ],
+    "violations": []
+  },
+  "secrets": {
+    "checked": [
+      "password",
+      "proxy_token",
+      "presenter_password_hash",
+      "google_key"
+    ],
+    "sources": [
+      "compose logs",
+      ".next output",
+      "API responses",
+      "git working tree",
+      "git history since the run started"
+    ],
+    "api_responses_scanned": 103,
+    "findings": []
+  },
+  "capture_saw_geocoding": true,
+  "issues": [],
+  "pass": true
+}
