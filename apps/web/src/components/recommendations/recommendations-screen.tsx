@@ -264,7 +264,7 @@ function ScreenBody() {
           <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="min-w-0">
               <p className="font-condensed text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Corrective-action review</p>
-              <h1 className="text-[26px] leading-tight font-semibold tracking-tight md:text-[28px]">Recommendations</h1>
+              <h1 className="font-serif text-[26px] leading-tight font-medium tracking-tight md:text-[28px]">Recommendations</h1>
               <p className="text-sm text-muted-foreground">Review feasible options and their projected impact before any operational decision.</p>
             </div>
             {presenter && catalog.kind === "ready" && catalog.comparisons.length > 0 && (

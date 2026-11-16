@@ -4,7 +4,11 @@ test("root opens the Network Atlas, links methodology and states simulation boun
   await page.goto("/");
   await expect(page).toHaveURL(/\/overview$/);
   await expect(page.locator("body")).toHaveCSS("font-family", /IBM Plex Sans/);
-  await expect(page.getByRole("heading", { level: 1, name: "Network Atlas" })).toBeVisible();
+  const title = page.getByRole("heading", { level: 1, name: "Network Atlas" });
+  await expect(title).toBeVisible();
+  // W5A-01: page titles are set in the serif; everything else stays in the sans.
+  await expect(title).toHaveCSS("font-family", /IBM Plex Serif/);
+  await expect(title).toHaveCSS("font-weight", "500");
   // The Workspaces nav was retired when the Scenario Lab replaced /optimization (PP-55 decision 1).
   await expect(page.getByRole("navigation", { name: "Reference" }).getByRole("link", { name: "Methodology & audit" })).toHaveAttribute("href", "/methodology");
   await expect(page.getByText("this map shows a static fixture, not a saved plan", { exact: false })).toBeVisible();

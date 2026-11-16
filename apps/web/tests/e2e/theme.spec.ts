@@ -47,7 +47,7 @@ test("the top-bar toggle switches .dark on <html>, persists across reload and fl
   await expect(banner.getByRole("button", { name: "Switch to light theme" })).toBeVisible();
   expect(await page.evaluate(() => window.localStorage.getItem("pp-theme"))).toBe("dark");
   // Tokens switch with the class: the canvas is the dark palette's.
-  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(7, 23, 33)");
+  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(16, 23, 31)");
 
   await page.reload();
   await expect(page.locator("[data-marker-role]")).toHaveCount(7, { timeout: 15_000 });

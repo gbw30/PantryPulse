@@ -78,7 +78,7 @@ export function DecisionsView({ comparisonId, method }: { comparisonId?: string;
       <AppShell active="scenarios" horizonLabel="Simulated plan">
         <div className="flex flex-1 flex-col gap-4 px-4 pt-3 pb-6 md:px-6 md:py-5">
           <header>
-            <h1 className="text-[26px] leading-tight font-semibold tracking-tight md:text-[28px]">Decisions</h1>
+            <h1 className="font-serif text-[26px] leading-tight font-medium tracking-tight md:text-[28px]">Decisions</h1>
             <p className="text-sm text-muted-foreground">Suggested transfers from one compared method, each with its reason and effect.</p>
           </header>
           {isUuid(comparisonId) && isV1Method(method)

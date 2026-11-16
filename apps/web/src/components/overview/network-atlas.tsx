@@ -110,7 +110,7 @@ function NetworkOverview({ network }: { network: Network }) {
         <header data-atlas-header className="min-w-0">
           <p className="font-condensed text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Network intelligence</p>
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-[26px] leading-tight font-semibold tracking-tight md:text-[28px]">Network Atlas</h1>
+            <h1 className="font-serif text-[26px] leading-tight font-medium tracking-tight md:text-[28px]">Network Atlas</h1>
             {network.is_sample && <SampleBadge />}
           </div>
           <p className="text-sm text-muted-foreground">Which locations in {network.name} are projected to run short, ranked by danger.</p>
@@ -386,7 +386,7 @@ function LegacyAtlas({ statePreview, body }: AtlasProps & { body?: React.ReactNo
           <header data-atlas-header className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between md:gap-3">
             <div className="min-w-0">
               <p className="font-condensed text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Network intelligence</p>
-              <h1 className="text-[26px] leading-tight font-semibold tracking-tight md:text-[28px]">Network Atlas</h1>
+              <h1 className="font-serif text-[26px] leading-tight font-medium tracking-tight md:text-[28px]">Network Atlas</h1>
               <p className="text-sm text-muted-foreground">Where each site runs short, by product and local day, across the simulated network.</p>
               {snapshot && (
                 // Says which source is showing; on narrow layouts it shares the line with the horizon.

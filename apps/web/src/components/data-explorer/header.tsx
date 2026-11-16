@@ -41,7 +41,7 @@ export function DataExplorerHeader({ active, controls, meta, productId, descript
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0">
           <p className="font-condensed text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Forecasts &amp; inventory</p>
-          <h1 className="text-[26px] leading-tight font-semibold tracking-tight md:text-[28px]">Data Explorer</h1>
+          <h1 className="font-serif text-[26px] leading-tight font-medium tracking-tight md:text-[28px]">Data Explorer</h1>
           <p className="text-sm text-muted-foreground">{description}</p>
           {meta}
         </div>

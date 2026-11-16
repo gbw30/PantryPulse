@@ -45,7 +45,7 @@ export function MethodPairHeader({ comparison }: { comparison: Comparison }) {
   );
 }
 
-/** Classical: hatched slate; EGP-PI-inspired: solid teal; baseline: outline. Identity never relies on colour alone. */
+/** Classical: hatched slate; EGP-PI-inspired: solid action color; baseline: outline. Identity never relies on colour alone. */
 export function MethodSwatch({ method }: { method: Method | "BASELINE" }) {
   return (
     <svg width="14" height="10" aria-hidden="true" className="shrink-0">

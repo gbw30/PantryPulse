@@ -48,7 +48,7 @@
   }
 }
 
-/* Under the flow, the selected link's teal line steps back so the moving dashes read as the bright part. */
+/* Under the flow, the selected link's action-color line steps back so the moving dashes read as the bright part. */
 .pp-supply-emphasis {
   stroke-opacity: 0.5;
 }

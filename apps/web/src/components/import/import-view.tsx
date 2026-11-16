@@ -210,7 +210,7 @@ function ImportContent() {
     <div className="flex flex-1 flex-col gap-6 px-4 pt-3 pb-6 md:px-6 md:py-5">
       <header className="grid gap-1">
         <p className="font-condensed text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Bring your own network</p>
-        <h1 className="text-[26px] leading-tight font-semibold tracking-tight md:text-[28px]">Import your network</h1>
+        <h1 className="font-serif text-[26px] leading-tight font-medium tracking-tight md:text-[28px]">Import your network</h1>
         <p className="max-w-3xl text-sm text-muted-foreground">
           Fill in the CSV templates with your locations, products, stock and daily history, then upload them together.
           Nothing is saved unless every file passes.
