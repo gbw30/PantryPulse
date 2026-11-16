@@ -62,7 +62,7 @@ export function ExplanationBadge({ kind }: { kind: Action["explanation_kind"] })
   const Icon = proven ? ShieldCheck : CircleDashed;
   return (
     <span className="inline-flex items-center gap-1.5 justify-self-start rounded-full border border-border bg-card px-2 py-0.5 text-xs font-medium text-foreground">
-      <Icon aria-hidden="true" className={proven ? "size-3.5 text-pp-teal" : "size-3.5 text-pp-neutral"} />
+      <Icon aria-hidden="true" className={proven ? "size-3.5 text-pp-action" : "size-3.5 text-pp-neutral"} />
       {proven ? "Proven: binding constraint" : "Inferred reason"}
     </span>
   );
@@ -87,7 +87,7 @@ export function ActionCard({ action, mode, usdUnavailableReason, period, selecte
   return (
     <article aria-labelledby={`${id}-text`} className="grid gap-3 rounded-lg border border-border bg-card p-3 text-sm">
       <label className="inline-flex items-center gap-2 justify-self-start text-xs font-medium">
-        <input type="checkbox" className="size-4 accent-pp-teal" checked={selected} onChange={(e) => onSelectedChange(e.target.checked)} />
+        <input type="checkbox" className="size-4 accent-pp-action" checked={selected} onChange={(e) => onSelectedChange(e.target.checked)} />
         Include in export
       </label>
       <section className="grid gap-1">

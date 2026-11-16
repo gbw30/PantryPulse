@@ -14,8 +14,8 @@
   --pp-ink: #26343A;
   --pp-ink-muted: #52636A;
   --pp-border: #D9DFD9;
-  --pp-teal: #416F68;
-  --pp-teal-soft: #DCEAE4;
+  --pp-action: #416F68;
+  --pp-action-soft: #DCEAE4;
   --pp-forecast: #567A91;
   --pp-warning: #A7773B;
   --pp-danger: #A65B50;
@@ -26,33 +26,33 @@
   --card-foreground: var(--pp-ink);
   --popover: var(--pp-surface);
   --popover-foreground: var(--pp-ink);
-  --primary: var(--pp-teal);
+  --primary: var(--pp-action);
   --primary-foreground: #ffffff;
   --secondary: var(--pp-surface-muted);
   --secondary-foreground: var(--pp-ink);
   --muted: var(--pp-surface-muted);
   --muted-foreground: var(--pp-ink-muted);
-  --accent: var(--pp-teal-soft);
+  --accent: var(--pp-action-soft);
   --accent-foreground: var(--pp-ink);
   --destructive: var(--pp-danger);
   --destructive-foreground: #ffffff;
   --border: var(--pp-border);
   --input: var(--pp-border);
-  --ring: var(--pp-teal);
+  --ring: var(--pp-action);
   --radius: 0.75rem;
-  --chart-1: var(--pp-teal);
+  --chart-1: var(--pp-action);
   --chart-2: var(--pp-forecast);
   --chart-3: var(--pp-warning);
   --chart-4: var(--pp-danger);
   --chart-5: var(--pp-neutral);
   --sidebar: var(--pp-surface);
   --sidebar-foreground: var(--pp-ink);
-  --sidebar-primary: var(--pp-teal);
+  --sidebar-primary: var(--pp-action);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: var(--pp-teal-soft);
+  --sidebar-accent: var(--pp-action-soft);
   --sidebar-accent-foreground: var(--pp-ink);
   --sidebar-border: var(--pp-border);
-  --sidebar-ring: var(--pp-teal);
+  --sidebar-ring: var(--pp-action);
 }
 
 /* Dark theme (user decision 2026-10-25), from the design lab's dark palette. Text pairs measured on
@@ -65,8 +65,8 @@
   --pp-ink: #edf6f1;
   --pp-ink-muted: #9ab4b9;
   --pp-border: #2d5262;
-  --pp-teal: #77e5ce;
-  --pp-teal-soft: #123a34;
+  --pp-action: #77e5ce;
+  --pp-action-soft: #123a34;
   --pp-forecast: #8db4ea;
   --pp-warning: #e9ae65;
   --pp-danger: #f0857a;
@@ -83,8 +83,8 @@
   --color-pp-ink: var(--pp-ink);
   --color-pp-ink-muted: var(--pp-ink-muted);
   --color-pp-border: var(--pp-border);
-  --color-pp-teal: var(--pp-teal);
-  --color-pp-teal-soft: var(--pp-teal-soft);
+  --color-pp-action: var(--pp-action);
+  --color-pp-action-soft: var(--pp-action-soft);
   --color-pp-forecast: var(--pp-forecast);
   --color-pp-warning: var(--pp-warning);
   --color-pp-danger: var(--pp-danger);

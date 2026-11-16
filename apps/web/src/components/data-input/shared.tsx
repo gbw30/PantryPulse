@@ -49,7 +49,7 @@ export function ErrorAlert({ message, onRetry, retryLabel = "Retry" }: { message
 export function SavedAlert({ title, children }: { title: string; children?: React.ReactNode }) {
   return (
     <Alert role="status">
-      <CheckCircle2 aria-hidden="true" className="text-pp-teal" />
+      <CheckCircle2 aria-hidden="true" className="text-pp-action" />
       <AlertTitle>{title}</AlertTitle>
       {children && <AlertDescription className="text-foreground">{children}</AlertDescription>}
     </Alert>

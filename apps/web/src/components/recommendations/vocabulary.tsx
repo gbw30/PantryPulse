@@ -7,7 +7,7 @@ import { formatDay, METHOD_LABEL, nativeStatusLabel, outcomeLabel, replayLabel, 
 
 type Tone = "simulated" | "live" | "degraded";
 const PILL: Record<Tone, { pill: string; dot: string }> = {
-  simulated: { pill: "border-pp-teal/30 bg-pp-teal-soft", dot: "bg-pp-teal" },
+  simulated: { pill: "border-pp-action/30 bg-pp-action-soft", dot: "bg-pp-action" },
   live: { pill: "border-border bg-card", dot: "bg-pp-forecast" },
   degraded: { pill: "border-pp-danger/50 bg-card", dot: "bg-pp-danger" },
 };
@@ -28,7 +28,7 @@ export function SolverStatus({ method, showMethod = false, className }: { method
   const Icon = verified ? ShieldCheck : method.outcome === "VERIFIED" ? TriangleAlert : CircleSlash;
   return (
     <span data-solver-status={method.outcome} className={cn("inline-flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-foreground", className)}>
-      <Icon aria-hidden="true" className={cn("size-3.5 shrink-0", verified ? "text-pp-teal" : "text-pp-danger")} />
+      <Icon aria-hidden="true" className={cn("size-3.5 shrink-0", verified ? "text-pp-action" : "text-pp-danger")} />
       {showMethod && <span className="font-semibold">{METHOD_LABEL[method.method]}</span>}
       <span>{outcomeLabel(method.outcome)}</span>
       <span aria-hidden="true" className="text-muted-foreground">·</span>
@@ -44,7 +44,7 @@ export function MethodVerification({ verified }: { verified: boolean }) {
   const Icon = verified ? ShieldCheck : CircleSlash;
   return (
     <span data-verified={verified} className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground">
-      <Icon aria-hidden="true" className={cn("size-3.5 shrink-0", verified ? "text-pp-teal" : "text-pp-danger")} />
+      <Icon aria-hidden="true" className={cn("size-3.5 shrink-0", verified ? "text-pp-action" : "text-pp-danger")} />
       {verified ? "Verified by the independent check" : "Not verified — no plan shown"}
     </span>
   );
@@ -53,8 +53,8 @@ export function MethodVerification({ verified }: { verified: boolean }) {
 /** ConstraintBadge: a hard constraint, claimed only as far as independent replay passed. */
 export function ConstraintBadge({ label, passed }: { label: string; passed: boolean }) {
   return (
-    <li className={cn("flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-sm text-foreground", passed ? "border-pp-teal/40 bg-pp-teal-soft/50" : "border-dashed border-border")}>
-      {passed ? <CheckCircle2 aria-hidden="true" className="size-4 shrink-0 text-pp-teal" /> : <CircleDashed aria-hidden="true" className="size-4 shrink-0 text-pp-neutral" />}
+    <li className={cn("flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-sm text-foreground", passed ? "border-pp-action/40 bg-pp-action-soft/50" : "border-dashed border-border")}>
+      {passed ? <CheckCircle2 aria-hidden="true" className="size-4 shrink-0 text-pp-action" /> : <CircleDashed aria-hidden="true" className="size-4 shrink-0 text-pp-neutral" />}
       <span className="font-medium">{label}</span>
       <span className="text-xs text-muted-foreground">{passed ? "passed independent replay" : "not verified"}</span>
     </li>
@@ -69,7 +69,7 @@ export function DeficitTag({ day }: { day: string | null }) {
     </span>
   ) : (
     <span className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-2 py-0.5 text-xs whitespace-nowrap text-muted-foreground">
-      <CheckCircle2 aria-hidden="true" className="size-3 text-pp-teal" />No deficit in window
+      <CheckCircle2 aria-hidden="true" className="size-3 text-pp-action" />No deficit in window
     </span>
   );
 }

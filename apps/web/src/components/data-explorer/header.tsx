@@ -20,7 +20,7 @@ export function ExplorerTabLink({ tab, active, productId, className }: { tab: Ex
     <Link
       href={tabHref(tab, productId)}
       aria-current={active ? "page" : undefined}
-      className={cn(TAB, active ? "border-pp-teal/40 bg-pp-teal-soft text-foreground shadow-[inset_0_-2px_0_var(--pp-teal)]" : "border-border bg-card text-foreground hover:border-foreground/30", className)}
+      className={cn(TAB, active ? "border-pp-action/40 bg-pp-action-soft text-foreground shadow-[inset_0_-2px_0_var(--pp-action)]" : "border-border bg-card text-foreground hover:border-foreground/30", className)}
     >
       {tab.label}
     </Link>

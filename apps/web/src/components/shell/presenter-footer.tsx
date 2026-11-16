@@ -37,7 +37,7 @@ export function PresenterFooter() {
     return (
       <div className="flex flex-col gap-2 rounded-lg border border-sidebar-border px-3 py-2.5 text-xs">
         <span className="flex items-center gap-2.5 text-foreground">
-          <ShieldCheck className="size-4 shrink-0 text-pp-teal" aria-hidden="true" />
+          <ShieldCheck className="size-4 shrink-0 text-pp-action" aria-hidden="true" />
           <span>Presenter session</span>
         </span>
         <Button variant="outline" size="sm" className="justify-start gap-2" disabled={busy}

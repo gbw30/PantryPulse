@@ -17,7 +17,7 @@ const DONATION_DASH = "2 3";
 
 function Square({ cx, cy, index }: { cx?: number; cy?: number; index?: number }) {
   if (cx === undefined || cy === undefined) return <g key={`s-${index}`} />;
-  return <rect key={`s-${index}`} x={cx - 3} y={cy - 3} width={6} height={6} fill="var(--card)" stroke="var(--pp-teal)" strokeWidth={1.5} />;
+  return <rect key={`s-${index}`} x={cx - 3} y={cy - 3} width={6} height={6} fill="var(--card)" stroke="var(--pp-action)" strokeWidth={1.5} />;
 }
 
 function LegendLine({ dash, color, marker }: { dash?: string; color: string; marker?: "circle" | "square" }) {
@@ -113,7 +113,7 @@ export function NetworkDemandChart({ snapshot, product }: { snapshot: ExplorerSn
         <>
           <ul aria-label="Chart legend" className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-foreground">
             <li className="flex items-center gap-1.5"><LegendLine dash={DEMAND_DASH} color="var(--pp-forecast)" marker="circle" />Demand forecast ({product.unitPlural} per day)</li>
-            <li className="flex items-center gap-1.5"><LegendLine color="var(--pp-teal)" marker="square" />Projected eligible stock at day end, no transfers</li>
+            <li className="flex items-center gap-1.5"><LegendLine color="var(--pp-action)" marker="square" />Projected eligible stock at day end, no transfers</li>
             {!donations && <li className="flex items-center gap-1.5"><LegendLine dash={DONATION_DASH} color="var(--pp-ink-muted)" />Forecast donations, not confirmed arrivals</li>}
             {hasBand && <li data-band className="flex items-center gap-1.5"><span aria-hidden="true" className="h-2.5 w-5 rounded-sm bg-pp-forecast/25" />p10–p90 model quantiles, not a calibrated interval</li>}
           </ul>
@@ -135,7 +135,7 @@ export function NetworkDemandChart({ snapshot, product }: { snapshot: ExplorerSn
                   <ReferenceLine x={data[0]?.label} stroke="var(--pp-ink-muted)" strokeDasharray="3 3" label={{ value: "Forecast starts", position: "insideTopLeft", fill: "var(--pp-ink-muted)", fontSize: 11 }} />
                   {hasBand && <Area dataKey="band" stroke="none" fill="var(--pp-forecast)" fillOpacity={0.18} isAnimationActive={false} connectNulls={false} />}
                   <Line dataKey="demand" name="Demand forecast" stroke="var(--pp-forecast)" strokeWidth={2} strokeDasharray={DEMAND_DASH} dot={{ r: 3, fill: "var(--pp-forecast)", strokeWidth: 0 }} isAnimationActive={false} connectNulls={false} />
-                  <Line dataKey="eligibleEnd" name="Eligible stock at day end" stroke="var(--pp-teal)" strokeWidth={2} dot={(props) => <Square {...props} />} isAnimationActive={false} connectNulls={false} />
+                  <Line dataKey="eligibleEnd" name="Eligible stock at day end" stroke="var(--pp-action)" strokeWidth={2} dot={(props) => <Square {...props} />} isAnimationActive={false} connectNulls={false} />
                   {!donations && <Line dataKey="donations" name="Forecast donations" stroke="var(--pp-ink-muted)" strokeWidth={2} strokeDasharray={DONATION_DASH} dot={false} isAnimationActive={false} connectNulls={false} />}
                   <Tooltip
                     contentStyle={{ borderRadius: 8, borderColor: "var(--pp-border)", fontSize: 12, color: "var(--pp-ink)" }}

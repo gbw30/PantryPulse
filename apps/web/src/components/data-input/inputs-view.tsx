@@ -54,7 +54,7 @@ function InputsContent() {
           {SECTIONS.map((s) => (
             <li key={s.key}>
               <button type="button" aria-current={section === s.key ? "true" : undefined} onClick={() => setSection(s.key)}
-                className={`w-full rounded-md px-3 py-2 text-left text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring ${section === s.key ? "bg-pp-teal-soft text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                className={`w-full rounded-md px-3 py-2 text-left text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring ${section === s.key ? "bg-pp-action-soft text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
                 {s.label}
               </button>
             </li>

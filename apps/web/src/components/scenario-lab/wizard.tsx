@@ -57,7 +57,7 @@ const STEP_TITLES = ["Context", "Transfer mode", "Disruptions", "Freeze and comp
 
 function StatusBadge({ status }: { status: StepStatus }) {
   return (
-    <Badge variant="outline" data-step-status={status} className={cn("text-[11px]", status === "Incomplete" ? "border-dashed text-muted-foreground" : status === "Saved" ? "border-pp-teal text-foreground" : "text-foreground")}>
+    <Badge variant="outline" data-step-status={status} className={cn("text-[11px]", status === "Incomplete" ? "border-dashed text-muted-foreground" : status === "Saved" ? "border-pp-action text-foreground" : "text-foreground")}>
       {status}
     </Badge>
   );

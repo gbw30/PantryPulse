@@ -21,7 +21,7 @@ function cellState(projection: SeriesProjection | undefined, index: number): { s
 
 const STATE_STYLE: Record<CellState, string> = {
   shortfall: "border-pp-danger/60 bg-pp-danger/10",
-  covered: "border-pp-teal/40 bg-pp-teal-soft",
+  covered: "border-pp-action/40 bg-pp-action-soft",
   zero: "border-border bg-card",
   missing: "border-dashed border-pp-neutral bg-[repeating-linear-gradient(135deg,transparent_0_5px,var(--pp-surface-muted)_5px_7px)]",
   not_evaluated: "border-dashed border-pp-neutral bg-card",

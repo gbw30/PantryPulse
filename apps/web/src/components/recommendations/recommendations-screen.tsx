@@ -216,7 +216,7 @@ function ScreenBody() {
           <div role="group" aria-labelledby="rec-method-label" aria-label="Plan method" className="inline-flex rounded-lg border border-border bg-card p-0.5">
             {loaded.comparison.result.methods.map((item) => (
               <Button key={item.method} variant="ghost" size="sm" aria-pressed={item.method === method}
-                className={cn("h-8 rounded-md px-3", item.method === method && "bg-pp-teal-soft text-foreground hover:bg-pp-teal-soft")}
+                className={cn("h-8 rounded-md px-3", item.method === method && "bg-pp-action-soft text-foreground hover:bg-pp-action-soft")}
                 onClick={() => { setMethodChoice(item.method); setSelectedKey(null); }}>
                 {METHOD_LABEL[item.method]}{!isUsable(item) && <span className="sr-only"> (no verified plan)</span>}
               </Button>

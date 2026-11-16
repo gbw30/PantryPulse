@@ -25,7 +25,7 @@ const DONATION_DASH = "6 4";
 function ServedMarker(props: { cx?: number; cy?: number; index?: number }) {
   const { cx, cy, index } = props;
   if (typeof cx !== "number" || typeof cy !== "number") return <g key={`served-${index}`} />;
-  return <rect key={`served-${index}`} data-chart-marker="served" x={cx - 3} y={cy - 3} width={6} height={6} fill="var(--card)" stroke="var(--pp-teal)" strokeWidth={1.5} />;
+  return <rect key={`served-${index}`} data-chart-marker="served" x={cx - 3} y={cy - 3} width={6} height={6} fill="var(--card)" stroke="var(--pp-action)" strokeWidth={1.5} />;
 }
 
 /**
@@ -70,9 +70,9 @@ export function DemandOutlookChart({ projection, product, dates, sourceNote }: P
         )}
         <span className="inline-flex items-center gap-1.5">
           {servedMode ? (
-            <svg width="18" height="8" aria-hidden="true"><line x1="0" y1="4" x2="18" y2="4" stroke="var(--pp-teal)" strokeWidth="2.5" strokeDasharray={SERVED_DASH} /><rect x="6" y="1" width="6" height="6" fill="var(--card)" stroke="var(--pp-teal)" strokeWidth="1.5" /></svg>
+            <svg width="18" height="8" aria-hidden="true"><line x1="0" y1="4" x2="18" y2="4" stroke="var(--pp-action)" strokeWidth="2.5" strokeDasharray={SERVED_DASH} /><rect x="6" y="1" width="6" height="6" fill="var(--card)" stroke="var(--pp-action)" strokeWidth="1.5" /></svg>
           ) : (
-            <svg width="18" height="8" aria-hidden="true"><line x1="0" y1="4" x2="18" y2="4" stroke="var(--pp-teal)" strokeWidth="2.5" strokeDasharray={DONATION_DASH} /></svg>
+            <svg width="18" height="8" aria-hidden="true"><line x1="0" y1="4" x2="18" y2="4" stroke="var(--pp-action)" strokeWidth="2.5" strokeDasharray={DONATION_DASH} /></svg>
           )}
           {second.label}
         </span>
@@ -96,7 +96,7 @@ export function DemandOutlookChart({ projection, product, dates, sourceNote }: P
                 dataKey={second.key}
                 name={second.label}
                 type="linear"
-                stroke="var(--pp-teal)"
+                stroke="var(--pp-action)"
                 strokeWidth={2.5}
                 strokeDasharray={servedMode ? SERVED_DASH : DONATION_DASH}
                 dot={servedMode ? ServedMarker : false}

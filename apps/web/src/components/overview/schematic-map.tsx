@@ -537,7 +537,7 @@ export function SchematicMapRenderer({ markers, positions, selectedId, onSelect,
             d={link.d}
             fill="none"
             strokeLinecap="round"
-            stroke="var(--pp-teal)"
+            stroke="var(--pp-action)"
             strokeWidth={2.5}
             initial={animate ? { pathLength: 0 } : false}
             animate={{ pathLength: 1 }}

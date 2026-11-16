@@ -7,7 +7,7 @@
  */
 .pp-supply-flow {
   fill: none;
-  stroke: var(--pp-teal);
+  stroke: var(--pp-action);
   stroke-width: 1.75;
   stroke-linecap: round;
   stroke-dasharray: 2 10;

@@ -220,7 +220,7 @@ export function EnforcedConstraints({ comparison }: { comparison: Schema["SavedC
         <>
           <p className="mb-2 text-muted-foreground">Checked by independent replay for {verified.map((m) => METHOD_LABEL[m]).join(" and ")}.</p>
           <ul className="grid gap-1">
-            {REPLAY_CHECKS.map((item) => <li key={item} className="flex items-start gap-1.5"><CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-pp-teal" aria-hidden="true" />{item}</li>)}
+            {REPLAY_CHECKS.map((item) => <li key={item} className="flex items-start gap-1.5"><CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-pp-action" aria-hidden="true" />{item}</li>)}
           </ul>
         </>
       ) : (
