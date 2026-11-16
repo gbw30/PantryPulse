@@ -1,4 +1,4 @@
-import { pluralize } from "@/components/data-explorer/format";
+import { formatUnits as quantityText } from "@/lib/units";
 import type { MarkerStatus, Product, Site, SiteProductProjection } from "./types";
 
 // Display-only deficit-date facts for the selected product and local day. These are legend
@@ -40,13 +40,6 @@ export function statusLine(status: MarkerStatus, projection: SiteProductProjecti
   if (status !== "watch") return STATUS_LABEL[status];
   const next = nextDeficitFrom(projection, dayIndex);
   return next ? `Watch · ${formatShortDate(dates[next.dayIndex])}` : STATUS_LABEL[status];
-}
-
-/** "55 cases": one product's quantity in its own unit, never combined with another product's. Singular only when the
- *  number as shown is 1 (1.0004 shows "1 box"); the plural is the app's shared rule ("2 lbs", "2 oz"). */
-export function quantityText(n: number, unit: string) {
-  const shown = n.toLocaleString("en-US");
-  return `${shown} ${shown === "1" ? unit : pluralize(unit)}`;
 }
 
 /** Units in the product's base unit; an unavailable quantity is never rounded or guessed. */

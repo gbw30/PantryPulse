@@ -38,7 +38,7 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
     });
     await page.setViewportSize({ width, height });
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/overview");
+    await page.goto("/import");
     await openFooter(page);
 
     // No cookie: visitor without any probe; no invented identity.
@@ -90,7 +90,7 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
 test("a stale pp_csrf cookie without a session falls back to visitor", async ({ page }) => {
   await page.context().addCookies([{ name: "pp_csrf", value: "stale", url: BASE }]);
   const probes = await mockVisitorApi(page);
-  await page.goto("/overview");
+  await page.goto("/import");
   await expect(page.getByRole("button", { name: "Presenter sign in" })).toBeEnabled();
   expect(probes.length).toBeGreaterThan(0);
 });

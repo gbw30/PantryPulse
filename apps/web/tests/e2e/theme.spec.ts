@@ -31,8 +31,7 @@ async function openOverview(page: Page, width: number, height: number) {
   await page.setViewportSize({ width, height });
   await page.emulateMedia({ reducedMotion: "reduce", colorScheme: "light" });
   await page.goto("/overview");
-  await expect(page.getByRole("heading", { level: 1, name: "Network Atlas" })).toBeVisible();
-  await expect(page.locator("[data-marker-role]")).toHaveCount(7, { timeout: 15_000 });
+  await expect(page.getByRole("heading", { level: 1, name: "Sign in to see your networks" })).toBeVisible();
   return pageErrors;
 }
 
@@ -50,7 +49,6 @@ test("the top-bar toggle switches .dark on <html>, persists across reload and fl
   await expect(page.locator("body")).toHaveCSS("background-color", "rgb(16, 23, 31)");
 
   await page.reload();
-  await expect(page.locator("[data-marker-role]")).toHaveCount(7, { timeout: 15_000 });
   await expect(html).toHaveClass(DARK);
   const toLight = banner.getByRole("button", { name: "Switch to light theme" });
   await expect(toLight).toBeVisible();
@@ -95,12 +93,12 @@ test("no flash: with dark stored, <html> is dark before the first paint and stay
     await expect(page.locator("html")).toHaveClass(DARK);
     await expect(page.getByRole("banner").getByRole("button", { name: "Switch to light theme" })).toBeVisible();
     await page.reload();
-    await expect(page.locator("[data-marker-role]")).toHaveCount(7, { timeout: 15_000 });
   }
 });
 
 for (const [width, height] of [[1440, 900], [390, 844]]) {
-  test(`overview in dark at ${width}x${height}: no serious a11y violations on the map, card and inspector`, async ({ page }, testInfo) => {
+  // W5A-03b: fixture atlas removed
+  test.fixme(`overview in dark at ${width}x${height}: no serious a11y violations on the map, card and inspector`, async ({ page }, testInfo) => {
     await storeDark(page);
     const pageErrors = await openOverview(page, width, height);
     await expect(page.locator("html")).toHaveClass(DARK);

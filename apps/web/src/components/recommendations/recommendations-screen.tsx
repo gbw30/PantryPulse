@@ -160,8 +160,8 @@ function ScreenBody() {
       <Notice kind={sessionExpired ? "expired" : "visitor"} title={sessionExpired ? "Presenter session expired." : "Saved plans are presenter-only."}>
         <p>
           {sessionExpired
-            ? "Your session expired or was signed out elsewhere; nothing was recorded. Sign in again from the sidebar to continue."
-            : "Recommendations come from saved, independently verified allocation plans, which this demo keeps behind the presenter session. Sign in from the sidebar footer to load them; visitors stay read-only and no sample plan is shown."}
+            ? "Your session expired or was signed out elsewhere; nothing was recorded. Sign in again from the menu to continue."
+            : "Recommendations come from saved, independently verified allocation plans, which this demo keeps behind the presenter session. Sign in from the menu footer to load them; visitors stay read-only and no sample plan is shown."}
         </p>
       </Notice>
     );

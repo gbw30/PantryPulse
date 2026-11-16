@@ -27,7 +27,7 @@ export function PresenterRequired({ what }: { what: string }) {
     <Alert>
       <LockKeyhole aria-hidden="true" />
       <AlertTitle>Presenter sign-in required</AlertTitle>
-      <AlertDescription>{what} Visitors stay read-only; use Presenter sign in in the sidebar.</AlertDescription>
+      <AlertDescription>{what} Visitors stay read-only; use Presenter sign in in the menu.</AlertDescription>
     </Alert>
   );
 }

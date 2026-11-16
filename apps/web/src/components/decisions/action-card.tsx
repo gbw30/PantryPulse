@@ -1,5 +1,5 @@
 import { CircleDashed, ShieldCheck } from "lucide-react";
-import { formatUnits } from "@/components/overview/danger-ranking";
+import { formatUnits } from "@/lib/units";
 import type { NetworkMode } from "@/lib/mode-vocabulary";
 import type { Schema } from "@/lib/planning-api";
 

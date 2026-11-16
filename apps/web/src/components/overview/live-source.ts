@@ -1,5 +1,5 @@
 import { OverviewApiError, overviewApi, parseQuantity, type DashboardSummary, type ForecastCatalog, type InventorySnapshot, type ShortageProjection } from "@/lib/overview-api";
-import { pluralize } from "@/components/data-explorer/format";
+import { pluralize } from "@/lib/units";
 import { isStaleCode, noticeReason } from "./notice-copy";
 import { staticFixtureSnapshot } from "./static-fixture";
 import type { ExpiringLots, LiveNotice, OverviewDataSource, OverviewSnapshot, Product, Quantity, Site, SiteProductProjection } from "./types";
@@ -8,11 +8,6 @@ import type { ExpiringLots, LiveNotice, OverviewDataSource, OverviewSnapshot, Pr
 // onto the OverviewSnapshot view model. Quantities stay per product; nothing is summed across products.
 
 export const LIVE_LABEL = "Live · simulated network";
-
-// One display plural for the app (CR-w5-screens-4): this file's own wrote "boxs", "ozs" and "eachs".
-export { pluralize };
-
-export { quantityText as formatUnits } from "./status";
 
 function shortName(name: string) {
   return name.replace(/ Pantry$/, "").replace(/ Distribution Hub$/, " Hub");

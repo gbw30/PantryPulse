@@ -70,7 +70,7 @@ function SettingsContent() {
       </section>
 
       {!network ? (
-        <p className="text-sm text-muted-foreground">Choose a network in the sidebar, or import one, to see its locations and routes.</p>
+        <p className="text-sm text-muted-foreground">Choose a network in the menu, or import one, to see its locations and routes.</p>
       ) : (
         // Keyed by network: switching never shows the previous network's rows under the new name.
         <NetworkSections key={network.id} network={network} configured={configured} />

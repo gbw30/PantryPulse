@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { Schema } from "@/lib/planning-api";
-import { pluralize } from "@/components/data-explorer/format";
+import { pluralize } from "@/lib/units";
 import { cn } from "@/lib/utils";
 import { transferModeLabel, type NetworkMode, type TransferMode } from "@/lib/mode-vocabulary";
 import {

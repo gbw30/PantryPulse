@@ -141,7 +141,7 @@ function Screen({ view, initialProductId }: { view: View; initialProductId: stri
             <div data-explorer-notice="visitor" role="status" className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground">
               <span>
                 <strong className="font-semibold">Sign in for live data.</strong> You are viewing a static design fixture:{" "}
-                <span className="font-medium">{FIXTURE_LABEL}</span>. Use the presenter sign-in in the sidebar.
+                <span className="font-medium">{FIXTURE_LABEL}</span>. Use the presenter sign-in in the menu.
               </span>
             </div>
           )}

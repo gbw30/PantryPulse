@@ -12,7 +12,8 @@ const snapshotDate = (iso: string) =>
   new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
 // Screens that show no network data, so the legacy demo's "simulated" pill would mislabel them (lead, 2026-11-09).
-const NO_NETWORK_DATA: ReadonlySet<NavKey> = new Set(["import", "settings"]);
+// The Overview joined them in W5A-03: without a network it shows a sign-in or a picker, never the fixture atlas.
+const NO_NETWORK_DATA: ReadonlySet<NavKey> = new Set(["overview", "import", "settings"]);
 // Screens that never read the chosen network: they render the legacy fixture data whatever is chosen (L1). The Data
 // dashboard also renders the chosen network's forecast trust, so it passes legacyOnly={false} (W4-03 #1).
 const ALWAYS_LEGACY: ReadonlySet<NavKey> = new Set(["data", "recommendations"]);

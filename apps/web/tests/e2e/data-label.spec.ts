@@ -8,8 +8,8 @@ import { envelope, example, mockV1 } from "./v1-mocks";
 /** Render the legacy demo whatever network is chosen: they never read the network. */
 const ALWAYS_LEGACY = ["/data/pulse", "/data/inputs", "/data/inventory", "/data/operations", "/recommendations"];
 /** Render the legacy demo only while no v1 network is chosen; a chosen network replaces it. */
-const LEGACY_WITHOUT_NETWORK = ["/overview", "/scenarios"];
-const NO_NETWORK_DATA = ["/import", "/settings"];
+const LEGACY_WITHOUT_NETWORK = ["/scenarios"];
+const NO_NETWORK_DATA = ["/overview", "/import", "/settings"]; // the Overview shows no fixture atlas since W5A-03
 /** Render the legacy demo beside the chosen network's forecast trust (W4-03 #1): the legacy block labels itself. */
 const LEGACY_BESIDE_NETWORK = ["/data"];
 

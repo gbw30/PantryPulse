@@ -371,7 +371,7 @@ function ScenarioLabScreen() {
       {session === "visitor" && (
         <Alert>
           <AlertTitle>Read-only view</AlertTitle>
-          <AlertDescription>Scenario Lab freezes scenarios and runs method comparisons, which are presenter-only. Sign in as presenter from the sidebar to load saved scenarios and comparisons. No sample results are shown here.</AlertDescription>
+          <AlertDescription>Scenario Lab freezes scenarios and runs method comparisons, which are presenter-only. Sign in as presenter from the menu to load saved scenarios and comparisons. No sample results are shown here.</AlertDescription>
         </Alert>
       )}
       {loadNotice && (

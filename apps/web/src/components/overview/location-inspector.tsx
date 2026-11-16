@@ -5,7 +5,7 @@ import { vocabularyFor } from "@/lib/mode-vocabulary";
 import { SALES_LABEL } from "@/components/data-explorer/trust-panel";
 import { networkApi, type Network } from "@/lib/network-api";
 import { ApiError, type Schema } from "@/lib/planning-api";
-import { formatUnits, pluralize } from "./live-source";
+import { formatUnits, pluralize } from "@/lib/units";
 import type { Location } from "./location-map";
 
 type Product = Schema["LocationProjection"]["products"][number];

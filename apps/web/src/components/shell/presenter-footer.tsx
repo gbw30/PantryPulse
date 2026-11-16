@@ -13,11 +13,11 @@ const INLINE = "ml-auto flex items-center gap-2 pb-2 text-xs";
 const INLINE_LABEL = "max-[1399px]:sr-only";
 
 /**
- * The presenter control and the only place the session appears (blueprint §2, no duplicate identity): `inline`
- * in the header's menu row at 768 px and up, boxed in the navigation drawer below that.
+ * The "Presenter sign in" button and its dialog. `trigger` replaces the menu's button where a page offers the
+ * same sign-in itself (the Overview's signed-out state, W5A-03).
  */
-export function PresenterFooter({ inline = false }: { inline?: boolean }) {
-  const { state, signIn, signOut } = usePresenter();
+export function PresenterSignIn({ trigger }: { trigger?: React.ReactElement }) {
+  const { state, signIn } = usePresenter();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -40,6 +40,47 @@ export function PresenterFooter({ inline = false }: { inline?: boolean }) {
     }
   }
 
+  return (
+    <Dialog open={open} onOpenChange={(next) => { setOpen(next); if (!next) setError(""); }}>
+      <DialogTrigger asChild>
+        {trigger ?? (
+          <Button variant="outline" size="sm" className="justify-start gap-2" disabled={state === "checking"}>
+            <LogIn className="size-4" aria-hidden="true" />Presenter sign in
+          </Button>
+        )}
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Presenter sign in</DialogTitle>
+          <DialogDescription>Use the presenter credentials configured for your isolated demo. Visitors stay read-only.</DialogDescription>
+        </DialogHeader>
+        <form className="grid gap-3" onSubmit={(e) => { e.preventDefault(); void submit(new FormData(e.currentTarget)); }}>
+          <div className="grid gap-1.5">
+            <Label htmlFor="presenter-username">Username</Label>
+            <Input id="presenter-username" name="username" autoComplete="username" required maxLength={128} />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="presenter-password">Password</Label>
+            <Input ref={password} id="presenter-password" name="password" type="password" autoComplete="current-password" required maxLength={256} />
+          </div>
+          {error && <p role="alert" className="text-sm text-foreground">{error}</p>}
+          <DialogFooter>
+            <Button type="submit" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * The presenter control and the only place the session appears (blueprint §2, no duplicate identity): `inline`
+ * in the header's menu row at 768 px and up, boxed in the navigation drawer below that.
+ */
+export function PresenterFooter({ inline = false }: { inline?: boolean }) {
+  const { state, signOut } = usePresenter();
+  const [busy, setBusy] = useState(false);
+
   if (state === "presenter") {
     return (
       <div className={inline ? INLINE : "flex flex-col gap-2 rounded-lg border border-sidebar-border px-3 py-2.5 text-xs"}>
@@ -61,33 +102,7 @@ export function PresenterFooter({ inline = false }: { inline?: boolean }) {
         <UserRound className="size-4 shrink-0" aria-hidden="true" />
         <span className={inline ? INLINE_LABEL : undefined}>No account · read-only demo</span>
       </span>
-      <Dialog open={open} onOpenChange={(next) => { setOpen(next); if (!next) setError(""); }}>
-        <DialogTrigger asChild>
-          <Button variant="outline" size="sm" className="justify-start gap-2" disabled={state === "checking"}>
-            <LogIn className="size-4" aria-hidden="true" />Presenter sign in
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Presenter sign in</DialogTitle>
-            <DialogDescription>Use the presenter credentials configured for your isolated demo. Visitors stay read-only.</DialogDescription>
-          </DialogHeader>
-          <form className="grid gap-3" onSubmit={(e) => { e.preventDefault(); void submit(new FormData(e.currentTarget)); }}>
-            <div className="grid gap-1.5">
-              <Label htmlFor="presenter-username">Username</Label>
-              <Input id="presenter-username" name="username" autoComplete="username" required maxLength={128} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="presenter-password">Password</Label>
-              <Input ref={password} id="presenter-password" name="password" type="password" autoComplete="current-password" required maxLength={256} />
-            </div>
-            {error && <p role="alert" className="text-sm text-foreground">{error}</p>}
-            <DialogFooter>
-              <Button type="submit" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <PresenterSignIn />
     </div>
   );
 }

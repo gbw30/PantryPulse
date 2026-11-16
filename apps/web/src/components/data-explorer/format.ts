@@ -15,18 +15,6 @@ export const STATUS_LABEL: Record<MarkStatus, string> = {
   hub: "Hub · source",
 };
 
-export function pluralize(unit: string) {
-  // Units are free text: only the last word takes a plural ("fluid ounces"), and only when it is a plain word that is
-  // not an abbreviation ("fl oz", "dz", "oz.") or an all-caps code ("BOX", "FOOD BOX"); anything else stays as written.
-  const head = unit.slice(0, unit.lastIndexOf(" ") + 1);
-  const word = unit.slice(head.length);
-  if (/^(each|ea|oz|g|kg|mg|ml|l|dz|doz)$/i.test(word) || !/^[a-z]+$/i.test(word) || word === word.toUpperCase()) return unit;
-  if (/(ss|x|z|ch|sh)$/i.test(word)) return `${unit}es`;
-  if (/s$/i.test(word)) return unit; // already plural ("lbs", "meals")
-  if (/[^aeiou]y$/i.test(word)) return `${unit.slice(0, -1)}ies`;
-  return `${unit}s`;
-}
-
 export function shortName(name: string) {
   return name.replace(/ Pantry$/, "").replace(/ Distribution Hub$/, " Hub");
 }

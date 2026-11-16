@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Methodology, Schema } from "@/lib/planning-api";
 import { cn } from "@/lib/utils";
-import { formatUnits } from "@/components/overview/danger-ranking";
+import { formatUnits } from "@/lib/units";
 import { MethodVerification } from "@/components/recommendations/vocabulary";
 import { transferModeLabel } from "@/lib/mode-vocabulary";
 import { SCROLL } from "./evidence";

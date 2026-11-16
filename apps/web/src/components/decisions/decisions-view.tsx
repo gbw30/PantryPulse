@@ -109,7 +109,7 @@ function Loaded({ network, comparisonId, method }: { network: Network; compariso
         // Both reads are scoped to the sidebar network, so another network's comparison arrives as a 404.
         const text = error instanceof ApiError && error.code === "METHOD_NOT_IN_COMPARISON" ? methodNotCompared(method)
           : error instanceof ApiError && error.status === 404
-          ? `Comparison not found in ${network.name}. If it belongs to another network, choose that network in the sidebar.`
+          ? `Comparison not found in ${network.name}. If it belongs to another network, choose that network in the menu.`
           : `Suggested actions unavailable: ${failure(error)}.`;
         if (active) setLoad({ status: "error", text });
       },
@@ -155,7 +155,7 @@ function Loaded({ network, comparisonId, method }: { network: Network; compariso
       {load.status === "loading" && <p role="status" className="text-sm text-muted-foreground">Loading suggested actions…</p>}
       {load.status === "error" && <p role="alert" className="text-sm">{load.text}</p>}
       {ready && ready.saved.network_id !== network.id && (
-        <p className="text-sm text-muted-foreground">This comparison belongs to another network. Choose that network in the sidebar.</p>
+        <p className="text-sm text-muted-foreground">This comparison belongs to another network. Choose that network in the menu.</p>
       )}
       {ready && ready.saved.network_id === network.id && (
         <>

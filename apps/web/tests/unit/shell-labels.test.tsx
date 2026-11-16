@@ -60,20 +60,20 @@ it("the session footer names the session without calling the data simulated", ()
 
 // Lead decision (2026-11-09): the pill marks the legacy fixture data, so screens that show none
 // (/import, /settings) carry no pill; a failed network list says so, and legacy screens keep the pill.
-it("on /import and /settings, which show no network data, there is no simulated pill", () => {
+it("on /overview, /import and /settings, which show no network data, there is no simulated pill", () => {
   vi.mocked(useNetwork).mockReturnValue(ready(null));
-  for (const active of ["import", "settings"] as const) {
+  for (const active of ["overview", "import", "settings"] as const) {
     const { unmount } = render(<AppTopNav active={active} />);
     expect(screen.getByRole("banner")).not.toHaveTextContent(/simulated/i);
     unmount();
   }
-  render(<AppTopNav active="overview" />);
+  render(<AppTopNav active="scenarios" />);
   expect(screen.getByRole("banner")).toHaveTextContent("Simulated network");
 });
 
 it("a network list that failed to load says so; a screen showing the legacy demo still calls it simulated", () => {
   vi.mocked(useNetwork).mockReturnValue({ state: { status: "error", code: "REQUEST_FAILED" }, network: null, select: vi.fn(), reload: vi.fn() });
-  const { unmount } = render(<AppTopNav active="overview" />);
+  const { unmount } = render(<AppTopNav active="scenarios" />);
   expect(screen.getByRole("banner")).toHaveTextContent("Network list unavailable");
   expect(screen.getByRole("banner")).toHaveTextContent("Simulated network");
   unmount();
