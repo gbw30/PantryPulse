@@ -9,7 +9,7 @@
 |---|---|---|---|
 | W5A-L01 (lead) | done | this commit | `npm run check` → types, lint, ruff pass; 2269 API tests passed, 0 skipped. Added `d3-geo` 3.1.2, `topojson-client` 3.1.0, `us-atlas` 3.0.1 (all ISC), `@types/d3-geo` 3.1.1, `@types/topojson-client` 3.1.5; `us-cities.json` (281 places, Natural Earth, public domain) |
 | W5A-01 | done | `8e2c7a0` (rename) + this commit | `vitest run tests/unit/tokens.test.ts tests/unit/ui-primitives.test.tsx` → 87 passed (red first: 37 failed on the old values); `npm run test:unit -w apps/web` → 32 files, 298 passed + 14 node tests, 0 skipped; `playwright test theme.spec.ts scaffold.spec.ts` → 6 passed (red first: 2 failed); `npm run typecheck`, `npm run lint` → pass. API suite not run (no Python change, lead call) |
-| W5A-02 | todo | — | — |
+| W5A-02 | done | this commit | `playwright test v1-shell.spec.ts v1-a11y.spec.ts presenter-session.spec.ts overview-layout.spec.ts --project=chromium --workers=2` → 42 passed, 0 skipped (red first: 5 of the 6 new or rewritten shell tests failed on the sidebar layout; the 390 px drawer test passed as a guard); whole e2e suite once before the last two edits → 244 passed, 23 skipped, 1 failed (`overview-layout.spec.ts:259`, fixed in the test, see Gotchas); `npm run test:unit -w apps/web` → 32 files, 299 passed + 14 node tests, 0 skipped; `npm run typecheck`, `npm run lint` → pass. API suite not run (no Python change, lead call). Look checked on local screenshots only (1440, 1280, 1024 dark, 390); the ux-critic review is still due |
 | W5A-03 | todo | — | — |
 | W5A-04 | todo | — | — |
 | W5A-05 | todo | — | — |
@@ -36,10 +36,19 @@ Status values: `todo`, `in progress`, `done`, `blocked (<reason or CR id>)`.
 - The neutral badge is `Badge variant="secondary"` (tint ground, ink text). Every current badge is `outline`, so none changes — W5A-01.
 - `Card` loses its box, shadow and side padding; `CardTitle` is serif 19 px/500. `design-lab/layout.tsx` is unchanged: it inherits the root font variables and does not use the serif — W5A-01.
 
+- The header is not sticky at 768 px and up (two rows are 118 px, and the prototype's header scrolls away); below 768 px the one-row bar stays sticky — W5A-02.
+- At 768 px and up the header's sample label is the network switcher's badge in the context bar; the "Sample data — fictional" pill shows only below 768 px, where the switcher is in the drawer — W5A-02.
+- In the menu row the session text ("Presenter session", "No account · read-only demo") is visually hidden below 1400 px so the row fits 1280 px; the button keeps its name — W5A-02.
+- `PageActions` finds the slot with `header [data-slot='page-actions']` when it renders, so it only works inside `AppShell` — W5A-02.
+
 ## Gotchas
 
 - `--pp-warning-fill` is 2.2:1 on canvas and 2.3:1 on surface (below 3:1 for marks), so a medium marker must keep its shape and text label (W5A-04).
 - 35 files under `apps/web/src` draw their own `rounded-xl`/`rounded-lg border … bg-card` boxes instead of `Card` (only 8 files use `Card`), so the ruled `Card` does not reach them.
+
+- Screen copy still says "in the sidebar" or "from the sidebar" in 8 places (`decisions-view.tsx:112,158`, `scenario-lab.tsx:374`, `data-input/shared.tsx:30`, `data-explorer.tsx:144`, `settings-view.tsx:73`, `backtest-summary.tsx:160`, `recommendations-screen.tsx:163`); three tests assert the wording. Not changed in W5A-02: the new wording is a lead call.
+- The header is 118 px at 1280 and 1440, and 162 px at 1024 where the menu wraps. The fixture overview is 887 px tall, so at 1440×900 the page now scrolls 105 px (43 px before). `overview-layout.spec.ts:259` compared viewport positions across that scroll; it now scrolls to the top before the reset check. `network-atlas.tsx:385` still assumes a 3.5rem header (W5A-03 rewrites it).
+- Pages render their own `<header>` inside main, so tests should find the shell header with `getByRole("banner")`, not `locator("header")`.
 
 ## Change requests
 

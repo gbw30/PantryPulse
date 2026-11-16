@@ -8,8 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signInMessage, usePresenter } from "./presenter-session";
 
-/** Sidebar footer identity: the only place the session appears (blueprint §2, no duplicate identity). */
-export function PresenterFooter() {
+// Inline (menu row): the label gives way to the links below 1400 px; the button keeps its name.
+const INLINE = "ml-auto flex items-center gap-2 pb-2 text-xs";
+const INLINE_LABEL = "max-[1399px]:sr-only";
+
+/**
+ * The presenter control and the only place the session appears (blueprint §2, no duplicate identity): `inline`
+ * in the header's menu row at 768 px and up, boxed in the navigation drawer below that.
+ */
+export function PresenterFooter({ inline = false }: { inline?: boolean }) {
   const { state, signIn, signOut } = usePresenter();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -35,10 +42,10 @@ export function PresenterFooter() {
 
   if (state === "presenter") {
     return (
-      <div className="flex flex-col gap-2 rounded-lg border border-sidebar-border px-3 py-2.5 text-xs">
+      <div className={inline ? INLINE : "flex flex-col gap-2 rounded-lg border border-sidebar-border px-3 py-2.5 text-xs"}>
         <span className="flex items-center gap-2.5 text-foreground">
           <ShieldCheck className="size-4 shrink-0 text-pp-action" aria-hidden="true" />
-          <span>Presenter session</span>
+          <span className={inline ? INLINE_LABEL : undefined}>Presenter session</span>
         </span>
         <Button variant="outline" size="sm" className="justify-start gap-2" disabled={busy}
           onClick={() => { setBusy(true); void signOut().finally(() => setBusy(false)); }}>
@@ -49,10 +56,10 @@ export function PresenterFooter() {
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-dashed border-sidebar-border px-3 py-2.5 text-xs text-muted-foreground">
+    <div className={inline ? `${INLINE} text-muted-foreground` : "flex flex-col gap-2 rounded-lg border border-dashed border-sidebar-border px-3 py-2.5 text-xs text-muted-foreground"}>
       <span className="flex items-center gap-2.5">
         <UserRound className="size-4 shrink-0" aria-hidden="true" />
-        <span>No account · read-only demo</span>
+        <span className={inline ? INLINE_LABEL : undefined}>No account · read-only demo</span>
       </span>
       <Dialog open={open} onOpenChange={(next) => { setOpen(next); if (!next) setError(""); }}>
         <DialogTrigger asChild>

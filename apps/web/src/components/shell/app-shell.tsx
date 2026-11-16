@@ -2,7 +2,8 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar, type NavKey } from "./app-sidebar";
 import { NetworkProvider, useNetworkOptional } from "./network-switcher";
 import { PresenterProvider, usePresenterOptional } from "./presenter-session";
-import { TopBar, type TopBarSearch } from "./top-bar";
+import { AppTopNav } from "./app-top-nav";
+import type { TopBarSearch } from "./top-bar";
 
 type Props = {
   active: NavKey;
@@ -26,7 +27,8 @@ export function ShellProviders({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * Shared navigation shell (blueprint §2): skip link, sidebar, top bar, main content.
+ * Shared navigation shell (blueprint §2, W5A-02): skip link, header (menu and context bar), main content;
+ * below 768 px the menu is a drawer.
  * Rendered by each page's client root; identical geometry on every main page. Pages read the shared
  * presenter session with usePresenter().
  */
@@ -34,7 +36,7 @@ export function AppShell({ active, horizonLabel, search, contentElement = "main"
   const Content = contentElement;
   return (
     <ShellProviders>
-      <SidebarProvider style={{ "--sidebar-width": "clamp(15rem, 18.9vw, 17rem)" } as React.CSSProperties}>
+      <SidebarProvider>
         <a
           href="#main-content"
           className="sr-only z-50 rounded-md bg-card px-3 py-2 text-sm font-medium text-foreground focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:ring-2 focus:ring-ring"
@@ -43,7 +45,7 @@ export function AppShell({ active, horizonLabel, search, contentElement = "main"
         </a>
         <AppSidebar active={active} />
         <div className="flex min-h-svh min-w-0 flex-1 flex-col bg-background">
-          <TopBar search={search} horizonLabel={horizonLabel} active={active} legacyOnly={legacyOnly} />
+          <AppTopNav search={search} horizonLabel={horizonLabel} active={active} legacyOnly={legacyOnly} />
           <Content id="main-content" tabIndex={-1} className="flex min-w-0 flex-1 flex-col outline-none">
             {children}
           </Content>

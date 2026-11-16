@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import type { NavKey } from "./app-sidebar";
-import { SAMPLE_LABEL, useNetwork } from "./network-switcher";
+import { NetworkSwitcher, SAMPLE_LABEL, useNetwork } from "./network-switcher";
 import { ThemeToggle } from "./theme-toggle";
 
 const snapshotDate = (iso: string) =>
@@ -40,19 +40,25 @@ export type TopBarSearch = {
 
 const SEARCH_LABEL = "Search sites or products";
 
-/** Shared top bar (blueprint §2): search left; data label, snapshot date, horizon and theme toggle right. No identity here. */
+/**
+ * The header's context bar (row 2 of AppTopNav; the whole header below 768 px): network, search, data labels,
+ * snapshot date, horizon, the page-actions slot (filled by PageActions) and the theme toggle.
+ */
 export function TopBar({ search, horizonLabel, active, legacyOnly }: { search?: TopBarSearch; horizonLabel?: string; active?: NavKey; legacyOnly?: boolean }) {
-  const { toggleSidebar } = useSidebar();
+  const { toggleSidebar, isMobile } = useSidebar();
   const { state, network } = useNetwork();
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-  const labels = dataLabels(state, network, active, legacyOnly);
+  // At 768 px and up the switcher beside the pills already carries the sample badge.
+  const labels = dataLabels(state, network, active, legacyOnly).filter((label) => isMobile || label !== SAMPLE_LABEL);
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-card px-3 md:gap-4 md:px-6">
+    <div className="flex items-center gap-2 border-b border-border px-3 max-md:h-14 md:flex-wrap md:gap-x-4 md:gap-y-2 md:px-7 md:py-2.5">
       <Button variant="ghost" size="icon" className="size-11 md:hidden" aria-label="Open navigation" onClick={toggleSidebar}>
         <Menu />
       </Button>
-      <div className={cn("relative min-w-0 flex-1 md:max-w-md", !mobileSearchOpen && "max-md:hidden")}>
+      {/* Below 768 px the switcher is in the drawer; isMobile is false until hydration, hence the CSS too. */}
+      {!isMobile && <div className="min-w-0 max-md:hidden"><NetworkSwitcher bar /></div>}
+      <div className={cn("relative min-w-0 flex-1 md:max-w-md md:min-w-48", !mobileSearchOpen && "max-md:hidden")}>
         <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
         <Input
           type="search"
@@ -99,8 +105,9 @@ export function TopBar({ search, horizonLabel, active, legacyOnly }: { search?: 
             {horizonLabel}
           </span>
         )}
+        <div data-slot="page-actions" className="flex items-center gap-2 empty:hidden" />
         <ThemeToggle />
       </div>
-    </header>
+    </div>
   );
 }

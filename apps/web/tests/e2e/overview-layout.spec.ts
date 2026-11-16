@@ -322,6 +322,9 @@ test("panels move by their grip handles at 1440, stay inside the map, persist an
   await expect(card).toBeHidden();
 
   await page.getByRole("button", { name: "Reset layout" }).click();
+  // The start boxes were read at the top of the page. Under the two-row header (W5A-02) the atlas ends below the
+  // fold at 900 px, so focusing a control down there scrolls the page; compare from the top again.
+  await page.evaluate(() => window.scrollTo(0, 0));
   expectNear(await box(legend), legendStart, "legend reset");
   expectNear(await box(inspector), inspectorStart, "inspector reset");
   await marker(page, "Riverbend Pantry").focus();

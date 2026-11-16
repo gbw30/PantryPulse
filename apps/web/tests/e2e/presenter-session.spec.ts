@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { expectNoSeriousA11yViolations } from "./a11y";
 import { example } from "./v1-mocks";
 
-// Shared presenter sign-in in the sidebar footer (PP-56 foundation). The API is mocked; FastAPI owns
+// Shared presenter sign-in: the header's menu row, or the navigation drawer below 768 px (PP-56 foundation, W5A-02). The API is mocked; FastAPI owns
 // authentication, so the shell only probes one presenter-only read when a pp_csrf cookie exists.
 
 const BASE = `http://127.0.0.1:${process.env.PLAYWRIGHT_PORT ?? "3000"}`;
@@ -18,7 +18,7 @@ async function mockVisitorApi(page: Page) {
   return probes;
 }
 
-// On mobile the footer lives in the off-canvas navigation drawer.
+// Below 768 px the control lives in the off-canvas navigation drawer.
 async function openFooter(page: Page) {
   const footer = page.getByRole("button", { name: /^(Presenter sign in|Sign out)$/ });
   if (!(await footer.isVisible())) await page.getByRole("button", { name: "Open navigation" }).click();
@@ -26,7 +26,7 @@ async function openFooter(page: Page) {
 }
 
 for (const [width, height] of [[1440, 900], [390, 844]]) {
-  test(`visitor signs in from the sidebar at ${width}x${height}`, async ({ page }, testInfo) => {
+  test(`visitor signs in from the menu at ${width}x${height}`, async ({ page }, testInfo) => {
     const probes = await mockVisitorApi(page);
     let logins = 0;
     await page.route("**/api/v1/presenter/login", async (route) => {
@@ -81,8 +81,9 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
     await expect(page.getByText("Presenter session", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
     await expect(page.getByText("No account · read-only demo")).toHaveCount(0);
-    // Identity never appears in the top bar.
-    await expect(page.getByRole("banner").getByText("Presenter session", { exact: false })).toHaveCount(0);
+    // The identity appears once: in the header's menu row at 768 px and up, in the drawer below (W5A-02).
+    await expect(page.getByText("Presenter session", { exact: false })).toHaveCount(1);
+    await expect(page.getByRole("banner").getByText("Presenter session", { exact: false })).toHaveCount(width >= 768 ? 1 : 0);
   });
 }
 
