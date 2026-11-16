@@ -32,7 +32,7 @@ function InspectButton({ row, selected, onSelect }: { row: ActionRow; selected: 
 /** TransferRecommendation: one saved assignment, read as "Source → Destination · N units · arrives date". */
 export function TransferRecommendation({ row, selected, onSelect, compact = false }: { row: ActionRow; selected: boolean; onSelect: (row: ActionRow) => void; compact?: boolean }) {
   return (
-    <li data-action-row={row.key} className={cn("grid gap-2 rounded-lg border bg-card p-3", selected ? "border-pp-teal ring-1 ring-pp-teal" : "border-border")}>
+    <li data-action-row={row.key} className={cn("grid gap-2 rounded-lg border bg-card p-3", selected ? "border-pp-action ring-1 ring-pp-action" : "border-border")}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <DeficitTag day={row.firstDeficit} />
         <InspectButton row={row} selected={selected} onSelect={onSelect} />
@@ -225,7 +225,7 @@ export const ImpactPreview = forwardRef<HTMLElement, PreviewProps>(function Impa
         )}
         {reviewed && (
           <p role="status" className="flex items-center gap-2 text-sm font-medium text-foreground">
-            <CheckCircle2 aria-hidden="true" className="size-4 text-pp-teal" /><span>Reviewed — simulation</span>
+            <CheckCircle2 aria-hidden="true" className="size-4 text-pp-action" /><span>Reviewed — simulation</span>
           </p>
         )}
         {presenter && plan && !reviewStale && <ReviewDialog plan={plan} scenarioId={scenarioId} onOutcome={onReviewOutcome} />}

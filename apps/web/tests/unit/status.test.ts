@@ -5,7 +5,6 @@ import {
   markerAccessibleName, nextDeficitFrom, nextDeficitLine, roleLabel,
   statusDetail, statusFor, statusLine,
 } from "@/components/overview/status";
-import { formatUnits as liveFormatUnits } from "@/components/overview/live-source";
 import type { BeneficiaryProjection, SiteProductProjection } from "@/components/overview/types";
 
 const dates = ["2026-10-24", "2026-10-25", "2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30"];
@@ -67,7 +66,6 @@ describe("US-12: truthful units, roles and local calendar dates", () => {
   it.each([[1.0004, "box", "1 box"], [2, "lb", "2 lbs"], [2, "oz", "2 oz"], [1.5, "box", "1.5 boxes"], [1, "lbs", "1 lbs"]])(
     "%s %s reads %s", (n, unit, text) => {
       expect(formatUnits(Number(n), { id: "p", name: "P", unit: String(unit), unitPlural: "ignored" })).toBe(text);
-      expect(liveFormatUnits(Number(n), String(unit))).toBe(text);
     },
   );
   it("formats month/year boundaries and DST dates as local calendar dates", () => {

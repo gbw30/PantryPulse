@@ -143,7 +143,7 @@ test("@V1-A16 a comparison not found in the chosen network says to choose its ne
   await page.goto(`/decisions?comparison_id=${saved.id}&method=${METHOD}`);
   const section = page.getByRole("region", { name: `Suggested actions · ${network.name}` });
   await expect(section.getByRole("alert")).toHaveText(
-    `Comparison not found in ${network.name}. If it belongs to another network, choose that network in the sidebar.`);
+    `Comparison not found in ${network.name}. If it belongs to another network, choose that network in the menu.`);
 });
 
 test("@V1-A16 ids that are not UUIDs are never sent to the API", async ({ page }) => {

@@ -3,10 +3,8 @@ import { NetworkAtlas } from "@/components/overview/network-atlas";
 
 export const metadata: Metadata = { title: "Network Atlas · PantryPulse" };
 
-// `?state=empty|unavailable|loading` previews the honest empty, failure and loading states of the
-// static fixture adapter. Any other value shows the static fixture. A chosen v1 network's danger ranking
-// uses its newest forecast run (W4-02).
-export default async function OverviewPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const { state } = await searchParams;
-  return <NetworkAtlas statePreview={typeof state === "string" ? state : undefined} />;
+// A chosen network's danger ranking uses its newest forecast run (W4-02); without a network the page
+// asks for a sign-in, or for a network to choose or import (W5A-03).
+export default function OverviewPage() {
+  return <NetworkAtlas />;
 }

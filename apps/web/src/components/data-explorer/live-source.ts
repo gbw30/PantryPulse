@@ -1,7 +1,8 @@
 import { OverviewApiError, overviewApi, parseQuantity, type DashboardSummary, type ForecastCatalog, type InventorySnapshot, type ShortageProjection } from "@/lib/overview-api";
 import { ApiError, planningApi, type Schema } from "@/lib/planning-api";
 import { fixtureSnapshot } from "./fixture";
-import { isStaleCode, noticeReason, pluralize, shortName } from "./format";
+import { pluralize } from "@/lib/units";
+import { isStaleCode, noticeReason, shortName } from "./format";
 import { cellKey } from "./metrics";
 import type { Band, ExplorerDataSource, ExplorerNotice, ExplorerSnapshot, ForecastDetail, InventoryCell, LotTally, Product, Quantity, SeriesProjection, Site } from "./types";
 

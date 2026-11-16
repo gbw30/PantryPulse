@@ -86,6 +86,14 @@ it("selecting 700 actions keeps the print link short, with no action ids, and th
   // About 1 s alone; it once passed 5 s under full-gate load on 977f7c6 (W5-SC01).
 }, 20_000);
 
+it("W5A-03c: the print plan's title is set like the Decisions title, in the serif", async () => {
+  vi.spyOn(networkApi, "actions").mockResolvedValue(actions(1));
+  render(<PrintPlan networkId={network.id} comparisonId={saved.id} method="CLASSICAL_GP" />);
+  const title = screen.getByRole("heading", { level: 1 });
+  for (const name of "font-serif text-[26px] leading-tight font-medium tracking-tight md:text-[28px]".split(" ")) expect(title).toHaveClass(name);
+  await screen.findByRole("alert");
+});
+
 it("the print page says the selection is missing, never prints an empty plan, when nothing was stored or storage is blocked", async () => {
   vi.spyOn(networkApi, "actions").mockResolvedValue(actions(3));
   render(<PrintPlan networkId={network.id} comparisonId={saved.id} method="CLASSICAL_GP" />);

@@ -1,13 +1,12 @@
 // covers: V1-A20
 import { expect, test, type Page } from "@playwright/test";
-import { expectNoSeriousA11yViolations } from "./a11y";
 import { MOTION, inlineQuiet, moving, movingTransitions, recordMotion, started } from "./motion";
 import { failedStatus, mockImport } from "./v1-import-mocks";
 import { envelope, example, mockV1, publishedRun } from "./v1-mocks";
 
 // W5-UI03 (ART-DIRECTION motion contract): motion explains a change and then stops. With motion allowed, every
 // animation and transition the v1 screens start ends within 1 s and none repeats forever (except the supply-link flow,
-// see FLOW below, which the map's pause control stops); under
+// see FLOW below; no screen draws it between W5A-03 and the stage 2 map); under
 // prefers-reduced-motion nothing moves (opacity and colour may still change). Mocked against
 // packages/contracts/examples/v1: proves UI behavior, not the connected app.
 
@@ -48,14 +47,6 @@ const SCREENS: Record<string, (page: Page) => Promise<void>> = {
     await page.getByText(/^Column guide \(/).first().click();
     await page.getByRole("region", { name: "Current network" }).getByRole("combobox").click();
     await expect(page.getByRole("listbox")).toBeVisible();
-    await page.keyboard.press("Escape");
-  },
-  "demo atlas and its site card": async (page) => {
-    await mockV1(page, { "GET networks": { body: { networks: [] } } });
-    await page.goto("/overview");
-    await expect(page.locator("[data-marker-role]")).toHaveCount(7, { timeout: 15_000 });
-    await page.locator("[data-marker-role]").first().click();
-    await expect(page.getByRole("dialog")).toBeVisible();
     await page.keyboard.press("Escape");
   },
   decisions: async (page) => {
@@ -104,51 +95,8 @@ for (const [screen, drive] of Object.entries(SCREENS)) {
   });
 }
 
-// Pause, Stop, Hide (WCAG 2.2.2) for the one loop the atlas keeps (PP-52 #4; Gabriel 2026-11-12).
-async function demoAtlas(page: Page) {
-  await mockV1(page, { "GET networks": { body: { networks: [] } } });
-  await page.goto("/overview");
-  await expect(page.locator("[data-marker-role]")).toHaveCount(7, { timeout: 15_000 });
-}
-
-test("@V1-A20 the map's pause control stops the supply-link flow, and it stays stopped after a reload", async ({ page }, testInfo) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await demoAtlas(page);
-  const pause = page.getByRole("group", { name: "Map controls" }).getByRole("button", { name: "Pause link animation" });
-  await expect(pause).toHaveAttribute("aria-pressed", "false");
-  await expect.poll(() => flowRunning(page)).toBeGreaterThan(0);
-  await pause.focus();
-  await page.keyboard.press("Enter");
-  await expect(pause).toHaveAttribute("aria-pressed", "true");
-  await expect.poll(() => flowRunning(page)).toBe(0);
-  await expectNoSeriousA11yViolations(page, testInfo, "demo atlas with the link animation paused");
-
-  await page.reload();
-  await expect(page.locator("[data-marker-role]")).toHaveCount(7, { timeout: 15_000 });
-  await expect(pause).toHaveAttribute("aria-pressed", "true");
-  await expect.poll(() => flowRunning(page)).toBe(0);
-
-  await pause.click();
-  await expect(pause).toHaveAttribute("aria-pressed", "false");
-  await expect.poll(() => flowRunning(page)).toBeGreaterThan(0);
-});
-
-test("@V1-A20 with storage unavailable the flow plays, and pausing still works for the page view", async ({ page }) => {
-  await page.addInitScript(() => {
-    Storage.prototype.getItem = () => { throw new Error("storage blocked"); };
-    Storage.prototype.setItem = () => { throw new Error("storage blocked"); };
-  });
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await demoAtlas(page);
-  const pause = page.getByRole("button", { name: "Pause link animation" });
-  await expect(pause).toHaveAttribute("aria-pressed", "false");
-  await expect.poll(() => flowRunning(page)).toBeGreaterThan(0);
-  await pause.click();
-  await expect(pause).toHaveAttribute("aria-pressed", "true");
-  await expect.poll(() => flowRunning(page)).toBe(0);
-});
+// The pause-control and storage-unavailable checks for the supply-link flow left with the fixture atlas
+// (W5A-03); the stage 2 map brings route motion back, with its own pause control and tests.
 
 // The check is live: the inspector's entrance (W5-UI03) is recorded with motion allowed, and kept to opacity under reduce.
 test("@V1-A20 the site inspector enters with a short fade and lift, and only fades under reduced motion", async ({ page }) => {

@@ -1,17 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import { ITEM } from "@/components/shell/app-top-nav";
 import { usePresenter } from "@/components/shell/presenter-session";
 import { cn } from "@/lib/utils";
 import { EXPLORER_TABS, tabHref, type ExplorerTab, type ExplorerTabKey } from "./tabs";
 
-const TAB = "inline-flex h-10 shrink-0 items-center rounded-lg border px-3.5 text-sm font-medium whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-ring max-md:h-11";
+// The menu row's tab look (W5A-03c, the prototype's .tab.on): the current tab has a 3 px action underline, no box.
+const TAB = cn(ITEM, "shrink-0 whitespace-nowrap");
 
 /** A link to a subview from the shared config; unbuilt subviews are visible but disabled. */
 export function ExplorerTabLink({ tab, active, productId, className }: { tab: ExplorerTab; active?: boolean; productId?: string | null; className?: string }) {
   if (!tab.built) {
     return (
-      <span aria-disabled="true" className={cn(TAB, "cursor-not-allowed border-dashed border-border bg-transparent text-muted-foreground", className)}>
+      <span aria-disabled="true" className={cn(TAB, "cursor-not-allowed", className)}>
         {tab.label}<span className="sr-only"> (not built yet)</span>
       </span>
     );
@@ -20,7 +22,7 @@ export function ExplorerTabLink({ tab, active, productId, className }: { tab: Ex
     <Link
       href={tabHref(tab, productId)}
       aria-current={active ? "page" : undefined}
-      className={cn(TAB, active ? "border-pp-teal/40 bg-pp-teal-soft text-foreground shadow-[inset_0_-2px_0_var(--pp-teal)]" : "border-border bg-card text-foreground hover:border-foreground/30", className)}
+      className={cn(TAB, className)}
     >
       {tab.label}
     </Link>
@@ -41,7 +43,7 @@ export function DataExplorerHeader({ active, controls, meta, productId, descript
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0">
           <p className="font-condensed text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Forecasts &amp; inventory</p>
-          <h1 className="text-[26px] leading-tight font-semibold tracking-tight md:text-[28px]">Data Explorer</h1>
+          <h1 className="font-serif text-[26px] leading-tight font-medium tracking-tight md:text-[28px]">Data Explorer</h1>
           <p className="text-sm text-muted-foreground">{description}</p>
           {meta}
         </div>

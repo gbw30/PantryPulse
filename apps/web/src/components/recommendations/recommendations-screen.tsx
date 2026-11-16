@@ -160,8 +160,8 @@ function ScreenBody() {
       <Notice kind={sessionExpired ? "expired" : "visitor"} title={sessionExpired ? "Presenter session expired." : "Saved plans are presenter-only."}>
         <p>
           {sessionExpired
-            ? "Your session expired or was signed out elsewhere; nothing was recorded. Sign in again from the sidebar to continue."
-            : "Recommendations come from saved, independently verified allocation plans, which this demo keeps behind the presenter session. Sign in from the sidebar footer to load them; visitors stay read-only and no sample plan is shown."}
+            ? "Your session expired or was signed out elsewhere; nothing was recorded. Sign in again from the menu to continue."
+            : "Recommendations come from saved, independently verified allocation plans, which this demo keeps behind the presenter session. Sign in from the menu footer to load them; visitors stay read-only and no sample plan is shown."}
         </p>
       </Notice>
     );
@@ -216,7 +216,7 @@ function ScreenBody() {
           <div role="group" aria-labelledby="rec-method-label" aria-label="Plan method" className="inline-flex rounded-lg border border-border bg-card p-0.5">
             {loaded.comparison.result.methods.map((item) => (
               <Button key={item.method} variant="ghost" size="sm" aria-pressed={item.method === method}
-                className={cn("h-8 rounded-md px-3", item.method === method && "bg-pp-teal-soft text-foreground hover:bg-pp-teal-soft")}
+                className={cn("h-8 rounded-md px-3", item.method === method && "bg-pp-action-soft text-foreground hover:bg-pp-action-soft")}
                 onClick={() => { setMethodChoice(item.method); setSelectedKey(null); }}>
                 {METHOD_LABEL[item.method]}{!isUsable(item) && <span className="sr-only"> (no verified plan)</span>}
               </Button>
@@ -264,7 +264,7 @@ function ScreenBody() {
           <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="min-w-0">
               <p className="font-condensed text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Corrective-action review</p>
-              <h1 className="text-[26px] leading-tight font-semibold tracking-tight md:text-[28px]">Recommendations</h1>
+              <h1 className="font-serif text-[26px] leading-tight font-medium tracking-tight md:text-[28px]">Recommendations</h1>
               <p className="text-sm text-muted-foreground">Review feasible options and their projected impact before any operational decision.</p>
             </div>
             {presenter && catalog.kind === "ready" && catalog.comparisons.length > 0 && (

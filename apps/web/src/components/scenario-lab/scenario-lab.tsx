@@ -72,7 +72,7 @@ function LabHeader({ eyebrow, children }: { eyebrow: string; children?: ReactNod
     <header className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
       <div className="min-w-0">
         <p className="font-condensed text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">{eyebrow}</p>
-        <h1 className="text-[26px] leading-tight font-semibold tracking-tight md:text-[28px]">Scenario Lab</h1>
+        <h1 className="font-serif text-[26px] leading-tight font-medium tracking-tight md:text-[28px]">Scenario Lab</h1>
         <p className="text-sm text-muted-foreground">Compare allocation methods on the same frozen network conditions.</p>
       </div>
       {children}
@@ -371,7 +371,7 @@ function ScenarioLabScreen() {
       {session === "visitor" && (
         <Alert>
           <AlertTitle>Read-only view</AlertTitle>
-          <AlertDescription>Scenario Lab freezes scenarios and runs method comparisons, which are presenter-only. Sign in as presenter from the sidebar to load saved scenarios and comparisons. No sample results are shown here.</AlertDescription>
+          <AlertDescription>Scenario Lab freezes scenarios and runs method comparisons, which are presenter-only. Sign in as presenter from the menu to load saved scenarios and comparisons. No sample results are shown here.</AlertDescription>
         </Alert>
       )}
       {loadNotice && (

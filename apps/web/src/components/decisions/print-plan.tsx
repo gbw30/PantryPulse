@@ -45,7 +45,7 @@ export function PrintPlan({ networkId, comparisonId, method }: Props) {
   return (
     <main className="mx-auto grid max-w-5xl gap-3 bg-background p-4 text-sm text-foreground md:p-8 print:p-0">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">PantryPulse plan · {V1_METHOD_LABEL[method]}</h1>
+        <h1 className="font-serif text-[26px] leading-tight font-medium tracking-tight md:text-[28px]">PantryPulse plan · {V1_METHOD_LABEL[method]}</h1>
         <Button type="button" size="sm" variant="outline" className="print:hidden" onClick={() => window.print()}>Print</Button>
       </div>
       {load.status === "loading" && <p role="status">Loading the selected actions…</p>}

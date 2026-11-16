@@ -122,7 +122,7 @@ export function NetworkSettings({ value, onChange, lastHistoryDate: last, existi
             <span id="import-mode-label" className="text-sm font-medium">Network mode</span>
             <RadioGroup value={value.mode ?? ""} onValueChange={(mode) => set({ mode: mode as NetworkMode })} className="grid gap-2 sm:grid-cols-2" aria-labelledby="import-mode-label">
               {MODES.map(({ mode, label, hint }) => (
-                <label key={mode} htmlFor={`import-mode-${mode}`} className="flex cursor-pointer items-start gap-2 rounded-lg border border-border p-3 has-[[data-state=checked]]:border-pp-teal">
+                <label key={mode} htmlFor={`import-mode-${mode}`} className="flex cursor-pointer items-start gap-2 rounded-lg border border-border p-3 has-[[data-state=checked]]:border-pp-action">
                   <RadioGroupItem id={`import-mode-${mode}`} value={mode} className="mt-0.5" aria-describedby={`import-mode-${mode}-hint`} />
                   <span className="grid gap-0.5">
                     <span className="text-sm font-medium">{label}</span>

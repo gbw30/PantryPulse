@@ -98,7 +98,7 @@ export function MethodologyView() {
       <div className="flex flex-1 flex-col gap-4 px-4 pt-3 pb-6 md:gap-6 md:px-6 md:py-5">
         <header>
           <p className="font-condensed text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Research &amp; audit</p>
-          <h1 className="text-[26px] leading-tight font-semibold tracking-tight md:text-[28px]">Methodology</h1>
+          <h1 className="font-serif text-[26px] leading-tight font-medium tracking-tight md:text-[28px]">Methodology</h1>
           <p className="text-sm text-muted-foreground">How PantryPulse projects shortages and compares two allocation methods. All network data is simulated; results are decision support only.</p>
         </header>
 

@@ -5,14 +5,15 @@ import { Input } from "@/components/ui/input";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import type { NavKey } from "./app-sidebar";
-import { SAMPLE_LABEL, useNetwork } from "./network-switcher";
+import { NetworkSwitcher, SAMPLE_LABEL, useNetwork } from "./network-switcher";
 import { ThemeToggle } from "./theme-toggle";
 
 const snapshotDate = (iso: string) =>
   new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
 // Screens that show no network data, so the legacy demo's "simulated" pill would mislabel them (lead, 2026-11-09).
-const NO_NETWORK_DATA: ReadonlySet<NavKey> = new Set(["import", "settings"]);
+// The Overview joined them in W5A-03: without a network it shows a sign-in or a picker, never the fixture atlas.
+const NO_NETWORK_DATA: ReadonlySet<NavKey> = new Set(["overview", "import", "settings"]);
 // Screens that never read the chosen network: they render the legacy fixture data whatever is chosen (L1). The Data
 // dashboard also renders the chosen network's forecast trust, so it passes legacyOnly={false} (W4-03 #1).
 const ALWAYS_LEGACY: ReadonlySet<NavKey> = new Set(["data", "recommendations"]);
@@ -40,52 +41,63 @@ export type TopBarSearch = {
 
 const SEARCH_LABEL = "Search sites or products";
 
-/** Shared top bar (blueprint §2): search left; data label, snapshot date, horizon and theme toggle right. No identity here. */
+/**
+ * The header's context bar (row 2 of AppTopNav; the whole header below 768 px): network, search, data labels,
+ * snapshot date, horizon, the page-actions slot (filled by PageActions) and the theme toggle.
+ */
 export function TopBar({ search, horizonLabel, active, legacyOnly }: { search?: TopBarSearch; horizonLabel?: string; active?: NavKey; legacyOnly?: boolean }) {
-  const { toggleSidebar } = useSidebar();
+  const { toggleSidebar, isMobile } = useSidebar();
   const { state, network } = useNetwork();
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-  const labels = dataLabels(state, network, active, legacyOnly);
+  // At 768 px and up the switcher beside the pills already carries the sample badge.
+  const labels = dataLabels(state, network, active, legacyOnly).filter((label) => isMobile || label !== SAMPLE_LABEL);
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-card px-3 md:gap-4 md:px-6">
+    <div data-slot="context-bar" className="flex items-center gap-2 border-b border-border px-3 max-md:h-14 md:flex-wrap md:gap-x-4 md:gap-y-2 md:px-7 md:py-2.5">
       <Button variant="ghost" size="icon" className="size-11 md:hidden" aria-label="Open navigation" onClick={toggleSidebar}>
         <Menu />
       </Button>
-      <div className={cn("relative min-w-0 flex-1 md:max-w-md", !mobileSearchOpen && "max-md:hidden")}>
-        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-        <Input
-          type="search"
-          aria-label={SEARCH_LABEL}
-          placeholder={`${SEARCH_LABEL}…`}
-          className="h-10 bg-background pl-9"
-          value={search?.value ?? ""}
-          disabled={!search}
-          onChange={(event) => search?.onChange(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && search) {
-              event.preventDefault();
-              search.onSubmit(event.currentTarget);
-            }
-          }}
-        />
-      </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="size-11 md:hidden"
-        aria-label={mobileSearchOpen ? "Close search" : "Search"}
-        aria-expanded={mobileSearchOpen}
-        onClick={() => setMobileSearchOpen((open) => !open)}
-      >
-        <Search />
-      </Button>
+      {/* Below 768 px the switcher is in the drawer; isMobile is false until hydration, hence the CSS too. */}
+      {/* The Overview announces a failed network list itself (W5A-03c), so the bar's copy is not a second alert. */}
+      {!isMobile && <div className="min-w-0 max-md:hidden"><NetworkSwitcher bar quietError={active === "overview"} /></div>}
+      {/* Only a page that searches gets the field: a disabled one took a second row at 1280 px (W5A-03c). */}
+      {search && (
+        <>
+          <div className={cn("relative min-w-0 flex-1 md:max-w-md md:min-w-48", !mobileSearchOpen && "max-md:hidden")}>
+            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <Input
+              type="search"
+              aria-label={SEARCH_LABEL}
+              placeholder={`${SEARCH_LABEL}…`}
+              className="h-10 rounded-full bg-pp-tint pl-9 dark:bg-pp-tint"
+              value={search.value}
+              onChange={(event) => search.onChange(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  search.onSubmit(event.currentTarget);
+                }
+              }}
+            />
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-11 md:hidden"
+            aria-label={mobileSearchOpen ? "Close search" : "Search"}
+            aria-expanded={mobileSearchOpen}
+            onClick={() => setMobileSearchOpen((open) => !open)}
+          >
+            <Search />
+          </Button>
+        </>
+      )}
       <div className={cn("ml-auto flex min-w-0 items-center gap-3", mobileSearchOpen && "max-md:hidden")}>
         {/* Below sm the data label sits over the snapshot date, so the bar fits 390 px without hiding either. */}
         <div className="flex min-w-0 items-center gap-3 max-sm:flex-col max-sm:items-end max-sm:gap-0.5">
+        {/* A neutral badge (spec §4.10): no action green and no dot, which would read as "OK" or "live". */}
         {labels.map((label) => (
-          <span key={label} className="inline-flex items-center gap-1.5 rounded-full border border-pp-teal/30 bg-pp-teal-soft px-2.5 py-1 text-xs font-medium whitespace-nowrap text-foreground max-sm:py-0.5">
-            <span aria-hidden="true" className="size-1.5 rounded-full bg-pp-teal" />
+          <span key={label} className="inline-flex items-center rounded-full bg-pp-tint px-2.5 py-1 text-xs font-medium whitespace-nowrap text-pp-ink max-sm:py-0.5">
             {label}
           </span>
         ))}
@@ -99,8 +111,9 @@ export function TopBar({ search, horizonLabel, active, legacyOnly }: { search?: 
             {horizonLabel}
           </span>
         )}
+        <div data-slot="page-actions" className="flex items-center gap-2 empty:hidden" />
         <ThemeToggle />
       </div>
-    </header>
+    </div>
   );
 }

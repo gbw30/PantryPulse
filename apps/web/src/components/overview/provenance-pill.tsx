@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 type Tone = "live" | "fixture" | "degraded";
 
 const TONE: Record<Tone, { pill: string; dot: string }> = {
-  live: { pill: "border-pp-teal/30 bg-pp-teal-soft", dot: "bg-pp-teal" },
+  live: { pill: "border-pp-action/30 bg-pp-action-soft", dot: "bg-pp-action" },
   fixture: { pill: "border-border bg-muted", dot: "bg-pp-neutral" },
   degraded: { pill: "border-pp-danger/50 bg-card", dot: "bg-pp-danger" },
 };

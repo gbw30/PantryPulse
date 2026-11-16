@@ -76,6 +76,6 @@ it("with no forecast for the network's data, it says so and links to the Overvie
 it("a run of another network says so and shows no accuracy", async () => {
   vi.spyOn(networkApi, "forecastRun").mockResolvedValue({ ...run, network_id: "someone-else" });
   render(<ForecastTrustSection />);
-  expect(await screen.findByText("This forecast belongs to another network. Choose that network in the sidebar.")).toBeVisible();
+  expect(await screen.findByText("This forecast belongs to another network. Choose that network in the menu.")).toBeVisible();
   expect(networkApi.backtest).not.toHaveBeenCalled();
 });

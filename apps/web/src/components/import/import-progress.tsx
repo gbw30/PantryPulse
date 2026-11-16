@@ -21,7 +21,7 @@ export function ImportProgress({ status }: { status: ImportStatus }) {
           {PHASE_LABEL[status.phase]}
           {progress && `: ${n(progress.done)}${progress.total !== null ? ` of ${n(progress.total)}` : ""} ${progress.unit}`}
         </p>
-        {progress?.total ? <progress className="h-2 w-full accent-pp-teal" max={progress.total} value={progress.done} aria-hidden="true" /> : null}
+        {progress?.total ? <progress className="h-2 w-full accent-pp-action" max={progress.total} value={progress.done} aria-hidden="true" /> : null}
         <p className="text-xs text-muted-foreground">Nothing is saved until every file passes.</p>
       </div>
     );

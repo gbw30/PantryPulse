@@ -35,7 +35,7 @@ function FillBySite({ snapshot, product }: { snapshot: ExplorerSnapshot; product
               <CartesianGrid stroke="var(--pp-border)" strokeDasharray="2 4" horizontal={false} />
               <XAxis type="number" domain={[0, 100]} ticks={[0, 50, 100]} tickFormatter={(value) => `${value}%`} tick={{ fill: "var(--pp-ink-muted)", fontSize: 11 }} tickLine={false} axisLine={false} />
               <YAxis type="category" dataKey="name" width={104} tick={{ fill: "var(--pp-ink)", fontSize: 12 }} tickLine={false} axisLine={false} />
-              <Bar dataKey="pct" fill="var(--pp-teal)" radius={[0, 4, 4, 0]} maxBarSize={18} isAnimationActive={false}>
+              <Bar dataKey="pct" fill="var(--pp-action)" radius={[0, 4, 4, 0]} maxBarSize={18} isAnimationActive={false}>
                 <LabelList dataKey="label" position="right" style={{ fill: "var(--pp-ink)", fontSize: 12 }} />
               </Bar>
             </BarChart>

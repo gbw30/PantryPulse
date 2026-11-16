@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Methodology, Schema } from "@/lib/planning-api";
 import { cn } from "@/lib/utils";
-import { formatUnits } from "@/components/overview/danger-ranking";
+import { formatUnits } from "@/lib/units";
 import { MethodVerification } from "@/components/recommendations/vocabulary";
 import { transferModeLabel } from "@/lib/mode-vocabulary";
 import { SCROLL } from "./evidence";
@@ -45,13 +45,13 @@ export function MethodPairHeader({ comparison }: { comparison: Comparison }) {
   );
 }
 
-/** Classical: hatched slate; EGP-PI-inspired: solid teal; baseline: outline. Identity never relies on colour alone. */
+/** Classical: hatched slate; EGP-PI-inspired: solid action color; baseline: outline. Identity never relies on colour alone. */
 export function MethodSwatch({ method }: { method: Method | "BASELINE" }) {
   return (
     <svg width="14" height="10" aria-hidden="true" className="shrink-0">
       {method === "BASELINE" ? <rect x="0.75" y="0.75" width="12.5" height="8.5" rx="1.5" fill="none" stroke="var(--pp-ink-muted)" strokeWidth="1.5" />
         : method === "CLASSICAL_GP" ? <><rect width="14" height="10" rx="2" style={{ fill: "url(#pp-hatch)" }} /><rect x="0.5" y="0.5" width="13" height="9" rx="1.5" fill="none" stroke="var(--pp-neutral)" /></>
-          : <rect width="14" height="10" rx="2" style={{ fill: "var(--pp-teal)" }} />}
+          : <rect width="14" height="10" rx="2" style={{ fill: "var(--pp-action)" }} />}
     </svg>
   );
 }
@@ -182,7 +182,7 @@ export function ProjectedFillRateBySite({ comparison, rows, sites, products, pro
             <YAxis type="category" dataKey="tick" width={132} tick={{ fontSize: 11, fill: "var(--pp-ink)" }} stroke="var(--pp-border)" />
             <Bar dataKey="baselinePct" name="Baseline" fill="transparent" stroke="var(--pp-ink-muted)" strokeWidth={1.25} radius={[0, 3, 3, 0]} isAnimationActive={false} />
             <Bar dataKey="classicalPct" name="Classical GP" fill="url(#pp-hatch)" stroke="var(--pp-neutral)" radius={[0, 3, 3, 0]} isAnimationActive={!reduce} animationDuration={320} />
-            <Bar dataKey="egpPct" name="EGP-PI-inspired" fill="var(--pp-teal)" radius={[0, 3, 3, 0]} isAnimationActive={!reduce} animationDuration={320} />
+            <Bar dataKey="egpPct" name="EGP-PI-inspired" fill="var(--pp-action)" radius={[0, 3, 3, 0]} isAnimationActive={!reduce} animationDuration={320} />
           </BarChart>
         </ResponsiveContainer>
       </div>

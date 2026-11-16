@@ -55,7 +55,7 @@ function SettingsContent() {
     <div className="flex flex-1 flex-col gap-6 px-4 pt-3 pb-6 md:px-6 md:py-5">
       <header className="grid gap-1">
         <p className="font-condensed text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Locations, routes and keys</p>
-        <h1 className="text-[26px] leading-tight font-semibold tracking-tight md:text-[28px]">Settings</h1>
+        <h1 className="font-serif text-[26px] leading-tight font-medium tracking-tight md:text-[28px]">Settings</h1>
       </header>
 
       <section aria-labelledby="google-heading" className="grid gap-3 rounded-xl border border-border bg-card p-4">
@@ -70,7 +70,7 @@ function SettingsContent() {
       </section>
 
       {!network ? (
-        <p className="text-sm text-muted-foreground">Choose a network in the sidebar, or import one, to see its locations and routes.</p>
+        <p className="text-sm text-muted-foreground">Choose a network in the menu, or import one, to see its locations and routes.</p>
       ) : (
         // Keyed by network: switching never shows the previous network's rows under the new name.
         <NetworkSections key={network.id} network={network} configured={configured} />

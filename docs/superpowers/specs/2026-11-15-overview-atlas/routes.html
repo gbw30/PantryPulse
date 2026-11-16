@@ -1,0 +1,44 @@
+<style>
+ .m{border:1px solid #d9ddd6;border-radius:10px;overflow:hidden;background:#eef0ea;position:relative;height:250px;font-family:"IBM Plex Sans",system-ui,sans-serif}
+ .m .chip{position:absolute;right:8px;top:8px;background:#fff;border:1px solid #d9ddd6;border-radius:6px;padding:3px 8px;font-size:11px}
+</style>
+<svg width="0" height="0" style="position:absolute"><defs>
+ <symbol id="st2" viewBox="0 0 400 300"><path d="M60 40 L250 30 L262 52 L300 58 L318 110 L340 170 L352 238 L330 270 L300 262 L282 220 L250 190 L232 150 L200 128 L160 120 L120 96 L72 82 Z" fill="#e7eae3" stroke="#c9cec4" stroke-width="1.5"/></symbol>
+ <symbol id="dc" viewBox="-8 -8 16 16"><rect x="-6" y="-6" width="12" height="12" fill="#1b2a41" stroke="#fff" stroke-width="1.5"/></symbol>
+ <symbol id="hh" viewBox="-8 -8 16 16"><path d="M0 -6 L6 0 L0 6 L-6 0Z" fill="#a4473b" stroke="#fff" stroke-width="1.5"/></symbol>
+ <symbol id="mm" viewBox="-8 -8 16 16"><path d="M0 -6 L6 5 L-6 5Z" fill="#b7862c" stroke="#fff" stroke-width="1.5"/></symbol>
+ <symbol id="ll" viewBox="-8 -8 16 16"><circle r="5" fill="#fff" stroke="#5d6b7d" stroke-width="1.8"/></symbol>
+</defs></svg>
+
+<h2>Supply routes on the map</h2>
+<p class="subtitle">The lines from the distribution center to its stores. How much of them should you see?</p>
+
+<div class="cards" style="grid-template-columns:repeat(3,1fr)">
+
+<div class="card" data-choice="R1-always-on" onclick="toggleSelect(this)">
+ <div class="card-image" style="padding:10px"><div class="m"><svg viewBox="140 80 200 150" style="width:100%;height:100%"><use href="#st2" width="400" height="300"/>
+  <g stroke="#4f6d8f" stroke-width="1.2" stroke-dasharray="4 3" opacity=".8"><line x1="214" y1="146" x2="245" y2="140"/><line x1="214" y1="146" x2="275" y2="155"/><line x1="214" y1="146" x2="267" y2="205"/><line x1="214" y1="146" x2="230" y2="123"/><line x1="214" y1="146" x2="185" y2="105"/><line x1="214" y1="146" x2="255" y2="165"/><line x1="214" y1="146" x2="305" y2="185"/><line x1="214" y1="146" x2="295" y2="215"/></g>
+  <use href="#hh" x="240" y="135" width="10" height="10"/><use href="#hh" x="270" y="150" width="10" height="10"/><use href="#hh" x="262" y="200" width="10" height="10"/><use href="#mm" x="225" y="118" width="10" height="10"/><use href="#ll" x="180" y="100" width="10" height="10"/><use href="#mm" x="250" y="160" width="10" height="10"/><use href="#mm" x="300" y="180" width="10" height="10"/><use href="#ll" x="290" y="210" width="10" height="10"/><use href="#dc" x="208" y="140" width="12" height="12"/></svg><span class="chip">⏸ Pause link animation</span></div></div>
+ <div class="card-body"><h3>R1 · Always on (today)</h3><p>Every route drawn, gently animated, with a pause button.</p>
+ <div class="pros-cons"><div class="pros"><h4>Pros</h4><ul><li>The network shape is obvious at once</li><li>Already built and tested</li></ul></div><div class="cons"><h4>Cons</h4><ul><li>With ~100 sites it becomes a web of lines, the density you want to avoid</li><li>Movement pulls the eye even when nothing is wrong</li><li>Lines cross the markers you're trying to read</li></ul></div></div></div>
+</div>
+
+<div class="card" data-choice="R2-selected-site-only" onclick="toggleSelect(this)">
+ <div class="card-image" style="padding:10px"><div class="m"><svg viewBox="140 80 200 150" style="width:100%;height:100%"><use href="#st2" width="400" height="300"/>
+  <line x1="214" y1="146" x2="275" y2="155" stroke="#1f5c57" stroke-width="2.2"/><text x="236" y="146" font-size="7" fill="#1f5c57" font-weight="700">48 mi · 1 day</text>
+  <use href="#hh" x="240" y="135" width="10" height="10" opacity=".55"/><use href="#hh" x="262" y="200" width="10" height="10" opacity=".55"/><use href="#mm" x="225" y="118" width="10" height="10" opacity=".55"/><use href="#ll" x="180" y="100" width="10" height="10" opacity=".55"/><use href="#mm" x="250" y="160" width="10" height="10" opacity=".55"/><use href="#mm" x="300" y="180" width="10" height="10" opacity=".55"/>
+  <use href="#hh" x="268" y="148" width="14" height="14"/><circle cx="275" cy="155" r="11" fill="none" stroke="#1f5c57" stroke-width="2"/><use href="#dc" x="208" y="140" width="12" height="12"/></svg></div></div>
+ <div class="card-body"><h3>R2 · Only for the site you picked</h3><p>No lines until you pick a site; then its own route(s) appear, with distance and travel time.</p>
+ <div class="pros-cons"><div class="pros"><h4>Pros</h4><ul><li>Calm map: just markers until you ask</li><li>The line you see is the one that matters to your decision</li><li>Distance and days right on the map</li></ul></div><div class="cons"><h4>Cons</h4><ul><li>You don't see the overall network shape at first</li><li>The supply-flow work from W5 is mostly retired</li></ul></div></div></div>
+</div>
+
+<div class="card" data-choice="R3-layer-toggle" onclick="toggleSelect(this)">
+ <div class="card-image" style="padding:10px"><div class="m"><svg viewBox="140 80 200 150" style="width:100%;height:100%"><use href="#st2" width="400" height="300"/>
+  <use href="#hh" x="240" y="135" width="10" height="10"/><use href="#hh" x="270" y="150" width="10" height="10"/><use href="#hh" x="262" y="200" width="10" height="10"/><use href="#mm" x="225" y="118" width="10" height="10"/><use href="#ll" x="180" y="100" width="10" height="10"/><use href="#mm" x="250" y="160" width="10" height="10"/><use href="#mm" x="300" y="180" width="10" height="10"/><use href="#dc" x="208" y="140" width="12" height="12"/></svg>
+  <div class="chip" style="line-height:1.6"><b>Layers</b><br>☐ All supply routes<br>☑ Selected site's routes</div></div></div>
+ <div class="card-body"><h3>R3 · R2 plus a "Layers" switch</h3><p>Like Google Maps' layers button: by default you only see the picked site's routes; "All supply routes" draws the whole network, static, when you want it.</p>
+ <div class="pros-cons"><div class="pros"><h4>Pros</h4><ul><li>Calm by default, full picture on request</li><li>Familiar from maps apps</li><li>No always-moving lines</li></ul></div><div class="cons"><h4>Cons</h4><ul><li>One more control on screen</li><li>Some users never discover the layer</li><li>Slightly more to build than R2</li></ul></div></div></div>
+</div>
+
+</div>
+<p style="font-size:13px;color:#555"><b>Recommended:</b> R3. Calm by default, and the Google Maps "Layers" pattern you asked for gives the full network when you want it.</p>

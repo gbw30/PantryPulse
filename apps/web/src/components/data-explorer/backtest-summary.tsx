@@ -157,7 +157,7 @@ function Trust({ network, forecastRunId }: { network: Network; forecastRunId: st
       )}
       {load.status === "ready" && <BacktestSummary backtest={load.backtest} run={load.run} label={label} />}
       {load.status === "other_network" && (
-        <p className="text-sm text-muted-foreground">This forecast belongs to another network. Choose that network in the sidebar.</p>
+        <p className="text-sm text-muted-foreground">This forecast belongs to another network. Choose that network in the menu.</p>
       )}
     </>
   );

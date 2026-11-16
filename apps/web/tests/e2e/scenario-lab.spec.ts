@@ -420,7 +420,7 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
   test(`visitor sees a read-only explanation with no enabled controls or fixture results at ${width}x${height}`, async ({ page }, testInfo) => {
     await mockApi(page, { presenter: false });
     await open(page, width, height);
-    await expect(page.getByText(/Sign in as presenter from the sidebar/)).toBeVisible();
+    await expect(page.getByText(/Sign in as presenter from the menu/)).toBeVisible();
     await showStep(page, width, 2);
     for (const radio of await page.getByRole("radio").all()) await expect(radio).toBeDisabled();
     await showStep(page, width, 4);

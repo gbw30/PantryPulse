@@ -9,7 +9,7 @@ import { usePresenterOptional } from "@/components/shell/presenter-session";
 import { networkApi, type Network } from "@/lib/network-api";
 import { ApiError, type Schema } from "@/lib/planning-api";
 import { cn } from "@/lib/utils";
-import { formatUnits } from "./live-source";
+import { formatUnits } from "@/lib/units";
 import { LocationInspector } from "./location-inspector";
 import { LocationMap, placeLocations } from "./location-map";
 import { DANGER_BANDS, DangerBandGlyph, DangerLegend } from "./risk-legend";
@@ -18,7 +18,6 @@ type Ranking = Schema["DangerRanking"];
 type Row = Schema["DangerRow"];
 
 const BAND_LABEL = Object.fromEntries(DANGER_BANDS.map((b) => [b.band, b.label])) as Record<Row["band"], string>;
-export { formatUnits } from "./live-source";
 const percent = (ratio: string) => `${(Number(ratio) * 100).toLocaleString("en-US", { maximumFractionDigits: 1 })}%`;
 const shortDate = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 

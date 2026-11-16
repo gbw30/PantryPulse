@@ -7,7 +7,7 @@
  */
 .pp-supply-flow {
   fill: none;
-  stroke: var(--pp-teal);
+  stroke: var(--pp-action);
   stroke-width: 1.75;
   stroke-linecap: round;
   stroke-dasharray: 2 10;
@@ -48,7 +48,7 @@
   }
 }
 
-/* Under the flow, the selected link's teal line steps back so the moving dashes read as the bright part. */
+/* Under the flow, the selected link's action-color line steps back so the moving dashes read as the bright part. */
 .pp-supply-emphasis {
   stroke-opacity: 0.5;
 }

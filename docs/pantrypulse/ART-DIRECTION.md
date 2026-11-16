@@ -8,6 +8,15 @@ Direction: **calm community operations desk**. The interface feels like a carefu
 
 ## Composition and identity
 
+> **Amended 2026-11-16 (Gabriel): "Pantry Ledger with Market Fresh accents".** This replaces the palette, type and shell described in the next three paragraphs; the rest of this document still applies. Full decision and prototype: [the Overview and atlas design](../superpowers/specs/2026-11-15-overview-atlas-design.md) §4.10.
+> - **Ground and ink:** paper tones (`#f3f1ea` canvas, `#fbfaf6` surface), navy ink, and ruled lines in place of boxed cards.
+> - **Accents:** leaf-green action (`#2c6a3c`) in place of teal, a sage tint (`#e6efdb`) for hover and neutral badges, tomato red (`#b03a26`) for risk, ochre for caution. Muted blue forecast is unchanged.
+> - **Green never means "OK" by itself.** OK is a neutral badge with its text. Risk semantics keep shape and text alongside color.
+> - **Type:** IBM Plex Serif for page titles, site names, the Overview summary and story sentences; IBM Plex Sans for everything else. Fonts are served by the app, never fetched at run time.
+> - **Shape:** pill buttons and badges.
+> - **Shell:** the menu runs across the top, with a context bar under it (network, data labels, page actions).
+> - Light and dark themes both carry these roles. Verify contrast on rendered surfaces.
+
 Use a cool chalk canvas, white surfaces, navy ink, dark teal action, brick-red risk, ochre caution and muted blue forecast. Keep risk semantics stable across cards, chart and plan rows. Do not imply probability with color intensity. Use text and shape alongside color. Fine route/ledger rules and compact site identifiers connect the look to resource coordination.
 
 Choose IBM Plex Sans for operational copy and numbers, and its condensed companion sparingly for page identity and site labels, with local/system fallbacks. Self-host licensed fonts where practical; avoid a runtime font dependency during the demo. Use tabular numerals, a 4px spacing base, 6/12/18px radius scale, thin dividers and one restrained shadow. The supplied CSS tokens are a starting point; verify contrast on rendered surfaces before acceptance.

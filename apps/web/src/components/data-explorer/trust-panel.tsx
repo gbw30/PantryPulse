@@ -1,4 +1,4 @@
-import { formatUnits } from "@/components/overview/danger-ranking";
+import { formatUnits } from "@/lib/units";
 import { fallbackReasonLabel, providerLabel } from "@/components/overview/forecast-method";
 import type { Schema } from "@/lib/planning-api";
 

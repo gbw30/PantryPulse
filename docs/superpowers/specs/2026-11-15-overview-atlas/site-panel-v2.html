@@ -1,0 +1,79 @@
+<style>
+  .sp{--ink:#1b2a41;--muted:#5d6b7d;--teal:#1f5c57;--risk:#a4473b;--ochre:#b7862c;--fc:#4f6d8f;--line:#d9ddd6;font-family:"IBM Plex Sans",system-ui,sans-serif;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:9px;height:520px;font-size:13px}
+  .sp .back{color:var(--teal);font-weight:600;font-size:12px}
+  .sp h4{margin:0;font-size:17px}
+  .sp .r{color:var(--risk);font-weight:600;font-size:12px}
+  .sp .btn{display:inline-block;background:var(--teal);color:#fff;border-radius:6px;padding:6px 11px;font-size:12px;font-weight:600}
+  .sp .ghost{display:inline-block;border:1px solid var(--line);border-radius:6px;padding:4px 9px;font-size:12px}
+  .sp small{color:var(--muted);font-size:11.5px}
+  .sp .prod{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eef0eb;font-variant-numeric:tabular-nums}
+  .sp .foot{margin-top:auto;display:flex;justify-content:space-between}
+  .sp table{border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums;width:100%}
+  .sp td,.sp th{padding:3px 4px;border-bottom:1px solid #eef0eb;text-align:right}.sp th:first-child,.sp td:first-child{text-align:left}
+  .sp .tag{font-size:10.5px;border:1px solid var(--line);border-radius:99px;padding:1px 7px;color:var(--muted)}
+</style>
+<h2>What's in the site panel?</h2>
+<p class="subtitle">The sidebar after you pick "Distribution center — Orlando". Three levels of detail. Pick the default you'd want; the deeper detail is always one click further.</p>
+
+<div class="cards" style="grid-template-columns:repeat(3,1fr)">
+
+<div class="card" data-choice="P1-story-only" onclick="toggleSelect(this)">
+ <div class="card-image" style="padding:10px;background:#f2f3ef">
+  <div class="sp">
+   <span class="back">← Back to list</span>
+   <h4>Distribution center — Orlando</h4>
+   <span class="r">◆ High danger</span>
+   <div style="font-size:14px;line-height:1.45">595 lbs of <b>BEEF-GR</b> will <b>expire unsold</b> by Nov 15 unless it moves.</div>
+   <span class="btn" style="align-self:start">See what to do →</span>
+   <small>A DC has no sales; stock it doesn't send out counts as expiring.</small>
+   <div style="border-top:1px solid var(--line);padding-top:8px"><b style="font-size:12px">12 other products</b> <small>· 2 also at risk ▸</small></div>
+   <div class="foot"><span class="ghost">‹ Prev</span><small>1 of 21</small><span class="ghost">Next ›</span></div>
+  </div>
+ </div>
+ <div class="card-body"><h3>P1 · Story only</h3><p>One sentence, one action. Everything else, including the other products, is collapsed. Calmest.</p><div class="pros-cons"><div class="pros"><h4>Pros</h4><ul><li>Calmest: one sentence, one action</li><li>Fastest for first-time users</li><li>Fits a phone sheet</li></ul></div><div class="cons"><h4>Cons</h4><ul><li>Hides other problems at this site</li><li>Extra click for anything more</li><li>No sense of when in the week</li></ul></div></div></div>
+</div>
+
+<div class="card" data-choice="P2-story-plus-products" onclick="toggleSelect(this)">
+ <div class="card-image" style="padding:10px;background:#f2f3ef">
+  <div class="sp">
+   <span class="back">← Back to list</span>
+   <h4>Distribution center — Orlando</h4>
+   <span class="r">◆ High danger</span>
+   <div style="font-size:14px;line-height:1.45">595 lbs of <b>BEEF-GR</b> will <b>expire unsold</b> by Nov 15 unless it moves.</div>
+   <span class="btn" style="align-self:start">See what to do →</span>
+   <div style="border-top:1px solid var(--line);padding-top:6px"><small>Products at risk · next 7 days</small></div>
+   <div class="prod"><span><span style="color:var(--risk)">◆</span> BEEF-GR</span><span>595 lbs expiring</span></div>
+   <div class="prod"><span><span style="color:var(--ochre)">▲</span> MILK-WH</span><span>48 each short</span></div>
+   <div class="prod"><span><span style="color:var(--ochre)">▲</span> BREAD</span><span>22 each short</span></div>
+   <small>10 more products are fine ▸</small>
+   <div class="foot"><span class="ghost">‹ Prev</span><small>1 of 21</small><span class="ghost">Next ›</span></div>
+  </div>
+ </div>
+ <div class="card-body"><h3>P2 · Story + products at risk</h3><p>The same sentence and action, then only the products at risk, one line each in their own unit. Healthy products are collapsed.</p><div class="pros-cons"><div class="pros"><h4>Pros</h4><ul><li>Every problem at this site at a glance</li><li>Stays short when few are at risk</li><li>Answers "what's wrong here?" fully</li></ul></div><div class="cons"><h4>Cons</h4><ul><li>Many at-risk products = dense again</li><li>A bit more to read before the action</li><li>No timing</li></ul></div></div></div>
+</div>
+
+<div class="card" data-choice="P3-story-plus-chart" onclick="toggleSelect(this)">
+ <div class="card-image" style="padding:10px;background:#f2f3ef">
+  <div class="sp">
+   <span class="back">← Back to list</span>
+   <h4>Distribution center — Orlando</h4>
+   <span class="r">◆ High danger</span>
+   <div style="font-size:13.5px;line-height:1.45">595 lbs of <b>BEEF-GR</b> will <b>expire unsold</b> by Nov 15.</div>
+   <div><small>BEEF-GR · lbs · next 7 days</small>
+    <svg viewBox="0 0 220 70" style="width:100%;height:70px">
+      <line x1="0" y1="60" x2="220" y2="60" stroke="#d9ddd6"/>
+      <g fill="#a4473b"><rect x="8" y="10" width="20" height="50"/><rect x="38" y="22" width="20" height="38"/><rect x="68" y="34" width="20" height="26"/></g>
+      <g fill="#d9ddd6"><rect x="98" y="52" width="20" height="8"/><rect x="128" y="56" width="20" height="4"/><rect x="158" y="58" width="20" height="2"/><rect x="188" y="58" width="20" height="2"/></g>
+      <g font-size="8" fill="#5d6b7d"><text x="8" y="69">15</text><text x="38" y="69">16</text><text x="68" y="69">17</text><text x="98" y="69">18</text><text x="128" y="69">19</text><text x="158" y="69">20</text><text x="188" y="69">21</text></g>
+    </svg><small>Expiring unsold per day · <u>show as table</u></small></div>
+   <span class="btn" style="align-self:start">See what to do →</span>
+   <div class="prod"><span><span style="color:var(--ochre)">▲</span> MILK-WH</span><span>48 each short</span></div>
+   <small>11 more products ▸</small>
+   <div class="foot"><span class="ghost">‹ Prev</span><small>1 of 21</small><span class="ghost">Next ›</span></div>
+  </div>
+ </div>
+ <div class="card-body"><h3>P3 · Story + a small chart</h3><p>Adds a 7-day bar chart for the driving product, so you see <i>when</i> it goes wrong. It has a table alternative. The most information of the three, but still one product at a time.</p><div class="pros-cons"><div class="pros"><h4>Pros</h4><ul><li>Shows when it goes wrong</li><li>Quick for visual readers; has a table version</li></ul></div><div class="cons"><h4>Cons</h4><ul><li>Most to take in; charts need reading</li><li>Only the main product gets a chart</li><li>Cramped in a sidebar or phone</li></ul></div></div></div>
+</div>
+
+</div>
+<p style="font-size:13px;color:#555"><b>Recommended:</b> P2, with tap-to-expand: tapping a product line opens its 7-day mini chart from P3.<br>In all three, "See what to do →" opens the suggested transfers for this site. Quantities stay in each product's own unit and are never added across products. The full per-product projection table moves behind "Site details".</p>

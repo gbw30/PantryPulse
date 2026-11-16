@@ -1,0 +1,27 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-11-16T04:02:51Z" },
+  "title": "PantryPulse UI directions",
+  "launch": { "view": "focused", "file": "LedgerFresh.dc.html" },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": { "x": 0, "y": 0, "w": 1360, "h": 880, "title": "1 · Calm Desk", "expand": "fill", "is_interactive": true },
+    "PantryLedger.dc.html": { "x": 0, "y": 1000, "w": 1360, "h": 880, "title": "2 · Pantry Ledger", "expand": "fill", "is_interactive": true },
+    "NightDispatch.dc.html": { "x": 0, "y": 2000, "w": 1360, "h": 880, "title": "3 · Night Dispatch", "expand": "fill", "is_interactive": true },
+    "MarketFresh.dc.html": { "x": 0, "y": 3000, "w": 1360, "h": 880, "title": "4 · Market Fresh", "expand": "fill", "is_interactive": true },
+    "CrateLabel.dc.html": { "x": 0, "y": 4000, "w": 1360, "h": 880, "title": "5 · Crate Label", "expand": "fill", "is_interactive": true },
+    "LedgerFresh.dc.html": { "x": 0, "y": -1400, "w": 1360, "h": 880, "title": "Chosen mix · Ledger + Fresh accents", "expand": "fill", "is_interactive": true }
+  },
+  "order": ["Main.dc.html", "PantryLedger.dc.html", "NightDispatch.dc.html", "MarketFresh.dc.html", "CrateLabel.dc.html", "LedgerFresh.dc.html"],
+  "notes": {
+    "title": { "x": 0, "y": -300, "text": "PantryPulse: five UI directions, every page", "kind": "title1", "maxW": 1360 },
+    "how": { "x": 1440, "y": -300, "w": 440, "color": "gray", "text": "How to use\nPress Play on a board, then use its menu to visit all 7 pages: Overview, Data Explorer, Recommendations, Scenario Lab, Import data, Methodology, Settings.\nOn Overview, tap a site to open its panel.\nAll numbers are fictional sample data." },
+    "mix": { "x": 1440, "y": -1400, "w": 440, "fill": "green", "text": "Chosen mix (Gabriel)\nPantry Ledger's structure with Market Fresh's accents.\n\nFROM 2: paper tones, serif headings and story, ruled lines, menu across the top.\nFROM 4: leaf-green accent, sage tints, pill buttons and badges, tomato red for danger, green land on the map.\n\nPROS\n- Calm and crafted, and clearly about food\n- Green action color is easy to spot on paper\n\nCONS\n- Green accent must never mean 'OK' by itself; OK stays neutral\n- Amends the art direction (teal becomes green, serif added)" },
+    "n1": { "x": 1440, "y": 0, "w": 440, "fill": "teal", "text": "1 · Calm Desk (style: Minimal)\nToday's brand, decluttered.\n\nPROS\n- Least rework before the W6 candidate\n- Most legible; plain sans everywhere\n- Matches the approved art direction\n\nCONS\n- The least distinctive\n- Reads as a good tool, not a crafted one" },
+    "n2": { "x": 1440, "y": 1000, "w": 440, "fill": "orange", "text": "2 · Pantry Ledger (style: Minimal, editorial)\nA stock ledger: paper tones, serif headings, ruled lines, menu across the top.\n\nPROS\n- Calm, like reading a briefing\n- Top menu gives the map and tables full width\n- Same Plex type family as today\n\nCONS\n- Serif reads slower at small sizes\n- Top menu has less room if pages are added\n- Amends the art direction" },
+    "n3": { "x": 1440, "y": 2000, "w": 440, "fill": "blue", "text": "3 · Night Dispatch (style: Dark)\nA dispatch room: dark by default, list floating over an edge-to-edge map.\n\nPROS\n- Most striking; the map is the hero\n- Danger colors stand out on dark\n- Easy on the eyes in long sessions\n\nCONS\n- Floating list can cover markers\n- Dark tables are harder to print and read in daylight\n- Biggest departure; every screen needs a dark pass" },
+    "n4": { "x": 1440, "y": 3000, "w": 440, "fill": "green", "text": "4 · Market Fresh (style: Pastel)\nProduce-aisle greens, rounded cards, larger type.\n\nPROS\n- Friendliest for volunteers and first-time users\n- Clearly about food\n- Large targets, roomy layout\n\nCONS\n- Green accent sits close to 'OK' meaning; risk colors need care\n- Roomier layout shows fewer rows\n- Can feel less serious for retail planners" },
+    "n5": { "x": 1440, "y": 4000, "w": 440, "fill": "red", "text": "5 · Crate Label (style: Neobrutalism)\nShipping-crate labels: heavy outlines, stencil caps, hard shadows.\n\nPROS\n- Most memorable identity; strong warehouse feel\n- Very high contrast\n- Sections are unmistakable\n\nCONS\n- Loudest; works against the 'calm, not dense' goal\n- All-caps labels scan slower\n- Heavy borders compete with the map" }
+  },
+  "designSystems": []
+}

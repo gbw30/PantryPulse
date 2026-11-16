@@ -65,7 +65,7 @@ export function DangerBandGlyph({ band, size = 14 }: { band: DangerBand; size?: 
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" aria-hidden="true" data-band-shape={shape} className="shrink-0">
       {shape === "diamond" && <path d="M8 1 L15 8 L8 15 L1 8 Z" fill="var(--pp-danger)" stroke="var(--pp-surface)" strokeWidth="1" />}
-      {shape === "triangle" && <path d="M8 1.5 L15 14.5 H1 Z" fill="var(--pp-warning)" stroke="var(--pp-surface)" strokeWidth="1" strokeLinejoin="round" />}
+      {shape === "triangle" && <path d="M8 1.5 L15 14.5 H1 Z" fill="var(--pp-warning-fill)" stroke="var(--pp-surface)" strokeWidth="1" strokeLinejoin="round" />}
       {shape === "circle" && <circle cx="8" cy="8" r="5.5" fill="var(--pp-surface)" stroke="var(--pp-ink-muted)" strokeWidth="2" />}
     </svg>
   );

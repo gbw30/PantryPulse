@@ -10,6 +10,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { NetworkSwitcher } from "./network-switcher";
 import { PresenterFooter } from "./presenter-footer";
@@ -20,7 +21,7 @@ export type NavKey = "overview" | "data" | "recommendations" | "scenarios" | "op
 
 // Proposed routes from the blueprint (§2). Only built destinations are links; the rest stay visible
 // but disabled so the shell geometry is identical on every page without linking to missing screens.
-const NAV: { key: NavKey; label: string; href: string; built: boolean; icon: React.ComponentType<{ className?: string }> }[] = [
+export const NAV: { key: NavKey; label: string; href: string; built: boolean; icon: React.ComponentType<{ className?: string }> }[] = [
   { key: "overview", label: "Overview", href: "/overview", built: true, icon: MapIcon },
   { key: "data", label: "Data Explorer", href: "/data", built: true, icon: Table2 },
   { key: "recommendations", label: "Recommendations", href: "/recommendations", built: true, icon: ListChecks },
@@ -28,7 +29,7 @@ const NAV: { key: NavKey; label: string; href: string; built: boolean; icon: Rea
   { key: "import", label: "Import data", href: "/import", built: true, icon: Upload },
 ];
 
-function BrandMark() {
+export function BrandMark() {
   return (
     <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground" aria-hidden="true">
       <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -38,8 +39,11 @@ function BrandMark() {
   );
 }
 
+/** The menu below 768 px: the off-canvas drawer "Open navigation" opens. At 768 px and up the menu is AppTopNav. */
 export function AppSidebar({ active }: { active: NavKey }) {
+  const { isMobile } = useSidebar();
   const hasUnbuilt = NAV.some((item) => !item.built);
+  if (!isMobile) return null;
   return (
     <Sidebar collapsible="offcanvas" aria-label="Main navigation">
       <SidebarHeader className="gap-4 px-4 pt-5 pb-3">
