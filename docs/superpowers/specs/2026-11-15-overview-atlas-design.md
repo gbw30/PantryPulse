@@ -1,6 +1,6 @@
 # Overview and atlas redesign: design
 
-**Status:** draft for Gabriel's approval (2026-11-16; decisions through §4.13). **Base:** v1-local `51dab11` (W5 closed).
+**Status:** approved by Gabriel on 2026-11-16 (decisions through §4.14). Plan: [docs/plans/v1/wave-5a.md](../../plans/v1/wave-5a.md). **Base:** v1-local `51dab11` (W5 closed).
 **Decided by:** Gabriel, in a brainstorming session with browser mockups; the mockups are in [2026-11-15-overview-atlas/](2026-11-15-overview-atlas/), and the look prototypes in its `ui-directions/` folder (`LedgerFresh.dc.html` is the chosen one).
 **Lands:** before the W6 release candidate is chosen (release freeze, CLAUDE.md).
 
@@ -169,6 +169,15 @@ Chosen from five clickable directions covering all seven pages (`ui-directions/`
 ### 4.13 Who sees Run forecast (Gabriel, 2026-11-16)
 - Signed in: the button, as in §4.6.
 - Signed out: a "Sign in to run a forecast" link in the same spot, and in the "No forecast yet" state. No disabled button.
+
+### 4.14 Corrections from the code survey (2026-11-16)
+A read of the code after approval found six mismatches. These bind over the sections they touch.
+- **Signed out (Gabriel).** Listing networks needs a signed-in presenter (`network-switcher.tsx:41,67`, `network-api.ts:21`), so a signed-out visitor has no network once the fixture atlas is gone. The signed-out Overview shows "Sign in to see your networks" with the existing "Presenter sign in" control. This replaces §4.13's link. Options weighed: keep the old atlas for visitors (reverses §4.11), or let visitors read sample networks (an API access change close to W6).
+- **"See what to do" (lead call).** `/recommendations` is the pre-v1 screen; v1 actions are at `/decisions?comparison_id=&method=`. The link opens Decisions for the comparison last opened for this network in this browser, else `/scenarios`, labelled "Plan transfers in Scenario Lab". Remembering the comparison is new (localStorage).
+- **Run forecast (lead call).** Its existing states, labels and `aria-disabled` behavior stay (`forecast-run.tsx:146-147`); only its place changes. §4.6's "Forecasting…" was a mockup label.
+- **The date label (lead call).** Runs carry no forecast date. The bar reads "Forecast run <recorded_at date> · next <n> days".
+- **Dark theme (lead call).** It exists today and stays; the new tokens get a dark set.
+- **Search (lead call).** It matches site names and product codes. v1 data has no product names.
 
 ## 5. What's left to the builder
 
