@@ -154,3 +154,68 @@ test("@V1-A20 at 390x844 Open navigation opens the drawer with the same links, a
   await expect(drawer.getByRole("link", { name: "Settings" })).toHaveAttribute("aria-current", "page");
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
+
+// W5A-03c (connected review): at 1280x720 the context bar wrapped to a second row, mostly for a search field no page
+// uses. One horizontal line through every visible item means the items sit on one row.
+const oneRow = (el: Element) => {
+  // An icon counts as one item: the shapes inside an SVG sit at different heights.
+  const boxes = [...el.querySelectorAll("*")].filter((n) => !n.parentElement?.closest("svg") && (n.children.length === 0 || n.tagName === "svg"))
+    .map((n) => n.getBoundingClientRect()).filter((r) => r.width > 1 && r.height > 1);
+  return Math.max(...boxes.map((r) => r.top)) < Math.min(...boxes.map((r) => r.bottom));
+};
+const menuRow = (page: Page) => page.locator("header nav[aria-label='Primary'] >> xpath=..");
+
+for (const path of ["/overview", "/scenarios", "/decisions", "/data"]) {
+  test(`@V1-A20 ${path} at 1280x720: the context bar and the menu row each fit one line, with no search control`, async ({ page }) => {
+    const chosen = { ...sample, as_of_date: "2026-11-12" };
+    await page.unrouteAll();
+    await mockV1(page, { "GET networks": { body: { networks: [chosen] } } });
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.goto(path);
+    const bar = page.locator("[data-slot='context-bar']");
+    await expect(bar.getByRole("combobox")).toContainText(chosen.name);
+    await expect(bar).toContainText("Snapshot Nov 12, 2026");
+    await expect.soft(bar.locator("input[type='search']"), "no page passes a search").toHaveCount(0);
+    await expect.soft(bar.getByRole("button", { name: /search/i })).toHaveCount(0);
+    expect.soft(await bar.evaluate(oneRow), "the context bar is one row").toBe(true);
+    expect.soft(await menuRow(page).evaluate(oneRow), "the menu row is one row").toBe(true);
+    // toBeVisible counts a 1 px sr-only box as visible, so the label's width is measured.
+    expect.soft((await page.getByRole("banner").getByText("Presenter session", { exact: true }).boundingBox())?.width, "Presenter session is shown").toBeGreaterThan(1);
+  });
+}
+
+// The visitor's label and wider sign-in button need 1400 px; below that the label stays in the accessible name only.
+test("@V1-A20 a visitor's menu row fits one line at 1280x720, and shows the read-only label from 1400", async ({ page }) => {
+  await page.unrouteAll();
+  await mockV1(page, {}, { presenter: false });
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto("/overview");
+  const label = page.getByRole("banner").getByText("No account · read-only demo", { exact: true });
+  await expect(label).toBeAttached();
+  expect(await menuRow(page).evaluate(oneRow), "the menu row is one row at 1280").toBe(true);
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await expect.poll(async () => (await label.boundingBox())?.width ?? 0, "the read-only label is shown at 1400").toBeGreaterThan(1);
+  expect(await menuRow(page).evaluate(oneRow), "the menu row is one row at 1400").toBe(true);
+});
+
+// W5A-03c, spec §4.10: green never means OK by itself, and a dot reads as "live". The sample label is a neutral badge.
+test("@V1-A20 at 390x844 the sample label is a tint badge with ink text, no dot and no action colour", async ({ page }) => {
+  await page.unrouteAll();
+  await mockV1(page, { "GET networks": { body: { networks: [sample] } } });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/overview");
+  const label = page.getByRole("banner").getByText("Sample data — fictional", { exact: true });
+  await expect(label).toBeVisible();
+  const look = await label.evaluate((el) => {
+    const token = (name: string) => {
+      const probe = document.body.appendChild(document.createElement("i"));
+      probe.style.color = `var(${name})`;
+      const value = getComputedStyle(probe).color;
+      probe.remove();
+      return value;
+    };
+    const style = getComputedStyle(el);
+    return { children: el.children.length, tint: style.backgroundColor === token("--pp-tint"), ink: style.color === token("--pp-ink"), actionClass: /pp-action/.test(el.className) };
+  });
+  expect(look).toEqual({ children: 0, tint: true, ink: true, actionClass: false });
+});

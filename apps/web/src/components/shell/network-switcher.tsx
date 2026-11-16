@@ -107,14 +107,14 @@ export function SampleBadge() {
  * Choose the network every v1 screen reads, with its mode vocabulary and sample badge. `bar` lays it out on one
  * line for the header's context bar; the default stacks it for the navigation drawer.
  */
-export function NetworkSwitcher({ bar = false }: { bar?: boolean }) {
+export function NetworkSwitcher({ bar = false, quietError = false }: { bar?: boolean; quietError?: boolean }) {
   const { state, network, select } = useNetwork();
   return (
     <section aria-label="Current network" className={bar ? "flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-sm" : "grid grid-cols-[minmax(0,1fr)] gap-1.5 px-1 text-sm"}>
       <Label id="network-switcher-label" htmlFor="network-switcher" className="text-xs text-muted-foreground">Network</Label>
       {state.status === "loading" && <p className="text-muted-foreground">Loading networks…</p>}
       {state.status === "signed_out" && <p className="text-muted-foreground">Sign in to see your networks.</p>}
-      {state.status === "error" && <p role="alert" className="text-muted-foreground">Networks unavailable ({state.code.replaceAll("_", " ").toLowerCase()}).</p>}
+      {state.status === "error" && <p role={quietError ? undefined : "alert"} className="text-muted-foreground">Networks unavailable ({state.code.replaceAll("_", " ").toLowerCase()}).</p>}
       {state.status === "ready" && state.networks.length === 0 && (
         <p className="text-muted-foreground">No network yet. <Link href="/import" className="font-medium text-foreground underline underline-offset-2">Import your data</Link></p>
       )}
@@ -123,7 +123,7 @@ export function NetworkSwitcher({ bar = false }: { bar?: boolean }) {
           <Select value={network?.id ?? ""} onValueChange={select}>
             {/* A long name truncates instead of widening the control over the page title (W4-03 ux-critic);
                 the full name stays in the accessible name (label + value) and the tooltip. */}
-            <SelectTrigger id="network-switcher" aria-labelledby="network-switcher-label network-switcher-value" title={network?.name} className={cn("h-10 min-w-0 bg-background *:data-[slot=select-value]:block *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:truncate", bar ? "w-64" : "w-full")}>
+            <SelectTrigger id="network-switcher" aria-labelledby="network-switcher-label network-switcher-value" title={network?.name} className={cn("h-10 min-w-0 rounded-full bg-pp-tint font-semibold dark:bg-pp-tint *:data-[slot=select-value]:block *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:truncate", bar ? "w-64" : "w-full")}>
               <SelectValue id="network-switcher-value" placeholder="Choose a network" />
             </SelectTrigger>
             <SelectContent>

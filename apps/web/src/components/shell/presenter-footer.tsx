@@ -8,9 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signInMessage, usePresenter } from "./presenter-session";
 
-// Inline (menu row): the label gives way to the links below 1400 px; the button keeps its name.
+// Inline (menu row): a label gives way to the links where the row would wrap; the button keeps its name. The presenter's
+// fits from 1280 px (W5A-03c); the visitor's longer label beside the wider sign-in button needs 1400.
 const INLINE = "ml-auto flex items-center gap-2 pb-2 text-xs";
-const INLINE_LABEL = "max-[1399px]:sr-only";
+const PRESENTER_LABEL = "max-[1279px]:sr-only";
+const VISITOR_LABEL = "max-[1399px]:sr-only";
 
 /**
  * The "Presenter sign in" button and its dialog. `trigger` replaces the menu's button where a page offers the
@@ -86,11 +88,12 @@ export function PresenterFooter({ inline = false }: { inline?: boolean }) {
       <div className={inline ? INLINE : "flex flex-col gap-2 rounded-lg border border-sidebar-border px-3 py-2.5 text-xs"}>
         <span className="flex items-center gap-2.5 text-foreground">
           <ShieldCheck className="size-4 shrink-0 text-pp-action" aria-hidden="true" />
-          <span className={inline ? INLINE_LABEL : undefined}>Presenter session</span>
+          <span className={inline ? PRESENTER_LABEL : undefined}>Presenter session</span>
         </span>
         <Button variant="outline" size="sm" className="justify-start gap-2" disabled={busy}
           onClick={() => { setBusy(true); void signOut().finally(() => setBusy(false)); }}>
-          <LogOut className="size-4" aria-hidden="true" />Sign out
+          {/* Inline, the text alone names it: the icon's width lets "Presenter session" show from 1280 px. */}
+          {!inline && <LogOut className="size-4" aria-hidden="true" />}Sign out
         </Button>
       </div>
     );
@@ -100,7 +103,7 @@ export function PresenterFooter({ inline = false }: { inline?: boolean }) {
     <div className={inline ? `${INLINE} text-muted-foreground` : "flex flex-col gap-2 rounded-lg border border-dashed border-sidebar-border px-3 py-2.5 text-xs text-muted-foreground"}>
       <span className="flex items-center gap-2.5">
         <UserRound className="size-4 shrink-0" aria-hidden="true" />
-        <span className={inline ? INLINE_LABEL : undefined}>No account · read-only demo</span>
+        <span className={inline ? VISITOR_LABEL : undefined}>No account · read-only demo</span>
       </span>
       <PresenterSignIn />
     </div>

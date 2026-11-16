@@ -9,7 +9,7 @@ import { PresenterFooter } from "./presenter-footer";
 import { TopBar, type TopBarSearch } from "./top-bar";
 
 // The current page is marked by aria-current, weight and a 3 px underline, never by color alone.
-const ITEM = "flex min-h-11 items-center border-b-[3px] border-transparent px-3 text-sm font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring aria-[current=page]:border-pp-action aria-[current=page]:font-semibold aria-[current=page]:text-foreground";
+export const ITEM = "flex min-h-11 items-center border-b-[3px] border-transparent px-2.5 text-sm font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring aria-[current=page]:border-pp-action aria-[current=page]:font-semibold aria-[current=page]:text-foreground";
 
 function MenuLink({ href, current, children }: { href: string; current: boolean; children: React.ReactNode }) {
   return <Link href={href} aria-current={current ? "page" : undefined} className={ITEM}>{children}</Link>;
@@ -29,7 +29,7 @@ export function AppTopNav({ active, search, horizonLabel, legacyOnly }: Props) {
       {/* isMobile is false until hydration, so the row is also hidden by CSS below 768 px. */}
       {!isMobile && (
         <div className="flex flex-wrap items-center gap-x-1 border-b-[3px] border-double border-pp-rule px-7 pt-2.5 max-md:hidden">
-          <Link href="/overview" className="mr-5 mb-2 flex items-center gap-2.5 rounded-md font-serif text-[21px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Link href="/overview" className="mr-3 mb-2 flex items-center gap-2.5 rounded-md font-serif text-[21px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <BrandMark />
             <span>PantryPulse</span>
           </Link>

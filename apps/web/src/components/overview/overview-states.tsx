@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { NetworkSwitcher } from "@/components/shell/network-switcher";
+import { NetworkSwitcher, useNetwork } from "@/components/shell/network-switcher";
 import { PresenterSignIn } from "@/components/shell/presenter-footer";
 import { Button } from "@/components/ui/button";
+import { useSidebar } from "@/components/ui/sidebar";
 
 // The Overview before there is a network to show (W5A-03). Listing networks needs a presenter session,
 // so a visitor is asked to sign in; no fixture network stands in for theirs.
@@ -27,11 +28,23 @@ export function OverviewSignedOut() {
   );
 }
 
+// One picker per page (W5A-03c): at 768 px and up it is the context bar's, so the page points there instead.
 export function OverviewNoNetwork() {
+  const { isMobile } = useSidebar();
   return (
-    <OverviewState title="Choose or import a network" help="Pick a network to see which locations are projected to run short, or import your own from the CSV templates.">
-      <div className="w-full max-w-xs"><NetworkSwitcher /></div>
+    <OverviewState title="Choose or import a network" help={`Pick a network ${isMobile ? "below" : "in the bar above"} to see which locations are projected to run short, or import your own from the CSV templates.`}>
+      {isMobile && <div className="w-full max-w-xs md:hidden"><NetworkSwitcher /></div>}
       <Button asChild size="lg"><Link href="/import">Import data</Link></Button>
+    </OverviewState>
+  );
+}
+
+export function OverviewNetworkError({ code }: { code: string }) {
+  const { reload } = useNetwork();
+  return (
+    <OverviewState title="Networks could not be loaded" help="The Overview needs the list of networks before it can rank any locations.">
+      <p role="alert" className="text-sm text-foreground">Network list unavailable ({code.replaceAll("_", " ").toLowerCase()}).</p>
+      <Button size="lg" onClick={reload}>Try again</Button>
     </OverviewState>
   );
 }

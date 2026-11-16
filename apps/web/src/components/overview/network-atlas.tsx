@@ -5,7 +5,7 @@ import { AppShell, ShellProviders } from "@/components/shell/app-shell";
 import { SampleBadge, useNetwork } from "@/components/shell/network-switcher";
 import type { Network } from "@/lib/network-api";
 import { DangerRankingSection } from "./danger-ranking";
-import { OverviewNoNetwork, OverviewSignedOut } from "./overview-states";
+import { OverviewNetworkError, OverviewNoNetwork, OverviewSignedOut } from "./overview-states";
 
 /** The Overview: a chosen network's danger ranking, or what to do first when there is none (W5A-03). */
 export function NetworkAtlas() {
@@ -22,6 +22,7 @@ function AtlasForNetwork() {
         {network ? <NetworkOverview network={network} />
           : state.status === "loading" ? <p role="status" className="px-4 py-5 text-sm text-muted-foreground md:px-6">Loading networks…</p>
           : state.status === "signed_out" ? <OverviewSignedOut />
+          : state.status === "error" ? <OverviewNetworkError code={state.code} />
           : <OverviewNoNetwork />}
       </AppShell>
     </MotionConfig>
