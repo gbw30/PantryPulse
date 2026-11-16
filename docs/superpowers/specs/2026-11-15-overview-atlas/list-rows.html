@@ -1,0 +1,57 @@
+<style>
+ .ls{--ink:#1b2a41;--muted:#5d6b7d;--teal:#1f5c57;--risk:#a4473b;--ochre:#b7862c;--line:#d9ddd6;font-family:"IBM Plex Sans",system-ui,sans-serif;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:12px;font-size:13px;overflow:hidden}
+ .ls .search{margin:10px;border:1px solid var(--line);border-radius:20px;padding:6px 12px;color:var(--muted);font-size:12px}
+ .ls .grp{padding:8px 12px 4px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between}
+ .ls .row{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid #eef0eb}
+ .ls .r{color:var(--risk)}.ls .o{color:var(--ochre)} .ls small{color:var(--muted);font-size:11.5px}
+ .ls .num{font-variant-numeric:tabular-nums;margin-left:auto;font-weight:600}
+</style>
+<h2>What does each row in the list say?</h2>
+<p class="subtitle">The same five sites, three ways. The groups (Needs attention / Watch / OK) stay; Watch and OK start collapsed.</p>
+<div class="cards" style="grid-template-columns:repeat(3,1fr)">
+
+<div class="card" data-choice="L1-name-and-word" onclick="toggleSelect(this)">
+ <div class="card-image" style="padding:10px;background:#f2f3ef"><div class="ls">
+  <div class="search">🔍 Search sites or products</div>
+  <div class="grp"><span>Needs attention</span><span class="r">3</span></div>
+  <div class="row"><span class="r">◆</span>DC — Orlando<small style="margin-left:auto">expiring</small></div>
+  <div class="row"><span class="r">◆</span>Haines City<small style="margin-left:auto">short</small></div>
+  <div class="row"><span class="r">◆</span>Cocoa<small style="margin-left:auto">short</small></div>
+  <div class="grp"><span>Watch</span><span class="o">5 ▸</span></div>
+  <div class="grp"><span>OK</span><span>13 ▸</span></div>
+ </div></div>
+ <div class="card-body"><h3>L1 · Name + one word</h3><p>Shape, site name, and "short" or "expiring".</p>
+ <div class="pros-cons"><div class="pros"><h4>Pros</h4><ul><li>Minimal: scan 20 rows in seconds</li><li>Fits many rows without scrolling</li></ul></div><div class="cons"><h4>Cons</h4><ul><li>No size of the problem: you must open each site</li><li>Hard to tell #1 from #3 apart from order</li></ul></div></div></div>
+</div>
+
+<div class="card" data-choice="L2-name-plus-subtitle" onclick="toggleSelect(this)">
+ <div class="card-image" style="padding:10px;background:#f2f3ef"><div class="ls">
+  <div class="search">🔍 Search sites or products</div>
+  <div class="grp"><span>Needs attention</span><span class="r">3</span></div>
+  <div class="row" style="align-items:flex-start"><span class="r">◆</span><div><div>DC — Orlando</div><small>BEEF-GR · 595 lbs expiring by Nov 15</small></div></div>
+  <div class="row" style="align-items:flex-start"><span class="r">◆</span><div><div>Haines City</div><small>ICECRM · 18 each short from Nov 15</small></div></div>
+  <div class="row" style="align-items:flex-start"><span class="r">◆</span><div><div>Cocoa</div><small>JUICE-AP · 16 each short from Nov 15</small></div></div>
+  <div class="grp"><span>Watch</span><span class="o">5 ▸</span></div>
+  <div class="grp"><span>OK</span><span>13 ▸</span></div>
+ </div></div>
+ <div class="card-body"><h3>L2 · Name + one-line subtitle</h3><p>Like a maps search result: site name, then the main product, amount in its own unit, problem and date.</p>
+ <div class="pros-cons"><div class="pros"><h4>Pros</h4><ul><li>You know what and how much without clicking</li><li>Familiar search-result look</li><li>Still one idea per row</li></ul></div><div class="cons"><h4>Cons</h4><ul><li>Twice the height: fewer rows visible</li><li>Amounts in different units can't be compared row to row</li></ul></div></div></div>
+</div>
+
+<div class="card" data-choice="L3-name-plus-score" onclick="toggleSelect(this)">
+ <div class="card-image" style="padding:10px;background:#f2f3ef"><div class="ls">
+  <div class="search">🔍 Search sites or products</div>
+  <div class="grp"><span>Needs attention</span><span class="r">3</span></div>
+  <div class="row"><span class="r">◆</span>DC — Orlando<span class="num">100%</span></div>
+  <div class="row"><span class="r">◆</span>Haines City<span class="num">95%</span></div>
+  <div class="row"><span class="r">◆</span>Cocoa<span class="num">94%</span></div>
+  <div class="grp"><span>Watch</span><span class="o">5 ▸</span></div>
+  <div class="grp"><span>OK</span><span>13 ▸</span></div>
+  <div style="padding:8px 12px"><small>% = worst product's share of the next 7 days projected short or expiring</small></div>
+ </div></div>
+ <div class="card-body"><h3>L3 · Name + danger score</h3><p>One comparable number per row: the danger score the ranking already uses.</p>
+ <div class="pros-cons"><div class="pros"><h4>Pros</h4><ul><li>Rows compare directly (same scale)</li><li>Compact, sortable</li></ul></div><div class="cons"><h4>Cons</h4><ul><li>A percentage is abstract: "95%" of what?</li><li>Needs the footnote to be understood</li><li>Doesn't say which product or when</li></ul></div></div></div>
+</div>
+
+</div>
+<p style="font-size:13px;color:#555"><b>Recommended:</b> L2. It answers "what's wrong and how much" in the list itself, which is what a maps-style result row is for; the score stays inside the site panel.</p>

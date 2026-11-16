@@ -1,0 +1,49 @@
+<style>
+ .f{--ink:#1b2a41;--muted:#5d6b7d;--teal:#1f5c57;--risk:#a4473b;--ochre:#b7862c;--line:#d9ddd6;font-family:"IBM Plex Sans",system-ui,sans-serif;color:var(--ink);background:#f2f3ef;border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:12px}
+ .f .top{display:flex;align-items:center;gap:10px;padding:7px 12px;background:#fff;border-bottom:1px solid var(--line)}
+ .f .chip{border:1px solid var(--line);border-radius:99px;padding:2px 8px;font-size:11px;color:var(--muted);background:#fff}
+ .f .side{background:#fff;border-right:1px solid var(--line)}
+ .f .grp{padding:6px 10px 2px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between}
+ .f .row{padding:6px 10px;border-bottom:1px solid #eef0eb}
+ .f .row small{display:block;color:var(--muted);font-size:10.5px}
+ .f .map{background:#e7eae3;position:relative}
+ .f .strip{display:flex;gap:16px;align-items:center;padding:8px 12px;background:#fff;border-bottom:1px solid var(--line);font-size:12.5px}
+ .f .btn{background:var(--teal);color:#fff;border-radius:6px;padding:3px 9px;font-size:11px;font-weight:600}
+</style>
+<h2>What sits above the map?</h2>
+<p class="subtitle">The frame around the list and map. Today it has a large "Network Atlas" title, a description line and a presenter "Run forecast" button.</p>
+<div class="cards" style="grid-template-columns:repeat(3,1fr)">
+
+<div class="card" data-choice="T1-slim-bar-only" onclick="toggleSelect(this)">
+ <div class="card-image" style="padding:10px"><div class="f">
+  <div class="top"><b>PantryPulse</b><span class="chip">Heronfield Market ▾</span><span class="chip" style="margin-left:auto">Forecast Nov 14 · next 7 days ⋯</span></div>
+  <div style="display:grid;grid-template-columns:140px 1fr;height:230px">
+   <div class="side"><div class="grp"><span>Needs attention</span><span>3</span></div><div class="row">DC — Orlando<small>BEEF-GR · 595 lbs expiring</small></div><div class="row">Haines City<small>ICECRM · 18 each short</small></div><div class="grp"><span>Watch</span><span>5 ▸</span></div></div>
+   <div class="map"></div></div></div></div>
+ <div class="card-body"><h3>T1 · Slim bar only</h3><p>No page title. One bar: network picker and a forecast chip; "Run forecast" lives in the chip's ⋯ menu.</p>
+ <div class="pros-cons"><div class="pros"><h4>Pros</h4><ul><li>Maximum map; nothing to read before the list</li><li>Most like a maps app</li></ul></div><div class="cons"><h4>Cons</h4><ul><li>No sentence telling a first-timer what this screen is</li><li>Running a new forecast is hidden in a menu</li></ul></div></div></div>
+</div>
+
+<div class="card" data-choice="T2-summary-strip" onclick="toggleSelect(this)">
+ <div class="card-image" style="padding:10px"><div class="f">
+  <div class="top"><b>PantryPulse</b><span class="chip">Heronfield Market ▾</span><span class="chip" style="margin-left:auto">Forecast Nov 14</span></div>
+  <div class="strip"><b>3 sites need attention in the next 7 days</b><span style="color:var(--muted)">5 to watch · 13 OK</span><span class="btn" style="margin-left:auto">Run forecast</span></div>
+  <div style="display:grid;grid-template-columns:140px 1fr;height:196px">
+   <div class="side"><div class="grp"><span>Needs attention</span><span>3</span></div><div class="row">DC — Orlando<small>BEEF-GR · 595 lbs expiring</small></div><div class="row">Haines City<small>ICECRM · 18 each short</small></div></div>
+   <div class="map"></div></div></div></div>
+ <div class="card-body"><h3>T2 · One summary sentence</h3><p>A single strip under the bar: the week in one sentence, plus "Run forecast" in plain sight.</p>
+ <div class="pros-cons"><div class="pros"><h4>Pros</h4><ul><li>A first-timer gets the answer in one line</li><li>"Run forecast" is easy to find</li></ul></div><div class="cons"><h4>Cons</h4><ul><li>Repeats the counts the list groups already show</li><li>Takes ~40 px from the map</li></ul></div></div></div>
+</div>
+
+<div class="card" data-choice="T3-summary-in-sidebar" onclick="toggleSelect(this)">
+ <div class="card-image" style="padding:10px"><div class="f">
+  <div class="top"><b>PantryPulse</b><span class="chip">Heronfield Market ▾</span><span class="chip" style="margin-left:auto">Forecast Nov 14 · next 7 days ⋯</span></div>
+  <div style="display:grid;grid-template-columns:140px 1fr;height:230px">
+   <div class="side"><div style="padding:8px 10px;font-size:12.5px;font-weight:600;border-bottom:1px solid var(--line)">3 sites need attention<small style="display:block;color:var(--muted);font-weight:400;font-size:10.5px">next 7 days</small></div><div class="grp"><span>Needs attention</span><span>3</span></div><div class="row">DC — Orlando<small>BEEF-GR · 595 lbs expiring</small></div><div class="grp"><span>Watch</span><span>5 ▸</span></div></div>
+   <div class="map"></div></div></div></div>
+ <div class="card-body"><h3>T3 · Summary at the top of the list</h3><p>Slim bar like T1, but the list opens with the one-line summary; "Run forecast" in the chip's ⋯ menu.</p>
+ <div class="pros-cons"><div class="pros"><h4>Pros</h4><ul><li>Full-height map like T1</li><li>The summary sits where the eye starts reading</li></ul></div><div class="cons"><h4>Cons</h4><ul><li>Pushes the first row down a little</li><li>"Run forecast" still in a menu</li></ul></div></div></div>
+</div>
+
+</div>
+<p style="font-size:13px;color:#555"><b>Recommended:</b> T3. The map stays big, and the summary sits where people start reading. Caveat: after an import, a user must run the first forecast themselves, so in T1/T3 an empty state ("No forecast yet: Run forecast") would show the button in plain sight until the first run.</p>

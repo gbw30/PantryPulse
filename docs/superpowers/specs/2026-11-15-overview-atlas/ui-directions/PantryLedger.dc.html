@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PantryPulse: Pantry Ledger</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@400;500;600&display=swap">
+<style>
+body{margin:0}
+a{color:#1f5c57}a:hover{color:#17443f}
+.app{--bg:#f3f1ea;--sf:#fbfaf6;--ink:#1b2a41;--mut:#566072;--acc:#1f5c57;--acct:#ffffff;--risk:#a4473b;--riskbg:#f3e2de;--warn:#7f5b1c;--warnbg:#f1e7cf;--line:#dcd8cb;--land:#e8e4d8;--coast:#bdb8a8;--r:2px;--serif:"IBM Plex Serif",Georgia,serif;
+container-type:inline-size;display:flex;flex-direction:column;min-height:880px;background:var(--bg);color:var(--ink);font:14px/1.5 "IBM Plex Sans",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.app *{box-sizing:border-box}
+.app button,.app input{font:inherit;color:inherit}
+.app button{cursor:pointer}
+.app :focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.nav{display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:10px 28px 0;background:var(--sf);border-bottom:3px double var(--ink)}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--serif);font-weight:600;font-size:21px;padding:0 20px 8px 0}
+.mark{display:grid;place-items:center;width:30px;height:30px;border-radius:2px;background:var(--ink);color:var(--sf)}
+.ni{display:flex;align-items:center;min-height:44px;padding:0 12px;border:0;border-bottom:3px solid transparent;background:transparent;color:var(--mut);font-weight:500}
+.ni.on{color:var(--ink);font-weight:600;border-bottom-color:var(--ink)}
+.navfoot{margin-left:auto;padding:0 0 8px;font-size:12.5px;color:var(--mut);font-style:italic}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 28px;border-bottom:1px solid var(--line)}
+.pick{border:1px solid var(--ink);border-radius:2px;padding:0 12px;min-height:44px;background:var(--sf)}
+.fc{margin-left:auto;color:var(--mut);font-size:13px}
+.btn{background:var(--acc);color:var(--acct);border:0;border-radius:2px;padding:0 18px;font-weight:600;min-height:44px}
+.btn2{background:transparent;border:1px solid var(--ink);border-radius:2px;padding:0 18px;font-weight:600;min-height:44px;color:var(--ink)}
+.pg{padding:28px;display:flex;flex-direction:column;gap:20px;max-width:1040px}
+.h1{margin:0;font-family:var(--serif);font-size:32px;font-weight:500;letter-spacing:-.01em}
+.sub{margin:0;color:var(--mut);font-size:15px}
+.card{border-top:1px solid var(--ink);padding:14px 0 4px}
+.card h2{margin:0 0 8px;font-family:var(--serif);font-size:19px;font-weight:500}
+.grid2{display:flex;flex-wrap:wrap;gap:28px}.grid2>*{flex:1 1 300px;min-width:0}
+.ov{display:flex;flex-wrap:wrap;flex:1}
+.side{flex:1 1 320px;max-width:370px;background:var(--sf);border-right:1px solid var(--ink);padding:20px 0}
+.map{flex:999 1 420px;min-width:0;min-height:440px;position:relative;background:var(--bg)}
+.map svg{position:absolute;inset:0;width:100%;height:100%}
+.land{fill:var(--land);stroke:var(--coast);stroke-width:1.2}.cty{fill:none;stroke:var(--coast);stroke-width:.6;stroke-dasharray:2 2}.lbl{font-size:7px;fill:var(--mut);font-style:italic}
+.mk{stroke:var(--sf);stroke-width:1.4}.mh{fill:var(--risk)}.mm{fill:#b7862c}.ml{fill:var(--sf);stroke:var(--mut);stroke-width:1.6}.dc{fill:none;stroke:var(--ink);stroke-width:1.2}.dct{font-size:6.5px;font-weight:700;fill:var(--ink)}
+.rt{stroke:var(--ink);stroke-width:1.6;stroke-dasharray:200;stroke-dashoffset:200;animation:draw .32s cubic-bezier(.23,1,.32,1) forwards}
+.ring{fill:none;stroke:var(--ink);stroke-width:1.6}.rtl{font-size:6.5px;font-weight:600;fill:var(--ink)}
+.pane{animation:in .2s cubic-bezier(.23,1,.32,1) both}
+@keyframes in{from{opacity:0;transform:translateX(12px)}}
+@keyframes draw{to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){.pane,.rt{animation:none}.rt{stroke-dashoffset:0}}
+.sum{margin:0;padding:0 22px 14px;font-family:var(--serif);font-size:22px;font-weight:500;line-height:1.25}.sum small{display:block;font-family:"IBM Plex Sans",sans-serif;font-size:13px;color:var(--mut);margin-top:4px}
+.search{display:block;margin:0 22px 10px}.search span{position:absolute;left:-9999px}
+.search input{width:100%;min-height:44px;border:0;border-bottom:1px solid var(--ink);padding:0 2px;background:transparent}
+.grp{display:flex;justify-content:space-between;align-items:center;width:100%;min-height:44px;padding:0 22px;border:0;background:transparent;font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
+.row{display:flex;gap:10px;width:100%;padding:12px 22px;border:0;border-top:1px solid var(--line);background:transparent;text-align:left;min-height:56px}
+.row:hover{background:var(--bg)}
+.sh{flex:none;width:14px;height:14px;margin-top:4px}
+.nm{display:block;font-family:var(--serif);font-size:16px;font-weight:500}.rs{display:block;font-size:13px;color:var(--mut)}
+.back{border:0;background:transparent;color:var(--acc);font-weight:600;min-height:44px;padding:0 22px}
+.ttl{margin:0;padding:4px 22px 8px;font-family:var(--serif);font-size:28px;font-weight:500}
+.band{display:inline-flex;align-items:center;gap:6px;margin:0 22px;padding:2px 8px;border:1px solid var(--risk);color:var(--risk);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.story{margin:0;padding:14px 22px 4px;font-family:var(--serif);font-size:18px;line-height:1.4}
+.cap{margin:0;padding:6px 22px 0;font-size:12.5px;color:var(--mut)}
+.bars{display:flex;align-items:flex-end;gap:10px;height:116px;padding:0 22px;margin-top:6px;border-bottom:1px solid var(--ink)}
+.bc{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;font-size:11.5px}
+.bar{width:100%;background:var(--risk);min-height:2px}
+.days{display:flex;gap:10px;padding:2px 22px 0;font-size:11.5px;color:var(--mut)}.days span{flex:1;text-align:center}
+.act{display:block;width:calc(100% - 44px);margin:16px 22px}
+.also{padding:0 22px;font-size:13.5px}.also div{padding:8px 0;border-top:1px solid var(--line)}
+.pn{display:flex;justify-content:space-between;align-items:center;padding:6px 0 0;color:var(--mut);font-size:13px}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--ink)}
+.tab{border:0;background:transparent;min-height:44px;padding:0 14px;color:var(--mut);font-weight:500;border-bottom:3px solid transparent}
+.tab.on{color:var(--ink);font-weight:600;border-bottom-color:var(--ink)}
+.tw{overflow-x:auto;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink)}
+.tbl{width:100%;border-collapse:collapse;min-width:640px}
+.tbl th{font-size:11.5px;text-align:left;color:var(--mut);font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:10px 12px;border-bottom:1px solid var(--ink)}
+.tbl td{padding:12px;border-bottom:1px solid var(--line)}.tbl .n{text-align:right}
+.badge{display:inline-block;padding:1px 8px;font-size:12.5px;font-weight:600}
+.b-r{background:var(--riskbg);color:var(--risk)}.b-o{background:var(--warnbg);color:var(--warn)}.b-g{border:1px solid var(--line);color:var(--ink)}
+.lab{display:block;font-size:13px;font-weight:600;margin-bottom:4px}
+.inp{width:100%;min-height:44px;border:0;border-bottom:1px solid var(--ink);padding:0 2px;background:transparent}
+.fs{border:0;padding:0;margin:16px 0 0}.fs legend{font-size:13px;font-weight:600;padding:0}
+.opt{display:flex;gap:10px;align-items:center;min-height:44px}
+.note{margin:0;font-size:13.5px;color:var(--mut)}
+.xfer{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;padding:12px 0;border-top:1px solid var(--line)}
+.step{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line)}
+.num{flex:none;width:26px;font-family:var(--serif);font-size:18px;color:var(--mut)}
+.big{font-family:var(--serif);font-size:26px;font-weight:500}
+.acts{display:flex;flex-wrap:wrap;gap:10px}
+@container (max-width:760px){.nav{padding:10px 16px 0}.navfoot{display:none}.side{max-width:none;border-right:0}.pg{padding:18px 16px}.top{padding:10px 16px}.fc{margin-left:0}}
+</style>
+</helmet>
+<div class="app">
+<nav class="nav" aria-label="Main">
+<div class="brand"><span class="mark"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 13h4l3-7 5 13 3-6h5"></path></svg></span><span>PantryPulse</span></div>
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="7"><button class="{{n.cls}}" onClick="{{n.go}}">{{n.label}}</button></sc-for>
+<div class="navfoot">Sample data, fictional</div>
+</nav>
+<div class="main">
+<header class="top">
+<button class="pick">Heronfield Market</button>
+<span class="fc">Forecast Nov 14 · next 7 days</span>
+<button class="btn" onClick="{{run}}">{{runLabel}}</button>
+</header>
+
+<sc-if value="{{isOverview}}" hint-placeholder-val="{{true}}">
+<div class="ov">
+<section class="side" aria-label="Sites">
+<sc-if value="{{showList}}" hint-placeholder-val="{{true}}">
+<div class="pane">
+<p class="sum">Three sites need attention this week.<small>Next 7 days · sorted by danger</small></p>
+<label class="search"><span>Search sites or products</span><input type="search" placeholder="Search sites or products"></label>
+<div class="grp"><span>Needs attention</span><span>3</span></div>
+<button class="row" onClick="{{open0}}"><svg class="sh" viewBox="-7 -7 14 14" aria-hidden="true"><path class="mh" d="M0 -6L6 0L0 6L-6 0Z"></path></svg><span><span class="nm">DC, Orlando</span><span class="rs">BEEF-GR · 595 lbs expiring by Nov 15</span></span></button>
+<button class="row" onClick="{{open1}}"><svg class="sh" viewBox="-7 -7 14 14" aria-hidden="true"><path class="mh" d="M0 -6L6 0L0 6L-6 0Z"></path></svg><span><span class="nm">Haines City</span><span class="rs">ICECRM · 18 each short from Nov 15</span></span></button>
+<button class="row" onClick="{{open2}}"><svg class="sh" viewBox="-7 -7 14 14" aria-hidden="true"><path class="mh" d="M0 -6L6 0L0 6L-6 0Z"></path></svg><span><span class="nm">Cocoa</span><span class="rs">JUICE-AP · 16 each short from Nov 15</span></span></button>
+<button class="grp" style="border-top:1px solid var(--line)"><span>Watch</span><span>5 ›</span></button>
+<button class="grp" style="border-top:1px solid var(--line)"><span>OK</span><span>13 ›</span></button>
+</div>
+</sc-if>
+<sc-if value="{{showSite}}" hint-placeholder-val="{{false}}">
+<div class="pane">
+<button class="back" onClick="{{back}}">‹ Back to list</button>
+<h2 class="ttl">{{s.name}}</h2>
+<span class="band"><svg viewBox="-7 -7 14 14" width="11" height="11" aria-hidden="true"><path class="mh" d="M0 -6L6 0L0 6L-6 0Z"></path></svg>High danger</span>
+<p class="story">{{s.story}}</p>
+<p class="cap">{{s.cap}}</p>
+<div class="bars" role="img" aria-label="{{s.cap}}">
+<sc-for list="{{s.bars}}" as="b" hint-placeholder-count="7"><div class="bc"><span>{{b.v}}</span><div class="bar" style="height: {{b.h}}"></div></div></sc-for>
+</div>
+<div class="days" aria-hidden="true"><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span></div>
+<button class="btn act" onClick="{{goRecs}}">See what to do</button>
+<div class="also"><div>{{s.also}}</div><div style="color:var(--acc);font-weight:600">{{s.more}}</div></div>
+<div class="pn"><button class="back" onClick="{{prev}}">‹ Prev</button><span>{{s.pos}}</span><button class="back" onClick="{{next}}">Next ›</button></div>
+</div>
+</sc-if>
+</section>
+<div class="map">
+<svg viewBox="110 60 240 200" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Map of the 21 Heronfield Market sites. The list beside it names every site.">
+<path class="land" d="M60 40 L250 30 L262 52 L300 58 L318 110 L340 170 L352 238 L330 270 L300 262 L282 220 L250 190 L232 150 L200 128 L160 120 L120 96 L72 82 Z"></path>
+<g class="cty"><path d="M150 40 L170 120"></path><path d="M200 34 L210 132"></path><path d="M232 150 L330 140"></path><path d="M250 190 L345 205"></path><path d="M262 52 L240 140"></path><path d="M290 58 L280 150"></path></g>
+<g class="lbl"><text x="186" y="166">Orlando</text><text x="150" y="80">Ocala</text><text x="286" y="238">Melbourne</text></g>
+<circle class="ml" cx="185" cy="105" r="4"></circle><circle class="ml" cx="160" cy="92" r="4"></circle><circle class="ml" cx="300" cy="215" r="4"></circle><circle class="ml" cx="248" cy="168" r="4"></circle><circle class="ml" cx="320" cy="150" r="4"></circle>
+<path class="mk mm" d="M230 117L236 128L224 128Z"></path><path class="mk mm" d="M300 179L306 190L294 190Z"></path>
+<rect class="dc" x="205" y="137" width="18" height="18"></rect><path class="mk mh" d="M214 140L220 146L214 152L208 146Z"></path><text class="dct" x="214" y="165" text-anchor="middle">DC</text>
+<path class="mk mh" d="M275 149L281 155L275 161L269 155Z"></path><path class="mk mh" d="M267 199L273 205L267 211L261 205Z"></path>
+</svg>
+<sc-if value="{{sel0}}" hint-placeholder-val="{{false}}"><svg viewBox="110 60 240 200" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><circle class="ring" cx="214" cy="146" r="15"></circle></svg></sc-if>
+<sc-if value="{{sel1}}" hint-placeholder-val="{{false}}"><svg viewBox="110 60 240 200" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><line class="rt" x1="214" y1="146" x2="275" y2="155"></line><circle class="ring" cx="275" cy="155" r="11"></circle><text class="rtl" x="244" y="144" text-anchor="middle">48 mi · 1 day</text></svg></sc-if>
+<sc-if value="{{sel2}}" hint-placeholder-val="{{false}}"><svg viewBox="110 60 240 200" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><line class="rt" x1="214" y1="146" x2="267" y2="205"></line><circle class="ring" cx="267" cy="205" r="11"></circle><text class="rtl" x="228" y="182" text-anchor="middle">71 mi · 2 days</text></svg></sc-if>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isData}}" hint-placeholder-val="{{false}}">
+<div class="pg">
+<h1 class="h1">Data Explorer</h1>
+<p class="sub">What's on hand at each site. Quantities are never added up across products.</p>
+<div class="tabs"><button class="tab on">Inventory</button><button class="tab">Pulse</button><button class="tab">Operations</button><button class="tab">Inputs</button></div>
+<div class="tw"><table class="tbl">
+<thead><tr><th>Site</th><th>Product</th><th class="n">On hand</th><th>Unit</th><th>Earliest expiry</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>DC, Orlando</td><td>BEEF-GR</td><td class="n">1,240</td><td>lbs</td><td>Nov 15</td><td><span class="badge b-r">Expiring</span></td></tr>
+<tr><td>Haines City</td><td>ICECRM</td><td class="n">6</td><td>each</td><td>Dec 2</td><td><span class="badge b-r">Short</span></td></tr>
+<tr><td>Cocoa</td><td>JUICE-AP</td><td class="n">9</td><td>each</td><td>Nov 28</td><td><span class="badge b-r">Short</span></td></tr>
+<tr><td>Sanford</td><td>MILK-WH</td><td class="n">31</td><td>each</td><td>Nov 21</td><td><span class="badge b-o">Watch</span></td></tr>
+<tr><td>Melbourne</td><td>BREAD-WW</td><td class="n">44</td><td>each</td><td>Nov 19</td><td><span class="badge b-o">Watch</span></td></tr>
+<tr><td>Ocala</td><td>RICE-LG</td><td class="n">210</td><td>lbs</td><td>Mar 2027</td><td><span class="badge b-g">OK</span></td></tr>
+</tbody></table></div>
+</div>
+</sc-if>
+
+<sc-if value="{{isRecs}}" hint-placeholder-val="{{false}}">
+<div class="pg">
+<h1 class="h1">Recommendations</h1>
+<p class="sub">A simulation. Nothing is reserved or dispatched.</p>
+<div class="grid2">
+<div class="card"><h2>Classical GP</h2><div class="big">2 of 3 sites still short</div><p class="note">Solver status: optimal</p></div>
+<div class="card"><h2>EGP-PI inspired</h2><div class="big">1 of 3 sites still short</div><p class="note">Solver status: optimal</p></div>
+</div>
+<div class="card"><h2>Suggested transfers · EGP-PI inspired</h2>
+<div class="xfer"><b>DC, Orlando → Haines City</b><span>24 each ICECRM</span><span class="note">arrives Nov 15 · 48 mi · 1 day</span></div>
+<div class="xfer"><b>DC, Orlando → Cocoa</b><span>20 each JUICE-AP</span><span class="note">arrives Nov 16 · 71 mi · 2 days</span></div>
+<div class="xfer"><b>DC, Orlando → Sanford</b><span>12 each MILK-WH</span><span class="note">arrives Nov 16 · 22 mi · 1 day</span></div>
+</div>
+<div class="acts"><button class="btn">Review decisions</button><button class="btn2">Print</button></div>
+</div>
+</sc-if>
+
+<sc-if value="{{isLab}}" hint-placeholder-val="{{false}}">
+<div class="pg">
+<h1 class="h1">Scenario Lab</h1>
+<p class="sub">Set up a comparison. Each run is saved and frozen.</p>
+<div class="grid2">
+<div class="card"><h2>New scenario</h2>
+<label class="lab" for="sn">Scenario name</label><input class="inp" id="sn" value="Week of Nov 14">
+<fieldset class="fs"><legend>Transfer mode</legend>
+<label class="opt"><input type="radio" name="tm">Hub to sites only</label>
+<label class="opt"><input type="radio" name="tm">Sites may share with each other</label>
+<p class="note">Choose one. There is no default.</p></fieldset>
+<fieldset class="fs"><legend>Methods to compare</legend>
+<label class="opt"><input type="checkbox" checked>Classical GP</label>
+<label class="opt"><input type="checkbox" checked>EGP-PI inspired</label></fieldset>
+<div class="acts" style="margin-top:14px"><button class="btn">Run comparison</button></div>
+</div>
+<div class="card"><h2>Saved scenarios</h2>
+<div class="xfer"><b>Week of Nov 7</b><span class="badge b-g">Optimal</span><span class="note">Hub to sites · frozen Nov 7</span></div>
+<div class="xfer"><b>Holiday surge</b><span class="badge b-o">Feasible, time limit reached</span><span class="note">Sites may share · frozen Nov 10</span></div>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isImport}}" hint-placeholder-val="{{false}}">
+<div class="pg">
+<h1 class="h1">Import data</h1>
+<p class="sub">Bring in your own network from the CSV templates. An import saves everything or nothing.</p>
+<div class="card"><h2>Your files</h2>
+<div class="step"><span class="num">1</span><div><b>locations.csv</b> · 21 rows <span class="badge b-g">Ready</span></div></div>
+<div class="step"><span class="num">2</span><div><b>products.csv</b> · 14 rows <span class="badge b-g">Ready</span></div></div>
+<div class="step"><span class="num">3</span><div><b>inventory.csv</b> · 188 rows <span class="badge b-g">Ready</span></div></div>
+<div class="step"><span class="num">4</span><div><b>demand_history.csv</b> <span class="badge b-r">2 rows need fixing</span><p class="note">Row 412: quantity is blank. Enter a number, or remove the row.</p></div></div>
+<div class="step"><span class="num">5</span><div><b>routes.csv</b> <span class="badge b-g">Optional, not added</span><p class="note">Without it, distances are straight-line estimates.</p></div></div>
+</div>
+<div class="acts"><button class="btn2">Download templates</button><button class="btn2">Check files again</button><button class="btn">Import network</button></div>
+</div>
+</sc-if>
+
+<sc-if value="{{isMethod}}" hint-placeholder-val="{{false}}">
+<div class="pg">
+<h1 class="h1">Methodology</h1>
+<p class="sub">How the numbers are made, in plain words. Placeholder copy for this mockup.</p>
+<div class="card"><h2>Forecasts are projections</h2><p class="note">Each forecast names the model that made it, or the simpler fallback when the model could not run. Missing demand stays missing; it is never shown as zero.</p></div>
+<div class="card"><h2>How transfers are suggested</h2><p class="note">Two methods solve the same problem under the same limits, so their plans can be compared side by side. An independent check verifies each plan.</p></div>
+<div class="card"><h2>What this does not do</h2><p class="note">It does not reserve stock or dispatch trucks. Ranges are not calibrated probabilities.</p></div>
+</div>
+</sc-if>
+
+<sc-if value="{{isSettings}}" hint-placeholder-val="{{false}}">
+<div class="pg">
+<h1 class="h1">Settings</h1>
+<div class="card"><h2>Map</h2><label class="opt"><input type="checkbox">Animate all supply routes</label><p class="note">Off by default. When on, a pause button appears on the map.</p></div>
+<div class="card"><h2>Routes</h2><label class="lab" for="gk">Google Routes key (optional)</label><input class="inp" id="gk" type="password" placeholder="Not set"><p class="note" style="margin-top:6px">Without a key, distances are straight-line estimates.</p></div>
+<div class="card"><h2>Local login</h2><p class="note" style="margin-bottom:10px">This sign-in works on this computer only.</p><button class="btn2">Change password</button></div>
+</div>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":880}}'>
+class Component extends DCLogic {
+renderVals() {
+const st = this.state || {};
+const page = st.page || 'overview';
+const site = typeof st.site === 'number' ? st.site : -1;
+const P = [['overview','Overview'],['data','Data Explorer'],['recs','Recommendations'],['lab','Scenario Lab'],['import','Import data'],['method','Methodology'],['settings','Settings']];
+const go = (p) => () => this.setState({ page: p });
+const open = (i) => () => this.setState({ site: i });
+const bars = (vs, max) => vs.map((v) => ({ v: v ? String(v) : '', h: Math.round((v / max) * 86) + 'px' }));
+const S = [
+{ name: 'DC, Orlando', story: '595 lbs of BEEF-GR will expire unsold by Nov 15.', cap: 'BEEF-GR · lbs expiring per day · projection', bars: bars([0,0,60,140,180,130,85], 180), also: 'CHICK-BR · 120 lbs expiring by Nov 17', more: '9 more products', pos: '1 of 3' },
+{ name: 'Haines City', story: 'Haines City will be 18 each short of ICECRM from Nov 15.', cap: 'ICECRM · each short per day · projection', bars: bars([0,2,3,3,4,3,3], 4), also: 'MILK-WH · 6 each short from Nov 17', more: '11 more products', pos: '2 of 3' },
+{ name: 'Cocoa', story: 'Cocoa will be 16 each short of JUICE-AP from Nov 15.', cap: 'JUICE-AP · each short per day · projection', bars: bars([0,1,2,3,3,4,3], 4), also: 'No other products at risk', more: '12 more products', pos: '3 of 3' }
+];
+const run = () => { if (st.running) return; this.setState({ running: true }); setTimeout(() => this.setState({ running: false }), 2200); };
+return {
+nav: P.map(([k, l]) => ({ label: l, cls: 'ni' + (k === page ? ' on' : ''), go: go(k) })),
+isOverview: page === 'overview', isData: page === 'data', isRecs: page === 'recs', isLab: page === 'lab', isImport: page === 'import', isMethod: page === 'method', isSettings: page === 'settings',
+showList: site < 0, showSite: site >= 0, s: S[site] || S[0],
+sel0: site === 0, sel1: site === 1, sel2: site === 2,
+open0: open(0), open1: open(1), open2: open(2),
+back: () => this.setState({ site: -1 }),
+prev: () => this.setState({ site: (site + 2) % 3 }),
+next: () => this.setState({ site: (site + 1) % 3 }),
+goRecs: go('recs'), run: run, runLabel: st.running ? 'Forecasting…' : 'Run forecast'
+};
+}
+}
+</script>
+</body>
+</html>

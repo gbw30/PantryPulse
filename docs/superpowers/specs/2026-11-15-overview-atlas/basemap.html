@@ -1,0 +1,37 @@
+<style>.bm{border:1px solid #d9ddd6;border-radius:10px;overflow:hidden;background:#f6f7f4;height:240px}</style>
+<svg width="0" height="0" style="position:absolute"><defs>
+ <symbol id="land" viewBox="0 0 400 300"><path d="M60 40 L250 30 L262 52 L300 58 L318 110 L340 170 L352 238 L330 270 L300 262 L282 220 L250 190 L232 150 L200 128 L160 120 L120 96 L72 82 Z" fill="#e7eae3" stroke="#b9bfb4" stroke-width="1.5"/></symbol>
+ <symbol id="dots" viewBox="0 0 400 300">
+  <g><path d="M0 -6 L6 0 L0 6 L-6 0Z" transform="translate(245,140)" fill="#a4473b" stroke="#fff"/><path d="M0 -6 L6 0 L0 6 L-6 0Z" transform="translate(275,155)" fill="#a4473b" stroke="#fff"/><path d="M0 -6 L6 0 L0 6 L-6 0Z" transform="translate(267,205)" fill="#a4473b" stroke="#fff"/><path d="M0 -6 L6 5 L-6 5Z" transform="translate(230,123)" fill="#b7862c" stroke="#fff"/><circle cx="185" cy="105" r="5" fill="#fff" stroke="#5d6b7d" stroke-width="1.8"/><path d="M0 -6 L6 5 L-6 5Z" transform="translate(305,185)" fill="#b7862c" stroke="#fff"/><rect x="208" y="140" width="12" height="12" fill="#1b2a41" stroke="#fff"/></g></symbol>
+</defs></svg>
+<h2>How much should the background map show?</h2>
+<p class="subtitle">Bundled with the app (no online map service, no key, nothing leaves the machine). Markers are identical in all three.</p>
+<div class="cards" style="grid-template-columns:repeat(3,1fr)">
+
+<div class="card" data-choice="B1-outline" onclick="toggleSelect(this)">
+ <div class="card-image" style="padding:10px"><div class="bm"><svg viewBox="40 20 330 270" style="width:100%;height:100%"><use href="#land" width="400" height="300"/><use href="#dots" width="400" height="300"/></svg></div></div>
+ <div class="card-body"><h3>B1 · Land outline only</h3><p>The state/coast shape and the markers. Nothing else.</p>
+ <div class="pros-cons"><div class="pros"><h4>Pros</h4><ul><li>Calmest; markers are the only thing to look at</li><li>Smallest file, simplest to build</li></ul></div><div class="cons"><h4>Cons</h4><ul><li>Hard to tell where you are once zoomed in</li><li>No towns to orient by</li></ul></div></div></div>
+</div>
+
+<div class="card" data-choice="B2-counties-and-cities" onclick="toggleSelect(this)">
+ <div class="card-image" style="padding:10px"><div class="bm"><svg viewBox="40 20 330 270" style="width:100%;height:100%"><use href="#land" width="400" height="300"/>
+  <g stroke="#cfd4ca" stroke-width=".8" fill="none"><path d="M150 40 L170 120"/><path d="M200 34 L210 132"/><path d="M232 150 L330 140"/><path d="M250 190 L345 205"/><path d="M262 52 L240 140"/><path d="M290 58 L280 150"/></g>
+  <g font-size="8" fill="#6f7b88" font-family="IBM Plex Sans,sans-serif"><text x="188" y="160">Orlando</text><text x="226" y="105">Sanford</text><text x="282" y="232">Melbourne</text><text x="150" y="86">Ocala</text></g>
+  <use href="#dots" width="400" height="300"/></svg></div></div>
+ <div class="card-body"><h3>B2 · + county lines and a few city names</h3><p>Faint county borders and major city names that appear as you zoom.</p>
+ <div class="pros-cons"><div class="pros"><h4>Pros</h4><ul><li>Easy to orient: "the stores east of Orlando"</li><li>Still calm; labels are faint and few</li><li>Public-domain data, works offline</li></ul></div><div class="cons"><h4>Cons</h4><ul><li>A bundled data file per US region (a few MB)</li><li>City labels can collide with markers; needs care</li></ul></div></div></div>
+</div>
+
+<div class="card" data-choice="B3-roads" onclick="toggleSelect(this)">
+ <div class="card-image" style="padding:10px"><div class="bm"><svg viewBox="40 20 330 270" style="width:100%;height:100%"><use href="#land" width="400" height="300"/>
+  <g stroke="#cfd4ca" stroke-width=".8" fill="none"><path d="M150 40 L170 120"/><path d="M232 150 L330 140"/><path d="M250 190 L345 205"/></g>
+  <g stroke="#e3c27a" stroke-width="2" fill="none"><path d="M120 60 Q200 120 260 150 T340 240"/><path d="M180 40 L230 300"/><path d="M200 130 L320 120"/></g>
+  <g font-size="8" fill="#6f7b88" font-family="IBM Plex Sans,sans-serif"><text x="188" y="160">Orlando</text><text x="282" y="232">Melbourne</text><text x="150" y="86">Ocala</text></g>
+  <use href="#dots" width="400" height="300"/></svg></div></div>
+ <div class="card-body"><h3>B3 · + major highways</h3><p>Adds interstates and main highways, like a road map.</p>
+ <div class="pros-cons"><div class="pros"><h4>Pros</h4><ul><li>Most familiar, most like Google Maps</li><li>Routes "make sense" next to real roads</li></ul></div><div class="cons"><h4>Cons</h4><ul><li>Busiest; roads compete with markers and routes</li><li>Larger bundled data, more build work</li><li>Our routes are straight-line or Google estimates, not road paths, so they won't follow the roads drawn</li></ul></div></div></div>
+</div>
+
+</div>
+<p style="font-size:13px;color:#555"><b>Recommended:</b> B2. Enough to know where you are, without competing with the danger markers.</p>

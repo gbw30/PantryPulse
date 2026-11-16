@@ -1,0 +1,163 @@
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+.pp{--chalk:#f4f3ee;--surface:#fff;--ink:#1b2a41;--muted:#56657a;--teal:#1f5c57;--risk:#a4473b;--ochre:#b7862c;--blue:#4f6d8f;--line:#e2e3dc;--ease:cubic-bezier(.23,1,.32,1);
+ font-family:"IBM Plex Sans",system-ui,sans-serif;font-variant-numeric:tabular-nums;color:var(--ink);height:480px;display:grid;grid-template-rows:46px 1fr;border-radius:12px;overflow:hidden;border:1px solid var(--line);position:relative;background:var(--chalk);font-size:13px;text-align:left}
+.pp button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+.pp button:focus-visible{outline:2px solid var(--teal);outline-offset:2px;border-radius:4px}
+.pp .bar{display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--surface);border-bottom:1px solid var(--line);z-index:3}
+.pp .brand{font-weight:700;letter-spacing:-.01em}
+.pp .pick{border:1px solid var(--line);border-radius:8px;padding:4px 10px;font-size:12.5px}
+.pp .sample{font-size:11px;color:var(--muted);border:1px dashed #c9cbc2;border-radius:99px;padding:2px 8px}
+.pp .fc{margin-left:auto;font-size:12.5px;color:var(--muted)}
+.pp .run{background:var(--teal);color:#fff!important;border-radius:8px;padding:6px 12px;font-weight:600;font-size:12.5px;transition:background .2s var(--ease)}
+.pp .run[disabled]{background:#5d7f7b;cursor:progress}
+.pp .body{display:grid;grid-template-columns:310px 1fr;min-height:0}
+.pp .side{background:var(--surface);border-right:1px solid var(--line);overflow:auto;position:relative;z-index:2}
+.pp .map{position:relative;min-width:0;overflow:hidden}
+.pp svg.m{width:100%;height:100%;display:block}
+.pp .pane{padding:14px 0}
+.pp .in-r{animation:ppR 200ms var(--ease) both}.pp .in-l{animation:ppL 200ms var(--ease) both}
+@keyframes ppR{from{opacity:0;transform:translateX(14px)}}@keyframes ppL{from{opacity:0;transform:translateX(-14px)}}
+.pp .sum{padding:0 16px 12px;font-size:15px;font-weight:600}.pp .sum small{display:block;font-weight:400;color:var(--muted);font-size:12px;margin-top:2px}
+.pp .tools{display:flex;gap:8px;padding:0 16px 10px}
+.pp .search{flex:1;border:1px solid var(--line);border-radius:99px;padding:6px 12px;color:var(--muted);font-size:12px}
+.pp .sort{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:6px 10px}
+.pp .grp{display:flex;justify-content:space-between;width:100%;padding:10px 16px 6px;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.pp .row{display:flex;gap:10px;width:100%;padding:9px 16px;border-top:1px solid #efefe9;align-items:flex-start;transition:background .15s var(--ease)}
+.pp .row:hover{background:#f6f6f1}
+.pp .row .nm{font-weight:500}.pp .row .sub{color:var(--muted);font-size:12px;margin-top:1px}
+.pp .sh{width:12px;flex:none;margin-top:3px}
+.pp .back{color:var(--teal);font-weight:600;font-size:12.5px;padding:0 16px}
+.pp .ttl{padding:10px 16px 2px;font-size:18px;font-weight:600;letter-spacing:-.01em}
+.pp .band{display:inline-flex;gap:6px;align-items:center;margin:0 16px;font-size:12px;font-weight:600;padding:2px 8px;border-radius:99px}
+.pp .band.h{color:var(--risk);background:#f6e9e6}.pp .band.m{color:#8a6420;background:#f6efdf}
+.pp .story{padding:12px 16px 6px;font-size:14px;line-height:1.45}
+.pp .chart{margin:4px 16px 0}.pp .chart .cap{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-bottom:4px}
+.pp .chart .cap button{color:var(--teal);font-weight:600}
+.pp table.t{width:100%;border-collapse:collapse;font-size:12px}.pp table.t td,.pp table.t th{border-bottom:1px solid #efefe9;padding:3px 4px;text-align:right}.pp table.t th:first-child,.pp table.t td:first-child{text-align:left}
+.pp .act{display:block;margin:12px 16px;background:var(--teal);color:#fff;text-align:center;border-radius:10px;padding:9px;font-weight:600}
+.pp .also{padding:0 16px;font-size:12.5px}.pp .also div{padding:6px 0;border-top:1px solid #efefe9}.pp .also .more{color:var(--teal);font-weight:600;padding-top:6px}
+.pp .pn{display:flex;justify-content:space-between;align-items:center;padding:12px 16px 0;font-size:12.5px;color:var(--muted)}.pp .pn button{color:var(--teal);font-weight:600}
+.pp .note{margin:8px 16px 0;font-size:11.5px;color:var(--muted)}
+.pp .layers{position:absolute;right:12px;top:12px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:12px;box-shadow:0 1px 2px rgba(27,42,65,.06)}
+.pp .zoom{position:absolute;right:12px;bottom:12px;display:grid;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}.pp .zoom span{padding:4px 10px;text-align:center;border-top:1px solid var(--line)}.pp .zoom span:first-child{border:0}
+.pp .ring{transform-box:fill-box;transform-origin:center;animation:ppRing 700ms var(--ease) 1 both}
+@keyframes ppRing{from{opacity:.9;transform:scale(.6)}to{opacity:0;transform:scale(2.2)}}
+.pp .rt{stroke-dasharray:200;stroke-dashoffset:200;animation:ppDraw 320ms var(--ease) forwards}@keyframes ppDraw{to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){.pp *{animation:none!important;transition:none!important}.pp .rt{stroke-dashoffset:0}}
+
+/* V2 editorial */
+.pp.ed{--chalk:#f3f1ea;--surface:#fbfaf6;--line:#e6e3d9}
+.pp.ed .brand,.pp.ed .ttl,.pp.ed .sum,.pp.ed .story{font-family:"IBM Plex Serif",Georgia,serif}
+.pp.ed .ttl{font-size:21px;font-weight:500}.pp.ed .sum{font-size:17px;font-weight:500}.pp.ed .story{font-size:15px}
+.pp.ed .grp{letter-spacing:.14em;font-size:10.5px;padding-top:16px}
+.pp.ed .row{border-top:0;padding:10px 16px}.pp.ed .row+.row{box-shadow:inset 0 1px 0 #ecebe3}
+.pp.ed .search,.pp.ed .sort,.pp.ed .pick{border-radius:6px}
+.pp.ed .act{border-radius:6px}
+/* V3 floating */
+.pp.fl{grid-template-rows:1fr}
+.pp.fl .bar{position:absolute;left:334px;right:12px;top:12px;height:44px;border:1px solid var(--line);border-radius:12px;box-shadow:0 4px 18px rgba(27,42,65,.08)}
+.pp.fl .body{grid-template-columns:1fr;position:absolute;inset:0}
+.pp.fl .side{position:absolute;left:12px;top:12px;bottom:12px;width:310px;border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 28px rgba(27,42,65,.12)}
+.pp.fl .map{position:absolute;inset:0}
+.pp.fl .layers{top:68px}
+</style>
+
+<h2>The chosen design, three levels of polish</h2>
+<p class="subtitle">Same layout and decisions (list + big map, site replaces list, story + chart, routes only for the picked site, summary on top, Run forecast in the bar, county lines + cities). Only the finish changes. <b>Click a row or a marker</b>, then Back, Prev/Next, "Show as table" and Run forecast. Brand colors and IBM Plex throughout; transitions are 200 ms on the app's existing curve and turn instant under reduced motion.</p>
+
+<div class="cards" style="grid-template-columns:1fr">
+
+<div class="card" data-choice="V1-refined-desk" onclick="toggleSelect(this)">
+ <div class="card-image" style="padding:12px"><div class="pp" data-v></div></div>
+ <div class="card-body"><h3>V1 · Refined desk</h3><p>Today's brand, decluttered: white sidebar, chalk map, hairline rules, teal used only for selection and actions.</p>
+ <div class="pros-cons"><div class="pros"><h4>Pros</h4><ul><li>Closest to what's built: least rework, lowest risk before the W6 candidate</li><li>Most legible at 1280×720; plain sans everywhere</li><li>Consistent with Import, Decisions and Settings screens</li></ul></div><div class="cons"><h4>Cons</h4><ul><li>The least "premium"; reads as a good tool rather than a crafted one</li><li>Boxy sidebar edge competes slightly with the map</li></ul></div></div></div>
+</div>
+
+<div class="card" data-choice="V2-editorial" onclick="toggleSelect(this)">
+ <div class="card-image" style="padding:12px"><div class="pp ed" data-v></div></div>
+ <div class="card-body"><h3>V2 · Editorial</h3><p>The premium-gallery move: IBM Plex <i>Serif</i> for the headline, site name and story sentence; warm paper tones; wide-tracked small caps for group labels; fewer lines, more air.</p>
+ <div class="pros-cons"><div class="pros"><h4>Pros</h4><ul><li>Feels calm and considered, like a briefing, which fits "story first"</li><li>Same type family (Plex), so the brand stays intact</li><li>Small change to build: fonts, spacing, a few tokens</li></ul></div><div class="cons"><h4>Cons</h4><ul><li>The serif must then appear elsewhere too, or Overview looks like a different app</li><li>Serif at small sizes reads slower; kept to headings and the one sentence only</li><li>Changes ART-DIRECTION (a recorded decision)</li></ul></div></div></div>
+</div>
+
+<div class="card" data-choice="V3-floating" onclick="toggleSelect(this)">
+ <div class="card-image" style="padding:12px"><div class="pp fl" data-v></div></div>
+ <div class="card-body"><h3>V3 · Floating panels</h3><p>The map runs edge to edge; the list and the top bar float above it as soft rounded cards (the Apple/Google Maps look).</p>
+ <div class="pros-cons"><div class="pros"><h4>Pros</h4><ul><li>The most "app-like" and immersive; the map is the whole screen</li><li>The most familiar to people who use maps apps daily</li></ul></div><div class="cons"><h4>Cons</h4><ul><li>The card covers part of the map, so markers can hide under it; fitting the view must avoid the card</li><li>Shadows and overlap cost more build and test work (focus, axe, 390 px)</li><li>Departs most from the other screens</li></ul></div></div></div>
+</div>
+
+</div>
+<p style="font-size:13px;color:#555"><b>Recommended:</b> V2's type and tones on V1's structure. The serif for the headline, site name and story sentence gives the premium feel the galleries share, at a small build cost, without the hidden-markers risk of V3. It would need a one-line ART-DIRECTION amendment, which is your call.</p>
+
+<script>
+(function(){
+const DC={x:214,y:146};
+const S=[
+ {n:"DC — Orlando",b:"h",x:214,y:146,dc:1,p:"BEEF-GR",u:"lbs",k:"expiring",d:"by Nov 15",line:"BEEF-GR · 595 lbs expiring by Nov 15",story:"595 lbs of BEEF-GR will expire unsold by Nov 15.",v:[0,0,60,140,180,130,85],also:["CHICK-BR · 120 lbs expiring by Nov 17","YOGRT-PL · 40 each expiring by Nov 18"],more:9},
+ {n:"Haines City",b:"h",x:275,y:155,p:"ICECRM",u:"each",k:"short",d:"from Nov 15",line:"ICECRM · 18 each short from Nov 15",story:"Haines City will be 18 each short of ICECRM from Nov 15.",v:[0,2,3,3,4,3,3],also:["MILK-WH · 6 each short from Nov 17"],more:11,r:"48 mi · 1 day"},
+ {n:"Cocoa",b:"h",x:267,y:205,p:"JUICE-AP",u:"each",k:"short",d:"from Nov 15",line:"JUICE-AP · 16 each short from Nov 15",story:"Cocoa will be 16 each short of JUICE-AP from Nov 15.",v:[0,1,2,3,3,4,3],also:[],more:12,r:"71 mi · 2 days"},
+ {n:"Sanford",b:"m",x:230,y:123,p:"MILK-WH",u:"each",k:"short",d:"from Nov 17",line:"MILK-WH · 9 each short from Nov 17",story:"Sanford will be 9 each short of MILK-WH from Nov 17.",v:[0,0,0,0,2,3,4],also:[],more:12,r:"22 mi · 1 day"},
+ {n:"Melbourne",b:"m",x:300,y:185,p:"BREAD-WW",u:"each",k:"short",d:"from Nov 18",line:"BREAD-WW · 12 each short from Nov 18",story:"Melbourne will be 12 each short of BREAD-WW from Nov 18.",v:[0,0,0,0,0,5,7],also:[],more:12,r:"64 mi · 2 days"}];
+const OK=[[185,105],[160,92],[300,215],[248,168],[205,175],[320,150]];
+const DAYS=["13","14","15","16","17","18","19"];
+const RM=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const shape=(b,x,y,s)=>b==="h"?`<path d="M${x} ${y-s}L${x+s} ${y}L${x} ${y+s}L${x-s} ${y}Z" fill="#a4473b" stroke="#fff" stroke-width="1.4"/>`:b==="m"?`<path d="M${x} ${y-s}L${x+s} ${y+s*.8}L${x-s} ${y+s*.8}Z" fill="#b7862c" stroke="#fff" stroke-width="1.4"/>`:`<circle cx="${x}" cy="${y}" r="${s*.75}" fill="#fff" stroke="#56657a" stroke-width="1.6"/>`;
+const ico=b=>`<svg class="sh" viewBox="-7 -7 14 14">${shape(b,0,0,6)}</svg>`;
+const BASE=[40,20,330,270];
+function mount(root){
+ let sel=-1,tbl=false,vb=BASE.slice(),watch=false;
+ root.innerHTML=`<div class="bar"><span class="brand">PantryPulse</span><span class="pick">Heronfield Market ▾</span><span class="sample">Sample data — fictional</span><span class="fc">Forecast Nov 14 · next 7 days</span><button class="run">Run forecast</button></div>
+ <div class="body"><div class="side"></div><div class="map"><svg class="m" viewBox="${BASE.join(" ")}" preserveAspectRatio="xMidYMid meet"></svg><div class="layers">Layers ▾</div><div class="zoom"><span>＋</span><span>−</span><span title="Fit all">⤢</span></div></div></div>`;
+ const side=root.querySelector(".side"),svg=root.querySelector("svg.m"),run=root.querySelector(".run");
+ run.onclick=e=>{e.stopPropagation();run.disabled=true;run.textContent="Forecasting…";setTimeout(()=>{run.disabled=false;run.textContent="Run forecast"},2200)};
+ root.addEventListener("click",e=>e.stopPropagation());
+ function drawMap(){
+  let h=`<path d="M60 40 L250 30 L262 52 L300 58 L318 110 L340 170 L352 238 L330 270 L300 262 L282 220 L250 190 L232 150 L200 128 L160 120 L120 96 L72 82 Z" fill="#e9e8e0" stroke="#c4c3b8" stroke-width="1.2"/>
+  <g stroke="#d6d5cb" stroke-width=".7" fill="none"><path d="M150 40 L170 120"/><path d="M200 34 L210 132"/><path d="M232 150 L330 140"/><path d="M250 190 L345 205"/><path d="M262 52 L240 140"/><path d="M290 58 L280 150"/></g>
+  <g font-size="7" fill="#7b8794" font-family="IBM Plex Sans" letter-spacing=".3"><text x="186" y="164">Orlando</text><text x="150" y="80">Ocala</text><text x="286" y="236">Melbourne</text></g>`;
+  if(sel>0){const s=S[sel];h+=`<line class="rt" x1="${DC.x}" y1="${DC.y}" x2="${s.x}" y2="${s.y}" stroke="#1f5c57" stroke-width="1.8"/><text x="${(DC.x+s.x)/2}" y="${(DC.y+s.y)/2-4}" font-size="6.5" font-weight="600" fill="#1f5c57" text-anchor="middle">${s.r}</text>`}
+  const f=i=>sel>=0&&sel!==i?' opacity=".45"':"";
+  OK.forEach(([x,y])=>h+=`<g${sel>=0?' opacity=".45"':""}>${shape("l",x,y,5)}</g>`);
+  S.forEach((s,i)=>{const z=sel===i?7.5:5.5;h+=`<g data-i="${i}" style="cursor:pointer"${f(i)}>${s.dc?`<rect x="${s.x-z-2}" y="${s.y-z-2}" width="${2*z+4}" height="${2*z+4}" rx="2" fill="none" stroke="#1b2a41" stroke-width="1.2"/>`:""}${shape(s.b,s.x,s.y,z)}</g>`;
+   if(sel===i)h+=`<circle class="ring" cx="${s.x}" cy="${s.y}" r="9" fill="none" stroke="#1f5c57" stroke-width="1.6"/>`;
+   if(s.dc)h+=`<text x="${s.x}" y="${s.y+16}" font-size="6.5" font-weight="700" fill="#1b2a41" text-anchor="middle">DC</text>`});
+  svg.innerHTML=h;
+  svg.querySelectorAll("g[data-i]").forEach(g=>g.onclick=()=>open(+g.dataset.i,"r"));
+ }
+ function fly(to){const from=vb.slice();if(RM){vb=to;svg.setAttribute("viewBox",vb.join(" "));return}
+  const t0=performance.now(),D=420;(function step(t){const k=Math.min(1,(t-t0)/D),e=1-Math.pow(1-k,4);vb=from.map((v,i)=>v+(to[i]-v)*e);svg.setAttribute("viewBox",vb.join(" "));if(k<1)requestAnimationFrame(step)})(t0)}
+ function list(dir){
+  const need=S.filter(s=>s.b==="h"),wat=S.filter(s=>s.b==="m");
+  const row=s=>`<button class="row" data-i="${S.indexOf(s)}">${ico(s.b)}<span><div class="nm">${s.n}</div><div class="sub">${s.line}</div></span></button>`;
+  side.innerHTML=`<div class="pane ${dir?"in-"+dir:""}"><div class="sum">3 sites need attention<small>next 7 days · sorted by danger</small></div>
+  <div class="tools"><span class="search">Search sites or products</span><span class="sort">Danger ▾</span></div>
+  <div class="grp"><span>Needs attention</span><span style="color:#a4473b">3</span></div>${need.map(row).join("")}
+  <button class="grp" data-w>${"<span>Watch</span><span style='color:#8a6420'>"+(watch?"2 ▾":"2 ▸")+"</span>"}</button>${watch?wat.map(row).join(""):""}
+  <div class="grp"><span>OK</span><span>13 ▸</span></div></div>`;
+  side.querySelectorAll(".row").forEach(b=>b.onclick=()=>open(+b.dataset.i,"r"));
+  side.querySelector("[data-w]").onclick=()=>{watch=!watch;list()};
+ }
+ function chart(s){const mx=Math.max(...s.v,1),c=s.b==="h"?"#a4473b":"#b7862c";
+  if(tbl)return `<table class="t"><tr><th>Nov</th>${DAYS.map(d=>"<th>"+d+"</th>").join("")}</tr><tr><td>${s.k} (${s.u})</td>${s.v.map(v=>"<td>"+v+"</td>").join("")}</tr></table>`;
+  return `<svg viewBox="0 0 280 92" width="100%" role="img" aria-label="${s.p} projected ${s.k}, ${s.u} per day">${s.v.map((v,i)=>{const h=v/mx*62;return `<rect x="${8+i*39}" y="${70-h}" width="26" height="${Math.max(h,1)}" rx="3" fill="${v?c:"#d9d8cf"}"><title>Nov ${DAYS[i]}: ${v} ${s.u}</title></rect><text x="${21+i*39}" y="84" font-size="9" fill="#56657a" text-anchor="middle">${DAYS[i]}</text>${v?`<text x="${21+i*39}" y="${66-h}" font-size="8.5" fill="#1b2a41" text-anchor="middle">${v}</text>`:""}`}).join("")}<line x1="0" x2="280" y1="70.5" y2="70.5" stroke="#cfcec4"/></svg>`}
+ function open(i,dir){sel=i;const s=S[i];
+  side.innerHTML=`<div class="pane in-${dir}"><button class="back">← Back to list</button>
+  <div class="ttl">${s.n}</div><span class="band ${s.b}">${ico(s.b)}${s.b==="h"?"High danger":"Watch"}</span>
+  <div class="story">${s.story}</div>
+  <div class="chart"><div class="cap"><span>${s.p} · ${s.u} ${s.k} · next 7 days (projection)</span><button class="tg">${tbl?"Show as chart":"Show as table"}</button></div>${chart(s)}</div>
+  <button class="act">See what to do →</button>
+  <div class="also">${s.also.map(a=>"<div>"+a+"</div>").join("")}<button class="more">${s.more} more products ▸</button></div>
+  ${s.dc?'<div class="note">A DC has no sales; stock it doesn\'t send out counts as expiring.</div>':""}
+  <div class="pn"><button class="pv">‹ Prev</button><span>${i+1} of ${S.length}</span><button class="nx">Next ›</button></div></div>`;
+  side.querySelector(".back").onclick=()=>{sel=-1;list("l");drawMap();fly(BASE)};
+  side.querySelector(".tg").onclick=()=>{tbl=!tbl;open(i,"")};
+  side.querySelector(".pv").onclick=()=>open((i+S.length-1)%S.length,"l");
+  side.querySelector(".nx").onclick=()=>open((i+1)%S.length,"r");
+  drawMap();if(dir)fly([s.x-75,s.y-60,150,120]);
+ }
+ list();drawMap();
+}
+document.querySelectorAll(".pp[data-v]").forEach(mount);
+})();
+</script>
